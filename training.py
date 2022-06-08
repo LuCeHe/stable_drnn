@@ -62,7 +62,7 @@ def config():
 
     # optimizer properties
     lr = None  # 7e-4
-    optimizer_name = 'SWAAdaBelief'  # AdaBelief AdamW SWAAdaBelief
+    optimizer_name = 'SGD'  # AdaBelief AdamW SWAAdaBelief
     lr_schedule = ''  # 'warmup_cosine_restarts'
     weight_decay_prop_lr = None
     weight_decay = .01 if not 'mnist' in task_name else 0.  # weight_decay_prop_lr * lr
