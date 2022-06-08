@@ -16,21 +16,22 @@ class baseLSNN(tf.keras.layers.Layer):
         return dict(list(base_config.items()) + list(self.init_args.items()))
 
     def __init__(self, num_neurons=None, tau=20., beta=1.8, tau_adaptation=20,
-                 dampening=.3, sharpness=1., ref_period=-1, thr=1., inh_exc=1.,
-                 n_regular=0, internal_current=0, initializer='orthogonal',
+                 ref_period=-1, thr=1., n_regular=0, internal_current=0, initializer='orthogonal',
                  config='', v_eq=0,
                  **kwargs):
         super().__init__(**kwargs)
 
         ref_period = str2val(config, 'refp', float, default=ref_period)
-        dampening = str2val(config, 'dampening', float, default=dampening)
-        sharpness = str2val(config, 'sharpness', float, default=sharpness)
+        dampening = str2val(config, 'dampening', float, default=.3)
+        sharpness = str2val(config, 'sharpness', float, default=1.)
         self.init_args = dict(
             num_neurons=num_neurons, tau=tau, tau_adaptation=tau_adaptation,
             ref_period=ref_period, n_regular=n_regular, thr=thr,
-            dampening=dampening, sharpness=sharpness, beta=beta, inh_exc=inh_exc, v_eq=v_eq,
+            dampening=dampening, sharpness=sharpness, beta=beta, v_eq=v_eq,
             internal_current=internal_current, initializer=initializer, config=config)
         self.__dict__.update(self.init_args)
+        print('inside!')
+        print(config)
 
         self.state_size = (num_neurons, num_neurons, num_neurons, num_neurons)
         self.mask = tf.ones((self.num_neurons, self.num_neurons)) - tf.eye(self.num_neurons)
@@ -137,9 +138,6 @@ class baseLSNN(tf.keras.layers.Layer):
         return output, new_state
 
 
-LSNN = baseLSNN
-
-
 class aLSNN(baseLSNN):
     """
     LSNN where all parameters can be learned
@@ -171,3 +169,6 @@ class aLSNN(baseLSNN):
         super().build(input_shape)
 
         self._beta = self.beta
+
+
+LSNN = baseLSNN

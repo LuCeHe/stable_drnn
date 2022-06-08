@@ -51,7 +51,7 @@ def config():
 
     # net
     # mn_aLSNN_2 mn_aLSNN_2_sig LSNN maLSNN spikingPerformer smallGPT2 aLSNN_noIC spikingLSTM
-    net_name = 'maLSNN'
+    net_name = 'aLSNN'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
     n_neurons = None
     sLSTM_factor = 2 / 3 if task_name == 'wordptb' else 1 / 3
@@ -190,7 +190,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
         history_df = pd.read_csv(history_path)
 
         actual_epochs = history_df['epoch'].iloc[-1] + 1
-        results['accumulated_epochs'] = str(int(results['accumulated_epochs']) + int(actual_epochs))
+        # results['accumulated_epochs'] = str(int(results['accumulated_epochs']) + int(actual_epochs))
         history_dict = {k: history_df[k].tolist() for k in history_df.columns.tolist()}
 
         plot_filename = os.path.join(*[images_dir, 'history.png'])

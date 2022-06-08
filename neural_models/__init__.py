@@ -1,5 +1,5 @@
 import sys
-from stochastic_spiking.neural_models.lsnn import *
+from alif_sg.neural_models.lsnn import *
 
 thismodule = sys.modules[__name__]
 

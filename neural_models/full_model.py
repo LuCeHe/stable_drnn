@@ -61,6 +61,7 @@ def Expert(i, j, stateful, task_name, net_name, n_neurons, tau, initializer,
         skipped_connection_input, output_words = inputs
         skipped_connection_input = win(skipped_connection_input)
         if 'LSNN' in net_name:
+            print(skipped_connection_input.shape)
             b, v, thr, v_sc = rnn(inputs=skipped_connection_input)
 
             if 'regularize' in comments:
@@ -151,7 +152,7 @@ def build_model(task_name, net_name, n_neurons, tau, n_dt_per_step, neutral_phas
 
     for i, layer_width in enumerate(stack):
         rnn_input = [rnn_input] if not isinstance(rnn_input, list) else rnn_input
-        rnn_input = Dropout(drate)(rnn_input)
+        rnn_input = Dropout(drate)(rnn_input[0])
 
         if i == 0:
             if not embedding is False:
