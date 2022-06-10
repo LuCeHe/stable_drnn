@@ -124,7 +124,6 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
     timerepeat = str2val(comments, 'timerepeat', int, default=1)
     maxlen = str2val(comments, 'maxlen', int, default=100)
     comments = str2val(comments, 'maxlen', int, default=maxlen, replace=maxlen)
-    comments += '_batchsize:' + str(batch_size)
 
     # task definition
     gen_train = Task(timerepeat=timerepeat, epochs=epochs, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
@@ -132,6 +131,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
     gen_val = Task(timerepeat=timerepeat, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
                    name=task_name, train_val_test='val', maxlen=maxlen, comments=comments, lr=lr)
 
+    comments += '_batchsize:' + str(gen_train.batch_size)
     final_epochs = gen_train.epochs
     final_steps_per_epoch = gen_train.steps_per_epoch
     tau_adaptation = str2val(comments, 'taub', float, default=int(gen_train.in_len / 2))

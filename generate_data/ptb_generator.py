@@ -62,12 +62,12 @@ class PTBGenerator(BaseGenerator):
         else:
             raise NotImplementedError
 
+        self.batch_size = batch_size if not batch_size is None else 32
         self.on_epoch_end()
 
         self.in_dim = 1
         self.out_dim = self.vocab_size
 
-        self.batch_size = batch_size if not batch_size is None else 32
         self.lr = lr if not lr is None else 1e-4
 
         self.postprocess = lambda x: tf.keras.utils.to_categorical(x, num_classes=self.vocab_size) \
