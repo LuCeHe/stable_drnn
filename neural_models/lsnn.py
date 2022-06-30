@@ -150,25 +150,48 @@ class aLSNN(baseLSNN):
                                if k in ['tau_adaptation', 'thr', 'beta', 'tau']}
 
         for k, p in parameter2trainable.items():
-            initializer = tf.keras.initializers.TruncatedNormal(mean=p, stddev=3 * p / 7)
+            # initializer = tf.keras.initializers.TruncatedNormal(mean=p, stddev=3 * p / 7)
             initializer = tf.keras.initializers.Constant(value=p)
             p = self.add_weight(shape=(self.num_neurons,), initializer=initializer, name=k, trainable=True)
             self.__dict__.update({k: p})
 
+        super().build(input_shape)
+
         if 'LSC' in self.config:
-            # initializer = tf.keras.initializers.TruncatedNormal(mean=1, stddev=3 * 1 / 7)
-            # initializer = tf.keras.initializers.Constant(value=1)
-            # print(tf.maximum(initializer), tf.minimum(initializer))
-            # decay_a = tf.exp(-1 / self.tau_adaptation)
-            tau = -1 / tf.math.log(1 / 3)
-            # tau = -1 / tf.math.log(.86)
+            alpha_v = .92  # 1/3 .86
+            tau = -1 / tf.math.log(alpha_v)
             print(tau)
             self.tau = self.add_weight(shape=(self.num_neurons,), initializer=tf.keras.initializers.Constant(value=tau),
                                        name='tau', trainable=True)
 
-        super().build(input_shape)
+            alpha_a = .92  # 1/3 .86
+            tau_adaptation = -1 / tf.math.log(alpha_a)
+            self.tau_adaptation = self.add_weight(shape=(self.num_neurons,),
+                                                  initializer=tf.keras.initializers.Constant(value=tau_adaptation),
+                                                  name='tau_adaptation', trainable=True)
+
+            abs_var_in = tf.reduce_mean(tf.abs(self.input_weights))
+            self.dampening = 1 / abs_var_in / 2 / n_input
+
+            # beta = 1 / self.dampening
+            beta = str2val(self.config, 'beta', float, default=1 / self.dampening)
+            self.beta = self.add_weight(shape=(self.num_neurons,),
+                                        initializer=tf.keras.initializers.Constant(value=beta),
+                                        name='beta', trainable=True)
+
+            thr = (1 - alpha_a) / self.dampening
+            self.thr = self.add_weight(shape=(self.num_neurons,), initializer=tf.keras.initializers.Constant(value=thr),
+                                       name='thr', trainable=True)
+
+            abs_var_rec = tf.reduce_mean(tf.abs(self.recurrent_weights))
+            self.recurrent_weights = self.recurrent_weights / abs_var_rec * abs_var_in \
+                                     * n_input / (self.num_neurons - 1)
+            print(self.dampening, beta, alpha_a, alpha_v, thr)
 
         self._beta = self.beta
+        dampening = str2val(self.config, 'dampening', float, default=self.dampening)
+
+        self.spike_type = SurrogatedStep(config=self.config, dampening=dampening, sharpness=self.sharpness)
 
 
 LSNN = baseLSNN

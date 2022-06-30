@@ -35,7 +35,7 @@ def config():
     # optimizer properties
 
     loss_name = 'mse'  # categorical_crossentropy categorical_focal_loss contrastive_loss
-    initializer = 'glorot_uniform'  # uniform glorot_uniform orthogonal glorot_normal NoZeroGlorot
+    initializer = 'he_normal'  # uniform glorot_uniform orthogonal glorot_normal NoZeroGlorot
 
     save_model = False
 
