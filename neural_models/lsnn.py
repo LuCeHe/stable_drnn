@@ -30,8 +30,6 @@ class baseLSNN(tf.keras.layers.Layer):
             dampening=dampening, sharpness=sharpness, beta=beta, v_eq=v_eq,
             internal_current=internal_current, initializer=initializer, config=config)
         self.__dict__.update(self.init_args)
-        print('inside!')
-        print(config)
 
         self.state_size = (num_neurons, num_neurons, num_neurons, num_neurons)
         self.mask = tf.ones((self.num_neurons, self.num_neurons)) - tf.eye(self.num_neurons)
@@ -160,7 +158,7 @@ class aLSNN(baseLSNN):
         if 'LSC' in self.config:
             alpha_v = .92  # 1/3 .86
             tau = -1 / tf.math.log(alpha_v)
-            print(tau)
+            # print(tau)
             self.tau = self.add_weight(shape=(self.num_neurons,), initializer=tf.keras.initializers.Constant(value=tau),
                                        name='tau', trainable=True)
 
@@ -186,7 +184,7 @@ class aLSNN(baseLSNN):
             abs_var_rec = tf.reduce_mean(tf.abs(self.recurrent_weights))
             self.recurrent_weights = self.recurrent_weights / abs_var_rec * abs_var_in \
                                      * n_input / (self.num_neurons - 1)
-            print(self.dampening, beta, alpha_a, alpha_v, thr)
+            # print(self.dampening, beta, alpha_a, alpha_v, thr)
 
         self._beta = self.beta
         dampening = str2val(self.config, 'dampening', float, default=self.dampening)
