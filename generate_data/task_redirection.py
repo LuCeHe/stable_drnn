@@ -1,5 +1,6 @@
 import os
 from alif_sg.generate_data.heidelberg_generator import SpokenHeidelbergDigits
+from alif_sg.generate_data.mnist_generators import SeqMNIST
 from alif_sg.generate_data.ptb_generator import PTBGenerator
 
 FILENAME = os.path.realpath(__file__)
@@ -59,7 +60,15 @@ def Task(timerepeat=1, batch_size=64, steps_per_epoch=None, epochs=1, name='time
             steps_per_epoch=steps_per_epoch,
             repetitions=timerepeat,
             lr=lr)
-
+    elif name == 'sl_mnist':
+        gen = SeqMNIST(
+            epochs=epochs,
+            batch_size=batch_size,
+            tvt=train_val_test,
+            steps_per_epoch=steps_per_epoch,
+            repetitions=timerepeat,
+            permuted=False,
+            spike_latency=True)
     else:
         raise NotImplementedError
 
