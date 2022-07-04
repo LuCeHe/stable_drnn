@@ -13,9 +13,12 @@ GEXPERIMENTS = os.path.join(CDIR, 'good_experiments')
 CSVPATH = os.path.join(EXPERIMENTS, 'summary.h5')
 HSITORIESPATH = os.path.join(EXPERIMENTS, 'histories.json')
 
-plot_lsc_vs_naive = False
-plot_betas = False
+plot_lsc_vs_naive = True
+plot_betas = True
 plot_dampenings = True
+
+task_name = 'heidelberg'  # heidelberg wordptb sl_mnist
+metric = 'sparse_categorical_crossentropy'  # sparse_mode_accuracy sparse_categorical_crossentropy bpc
 
 if not os.path.exists(CSVPATH):
 
@@ -65,9 +68,7 @@ else:
 print(df.to_string())
 
 if plot_lsc_vs_naive:
-    task_name = 'wordptb'  # heidelberg wordptb
-    metric = 'bpc'  # sparse_mode_accuracy sparse_categorical_crossentropy bpc
-    idf = df[df['optimizer_name'].str.contains('SWAAdaBelief')]
+    idf = df[df['optimizer_name'].str.contains('SGD')] # SWAAdaBelief
     idf = idf[idf['task_name'].str.contains(task_name)]
 
     colors = {
@@ -84,15 +85,14 @@ if plot_lsc_vs_naive:
         for (_, row), c in zip(iidf.iterrows(), colors[comment]):
             d = row['d']
             h = histories[d][metric]
-            axs.plot(h, color=c)
+            axs.plot(h, color=c, label=comment)
 
     axs.set_title(task_name)
+    axs.set_ylabel(metric)
+    plt.legend()
     plt.show()
 
 if plot_betas:
-    task_name = 'wordptb'  # heidelberg wordptb
-    metric = 'bpc'  # sparse_mode_accuracy sparse_categorical_crossentropy bpc
-    # idf = df[df['optimizer_name'].str.contains('SWAAdaBelief')]
     idf = df[df['task_name'].str.contains(task_name)]
     iidf = idf[idf['comments'].str.contains('LSC_beta')]  # cdr gra blg
 
@@ -125,9 +125,6 @@ if plot_betas:
 
 
 if plot_dampenings:
-    task_name = 'wordptb'  # heidelberg wordptb
-    metric = 'bpc'  # sparse_mode_accuracy sparse_categorical_crossentropy bpc
-    # idf = df[df['optimizer_name'].str.contains('SWAAdaBelief')]
     idf = df[df['task_name'].str.contains(task_name)]
     iidf = idf[idf['comments'].str.contains('LSC_dampening')]  # cdr gra blg
 
