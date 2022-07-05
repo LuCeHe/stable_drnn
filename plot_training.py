@@ -14,11 +14,13 @@ CSVPATH = os.path.join(EXPERIMENTS, 'summary.h5')
 HSITORIESPATH = os.path.join(EXPERIMENTS, 'histories.json')
 
 plot_lsc_vs_naive = True
-plot_betas = True
-plot_dampenings = True
+plot_betas = False
+plot_dampenings = False
 
 task_name = 'heidelberg'  # heidelberg wordptb sl_mnist
-metric = 'sparse_categorical_crossentropy'  # sparse_mode_accuracy sparse_categorical_crossentropy bpc
+metric = 'sparse_mode_accuracy'  # sparse_mode_accuracy sparse_categorical_crossentropy bpc
+optimizer_name = 'SWAAdaBelief'  # SGD SWAAdaBelief
+metrics_oi = ['val_sparse_mode_accuracy', 'bpc', 'val_sparse_categorical_crossentropy']
 
 if not os.path.exists(CSVPATH):
 
@@ -68,7 +70,7 @@ else:
 print(df.to_string())
 
 if plot_lsc_vs_naive:
-    idf = df[df['optimizer_name'].str.contains('SGD')] # SWAAdaBelief
+    idf = df[df['optimizer_name'].str.contains(optimizer_name)]
     idf = idf[idf['task_name'].str.contains(task_name)]
 
     colors = {
@@ -94,63 +96,121 @@ if plot_lsc_vs_naive:
 
 if plot_betas:
     idf = df[df['task_name'].str.contains(task_name)]
+    idf = idf[idf['optimizer_name'].str.contains(optimizer_name)]
     iidf = idf[idf['comments'].str.contains('LSC_beta')]  # cdr gra blg
+    iidf['betas'] = iidf['comments'].str.replace('LSC_beta:', '').values.astype(float)
+    iidf = iidf.sort_values(by='betas')
 
-    metrics_oi = ['val_sparse_mode_accuracy', 'bpc', 'val_sparse_categorical_crossentropy']
+    colors = [plt.cm.Greens(x / (len(iidf) + 1)) for x in range(1, len(iidf) + 1)]
+
+    fig, axs = plt.subplots(1, 1, figsize=(10, 5))
+    for (_, row), c in zip(iidf.iterrows(), colors):
+        d = row['d']
+        h = histories[d][metric]
+        axs.plot(h, color=c, label=row['betas'])
+
+    axs.set_title(task_name)
+    axs.set_ylabel(metric)
+    plt.legend()
+    plt.show()
 
     mdf = iidf.groupby(
-        ['net_name', 'task_name', 'initializer', 'comments'], as_index=False
+        ['net_name', 'task_name', 'initializer', 'betas'], as_index=False
     ).agg({m: ['mean', 'std'] for m in metrics_oi})
 
-    for metric in metrics_oi:
-        mdf['mean_{}'.format(metric)] = mdf[metric]['mean']
-        mdf['std_{}'.format(metric)] = mdf[metric]['std']
-        mdf = mdf.drop([metric], axis=1)
+    for m in metrics_oi:
+        mdf['mean_{}'.format(m)] = mdf[m]['mean']
+        mdf['std_{}'.format(m)] = mdf[m]['std']
+        mdf = mdf.drop([m], axis=1)
+    mdf = mdf.sort_values(by='betas')
 
-    mdf['betas'] = mdf['comments'].str.replace('LSC_beta:', '').values.astype(float)
     print(mdf.to_string())
 
-    # colors = [plt.cm.Oranges(x / 6) for x in range(1, 5)]
     color = plt.cm.Oranges(3 / 6)
     fig, axs = plt.subplots(1, 1, figsize=(10, 5))
 
-    means = mdf['mean_' + metric]
-    stds= mdf['std_' + metric]
+    means = mdf['mean_val_' + metric]
+    stds = mdf['std_val_' + metric]
     betas = mdf['betas']
     axs.plot(betas, means, color=color)
     axs.fill_between(betas, means - stds, means + stds, alpha=0.5, color=color)
 
+    axs.set_ylabel(metric)
     axs.set_title(task_name)
     plt.show()
 
 
 if plot_dampenings:
     idf = df[df['task_name'].str.contains(task_name)]
+    idf = idf[idf['optimizer_name'].str.contains(optimizer_name)]
     iidf = idf[idf['comments'].str.contains('LSC_dampening')]  # cdr gra blg
+    iidf['dampening'] = iidf['comments'].str.replace('LSC_dampening:', '').values.astype(float)
+    iidf = iidf.sort_values(by='dampening')
 
-    metrics_oi = ['val_sparse_mode_accuracy', 'bpc', 'val_sparse_categorical_crossentropy']
+    colors = [plt.cm.Greens(x / (len(iidf) + 1)) for x in range(1, len(iidf) + 1)]
 
-    mdf = iidf.groupby(
-        ['net_name', 'task_name', 'initializer', 'comments'], as_index=False
-    ).agg({m: ['mean', 'std'] for m in metrics_oi})
-
-    for metric in metrics_oi:
-        mdf['mean_{}'.format(metric)] = mdf[metric]['mean']
-        mdf['std_{}'.format(metric)] = mdf[metric]['std']
-        mdf = mdf.drop([metric], axis=1)
-
-    mdf['dampenings'] = mdf['comments'].str.replace('LSC_dampening:', '').values.astype(float)
-    print(mdf.to_string())
-
-    # colors = [plt.cm.Oranges(x / 6) for x in range(1, 5)]
-    color = plt.cm.Blues(3 / 6)
     fig, axs = plt.subplots(1, 1, figsize=(10, 5))
-
-    means = mdf['mean_' + metric]
-    stds= mdf['std_' + metric]
-    dampenings = mdf['dampenings']
-    axs.plot(dampenings, means, color=color)
-    axs.fill_between(dampenings, means - stds, means + stds, alpha=0.5, color=color)
+    for (_, row), c in zip(iidf.iterrows(), colors):
+        d = row['d']
+        h = histories[d][metric]
+        axs.plot(h, color=c, label=row['dampening'])
 
     axs.set_title(task_name)
+    axs.set_ylabel(metric)
+    plt.legend()
     plt.show()
+
+    mdf = iidf.groupby(
+        ['net_name', 'task_name', 'initializer', 'dampening'], as_index=False
+    ).agg({m: ['mean', 'std'] for m in metrics_oi})
+
+    for m in metrics_oi:
+        mdf['mean_{}'.format(m)] = mdf[m]['mean']
+        mdf['std_{}'.format(m)] = mdf[m]['std']
+        mdf = mdf.drop([m], axis=1)
+    mdf = mdf.sort_values(by='dampening')
+
+    print(mdf.to_string())
+
+    color = plt.cm.Oranges(3 / 6)
+    fig, axs = plt.subplots(1, 1, figsize=(10, 5))
+
+    means = mdf['mean_val_' + metric]
+    stds = mdf['std_val_' + metric]
+    betas = mdf['dampening']
+    axs.plot(betas, means, color=color)
+    axs.fill_between(betas, means - stds, means + stds, alpha=0.5, color=color)
+
+    axs.set_ylabel(metric)
+    axs.set_title(task_name)
+    plt.show()
+
+# if plot_dampenings:
+#     idf = df[df['task_name'].str.contains(task_name)]
+#     idf = idf[idf['optimizer_name'].str.contains(optimizer_name)]
+#     iidf = idf[idf['comments'].str.contains('LSC_dampening')]  # cdr gra blg
+#
+#     mdf = iidf.groupby(
+#         ['net_name', 'task_name', 'initializer', 'comments'], as_index=False
+#     ).agg({m: ['mean', 'std'] for m in metrics_oi})
+#
+#     for metric in metrics_oi:
+#         mdf['mean_{}'.format(metric)] = mdf[metric]['mean']
+#         mdf['std_{}'.format(metric)] = mdf[metric]['std']
+#         mdf = mdf.drop([metric], axis=1)
+#
+#     mdf['dampenings'] = mdf['comments'].str.replace('LSC_dampening:', '').values.astype(float)
+#     print(mdf.to_string())
+#
+#     # colors = [plt.cm.Oranges(x / 6) for x in range(1, 5)]
+#     color = plt.cm.Blues(3 / 6)
+#     fig, axs = plt.subplots(1, 1, figsize=(10, 5))
+#
+#     means = mdf['mean_' + metric]
+#     stds = mdf['std_' + metric]
+#     dampenings = mdf['dampenings']
+#     axs.plot(dampenings, means, color=color)
+#     axs.fill_between(dampenings, means - stds, means + stds, alpha=0.5, color=color)
+#
+#     axs.set_title(task_name)
+#     plt.show()

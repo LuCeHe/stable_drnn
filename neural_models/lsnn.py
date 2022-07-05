@@ -188,7 +188,7 @@ class aLSNN(baseLSNN):
 
         self._beta = self.beta
         dampening = str2val(self.config, 'dampening', float, default=self.dampening)
-
+        print('here', dampening, self.config)
         self.spike_type = SurrogatedStep(config=self.config, dampening=dampening, sharpness=self.sharpness)
 
 

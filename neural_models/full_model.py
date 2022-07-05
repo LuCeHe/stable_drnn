@@ -32,6 +32,7 @@ def Expert(i, j, stateful, task_name, net_name, n_neurons, tau, initializer,
     else:
         win = lambda x: x
 
+
     if 'LSNN' in net_name:
         stack_info = '_stacki:{}'.format(i)
         cell = models.net(net_name)(num_neurons=n_neurons, tau=tau, tau_adaptation=tau_adaptation,
@@ -61,7 +62,6 @@ def Expert(i, j, stateful, task_name, net_name, n_neurons, tau, initializer,
         skipped_connection_input, output_words = inputs
         skipped_connection_input = win(skipped_connection_input)
         if 'LSNN' in net_name:
-            print(skipped_connection_input.shape)
             b, v, thr, v_sc = rnn(inputs=skipped_connection_input)
 
             if 'regularize' in comments:
@@ -126,8 +126,6 @@ def build_model(task_name, net_name, n_neurons, tau, n_dt_per_step, neutral_phas
         rnn_input = []
         for emb in embs:
             e = emb(in_emb)
-            if 'transformer' in comments or 'addrestrellis' in comments:
-                e = Resizing1D(in_len, n_neurons)(e)
             rnn_input.append(e)
 
     else:
@@ -135,12 +133,7 @@ def build_model(task_name, net_name, n_neurons, tau, n_dt_per_step, neutral_phas
 
     output = None
 
-    if 'shared' in comments:
-        extper = Expert(0, 0, stateful, task_name, net_name, n_neurons, tau=tau, initializer=initializer,
-                        tau_adaptation=tau_adaptation, n_out=n_out, comments=comments)
-        expert = lambda i, j, c, n: extper
-    else:
-        expert = lambda i, j, c, n: Expert(i, j, stateful, task_name, net_name, n_neurons=n, tau=tau,
+    expert = lambda i, j, c, n: Expert(i, j, stateful, task_name, net_name, n_neurons=n, tau=tau,
                                            initializer=initializer, tau_adaptation=tau_adaptation, n_out=n_out,
                                            comments=c)
 
@@ -162,7 +155,7 @@ def build_model(task_name, net_name, n_neurons, tau, n_dt_per_step, neutral_phas
         else:
             nin = stack[i - 1]
 
-        c = str2val(comments, 'nin', replace=nin)
+        c = str2val(comments, '_nin', replace=nin)
         output_cell = expert(i, 0, c, n=layer_width)([rnn_input, output_words])
         rnn_input = output_cell
 

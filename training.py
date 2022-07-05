@@ -54,11 +54,9 @@ def config():
     net_name = 'aLSNN'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
     n_neurons = None
-    sLSTM_factor = 2 / 3 if task_name == 'wordptb' else 1 / 3
-    n_neurons = n_neurons if not net_name == 'spikingLSTM' else int(n_neurons * sLSTM_factor)
     embedding = 'learned:None:None:{}'.format(n_neurons) if task_name in language_tasks else False
 
-    comments = ''
+    comments = 'dampening:.3'
 
     # optimizer properties
     lr = None  # 7e-4
@@ -69,7 +67,7 @@ def config():
     clipnorm = None  # not 1., to avoid NaN in the embedding, only ptb though
 
     loss_name = 'sparse_categorical_crossentropy'  # categorical_crossentropy categorical_focal_loss contrastive_loss
-    initializer = 'glorot_uniform'  # uniform glorot_uniform orthogonal glorot_normal NoZeroGlorot
+    initializer = 'he_uniform'  # uniform glorot_uniform orthogonal glorot_normal NoZeroGlorot
 
     continue_training = ''
     save_model = False
@@ -91,7 +89,7 @@ task_max_epochs = {
 @ex.capture
 @ex.automain
 def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
-         continue_training, save_model, seed, net_name, n_neurons, lr, stack, loss_name, embedding, optimizer_name,
+         seed, net_name, n_neurons, lr, stack, loss_name, embedding, optimizer_name,
          lr_schedule, weight_decay, clipnorm, initializer, stop_time, _log):
 
     if n_neurons is None:
@@ -104,13 +102,13 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
         else:
             raise NotImplementedError
 
-    exp_dir = os.path.join(*[CDIR, ex.observers[0].basedir])
+    exp_dir = os.path.join(CDIR, ex.observers[0].basedir)
     comments += '_**folder:' + exp_dir + '**_'
 
-    config_dir = os.path.join(*[exp_dir, '1'])
-    images_dir = os.path.join(*[exp_dir, 'images'])
-    other_dir = os.path.join(*[exp_dir, 'other_outputs'])
-    models_dir = os.path.join(*[exp_dir, 'trained_models'])
+    config_dir = os.path.join(exp_dir, '1')
+    images_dir = os.path.join(exp_dir, 'images')
+    other_dir = os.path.join(exp_dir, 'other_outputs')
+    models_dir = os.path.join(exp_dir, 'trained_models')
     full_mean, full_var = checkTaskMeanVariance(task_name)
     comments = comments + '_taskmean:{}_taskvar:{}'.format(full_mean, full_var)
 
@@ -132,6 +130,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
                    name=task_name, train_val_test='val', maxlen=maxlen, comments=comments, lr=lr)
 
     comments += '_batchsize:' + str(gen_train.batch_size)
+
     final_epochs = gen_train.epochs
     final_steps_per_epoch = gen_train.steps_per_epoch
     tau_adaptation = str2val(comments, 'taub', float, default=int(gen_train.in_len / 2))
