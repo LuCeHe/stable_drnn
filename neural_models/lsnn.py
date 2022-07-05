@@ -1,5 +1,6 @@
 import tensorflow_probability as tfp
 
+from GenericTools.keras_tools.esoteric_initializers import FuncOnInitializer
 from GenericTools.keras_tools.esoteric_layers.surrogated_step import *
 from GenericTools.stay_organized.utils import str2val
 
@@ -184,11 +185,34 @@ class aLSNN(baseLSNN):
             abs_var_rec = tf.reduce_mean(tf.abs(self.recurrent_weights))
             self.recurrent_weights = self.recurrent_weights / abs_var_rec * abs_var_in \
                                      * n_input / (self.num_neurons - 1)
-            # print(self.dampening, beta, alpha_a, alpha_v, thr)
+
+        elif 'randominit' in self.config:
+            linv = lambda x: -1 / tf.math.log(x)
+            self.tau = self.add_weight(shape=(self.num_neurons,),
+                                       initializer=FuncOnInitializer(
+                                           linv,
+                                           tf.keras.initializers.RandomUniform(minval=0.3, maxval=.99)
+                                       ),
+                                       name='tau', trainable=True)
+
+            self.tau_adaptation = self.add_weight(shape=(self.num_neurons,),
+                                                  initializer=FuncOnInitializer(
+                                                      linv,
+                                                      tf.keras.initializers.RandomUniform(minval=0.3, maxval=.99)
+                                                  ),
+                                                  name='tau_adaptation', trainable=True)
+            import numpy as np
+            self.dampening = .2 + .8 * np.random.rand(self.num_neurons)
+            self.beta = self.add_weight(shape=(self.num_neurons,),
+                                        initializer=tf.keras.initializers.RandomUniform(minval=1., maxval=2.),
+                                        name='beta', trainable=True)
+            self.thr = self.add_weight(shape=(self.num_neurons,),
+                                       initializer=tf.keras.initializers.RandomUniform(minval=0.01, maxval=1.),
+                                       name='thr', trainable=True)
 
         self._beta = self.beta
         dampening = str2val(self.config, 'dampening', float, default=self.dampening)
-        print('here', dampening, self.config)
+
         self.spike_type = SurrogatedStep(config=self.config, dampening=dampening, sharpness=self.sharpness)
 
 
