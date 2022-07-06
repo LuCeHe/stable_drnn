@@ -203,7 +203,7 @@ class aLSNN(baseLSNN):
                                                       tf.keras.initializers.RandomUniform(minval=0.3, maxval=.99)
                                                   ),
                                                   name='tau_adaptation', trainable=True)
-            self.dampening = tf.random.uniform(self.num_neurons, minval=0.2, maxval=1.)
+            self.dampening = tf.random.uniform((self.num_neurons,), minval=0.2, maxval=1.)
             self.beta = self.add_weight(shape=(self.num_neurons,),
                                         initializer=tf.keras.initializers.RandomUniform(minval=1., maxval=2.),
                                         name='beta', trainable=True)
