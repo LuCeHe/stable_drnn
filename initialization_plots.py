@@ -60,6 +60,7 @@ def main(seed, n_neurons, stack, initializer, batch_size, _log):
     time_steps = 100
     n_rnns = 3
     list_comments = ['LSC', 'dampening:1.', 'randominit']
+    list_comments = ['LSC']
 
     gs, acts, thrs = [], [], []
     for comments in list_comments:
@@ -70,7 +71,7 @@ def main(seed, n_neurons, stack, initializer, batch_size, _log):
         gv_path = os.path.join(CDIR, 'data', f'gv_{clean_comments}.npy')
         act_path = os.path.join(CDIR, 'data', f'act_{clean_comments}.npy')
         thr_path = os.path.join(CDIR, 'data', f'thr_{clean_comments}.npy')
-        if not os.path.exists(act_path):
+        if True:  # not os.path.exists(act_path):
             for seed in tqdm(range(n_seeds)):
 
                 rnns = []
@@ -113,9 +114,9 @@ def main(seed, n_neurons, stack, initializer, batch_size, _log):
             activities = np.concatenate(activities)
             thresholds = np.concatenate(thresholds)
 
-            for path, numpy in zip([gv_path, act_path, thr_path], [gvariances, activities, thresholds]):
-                with open(path, 'wb') as f:
-                    np.save(f, numpy)
+            # for path, numpy in zip([gv_path, act_path, thr_path], [gvariances, activities, thresholds]):
+            #     with open(path, 'wb') as f:
+            #         np.save(f, numpy)
         else:
 
             with open(gv_path, 'rb') as f:

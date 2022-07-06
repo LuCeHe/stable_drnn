@@ -186,7 +186,10 @@ class aLSNN(baseLSNN):
             self.recurrent_weights = self.recurrent_weights / abs_var_rec * abs_var_in \
                                      * n_input / (self.num_neurons - 1)
 
+            print(beta, self.dampening)
+
         elif 'randominit' in self.config:
+            print('-'*30)
             linv = lambda x: -1 / tf.math.log(x)
             self.tau = self.add_weight(shape=(self.num_neurons,),
                                        initializer=FuncOnInitializer(
@@ -195,12 +198,15 @@ class aLSNN(baseLSNN):
                                        ),
                                        name='tau', trainable=True)
 
+            print(self.tau)
             self.tau_adaptation = self.add_weight(shape=(self.num_neurons,),
                                                   initializer=FuncOnInitializer(
                                                       linv,
                                                       tf.keras.initializers.RandomUniform(minval=0.3, maxval=.99)
                                                   ),
                                                   name='tau_adaptation', trainable=True)
+            print(self.tau_adaptation)
+
             import numpy as np
             self.dampening = .2 + .8 * np.random.rand(self.num_neurons)
             self.beta = self.add_weight(shape=(self.num_neurons,),

@@ -41,7 +41,7 @@ def config():
     # task and net
     # ptb time_ae simplest_random time_ae_merge ps_mnist heidelberg wiki103 wmt14 s_mnist xor small_s_mnist
     # wordptb sl_mnist
-    task_name = 'sl_mnist'
+    task_name = 'heidelberg'
 
     # test configuration
     epochs = 3
@@ -56,7 +56,7 @@ def config():
     n_neurons = None
     embedding = 'learned:None:None:{}'.format(n_neurons) if task_name in language_tasks else False
 
-    comments = 'dampening:.3'
+    comments = 'randominit'
 
     # optimizer properties
     lr = None  # 7e-4
@@ -67,7 +67,7 @@ def config():
     clipnorm = None  # not 1., to avoid NaN in the embedding, only ptb though
 
     loss_name = 'sparse_categorical_crossentropy'  # categorical_crossentropy categorical_focal_loss contrastive_loss
-    initializer = 'he_uniform'  # uniform glorot_uniform orthogonal glorot_normal NoZeroGlorot
+    initializer = 'glorot_normal'  # uniform glorot_uniform orthogonal glorot_normal NoZeroGlorot
 
     continue_training = ''
     save_model = False
