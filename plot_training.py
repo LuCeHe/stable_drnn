@@ -3,6 +3,9 @@ from tqdm import tqdm
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from datetime import timedelta, datetime
+
+FMT = '%Y-%m-%dT%H:%M:%S'
 from GenericTools.stay_organized.unzip import unzip_good_exps
 
 FILENAME = os.path.realpath(__file__)
@@ -28,7 +31,7 @@ if not os.path.exists(CSVPATH):
     ds = unzip_good_exps(
         GEXPERIMENTS, EXPERIMENTS,
         exp_identifiers=[''], except_folders=[],
-        unzip_what=['history.json', 'config']
+        unzip_what=['history.json', 'config', 'run.json']
     )
 
     histories = {}
@@ -37,6 +40,7 @@ if not os.path.exists(CSVPATH):
     for d in tqdm(ds, desc='Creating pandas'):
         history_path = os.path.join(d, 'other_outputs', 'history.json')
         config_path = os.path.join(d, '1', 'config.json')
+        run_path = os.path.join(d, '1', 'run.json')
         # text_file = os.path.join(d, [l for l in os.listdir(d) if '.txt' in l][0])
 
         with open(config_path) as f:
@@ -45,11 +49,19 @@ if not os.path.exists(CSVPATH):
         with open(history_path) as f:
             history = json.load(f)
 
+        with open(run_path) as f:
+            run = json.load(f)
+
         results = {}
         results.update({k: v for k, v in config.items()})
         what = lambda k, v: max(v) if 'acc' in k else min(v)
         results.update({k: what(k, np.array(v)[~np.isnan(np.array(v))]) for k, v in history.items()})
         results.update({'d': d})
+
+        results.update({'duration_experiment':
+                            datetime.strptime(run['stop_time'].split('.')[0], FMT) - datetime.strptime(
+                                run['start_time'].split('.')[0], FMT)
+                        })
 
         small_df = pd.DataFrame([results])
 
@@ -73,6 +85,7 @@ print(df.to_string())
 if plot_lsc_vs_naive:
     idf = df[df['optimizer_name'].str.contains(optimizer_name)]
     idf = idf[idf['task_name'].str.contains(task_name)]
+    idf = idf[idf['d'].str.contains('2022-07-06--')]
     idf = idf[idf['epochs'].eq(1000)]
 
     print(idf.to_string())
@@ -97,6 +110,10 @@ if plot_lsc_vs_naive:
     axs.set_title(task_name)
     axs.set_ylabel(metric)
     plt.legend()
+
+    pathplot = os.path.join(CDIR, 'experiments', 'lscvsrandom.png')
+    fig.savefig(pathplot, bbox_inches='tight')
+
     plt.show()
 
 if plot_betas:
