@@ -22,7 +22,10 @@ plot_dampenings = False
 plot_dampenings_and_betas = False
 
 task_name = 'heidelberg'  # heidelberg wordptb sl_mnist
-metric = 'sparse_mode_accuracy'  # sparse_mode_accuracy sparse_categorical_crossentropy bpc
+
+# sparse_mode_accuracy sparse_categorical_crossentropy bpc sparse_mode_accuracy_test_10
+# val_sparse_mode_accuracy
+metric = 'sparse_mode_accuracy'
 optimizer_name = 'SWAAdaBelief'  # SGD SWAAdaBelief
 metrics_oi = ['val_sparse_mode_accuracy', 'bpc', 'val_sparse_categorical_crossentropy']
 
@@ -31,7 +34,7 @@ if not os.path.exists(CSVPATH):
     ds = unzip_good_exps(
         GEXPERIMENTS, EXPERIMENTS,
         exp_identifiers=[''], except_folders=[],
-        unzip_what=['history.json', 'config', 'run.json']
+        unzip_what=['history.json', 'config', 'run.json', 'results.json']
     )
 
     histories = {}
@@ -41,7 +44,7 @@ if not os.path.exists(CSVPATH):
         history_path = os.path.join(d, 'other_outputs', 'history.json')
         config_path = os.path.join(d, '1', 'config.json')
         run_path = os.path.join(d, '1', 'run.json')
-        # text_file = os.path.join(d, [l for l in os.listdir(d) if '.txt' in l][0])
+        results_path = os.path.join(d, 'other_outputs', 'results.json')
 
         with open(config_path) as f:
             config = json.load(f)
@@ -52,10 +55,14 @@ if not os.path.exists(CSVPATH):
         with open(run_path) as f:
             run = json.load(f)
 
+        with open(results_path) as f:
+            some_results = json.load(f)
+
         results = {}
-        results.update({k: v for k, v in config.items()})
-        what = lambda k, v: max(v) if 'acc' in k else min(v)
-        results.update({k: what(k, np.array(v)[~np.isnan(np.array(v))]) for k, v in history.items()})
+        results.update(config.items())
+        results.update(some_results.items())
+        what = lambda k, v: np.nanmax(v) if 'acc' in k else np.nanmin(v)
+        results.update({k: what(k, v) for k, v in history.items()})
         results.update({'d': d})
 
         results.update({'duration_experiment':
@@ -66,8 +73,8 @@ if not os.path.exists(CSVPATH):
         small_df = pd.DataFrame([results])
 
         df = df.append(small_df)
-        history = {k.replace('val_', ''): v for k, v in history.items() if 'val' in k}
-        histories[d] = history
+        # histories[d] = {k.replace('val_', ''): v for k, v in history.items() if 'val' in k}
+        histories[d] = history.items()
 
     df = df.sort_values(by='comments')
 
@@ -81,24 +88,30 @@ else:
         histories = json.load(f)
 
 print(df.to_string())
+df = df[df['d'].str.contains('2022-07-07--')]
+
+print(df.to_string())
 
 if plot_lsc_vs_naive:
     idf = df[df['optimizer_name'].str.contains(optimizer_name)]
     idf = idf[idf['task_name'].str.contains(task_name)]
-    idf = idf[idf['d'].str.contains('2022-07-06--')]
+    # idf = idf[idf['d'].str.contains('2022-07-06--')]
     idf = idf[idf['epochs'].eq(1000)]
+    idf = idf.sort_values(by=metric)
 
     print(idf.to_string())
 
     colors = {
         'LSC': [plt.cm.Greens(x / 6) for x in range(1, 5)],
         'dampening:1.': [plt.cm.Oranges(x / 6) for x in range(1, 5)],
-        'randominit':[plt.cm.Reds(x / 6) for x in range(1, 5)],
+        'randominit': [plt.cm.Reds(x / 6) for x in range(1, 5)],
+        'lscc': [plt.cm.Blues(x / 6) for x in range(1, 5)],
+        'LSC_dampening:1.': [plt.cm.Purples(x / 6) for x in range(1, 5)],
     }
 
     fig, axs = plt.subplots(1, 1, figsize=(10, 5))
 
-    for comment in ['LSC', 'dampening:1.', 'randominit']:
+    for comment in ['LSC', 'dampening:1.', 'randominit', 'lscc', 'LSC_dampening:1.']:
         iidf = idf[idf['comments'].eq(comment)]
         # print(iidf.to_string())
 
@@ -208,12 +221,13 @@ if plot_dampenings:
     plt.show()
 
 if plot_dampenings_and_betas:
+    init = 'lsc'  # lsc LSC
     fig, axs = plt.subplots(1, 2, figsize=(10, 5))
 
     idf = df[df['task_name'].str.contains(task_name)]
     idf = idf[idf['optimizer_name'].str.contains(optimizer_name)]
-    iidf = idf[idf['comments'].str.contains('LSC_beta')]  # cdr gra blg
-    iidf['betas'] = iidf['comments'].str.replace('LSC_beta:', '').values.astype(float)
+    iidf = idf[idf['comments'].str.contains(init + '_beta')]  # cdr gra blg
+    iidf['betas'] = iidf['comments'].str.replace(init + '_beta:', '').values.astype(float)
     iidf = iidf.sort_values(by='betas')
 
     mdf = iidf.groupby(
@@ -239,8 +253,8 @@ if plot_dampenings_and_betas:
 
     idf = df[df['task_name'].str.contains(task_name)]
     idf = idf[idf['optimizer_name'].str.contains(optimizer_name)]
-    iidf = idf[idf['comments'].str.contains('LSC_dampening')]  # cdr gra blg
-    iidf['dampening'] = iidf['comments'].str.replace('LSC_dampening:', '').values.astype(float)
+    iidf = idf[idf['comments'].str.contains(init + '_dampening')]  # cdr gra blg
+    iidf['dampening'] = iidf['comments'].str.replace(init + '_dampening:', '').values.astype(float)
     iidf = iidf.sort_values(by='dampening')
 
     mdf = iidf.groupby(

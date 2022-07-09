@@ -56,11 +56,11 @@ def config():
     n_neurons = None
     embedding = 'learned:None:None:{}'.format(n_neurons) if task_name in language_tasks else False
 
-    comments = 'LSC'
+    comments = 'lscc'
 
     # optimizer properties
     lr = None  # 7e-4
-    optimizer_name = 'SGD'  # AdaBelief AdamW SWAAdaBelief
+    optimizer_name = 'AdaBelief'  # AdaBelief AdamW SWAAdaBelief
     lr_schedule = ''  # 'warmup_cosine_restarts'
     weight_decay_prop_lr = None
     weight_decay = .01 if not 'mnist' in task_name else 0.  # weight_decay_prop_lr * lr
@@ -91,7 +91,6 @@ task_max_epochs = {
 def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
          seed, net_name, n_neurons, lr, stack, loss_name, embedding, optimizer_name,
          lr_schedule, weight_decay, clipnorm, initializer, stop_time, _log):
-
     if n_neurons is None:
         if task_name in language_tasks:
             n_neurons = 1300
@@ -170,7 +169,6 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
         )
     ]
 
-
     if 'tenb' in comments:
         callbacks.append(
             ExtendedTensorBoard(validation_data=val_data, log_dir=other_dir, histogram_freq=print_every),
@@ -211,27 +209,16 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
     print('Fitting done!')
 
     # plots after training
-    stateful = True if 'ptb' in task_name else False
-    if 'stateful' in comments: stateful = True
-    timerepeat = timerepeat if not 'repetitionsschedule' in comments else timerepeat - 1
-    for tr in [timerepeat, 1, 5, 10]:
-        try:
-            bs = 8 if not stateful else batch_size
-            gen_test = Task(timerepeat=tr, batch_size=bs, steps_per_epoch=steps_per_epoch,
-                            name=task_name, train_val_test='test', maxlen=maxlen, comments=comments)
+    # stateful = True if 'ptb' in task_name else False
+    # if 'stateful' in comments: stateful = True
+    # timerepeat = timerepeat if not 'repetitionsschedule' in comments else timerepeat - 1
+    gen_test = Task(timerepeat=timerepeat, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
+                    name=task_name, train_val_test='test', maxlen=maxlen, comments=comments)
 
-            # if tr == 1:
-            #     Tests(task_name, gen_test, train_model, images_dir, save_pickle=False)
+    evaluation = train_model.evaluate(gen_test, return_dict=True, verbose=True)
+    for k in evaluation.keys():
+        results['test_' + k] = evaluation[k]
 
-            evaluation = train_model.evaluate(gen_test, return_dict=True, verbose=True)
-            for k in evaluation.keys():
-                results[k + '_test_{}'.format(tr)] = evaluation[k]
-
-        except Exception as e:
-            print('Error while testing: ', e)
-
-    # batch = gen_val.__getitem__()
-    # results['score_JS'] = IWPJS(train_model, batch)
     results['n_params'] = train_model.count_params()
     results['final_epochs'] = str(actual_epochs)
     results['final_steps_per_epoch'] = final_steps_per_epoch

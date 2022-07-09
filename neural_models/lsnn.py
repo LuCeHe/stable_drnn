@@ -42,11 +42,8 @@ class baseLSNN(tf.keras.layers.Layer):
         n_in = input_shape[-1]
         n_rec = self.num_neurons
 
-        input_init = self.initializer
-        recurrent_init = self.initializer
-
-        self.input_weights = self.add_weight(shape=(n_in, n_rec), initializer=input_init, name='in_weights')
-        self.recurrent_weights = self.add_weight(shape=(n_rec, n_rec), initializer=recurrent_init, name='rec_weights')
+        self.input_weights = self.add_weight(shape=(n_in, n_rec), initializer=self.initializer, name='in_weights')
+        self.recurrent_weights = self.add_weight(shape=(n_rec, n_rec), initializer=self.initializer, name='rec_weights')
 
         self._beta = tf.concat([tf.zeros(self.n_regular), tf.ones(n_rec - self.n_regular) * self.beta], axis=0)
         self.built = True
@@ -186,9 +183,10 @@ class aLSNN(baseLSNN):
             self.recurrent_weights = self.recurrent_weights / abs_var_rec * abs_var_in \
                                      * n_input / (self.num_neurons - 1)
 
-            print(beta, self.dampening)
+            # print(beta, self.dampening)
 
         elif 'lsc' in self.config:
+            # print('here?')
             alpha_v = .92  # 1/3 .86
             tau = -1 / tf.math.log(alpha_v)
             # print(tau)
@@ -202,7 +200,7 @@ class aLSNN(baseLSNN):
                                                   name='tau_adaptation', trainable=True)
 
             abs_var_in = tf.reduce_mean(tf.abs(self.input_weights))
-            self.input_weights = self.input_weights/abs_var_in/ n_input
+            self.input_weights = self.input_weights / abs_var_in / n_input
             self.dampening = 1 / 2
 
             # beta = 1 / self.dampening
@@ -216,9 +214,9 @@ class aLSNN(baseLSNN):
                                        name='thr', trainable=True)
 
             abs_var_rec = tf.reduce_mean(tf.abs(self.recurrent_weights))
-            self.recurrent_weights = self.recurrent_weights / abs_var_rec/ (self.num_neurons - 1)
+            self.recurrent_weights = self.recurrent_weights / abs_var_rec / (self.num_neurons - 1)
 
-            print(beta, self.dampening)
+            # print(beta, self.dampening)
 
         elif 'randominit' in self.config:
             linv = lambda x: -1 / tf.math.log(x)
@@ -228,7 +226,6 @@ class aLSNN(baseLSNN):
                                            tf.keras.initializers.RandomUniform(minval=0.3, maxval=.99)
                                        ),
                                        name='tau', trainable=True)
-
             self.tau_adaptation = self.add_weight(shape=(self.num_neurons,),
                                                   initializer=FuncOnInitializer(
                                                       linv,
@@ -241,6 +238,21 @@ class aLSNN(baseLSNN):
                                         name='beta', trainable=True)
             self.thr = self.add_weight(shape=(self.num_neurons,),
                                        initializer=tf.keras.initializers.RandomUniform(minval=0.01, maxval=1.),
+                                       name='thr', trainable=True)
+
+        else:
+            self.tau = self.add_weight(shape=(self.num_neurons,),
+                                       initializer=tf.keras.initializers.Constant(value=20),
+                                       name='tau', trainable=False)
+            self.tau_adaptation = self.add_weight(shape=(self.num_neurons,),
+                                                  initializer=tf.keras.initializers.Constant(value=700),
+                                                  name='tau_adaptation', trainable=True)
+            self.dampening = .3
+            self.beta = self.add_weight(shape=(self.num_neurons,),
+                                        initializer=tf.keras.initializers.Constant(value=1.8),
+                                        name='beta', trainable=True)
+            self.thr = self.add_weight(shape=(self.num_neurons,),
+                                       initializer=tf.keras.initializers.Constant(value=.1),
                                        name='thr', trainable=True)
 
         self._beta = self.beta
