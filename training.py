@@ -50,13 +50,13 @@ def config():
     stack = 2
 
     # net
-    # mn_aLSNN_2 mn_aLSNN_2_sig LSNN maLSNN spikingPerformer smallGPT2 aLSNN_noIC spikingLSTM
-    net_name = 'aLSNN'
+    # aLSNN cLSTM
+    net_name = 'cLSTM'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
     n_neurons = None
     embedding = 'learned:None:None:{}'.format(n_neurons) if task_name in language_tasks else False
 
-    comments = 'lscc'
+    comments = 'LSC'
 
     # optimizer properties
     lr = None  # 7e-4
@@ -101,6 +101,9 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
         else:
             raise NotImplementedError
 
+        if 'LSTM' in net_name:
+            n_neurons = int(n_neurons / 3)
+
     exp_dir = os.path.join(CDIR, ex.observers[0].basedir)
     comments += '_**folder:' + exp_dir + '**_'
 
@@ -115,7 +118,6 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
     setReproducible(seed)
 
     shutil.copytree(os.path.join(CDIR, 'neural_models'), other_dir + '/neural_models')
-    # shutil.copyfile(os.path.join(CDIR, 'run_tf2.sh'), other_dir + '/run_tf2.sh')
     shutil.copyfile(FILENAME, other_dir + '/' + os.path.split(FILENAME)[-1])
 
     timerepeat = str2val(comments, 'timerepeat', int, default=1)
@@ -161,7 +163,6 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
     checkpoint_filepath = os.path.join(models_dir, 'checkpoint')
     callbacks = [
         LearningRateLogger(),
-        VariablesLogger(variables_to_log=['hard_heaviside']),
         tf.keras.callbacks.CSVLogger(history_path),
         TimeStopping(stop_time, 1),  # 22h=79200 s, 21h=75600 s, 20h=72000 s, 12h = 43200 s, 6h = 21600 s, 72h = 259200
         tf.keras.callbacks.ModelCheckpoint(
@@ -173,9 +174,6 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
         callbacks.append(
             ExtendedTensorBoard(validation_data=val_data, log_dir=other_dir, histogram_freq=print_every),
         )
-
-    # plots before training
-    # Tests(task_name, gen_test, train_model, images_dir, save_pickle=False, subdir_name='nontrained')
 
     train_model.fit(gen_train, validation_data=gen_val,
                     epochs=final_epochs, steps_per_epoch=steps_per_epoch,

@@ -4,6 +4,7 @@ import tensorflow as tf
 import matplotlib as mpl
 
 from GenericTools.stay_organized.mpl_tools import load_plot_settings
+from alif_sg.neural_models.custom_lstm import customLSTMcell
 
 mpl = load_plot_settings(mpl=mpl, pd=None)
 
@@ -32,7 +33,7 @@ out_dim = 2
 in_dim = 2
 time_steps = 100
 n_rnns = 3
-list_comments = ['LSC', 'dampening:1.', 'randominit', 'lscc', 'original']
+list_comments = ['LSC', 'dampening:1.', 'randominit', 'lscc', 'original', 'LSTM', 'LSTM_LSC']
 
 plot_vargrad = True
 plot_binomial = False
@@ -55,7 +56,11 @@ for comments in list_comments:
 
             rnns = []
             for i in range(n_rnns):
-                cell = aLSNN(num_neurons=n_neurons, config=comments, name=f'alsnn_{i}', initializer=initializer)
+                if not 'LSTM' in comments:
+                    cell = aLSNN(num_neurons=n_neurons, config=comments, name=f'alsnn_{i}', initializer=initializer)
+                else:
+                    cell = customLSTMcell(num_neurons=n_neurons, string_config=comments, name=f'alsnn_{i}')
+
                 rnn = tf.keras.layers.RNN(cell, return_sequences=True, stateful=False, name=f'alsnn_{i}')
                 rnns.append(rnn)
 
@@ -81,8 +86,14 @@ for comments in list_comments:
             trt = test_model.predict(tin, batch_size=tin.shape[0])
             trt = {name: pred for name, pred in zip(test_model.output_names, trt)}
 
-            activity = trt['alsnn_0']
-            threshold = trt['alsnn_0_2']
+
+            if not 'LSTM' in comments:
+                activity = trt['alsnn_0']
+                threshold = trt['alsnn_0_2']
+            else:
+                print(test_model.output_names)
+                activity = trt['alsnn_0']
+                threshold = np.zeros_like(trt['alsnn_0'])
 
             var = np.var(dy_dx, axis=(0, 2))
             gvariances.append(var[None])

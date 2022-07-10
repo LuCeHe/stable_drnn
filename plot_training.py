@@ -25,7 +25,7 @@ task_name = 'heidelberg'  # heidelberg wordptb sl_mnist
 
 # sparse_mode_accuracy sparse_categorical_crossentropy bpc sparse_mode_accuracy_test_10
 # val_sparse_mode_accuracy
-metric = 'sparse_mode_accuracy'
+metric = 'val_sparse_mode_accuracy'
 optimizer_name = 'SWAAdaBelief'  # SGD SWAAdaBelief
 metrics_oi = ['val_sparse_mode_accuracy', 'bpc', 'val_sparse_categorical_crossentropy']
 
@@ -73,8 +73,8 @@ if not os.path.exists(CSVPATH):
         small_df = pd.DataFrame([results])
 
         df = df.append(small_df)
-        # histories[d] = {k.replace('val_', ''): v for k, v in history.items() if 'val' in k}
-        histories[d] = history.items()
+        histories[d] = {k: v for k, v in history.items()}
+        # histories[d] = history.items()
 
     df = df.sort_values(by='comments')
 
@@ -87,8 +87,8 @@ else:
     with open(HSITORIESPATH) as f:
         histories = json.load(f)
 
-print(df.to_string())
-df = df[df['d'].str.contains('2022-07-07--')]
+# print(df.to_string())
+df = df[df['d'].str.contains('2022-07-09--')]
 
 print(df.to_string())
 
@@ -100,18 +100,19 @@ if plot_lsc_vs_naive:
     idf = idf.sort_values(by=metric)
 
     print(idf.to_string())
-
+    n_plots = 20
     colors = {
-        'LSC': [plt.cm.Greens(x / 6) for x in range(1, 5)],
-        'dampening:1.': [plt.cm.Oranges(x / 6) for x in range(1, 5)],
-        'randominit': [plt.cm.Reds(x / 6) for x in range(1, 5)],
-        'lscc': [plt.cm.Blues(x / 6) for x in range(1, 5)],
-        'LSC_dampening:1.': [plt.cm.Purples(x / 6) for x in range(1, 5)],
+        'LSC': [plt.cm.Greens(x / n_plots+1) for x in range(1, n_plots)],
+        'dampening:1.': [plt.cm.Oranges(x / n_plots+1) for x in range(1, n_plots)],
+        'randominit': [plt.cm.Reds(x / n_plots+1) for x in range(1, n_plots)],
+        'lscc': [plt.cm.Blues(x / n_plots+1) for x in range(1, n_plots)],
+        'LSC_dampening:1.': [plt.cm.Purples(x / n_plots+1) for x in range(1, n_plots)],
+        'original': [plt.cm.Purples(x / n_plots+1) for x in range(1, n_plots)],
     }
 
     fig, axs = plt.subplots(1, 1, figsize=(10, 5))
 
-    for comment in ['LSC', 'dampening:1.', 'randominit', 'lscc', 'LSC_dampening:1.']:
+    for comment in ['LSC', 'dampening:1.', 'randominit', 'lscc', 'LSC_dampening:1.', 'original']:
         iidf = idf[idf['comments'].eq(comment)]
         # print(iidf.to_string())
 

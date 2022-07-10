@@ -9,6 +9,7 @@ from GenericTools.keras_tools.esoteric_losses.loss_redirection import get_loss
 from GenericTools.keras_tools.esoteric_losses.advanced_losses import *
 
 import alif_sg.neural_models as models
+from alif_sg.neural_models.custom_lstm import customLSTMcell
 
 metrics = [
     sparse_categorical_accuracy,
@@ -44,16 +45,11 @@ def Expert(i, j, stateful, task_name, net_name, n_neurons, tau, initializer,
 
         rnn.build((batch_size, maxlen, nin))
 
-    elif 'Performer' in net_name or 'GPT' in net_name:
-        rnn = models.net(net_name)(num_neurons=n_neurons, comments=comments)
-
-    elif not net_name == 'LSTM':
-        cell = models.net(net_name)(num_neurons=n_neurons, string_config=comments)
+    elif 'cLSTM' in net_name:
+        cell = customLSTMcell(num_neurons=n_neurons, string_config=comments, name=f'alsnn_{i}')
         rnn = RNN(cell, return_sequences=True, name='encoder' + ij, stateful=stateful)
     else:
-        cell = tf.keras.layers.LSTMCell(units=n_neurons)
-        rnn = RNN(cell, return_sequences=True, name='encoder' + ij, stateful=stateful)
-        # rnn = LSTM(n_neurons, return_sequences=True, name='encoder' + ij, stateful=stateful)
+        raise NotImplementedError
 
     if 'regularize' in comments:
         reg = models.RateVoltageRegularization(1., type=comments + task_name, name='reg' + ij)
@@ -72,7 +68,7 @@ def Expert(i, j, stateful, task_name, net_name, n_neurons, tau, initializer,
             else:
                 output_cell = b
         else:
-            output_cell = rnn(inputs=skipped_connection_input)
+            output_cell = rnn(inputs=skipped_connection_input)[0]
         return output_cell
 
     return call
