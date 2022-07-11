@@ -16,7 +16,7 @@ GEXPERIMENTS = os.path.join(CDIR, 'good_experiments')
 CSVPATH = os.path.join(EXPERIMENTS, 'summary.h5')
 HSITORIESPATH = os.path.join(EXPERIMENTS, 'histories.json')
 
-plot_lsc_vs_naive = True
+plot_lsc_vs_naive = False
 plot_betas = False
 plot_dampenings = False
 plot_dampenings_and_betas = False
