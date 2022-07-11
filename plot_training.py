@@ -100,31 +100,50 @@ if plot_lsc_vs_naive:
     idf = idf.sort_values(by=metric)
 
     print(idf.to_string())
-    n_plots = 20
-    colors = {
-        'LSC': [plt.cm.Greens(x / n_plots+1) for x in range(1, n_plots)],
-        'dampening:1.': [plt.cm.Oranges(x / n_plots+1) for x in range(1, n_plots)],
-        'randominit': [plt.cm.Reds(x / n_plots+1) for x in range(1, n_plots)],
-        'lscc': [plt.cm.Blues(x / n_plots+1) for x in range(1, n_plots)],
-        'LSC_dampening:1.': [plt.cm.Purples(x / n_plots+1) for x in range(1, n_plots)],
-        'original': [plt.cm.Purples(x / n_plots+1) for x in range(1, n_plots)],
+    n_plots = 10
+    colors_for_type = {
+        'LSC': 'Greens',
+        'dampening:1.': 'Oranges',
+        'randominit': 'Reds',
+        'lscc': 'Blues',
+        'LSC_dampening:1.': 'Purples',
+        'original': 'Purples',
     }
 
-    fig, axs = plt.subplots(1, 1, figsize=(10, 5))
+    types = ['LSC', 'dampening:1.', 'randominit', 'lscc', 'LSC_dampening:1.', 'original']
+    m = metric.replace('val_', '')
+    types = ['LSC', 'randominit', 'original']
+    fig, axs = plt.subplots(1, 2, figsize=(6, 2), sharey=True, gridspec_kw={'wspace': .05})
+    for i in range(2):
+        for comment in types:
+            iidf = idf[idf['comments'].eq(comment)]
+            # print(iidf.to_string())
+            # print(colors[comment])
+            cmap = plt.cm.get_cmap(colors_for_type[comment])
+            colors = cmap(np.arange(iidf.shape[0]) / iidf.shape[0])
+            for j, (_, row) in enumerate(iidf.iterrows()):
+                d = row['d']
+                h = histories[d][m if i == 0 else 'val_' + m]
+                axs[i].plot(h, color=colors[j], label=comment)
 
-    for comment in ['LSC', 'dampening:1.', 'randominit', 'lscc', 'LSC_dampening:1.', 'original']:
-        iidf = idf[idf['comments'].eq(comment)]
-        # print(iidf.to_string())
+    axs[0].set_title('train')
+    axs[1].set_title('validation')
+    axs[0].set_ylabel('accuracy')
+    axs[1].set_xlabel('training epoch')
 
-        for (_, row), c in zip(iidf.iterrows(), colors[comment]):
-            d = row['d']
-            h = histories[d][metric]
-            axs.plot(h, color=c, label=comment)
+    from matplotlib.lines import Line2D
 
-    axs.set_title(task_name)
-    axs.set_ylabel(metric)
-    plt.legend()
+    custom_lines = [Line2D([0], [0], color=plt.cm.get_cmap(colors_for_type[type])(0.5), lw=4) for type in types]
 
+    axs[1].legend(custom_lines, [t.replace('init', '').replace('original', 'reference') for t in types],
+                  loc='lower right', framealpha=0.9)
+
+    for ax in axs.reshape(-1):
+        for pos in ['right', 'left', 'bottom', 'top']:
+            ax.spines[pos].set_visible(False)
+
+    # axs[1].axes.yaxis.set_ticklabels([])
+    axs[1].tick_params(labelleft=False, left=False)
     pathplot = os.path.join(CDIR, 'experiments', 'lscvsrandom.png')
     fig.savefig(pathplot, bbox_inches='tight')
 
