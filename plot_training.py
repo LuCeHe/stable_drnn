@@ -89,6 +89,7 @@ else:
 
 # print(df.to_string())
 df = df[df['d'].str.contains('2022-07-09--')]
+df = df.sort_values(by=metric)
 
 print(df.to_string())
 
@@ -97,7 +98,6 @@ if plot_lsc_vs_naive:
     idf = idf[idf['task_name'].str.contains(task_name)]
     # idf = idf[idf['d'].str.contains('2022-07-06--')]
     idf = idf[idf['epochs'].eq(1000)]
-    idf = idf.sort_values(by=metric)
 
     print(idf.to_string())
     n_plots = 10

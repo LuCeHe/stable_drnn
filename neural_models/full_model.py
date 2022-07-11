@@ -33,17 +33,15 @@ def Expert(i, j, stateful, task_name, net_name, n_neurons, tau, initializer,
     else:
         win = lambda x: x
 
+    batch_size = str2val(comments, 'batchsize', int, 1)
+    maxlen = str2val(comments, 'maxlen', int, 100)
+    nin = str2val(comments, 'nin', int, 1) if not 'convWin' in comments else n_neurons
 
     if 'LSNN' in net_name:
         stack_info = '_stacki:{}'.format(i)
         cell = models.net(net_name)(num_neurons=n_neurons, tau=tau, tau_adaptation=tau_adaptation,
                                     initializer=initializer, config=comments + stack_info, thr=thr)
         rnn = RNN(cell, return_sequences=True, name='encoder' + ij, stateful=stateful)
-        batch_size = str2val(comments, 'batchsize', int, 1)
-        maxlen = str2val(comments, 'maxlen', int, 100)
-        nin = str2val(comments, 'nin', int, 1) if not 'convWin' in comments else n_neurons
-
-        rnn.build((batch_size, maxlen, nin))
 
     elif 'cLSTM' in net_name:
         cell = customLSTMcell(num_neurons=n_neurons, string_config=comments, name=f'alsnn_{i}')
@@ -51,17 +49,13 @@ def Expert(i, j, stateful, task_name, net_name, n_neurons, tau, initializer,
     else:
         raise NotImplementedError
 
-    if 'regularize' in comments:
-        reg = models.RateVoltageRegularization(1., type=comments + task_name, name='reg' + ij)
+    rnn.build((batch_size, maxlen, nin))
 
     def call(inputs):
         skipped_connection_input, output_words = inputs
         skipped_connection_input = win(skipped_connection_input)
         if 'LSNN' in net_name:
             b, v, thr, v_sc = rnn(inputs=skipped_connection_input)
-
-            if 'regularize' in comments:
-                b = reg([b, v_sc])
 
             if 'readout_voltage' in comments:
                 output_cell = v
@@ -130,9 +124,8 @@ def build_model(task_name, net_name, n_neurons, tau, n_dt_per_step, neutral_phas
     output = None
 
     expert = lambda i, j, c, n: Expert(i, j, stateful, task_name, net_name, n_neurons=n, tau=tau,
-                                           initializer=initializer, tau_adaptation=tau_adaptation, n_out=n_out,
-                                           comments=c)
-
+                                       initializer=initializer, tau_adaptation=tau_adaptation, n_out=n_out,
+                                       comments=c)
 
     if isinstance(stack, str):
         stack = [int(s) for s in stack.split(':')]
