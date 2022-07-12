@@ -16,7 +16,7 @@ GEXPERIMENTS = os.path.join(CDIR, 'good_experiments')
 CSVPATH = os.path.join(EXPERIMENTS, 'summary.h5')
 HSITORIESPATH = os.path.join(EXPERIMENTS, 'histories.json')
 
-plot_lsc_vs_naive = False
+plot_lsc_vs_naive = True
 plot_betas = False
 plot_dampenings = False
 plot_dampenings_and_betas = False
@@ -88,7 +88,8 @@ else:
         histories = json.load(f)
 
 # print(df.to_string())
-df = df[df['d'].str.contains('2022-07-09--')]
+# df = df[df['d'].str.contains('2022-07-09--')]
+df = df[df['d'].str.contains('2022-07-11--')]
 df = df.sort_values(by=metric)
 
 print(df.to_string())
@@ -97,7 +98,7 @@ if plot_lsc_vs_naive:
     idf = df[df['optimizer_name'].str.contains(optimizer_name)]
     idf = idf[idf['task_name'].str.contains(task_name)]
     # idf = idf[idf['d'].str.contains('2022-07-06--')]
-    idf = idf[idf['epochs'].eq(1000)]
+    # idf = idf[idf['epochs'].eq(1000)]
 
     print(idf.to_string())
     n_plots = 10
@@ -108,11 +109,12 @@ if plot_lsc_vs_naive:
         'lscc': 'Blues',
         'LSC_dampening:1.': 'Purples',
         'original': 'Purples',
+        '': 'Purples',
     }
 
-    types = ['LSC', 'dampening:1.', 'randominit', 'lscc', 'LSC_dampening:1.', 'original']
+    types = ['LSC', 'dampening:1.', 'randominit', 'lscc', 'LSC_dampening:1.', 'original', '']
     m = metric.replace('val_', '')
-    types = ['LSC', 'randominit', 'original']
+    # types = ['LSC', 'randominit', 'original']
     fig, axs = plt.subplots(1, 2, figsize=(6, 2), sharey=True, gridspec_kw={'wspace': .05})
     for i in range(2):
         for comment in types:
