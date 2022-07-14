@@ -41,17 +41,17 @@ def config():
     # task and net
     # ptb time_ae simplest_random time_ae_merge ps_mnist heidelberg wiki103 wmt14 s_mnist xor small_s_mnist
     # wordptb sl_mnist
-    task_name = 'ptb'
+    task_name = 'heidelberg'
 
     # test configuration
     epochs = 3
     steps_per_epoch = 1
-    batch_size = 32
+    batch_size = 8
     stack = 2
 
     # net
     # aLSNN cLSTM
-    net_name = 'cLSTM'
+    net_name = 'aLSNN'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
     n_neurons = None
     embedding = 'learned:None:None:{}'.format(n_neurons) if task_name in language_tasks else False
@@ -144,13 +144,14 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
     comments = comments if task_name in language_tasks else comments.replace('embproj', 'simplereadout')
     train_model = build_model(
         task_name=task_name, net_name=net_name, n_neurons=n_neurons, tau=tau, n_dt_per_step=timerepeat,
-        neutral_phase_length=0, lr=gen_train.lr, batch_size=gen_train.batch_size, stack=stack, loss_name=loss_name,
+        lr=gen_train.lr, batch_size=gen_train.batch_size, stack=stack, loss_name=loss_name,
         embedding=embedding, optimizer_name=optimizer_name, lr_schedule=lr_schedule,
         weight_decay=weight_decay, clipnorm=clipnorm, initializer=initializer, comments=comments,
         language_tasks=language_tasks,
         in_len=gen_train.in_len, n_in=gen_train.in_dim, out_len=gen_train.out_len,
         n_out=gen_train.out_dim, tau_adaptation=tau_adaptation,
-        final_epochs=gen_train.epochs, final_steps_per_epoch=gen_train.steps_per_epoch)
+        final_epochs=gen_train.epochs, final_steps_per_epoch=gen_train.steps_per_epoch
+    )
 
     results = {}
 
@@ -188,9 +189,9 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
         # results['accumulated_epochs'] = str(int(results['accumulated_epochs']) + int(actual_epochs))
         history_dict = {k: history_df[k].tolist() for k in history_df.columns.tolist()}
 
-        plot_filename = os.path.join(*[images_dir, 'history.png'])
+        plot_filename = os.path.join(images_dir, 'history.png')
         plot_history(histories=history_dict, plot_filename=plot_filename, epochs=final_epochs)
-        json_filename = os.path.join(*[other_dir, 'history.json'])
+        json_filename = os.path.join(other_dir, 'history.json')
         history_jsonable = {k: np.array(v).astype(float).tolist() for k, v in history_dict.items()}
         json.dump(history_jsonable, open(json_filename, "w"))
 

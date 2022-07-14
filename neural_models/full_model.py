@@ -3,6 +3,7 @@ from tensorflow.keras.metrics import sparse_categorical_accuracy
 from tensorflow.keras.losses import sparse_categorical_crossentropy
 
 from GenericTools.keras_tools.esoteric_layers import *
+from GenericTools.keras_tools.esoteric_layers.dropin import DropIn
 from GenericTools.keras_tools.esoteric_optimizers.optimizer_selection import get_optimizer
 from GenericTools.stay_organized.utils import str2val
 from GenericTools.keras_tools.esoteric_losses.loss_redirection import get_loss
@@ -68,7 +69,7 @@ def Expert(i, j, stateful, task_name, net_name, n_neurons, tau, initializer,
     return call
 
 
-def build_model(task_name, net_name, n_neurons, tau, n_dt_per_step, neutral_phase_length, lr, batch_size, stack,
+def build_model(task_name, net_name, n_neurons, tau, n_dt_per_step, lr, batch_size, stack,
                 loss_name, embedding, optimizer_name, tau_adaptation, lr_schedule, weight_decay, clipnorm,
                 initializer, comments, in_len, n_in, out_len, n_out, final_epochs, final_steps_per_epoch,
                 language_tasks):
@@ -84,12 +85,10 @@ def build_model(task_name, net_name, n_neurons, tau, n_dt_per_step, neutral_phas
 
     # n_experts = str2val(comments, 'experts', int, 1)
 
-    embs = []
     if not embedding is False:
         emb = SymbolAndPositionEmbedding(
             maxlen=in_len, vocab_size=n_out, embed_dim=n_neurons, embeddings_initializer=initializer,
             from_string=embedding, name=embedding.replace(':', '_'))
-        embs.append(emb)
 
         emb.build((1, n_out))
         emb.sym_emb.build((1, n_out))
@@ -113,15 +112,9 @@ def build_model(task_name, net_name, n_neurons, tau, n_dt_per_step, neutral_phas
             in_emb = Lambda(lambda z: tf.math.argmax(z, axis=-1), name='Argmax')(x)
 
         # rnn_input = [emb(in_emb) for emb in embs]
-        rnn_input = []
-        for emb in embs:
-            e = emb(in_emb)
-            rnn_input.append(e)
-
+        rnn_input = emb(in_emb)
     else:
-        rnn_input = [x]  # [input_scaling * x]
-
-    output = None
+        rnn_input = x  # [input_scaling * x]
 
     expert = lambda i, j, c, n: Expert(i, j, stateful, task_name, net_name, n_neurons=n, tau=tau,
                                        initializer=initializer, tau_adaptation=tau_adaptation, n_out=n_out,
@@ -132,9 +125,19 @@ def build_model(task_name, net_name, n_neurons, tau, n_dt_per_step, neutral_phas
     elif isinstance(stack, int):
         stack = [n_neurons for _ in range(stack)]
 
+    if 'heidelberg' in task_name:
+        tfe = tf.keras.layers.experimental.preprocessing
+        rnn_input = ExpandDims(axis=-1)(rnn_input)
+        rnn_input = tfe.RandomTranslation(.2, .2, fill_mode="wrap", interpolation="nearest")(rnn_input)
+        rnn_input = tfe.RandomZoom(.2, .2, fill_mode="wrap", interpolation="nearest")(rnn_input)
+        rnn_input = tfe.RandomRotation((-.1, .1), fill_mode="wrap", interpolation="nearest")(rnn_input)
+        rnn_input = Squeeze(axis=-1)(rnn_input)
+        rnn_input = DropIn(.3, binary=True)(rnn_input)
+
+    rnn_input = Dropout(drate)(rnn_input)
+
     for i, layer_width in enumerate(stack):
         rnn_input = [rnn_input] if not isinstance(rnn_input, list) else rnn_input
-        rnn_input = Dropout(drate)(rnn_input[0])
 
         if i == 0:
             if not embedding is False:

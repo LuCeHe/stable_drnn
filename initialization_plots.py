@@ -35,8 +35,8 @@ time_steps = 100
 n_rnns = 3
 list_comments = ['LSC', 'dampening:1.', 'randominit', 'lscc', 'original', 'LSTM', 'LSTM_LSC']
 
-plot_vargrad = True
-plot_binomial = False
+plot_vargrad = False
+plot_binomial = True
 
 gs, acts, thrs = [], [], []
 
@@ -85,7 +85,6 @@ for comments in list_comments:
             test_model = get_test_model(model)
             trt = test_model.predict(tin, batch_size=tin.shape[0])
             trt = {name: pred for name, pred in zip(test_model.output_names, trt)}
-
 
             if not 'LSTM' in comments:
                 activity = trt['alsnn_0']
@@ -188,7 +187,7 @@ if plot_binomial:
     axs[0].set_xlabel(r'$T$')
 
     T = 5
-    dL = 10000
+    dL = 1000
 
     ls = np.linspace(1, dL, 1000)
     y = bound(ls, T)
@@ -196,14 +195,12 @@ if plot_binomial:
     axs[1].plot(ls, y)
     axs[1].set_xlabel(r'$\Delta l$')
 
-    T = 5
-    dL = 10000
+    T = 10000
+    ts = np.linspace(1, T, 1000)
+    y = bound(ts / 100, ts)
 
-    ls = np.linspace(1, dL, 1000)
-    y = bound(ls, ls / 100)
-
-    axs[2].plot(ls, y)
-    axs[2].set_xlabel(r'$\Delta l=100T$')
+    axs[2].plot(ts, y)
+    axs[2].set_xlabel(r'$100\Delta l=T$')
 
     axs[0].set_ylabel(r'$\frac{1}{T}\binom{T + \Delta l +2}{T}$')
 
@@ -218,8 +215,8 @@ if plot_binomial:
     axs[0].yaxis.set_minor_locator(y_minor)
 
     tickers = []
-    for i in range(4):
-        tickers += np.linspace(10 ** (4 * i), 10 ** (4 * (i + 1)), 50).tolist()
+    for i in range(3):
+        tickers += np.linspace(10 ** (3 * i + 3), 10 ** (3 * (i + 1) + 3), 50).tolist()
     y_minor = mpl.ticker.FixedLocator(tickers)
     axs[1].yaxis.set_minor_locator(y_minor)
 
