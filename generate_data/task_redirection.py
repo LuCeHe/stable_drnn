@@ -69,6 +69,45 @@ def Task(timerepeat=1, batch_size=64, steps_per_epoch=None, epochs=1, name='time
             repetitions=timerepeat,
             permuted=False,
             spike_latency=True)
+
+    elif name == 's_mnist':
+        gen = SeqMNIST(
+            epochs=epochs,
+            batch_size=batch_size,
+            tvt=train_val_test,
+            steps_per_epoch=steps_per_epoch,
+            repetitions=timerepeat,
+            permuted=False)
+
+    elif name == 'ps_mnist':
+        gen = SeqMNIST(
+            epochs=epochs,
+            batch_size=batch_size,
+            tvt=train_val_test,
+            steps_per_epoch=steps_per_epoch,
+            repetitions=timerepeat,
+            permuted=True)
+
+    elif name == 'ss_mnist':
+        gen = SeqMNIST(
+            epochs=epochs,
+            batch_size=batch_size,
+            tvt=train_val_test,
+            steps_per_epoch=steps_per_epoch,
+            repetitions=timerepeat,
+            permuted=False,
+            poisson_input=True)
+
+    elif name == 'sps_mnist':
+        gen = SeqMNIST(
+            epochs=epochs,
+            batch_size=batch_size,
+            tvt=train_val_test,
+            steps_per_epoch=steps_per_epoch,
+            repetitions=timerepeat,
+            permuted=True,
+            poisson_input=True)
+
     else:
         raise NotImplementedError
 

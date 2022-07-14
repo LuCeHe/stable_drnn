@@ -33,7 +33,7 @@ def generate_poisson_noise_np(prob_pattern, n_neurons=1, freezing_seed=None):
 def image2spikes(n_input, input_px, n_dt_per_step):
     current_batch_size = input_px.shape[0]
     waiting_and_reply_period = np.zeros((current_batch_size, (100 + 56) * n_dt_per_step, n_input - 1))
-    input_px = np.expand_dims(input_px, axis=2) / 256
+    input_px = np.expand_dims(input_px, axis=2)
     input_px = np.repeat(input_px, n_dt_per_step, 1)
     spikes = generate_poisson_noise_np(input_px, n_neurons=n_input - 1)
 
@@ -57,22 +57,30 @@ class SeqMNIST(BaseGenerator):
             tvt='train',
             batch_size=32,
             keep=1.,
-            num_input=1,
+            num_input=80,
             repetitions=3,
             steps_per_epoch=None,
             permuted=False,
             original_size=True,
             spike_latency=False,
+            poisson_input=False,
             **kwargs
     ):
         super().__init__(**kwargs)
         self.__dict__.update(batch_size=batch_size, tvt=tvt, keep=keep, permuted=permuted, original_size=original_size,
                              num_input=num_input, steps_per_epoch=steps_per_epoch, repetitions=repetitions,
-                             spike_latency=spike_latency)
+                             spike_latency=spike_latency, poisson_input=poisson_input)
 
         self.create_dataset()
 
-        self.in_dim = num_input if not spike_latency else 28 * 28
+        if spike_latency:
+            self.in_dim = 28 * 28
+        elif poisson_input:
+            self.in_dim = 80
+        else:
+            self.in_dim = 1
+
+        # self.in_dim = num_input if not spike_latency else 28 * 28
         self.out_dim = self.num_classes
         self.in_len = self.length * repetitions
         self.out_len = self.length * repetitions
@@ -107,7 +115,8 @@ class SeqMNIST(BaseGenerator):
         random_idx = np.random.choice(len(self.x), self.batch_size)
         input_px = self.x[random_idx]
         target_oh = self.y[random_idx]
-        # batch = image2spikes(self.num_input, input_px, self.n_dt_per_step)
+        if self.poisson_input:
+            input_px = image2spikes(self.num_input, input_px, self.repetitions)
 
         if self.spike_latency:
             max_latency = self.length
@@ -119,7 +128,8 @@ class SeqMNIST(BaseGenerator):
             input_px = categorical_labels * neg
             s = categorical_labels.shape
             input_px = input_px.reshape((-1, s[2], s[1]))
-        else:
+
+        elif not self.poisson_input:
             input_px = input_px[..., None]
 
         # input_px = np.repeat(input_px, self.n_dt_per_step, 1)[..., None]
@@ -134,30 +144,32 @@ def download():
 
 def plot_mnist_sl():
     import matplotlib.pyplot as plt
-    x, _ = getMNIST(categorical=False, sequential=False, original_size=True, training_set='train', spike_latency=False)
+    # x, _ = getMNIST(categorical=False, sequential=False, original_size=True, training_set='train', spike_latency=False)
     # xs, _ = getMNIST(categorical=False, sequential=True, original_size=True, training_set='train', spike_latency=True)
 
-    gen = SeqMNIST(repetitions=1, original_size=True, spike_latency=True)
+    gen = SeqMNIST(repetitions=1, original_size=True, spike_latency=False, poisson_input=True)
 
     batch = gen.__getitem__()
 
     fig, axs = plt.subplots(2, 1, gridspec_kw={'wspace': .0, 'hspace': .5}, figsize=(4, 4))
 
-    idx = np.random.randint(len(x))
-    print(idx)
+    # idx = np.random.randint(len(x))
+    # print(idx)
     idx = 9954
 
-    image = x[idx, ..., 0].T
-    image = np.rot90(image, 1, (0, 1))
-    raster = batch[0][0][2].T  # xs[idx]
-    indices = np.argwhere(raster == 1)
-    print(indices.shape)
+    # image = x[idx, ..., 0].T
+    # image = np.rot90(image, 1, (0, 1))
+    raster = np.squeeze(batch[0][0][2].T)  # xs[idx]
+    print('Prob spike: ', np.count_nonzero(raster) / np.prod(raster.shape))
+    # indices = np.argwhere(raster == 1)
+    # print(indices.shape)
 
-    print(image.shape, raster.shape)
-    axs[0].pcolormesh(image, cmap='Greys')
-    # axs[1].pcolormesh(raster, cmap='Greys')
+    # print(image.shape, raster.shape)
+    # axs[0].pcolormesh(image, cmap='Greys')
+    print(raster.shape)
+    axs[1].pcolormesh(raster, cmap='Greys')
     # axs[1].plot(indices[:, 1], indices[:, 0])
-    plt.scatter(indices[:, 1], indices[:, 0], s=.2, alpha=1, c='k')
+    # plt.scatter(indices[:, 1], indices[:, 0], s=.2, alpha=1, c='k')
 
     # ax.set_title(str(f['extra']['keys'][labels[k]].decode('utf-8')))
 
@@ -167,11 +179,11 @@ def plot_mnist_sl():
 
     axs[0].set_xticks([])
     axs[0].set_yticks([])
-    axs[1].set_yticks([0, 784])
+    # axs[1].set_yticks([0, 784])
     axs[1].set_xlabel('time (ms)')
     axs[1].set_ylabel('channel')
 
-    plt.savefig('slmnist.png', bbox_inches='tight', dpi=500, transparent=True)
+    # plt.savefig('slmnist.png', bbox_inches='tight', dpi=500, transparent=True)
     plt.show()
 
 
