@@ -67,7 +67,7 @@ def config():
     clipnorm = None  # not 1., to avoid NaN in the embedding, only ptb though
 
     loss_name = 'sparse_categorical_crossentropy'  # categorical_crossentropy categorical_focal_loss contrastive_loss
-    initializer = 'random_uniform'  # uniform glorot_uniform orthogonal glorot_normal NoZeroGlorot
+    initializer = 'glorot_uniform'  # uniform glorot_uniform orthogonal glorot_normal NoZeroGlorot
 
     continue_training = ''
     save_model = False
