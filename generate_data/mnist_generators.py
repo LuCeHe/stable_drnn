@@ -80,12 +80,15 @@ class SeqMNIST(BaseGenerator):
         else:
             self.in_dim = 1
 
-        # self.in_dim = num_input if not spike_latency else 28 * 28
         self.out_dim = self.num_classes
         self.in_len = self.length * repetitions
         self.out_len = self.length * repetitions
+
+        self.batch_size = batch_size if not batch_size is None else 256
         self.lr = 1e-3
+
         self.epochs = 300 if epochs == None else epochs  # int(36000/30000*batch_size) train in 2 rounds to get to 614 epochs
+        self.steps_per_epoch = int(len(self.x) / self.batch_size) if steps_per_epoch == None else steps_per_epoch
 
         if self.permuted:
             permutation_file = os.path.join(DATAPATH, 'permutation_size{}.npy'.format(self.original_size))
@@ -97,9 +100,6 @@ class SeqMNIST(BaseGenerator):
 
         else:
             self.p = np.arange(self.length)
-
-        if self.steps_per_epoch == None:
-            self.steps_per_epoch = int(len(self.x) / self.batch_size)
 
     def create_dataset(self):
         self.num_classes = 10

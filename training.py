@@ -41,7 +41,7 @@ def config():
     # task and net
     # ptb time_ae simplest_random time_ae_merge ps_mnist heidelberg wiki103 wmt14 s_mnist xor small_s_mnist
     # wordptb sl_mnist
-    task_name = 'sps_mnist'
+    task_name = 'ps_mnist'
 
     # test configuration
     epochs = 3
@@ -51,12 +51,12 @@ def config():
 
     # net
     # aLSNN cLSTM
-    net_name = 'cLSTM'
+    net_name = 'aLSNN'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
     n_neurons = None
     embedding = 'learned:None:None:{}'.format(n_neurons) if task_name in language_tasks else False
 
-    comments = 'LSC'
+    comments = 'LSC2'
 
     # optimizer properties
     lr = None  # 7e-4
@@ -130,8 +130,6 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
 
     if initializer in esoteric_initializers_list:
         initializer = get_initializer(initializer_name=initializer)
-
-    print(gen_train.in_len, gen_train.in_dim, gen_train.out_len, gen_train.out_dim)
 
     comments = comments if task_name in language_tasks else comments.replace('embproj', 'simplereadout')
     train_model = build_model(

@@ -153,7 +153,7 @@ class aLSNN(baseLSNN):
 
         super().build(input_shape)
 
-        if 'LSC' in self.config:
+        if 'LSC1' in self.config:
             alpha_v = .92  # 1/3 .86
             tau = -1 / tf.math.log(alpha_v)
             # print(tau)
@@ -185,7 +185,7 @@ class aLSNN(baseLSNN):
 
             # print(beta, self.dampening)
 
-        elif 'lsc' in self.config:
+        elif 'lsc1' in self.config:
             # print('here?')
             alpha_v = .92  # 1/3 .86
             tau = -1 / tf.math.log(alpha_v)
@@ -216,7 +216,35 @@ class aLSNN(baseLSNN):
             abs_var_rec = tf.reduce_mean(tf.abs(self.recurrent_weights))
             self.recurrent_weights = self.recurrent_weights / abs_var_rec / (self.num_neurons - 1)
 
-            # print(beta, self.dampening)
+        elif 'LSC2' in self.config:
+            alpha_v = .92  # 1/3 .86
+            tau = -1 / tf.math.log(alpha_v)
+            self.tau = self.add_weight(shape=(self.num_neurons,), initializer=tf.keras.initializers.Constant(value=tau),
+                                       name='tau', trainable=True)
+
+            alpha_a = .92  # 1/3 .86
+            tau_adaptation = -1 / tf.math.log(alpha_a)
+            self.tau_adaptation = self.add_weight(shape=(self.num_neurons,),
+                                                  initializer=tf.keras.initializers.Constant(value=tau_adaptation),
+                                                  name='tau_adaptation', trainable=True)
+
+            self.dampening = 1 / tf.sqrt(2.)
+            beta = str2val(self.config, 'beta', float, default=1 / self.dampening)
+            self.beta = self.add_weight(shape=(self.num_neurons,),
+                                        initializer=tf.keras.initializers.Constant(value=beta),
+                                        name='beta', trainable=True)
+
+            thr = (1 - alpha_a) / self.dampening
+            self.thr = self.add_weight(shape=(self.num_neurons,), initializer=tf.keras.initializers.Constant(value=thr),
+                                       name='thr', trainable=True)
+
+            ingain = str2val(self.config, 'ingain', float, default=1.)
+            self.input_weights = self.add_weight(shape=(n_input, self.num_neurons),
+                                                 initializer=tf.keras.initializers.Orthogonal(gain=ingain),
+                                                 name='in_weights')
+            self.recurrent_weights = self.add_weight(shape=(self.num_neurons, self.num_neurons),
+                                                     initializer=tf.keras.initializers.Orthogonal(gain=1.0),
+                                                     name='rec_weights')
 
         elif 'randominit' in self.config:
             linv = lambda x: -1 / tf.math.log(x)
