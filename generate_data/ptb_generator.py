@@ -26,7 +26,7 @@ class PTBGenerator(BaseGenerator):
             repetitions=1,
             train_val_test='train',
             data_path=DATAPATH,
-            char_or_word='char',
+            char_or_word='word',
             pad_value=0.0,
             category_coding='onehot',
             lr=1e-4,

@@ -17,17 +17,20 @@ CSVPATH = os.path.join(EXPERIMENTS, 'summary.h5')
 HSITORIESPATH = os.path.join(EXPERIMENTS, 'histories.json')
 
 plot_lsc_vs_naive = True
-plot_betas = False
-plot_dampenings = False
 plot_dampenings_and_betas = False
 
-task_name = 'heidelberg'  # heidelberg wordptb sl_mnist
+task_name = 'all'  # heidelberg wordptb sl_mnist all
 
 # sparse_mode_accuracy sparse_categorical_crossentropy bpc sparse_mode_accuracy_test_10
 # val_sparse_mode_accuracy
 metric = 'val_sparse_mode_accuracy'
 optimizer_name = 'SWAAdaBelief'  # SGD SWAAdaBelief
 metrics_oi = ['val_sparse_mode_accuracy', 'bpc', 'val_sparse_categorical_crossentropy']
+
+columns_to_remove = [
+    'heaviside', '_test', 'epoch', 'weight', 'sLSTM_factor', 'save_model', 'clipnorm', 'GPU', 'batch_size',
+    'continue_training', 'embedding', 'lr_schedule'
+]
 
 if not os.path.exists(CSVPATH):
 
@@ -89,161 +92,96 @@ else:
 
 # print(df.to_string())
 # df = df[df['d'].str.contains('2022-07-09--')]
-df = df[df['d'].str.contains('2022-07-11--')]
+# df = df[df['d'].str.contains('2022-07-11--')]
+
+df = df[(df['d'].str.contains('2022-07-19--')) | (df['d'].str.contains('2022-07-14--'))]
 df = df.sort_values(by=metric)
+
+for c_name in columns_to_remove:
+    df = df[df.columns.drop(list(df.filter(regex=c_name)))]
+
+new_column_names = {}
+for c_name in df.columns:
+    new_column_names.update({
+        c_name: c_name.replace('sparse_', '').replace('categorical_', '').replace('accuracy', 'acc').replace(
+            'crossentropy', 'xe').replace('perplexity', 'ppl')
+    })
+
+df.rename(columns=new_column_names, inplace=True)
+df = df[[c for c in df if c not in ['d', 'duration_experiment']] + ['d', 'duration_experiment']]
 
 print(df.to_string())
 
 if plot_lsc_vs_naive:
-    idf = df[df['optimizer_name'].str.contains(optimizer_name)]
-    idf = idf[idf['task_name'].str.contains(task_name)]
-    # idf = idf[idf['d'].str.contains('2022-07-06--')]
-    # idf = idf[idf['epochs'].eq(1000)]
-
-    print(idf.to_string())
-    n_plots = 10
-    colors_for_type = {
-        'LSC': 'Greens',
-        'dampening:1.': 'Oranges',
-        'randominit': 'Reds',
-        'lscc': 'Blues',
-        'LSC_dampening:1.': 'Purples',
-        'original': 'Purples',
-        '': 'Purples',
-    }
-
-    types = ['LSC', 'dampening:1.', 'randominit', 'lscc', 'LSC_dampening:1.', 'original', '']
-    m = metric.replace('val_', '')
-    # types = ['LSC', 'randominit', 'original']
-    fig, axs = plt.subplots(1, 2, figsize=(6, 2), sharey=True, gridspec_kw={'wspace': .05})
-    for i in range(2):
-        for comment in types:
-            iidf = idf[idf['comments'].eq(comment)]
-            # print(iidf.to_string())
-            # print(colors[comment])
-            cmap = plt.cm.get_cmap(colors_for_type[comment])
-            colors = cmap(np.arange(iidf.shape[0]) / iidf.shape[0])
-            for j, (_, row) in enumerate(iidf.iterrows()):
-                d = row['d']
-                h = histories[d][m if i == 0 else 'val_' + m]
-                axs[i].plot(h, color=colors[j], label=comment)
-
-    axs[0].set_title('train')
-    axs[1].set_title('validation')
-    axs[0].set_ylabel('accuracy')
-    axs[1].set_xlabel('training epoch')
 
     from matplotlib.lines import Line2D
 
-    custom_lines = [Line2D([0], [0], color=plt.cm.get_cmap(colors_for_type[type])(0.5), lw=4) for type in types]
+    if task_name == 'all':
+        tasks = np.unique(df['task_name'])
+    else:
+        tasks = [task_name]
 
-    axs[1].legend(custom_lines, [t.replace('init', '').replace('original', 'reference') for t in types],
-                  loc='lower right', framealpha=0.9)
+    idf = df[df['optimizer_name'].str.contains(optimizer_name)]
 
-    for ax in axs.reshape(-1):
-        for pos in ['right', 'left', 'bottom', 'top']:
-            ax.spines[pos].set_visible(False)
+    for task in tasks:
+        iidf = idf[idf['task_name'].str.contains(task)]
+        # idf = idf[idf['d'].str.contains('2022-07-06--')]
+        # idf = idf[idf['epochs'].eq(1000)]
 
-    # axs[1].axes.yaxis.set_ticklabels([])
-    axs[1].tick_params(labelleft=False, left=False)
-    pathplot = os.path.join(CDIR, 'experiments', 'lscvsrandom.png')
-    fig.savefig(pathplot, bbox_inches='tight')
+        print(iidf.to_string())
+        n_plots = 10
+        colors_for_type = {
+            # 'LSC': 'Greens',
+            # 'dampening:1.': 'Oranges',
+            'randominit': 'Reds',
+            # 'lscc': 'Blues',
+            # 'LSC_dampening:1.': 'Purples',
+            # 'original': 'Purples',
+            '': 'Purples',
+            'LSC2': 'Oranges',
+            'LSC2_ingain:1.414': 'Greens',
+        }
 
-    plt.show()
+        # types = ['LSC', 'dampening:1.', 'randominit', 'lscc', 'LSC_dampening:1.', 'original', '']
+        types = colors_for_type.keys()
+        m = metric.replace('val_', '')
+        # types = ['LSC', 'randominit', 'original']
+        fig, axs = plt.subplots(1, 2, figsize=(6, 2), sharey=True, gridspec_kw={'wspace': .05})
+        for i in range(2):
+            for comment in types:
+                iiidf = iidf[iidf['comments'].eq(comment)]
+                print(iiidf.to_string())
+                # print(colors[comment])
+                cmap = plt.cm.get_cmap(colors_for_type[comment])
+                colors = cmap(np.arange(iiidf.shape[0]) / iiidf.shape[0])
+                for j, (_, row) in enumerate(iiidf.iterrows()):
+                    d = row['d']
+                    h = histories[d][m if i == 0 else 'val_' + m]
+                    axs[i].plot(h, color=colors[j], label=comment)
 
-if plot_betas:
-    idf = df[df['task_name'].str.contains(task_name)]
-    idf = idf[idf['optimizer_name'].str.contains(optimizer_name)]
-    iidf = idf[idf['comments'].str.contains('LSC_beta')]  # cdr gra blg
-    iidf['betas'] = iidf['comments'].str.replace('LSC_beta:', '').values.astype(float)
-    iidf = iidf.sort_values(by='betas')
+        axs[0].set_title('train ' + task)
+        axs[1].set_title('validation')
+        axs[0].set_ylabel('accuracy')
+        axs[1].set_xlabel('training epoch')
 
-    colors = [plt.cm.Greens(x / (len(iidf) + 1)) for x in range(1, len(iidf) + 1)]
+        custom_lines = [Line2D([0], [0], color=plt.cm.get_cmap(colors_for_type[type])(0.5), lw=4) for type in types]
 
-    fig, axs = plt.subplots(1, 1, figsize=(10, 5))
-    for (_, row), c in zip(iidf.iterrows(), colors):
-        d = row['d']
-        h = histories[d][metric]
-        axs.plot(h, color=c, label=row['betas'])
+        axs[1].legend(custom_lines, [t.replace('init', '').replace('original', 'reference') for t in types],
+                      loc='lower right', framealpha=0.9)
 
-    axs.set_title(task_name)
-    axs.set_ylabel(metric)
-    plt.legend()
-    plt.show()
+        for ax in axs.reshape(-1):
+            for pos in ['right', 'left', 'bottom', 'top']:
+                ax.spines[pos].set_visible(False)
 
-    mdf = iidf.groupby(
-        ['net_name', 'task_name', 'initializer', 'betas'], as_index=False
-    ).agg({m: ['mean', 'std'] for m in metrics_oi})
+        # axs[1].axes.yaxis.set_ticklabels([])
+        axs[1].tick_params(labelleft=False, left=False)
+        pathplot = os.path.join(CDIR, 'experiments', f'lscvsrandom_{task}.png')
+        fig.savefig(pathplot, bbox_inches='tight')
 
-    for m in metrics_oi:
-        mdf['mean_{}'.format(m)] = mdf[m]['mean']
-        mdf['std_{}'.format(m)] = mdf[m]['std']
-        mdf = mdf.drop([m], axis=1)
-    mdf = mdf.sort_values(by='betas')
-
-    print(mdf.to_string())
-
-    color = plt.cm.Oranges(3 / 6)
-    fig, axs = plt.subplots(1, 1, figsize=(10, 5))
-
-    means = mdf['mean_val_' + metric]
-    stds = mdf['std_val_' + metric]
-    betas = mdf['betas']
-    axs.plot(betas, means, color=color)
-    axs.fill_between(betas, means - stds, means + stds, alpha=0.5, color=color)
-
-    axs.set_ylabel(metric)
-    axs.set_title(task_name)
-    plt.show()
-
-if plot_dampenings:
-    idf = df[df['task_name'].str.contains(task_name)]
-    idf = idf[idf['optimizer_name'].str.contains(optimizer_name)]
-    # idf = idf[idf['d'].str.contains('2022-07-04--')]
-    iidf = idf[idf['comments'].str.contains('LSC_dampening')]  # cdr gra blg
-    iidf['dampening'] = iidf['comments'].str.replace('LSC_dampening:', '').values.astype(float)
-    iidf = iidf.sort_values(by='dampening')
-
-    colors = [plt.cm.Greens(x / (len(iidf) + 1)) for x in range(1, len(iidf) + 1)]
-
-    fig, axs = plt.subplots(1, 1, figsize=(10, 5))
-    for (_, row), c in zip(iidf.iterrows(), colors):
-        d = row['d']
-        h = histories[d][metric]
-        axs.plot(h, color=c, label=row['dampening'])
-
-    axs.set_title(task_name)
-    axs.set_ylabel(metric)
-    plt.legend()
-    plt.show()
-
-    mdf = iidf.groupby(
-        ['net_name', 'task_name', 'initializer', 'dampening'], as_index=False
-    ).agg({m: ['mean', 'std'] for m in metrics_oi})
-
-    for m in metrics_oi:
-        mdf['mean_{}'.format(m)] = mdf[m]['mean']
-        mdf['std_{}'.format(m)] = mdf[m]['std']
-        mdf = mdf.drop([m], axis=1)
-    mdf = mdf.sort_values(by='dampening')
-
-    print(mdf.to_string())
-
-    color = plt.cm.Oranges(3 / 6)
-    fig, axs = plt.subplots(1, 1, figsize=(10, 5))
-
-    means = mdf['mean_val_' + metric]
-    stds = mdf['std_val_' + metric]
-    betas = mdf['dampening']
-    axs.plot(betas, means, color=color)
-    axs.fill_between(betas, means - stds, means + stds, alpha=0.5, color=color)
-
-    axs.set_ylabel(metric)
-    axs.set_title(task_name)
-    plt.show()
+        plt.show()
 
 if plot_dampenings_and_betas:
-    init = 'lsc'  # lsc LSC
+    init = 'LSC2'  # lsc LSC LSC2
     fig, axs = plt.subplots(1, 2, figsize=(10, 5))
 
     idf = df[df['task_name'].str.contains(task_name)]
@@ -266,6 +204,7 @@ if plot_dampenings_and_betas:
 
     color = plt.cm.Oranges(3 / 6)
 
+    metric = metric.replace('val_', '')
     means = mdf['mean_val_' + metric]
     stds = mdf['std_val_' + metric]
     betas = mdf['betas']

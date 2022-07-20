@@ -41,10 +41,10 @@ def config():
     # task and net
     # ptb time_ae simplest_random time_ae_merge ps_mnist heidelberg wiki103 wmt14 s_mnist xor small_s_mnist
     # wordptb sl_mnist
-    task_name = 'ps_mnist'
+    task_name = 'wordptb'
 
     # test configuration
-    epochs = 3
+    epochs = 0
     steps_per_epoch = 1
     batch_size = 8
     stack = 2

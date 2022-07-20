@@ -11,7 +11,7 @@ STATSPATH = os.path.abspath(os.path.join(CDIR, '..', 'data', 'task_stats.csv'))
 def Task(timerepeat=1, batch_size=64, steps_per_epoch=None, epochs=1, name='time_ae', train_val_test='train',
          neutral_phase_length=0, category_coding='onehot', inherit_from_gen=False, maxlen=100, output_type='[io]',
          lr=1e-4, comments=''):
-    if 'ptb' == name:
+    if 'charptb' == name:
         gen = PTBGenerator(
             batch_size=batch_size,
             epochs=epochs,
@@ -21,6 +21,7 @@ def Task(timerepeat=1, batch_size=64, steps_per_epoch=None, epochs=1, name='time
             train_val_test=train_val_test,
             neutral_phase_length=neutral_phase_length,
             category_coding='',
+            char_or_word='char',
             config=comments,
             lr=lr)
 

@@ -125,7 +125,7 @@ def build_model(task_name, net_name, n_neurons, tau, n_dt_per_step, lr, batch_si
     elif isinstance(stack, int):
         stack = [n_neurons for _ in range(stack)]
 
-    if 'heidelberg' in task_name:
+    if 'preprocesstask' in task_name:
         tfe = tf.keras.layers.experimental.preprocessing
         rnn_input = ExpandDims(axis=-1)(rnn_input)
         rnn_input = tfe.RandomTranslation(.2, .2, fill_mode="wrap", interpolation="nearest")(rnn_input)
@@ -134,9 +134,9 @@ def build_model(task_name, net_name, n_neurons, tau, n_dt_per_step, lr, batch_si
         rnn_input = Squeeze(axis=-1)(rnn_input)
         rnn_input = DropIn(.3, binary=True)(rnn_input)
 
-    rnn_input = Dropout(drate)(rnn_input)
 
     for i, layer_width in enumerate(stack):
+        rnn_input = Dropout(drate)(rnn_input)
         rnn_input = [rnn_input] if not isinstance(rnn_input, list) else rnn_input
 
         if i == 0:

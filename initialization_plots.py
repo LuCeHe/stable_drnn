@@ -22,21 +22,22 @@ seed = 41
 stack = 2
 
 # net
-net_name = 'maLSNN'
+net_name = 'aLSNN'
 n_neurons = 128
 batch_size = 128
 loss_name = 'mse'  # categorical_crossentropy categorical_focal_loss contrastive_loss
-initializer = 'random_normal'  # uniform glorot_uniform orthogonal glorot_normal NoZeroGlorot random_uniform
+initializer = 'glorot_uniform'  # uniform glorot_uniform orthogonal glorot_normal NoZeroGlorot random_uniform
 
 n_seeds = 5  # 10
 out_dim = 2
 in_dim = 2
 time_steps = 100
 n_rnns = 3
-list_comments = ['LSC', 'dampening:1.', 'randominit', 'lscc', 'original', 'LSTM', 'LSTM_LSC']
+# list_comments = ['LSC1', 'LSC2', 'dampening:1.', 'randominit', 'lscc', 'original', 'LSTM', 'LSTM_LSC']
+list_comments = ['LSC1', 'LSC2', 'LSC2_ingain:1.414', 'randominit', '']
 
-plot_vargrad = False
-plot_binomial = True
+plot_vargrad = True
+plot_binomial = False
 
 gs, acts, thrs = [], [], []
 
