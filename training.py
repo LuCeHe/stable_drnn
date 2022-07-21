@@ -39,9 +39,9 @@ def config():
     seed = 41
 
     # task and net
-    # ptb time_ae simplest_random time_ae_merge ps_mnist heidelberg wiki103 wmt14 s_mnist xor small_s_mnist
+    # ps_mnist heidelberg s_mnist
     # wordptb sl_mnist
-    task_name = 'wordptb'
+    task_name = 'heidelberg'
 
     # test configuration
     epochs = 0
@@ -56,7 +56,7 @@ def config():
     n_neurons = None
     embedding = 'learned:None:None:{}'.format(n_neurons) if task_name in language_tasks else False
 
-    comments = 'LSC2'
+    comments = 'LSC2_timerepeat:2'
 
     # optimizer properties
     lr = None  # 7e-4

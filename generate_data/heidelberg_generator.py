@@ -34,7 +34,6 @@ data_links = [
 ]
 
 
-
 def test_non_spiking():
     f = h5py.File(ssc_train_filename, "r")
 
@@ -101,6 +100,25 @@ def test_spiking(plot_it=True):
         f.close()
 
 
+def test_spiking_2(plot_it=True):
+    sets = ['train', 'test']
+    n_samples = 10
+    fig, axs = plt.subplots(len(sets), n_samples, gridspec_kw={'wspace': .0, 'hspace': 1.2}, figsize=(4, 4))
+    path_X = lambda x: os.path.join(HEIDELBERGDIR, "{}X_4ms.npy".format(x))
+    for ax, set_name in zip(axs, sets):
+        print(set_name)
+        samples = range(n_samples+1)
+        X = np.load(path_X(set_name))[samples]
+        np.random.shuffle(X)
+        print(X.shape)
+
+        for i in range(n_samples):
+            ax[i].pcolormesh(X[i], cmap='Greys')
+            ax[i].set_title(set_name)
+
+    plt.show()
+
+
 class SpokenHeidelbergDigits(BaseGenerator):
 
     def __init__(
@@ -120,10 +138,10 @@ class SpokenHeidelbergDigits(BaseGenerator):
             for set in ['train', 'test']:
                 original_filename = os.path.join(HEIDELBERGDIR, "shd_{}.h5".format(set))
 
-                test_X, test_y = generate_dataset(original_filename, dt=4e-3)
-                print(test_X.shape, test_y.shape)
-                np.save(os.path.join(HEIDELBERGDIR, "{}X_4ms.npy".format(set)), test_X)
-                np.save(os.path.join(HEIDELBERGDIR, "{}y_4ms.npy".format(set)), test_y)
+                X, y = generate_dataset(original_filename, dt=4e-3)
+                # print(test_X.shape, test_y.shape)
+                np.save(os.path.join(HEIDELBERGDIR, "{}X_4ms.npy".format(set)), X)
+                np.save(os.path.join(HEIDELBERGDIR, "{}y_4ms.npy".format(set)), y)
 
         self.__dict__.update(batch_size=batch_size, tvt=tvt,
                              steps_per_epoch=steps_per_epoch, repetitions=repetitions)
@@ -192,5 +210,6 @@ def test_generator():
 
 if __name__ == '__main__':
     # download_and_unzip(data_links, HEIDELBERGDIR)
-    test_generator()
+    # test_generator()
     # test_non_spiking()
+    test_spiking_2(plot_it=True)
