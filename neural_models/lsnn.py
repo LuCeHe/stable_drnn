@@ -218,11 +218,11 @@ class aLSNN(baseLSNN):
             #                                       name='tau_adaptation', trainable=True)
 
             self.tau = self.add_weight(shape=(self.num_neurons,), initializer=
-                                                      tf.keras.initializers.RandomUniform(minval=20, maxval=100),
+            tf.keras.initializers.RandomUniform(minval=200, maxval=200),
                                        name='tau', trainable=False)
             self.tau_adaptation = self.add_weight(shape=(self.num_neurons,), initializer=
-                                                      tf.keras.initializers.RandomUniform(minval=20, maxval=100),
-                                       name='tau_adaptation', trainable=False)
+            tf.keras.initializers.RandomUniform(minval=20, maxval=20),
+                                                  name='tau_adaptation', trainable=False)
 
             self.dampening = 1 / tf.sqrt(2.)
             beta = str2val(self.config, 'beta', float, default=1 / self.dampening)
@@ -230,7 +230,9 @@ class aLSNN(baseLSNN):
                                         initializer=tf.keras.initializers.Constant(value=beta),
                                         name='beta', trainable=False)
 
-            thr = (1 - 1/self.tau_adaptation) / self.dampening
+            # alpha = 1-1/tau -> 1/tau= 1-alpha
+            thr = 1 / self.dampening / self.tau_adaptation
+            # thr = .1
             self.thr = self.add_weight(shape=(self.num_neurons,), initializer=tf.keras.initializers.Constant(value=thr),
                                        name='thr', trainable=False)
 
@@ -284,6 +286,8 @@ class aLSNN(baseLSNN):
 
         self.spike_type = SurrogatedStep(config=self.config, dampening=dampening, sharpness=self.sharpness)
 
-        # print(self.tau_adaptation, self.tau, self.beta, self.thr)
+        print(f'ta: {self.tau_adaptation[0].numpy}, t: {self.tau[0].numpy}, beta: {self.beta[0].numpy}, thr: {self.thr[0].numpy}')
+        # print(self.tau_adaptation[0], self.tau[0], self.beta[0], self.thr[0])
+
 
 LSNN = baseLSNN

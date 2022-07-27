@@ -15,7 +15,6 @@ class BaseGenerator(tf.keras.utils.Sequence):
         i, m, o = batch['input_spikes'], batch['mask'], batch['target_output']
         i = np.repeat(i, self.repetitions, axis=1)
         o = np.repeat(o, self.repetitions, axis=1)
-        print(i.shape)
 
         if self.output_type == '[im]o':
             return (i, m), o

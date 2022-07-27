@@ -23,7 +23,7 @@ metrics = [
 
 
 def Expert(i, j, stateful, task_name, net_name, n_neurons, tau, initializer,
-           tau_adaptation, n_out, comments):
+           tau_adaptation, n_out, comments, batch_size):
     ij = '_{}_{}'.format(i, j)
 
     thr = str2val(comments, 'thr', float, .01)
@@ -34,7 +34,7 @@ def Expert(i, j, stateful, task_name, net_name, n_neurons, tau, initializer,
     else:
         win = lambda x: x
 
-    batch_size = str2val(comments, 'batchsize', int, 1)
+    batch_size = str2val(comments, 'batchsize', int, batch_size)
     maxlen = str2val(comments, 'maxlen', int, 100)
     nin = str2val(comments, 'nin', int, 1) if not 'convWin' in comments else n_neurons
 
@@ -69,10 +69,10 @@ def Expert(i, j, stateful, task_name, net_name, n_neurons, tau, initializer,
     return call
 
 
-def build_model(task_name, net_name, n_neurons, tau, n_dt_per_step, lr, batch_size, stack,
+def build_model(task_name, net_name, n_neurons, tau, lr, stack, batch_size,
                 loss_name, embedding, optimizer_name, tau_adaptation, lr_schedule, weight_decay, clipnorm,
                 initializer, comments, in_len, n_in, out_len, n_out, final_epochs, final_steps_per_epoch,
-                language_tasks):
+                language_tasks, stateful= None):
     drate = str2val(comments, 'dropout', float, .1)
     # network definition
     # weights initialization
@@ -80,7 +80,7 @@ def build_model(task_name, net_name, n_neurons, tau, n_dt_per_step, lr, batch_si
     stateful = True if 'ptb' in task_name else False
 
     if 'stateful' in comments: stateful = True
-
+    if stateful is False: stateful = False
     loss = get_loss(loss_name)
 
     # n_experts = str2val(comments, 'experts', int, 1)
@@ -88,7 +88,7 @@ def build_model(task_name, net_name, n_neurons, tau, n_dt_per_step, lr, batch_si
     if not embedding is False:
         emb = SymbolAndPositionEmbedding(
             maxlen=in_len, vocab_size=n_out, embed_dim=n_neurons, embeddings_initializer=initializer,
-            from_string=embedding, name=embedding.replace(':', '_'))
+            from_string=embedding)
 
         emb.build((1, n_out))
         emb.sym_emb.build((1, n_out))
@@ -105,20 +105,17 @@ def build_model(task_name, net_name, n_neurons, tau, n_dt_per_step, lr, batch_si
     x = input_words
 
     if not embedding is False:
-        # in_emb = Lambda(lambda z: tf.math.argmax(z, axis=-1), name='Argmax')(x)
         if x.shape[-1] == 1:
             in_emb = Lambda(lambda z: tf.squeeze(z, axis=-1), name='Squeeze')(x)
         else:
             in_emb = Lambda(lambda z: tf.math.argmax(z, axis=-1), name='Argmax')(x)
-
-        # rnn_input = [emb(in_emb) for emb in embs]
         rnn_input = emb(in_emb)
     else:
         rnn_input = x  # [input_scaling * x]
 
     expert = lambda i, j, c, n: Expert(i, j, stateful, task_name, net_name, n_neurons=n, tau=tau,
                                        initializer=initializer, tau_adaptation=tau_adaptation, n_out=n_out,
-                                       comments=c)
+                                       comments=c, batch_size=batch_size)
 
     if isinstance(stack, str):
         stack = [int(s) for s in stack.split(':')]
@@ -133,7 +130,6 @@ def build_model(task_name, net_name, n_neurons, tau, n_dt_per_step, lr, batch_si
         rnn_input = tfe.RandomRotation((-.1, .1), fill_mode="wrap", interpolation="nearest")(rnn_input)
         rnn_input = Squeeze(axis=-1)(rnn_input)
         rnn_input = DropIn(.3, binary=True)(rnn_input)
-
 
     for i, layer_width in enumerate(stack):
         rnn_input = Dropout(drate)(rnn_input)

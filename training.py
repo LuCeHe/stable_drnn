@@ -133,8 +133,8 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
 
     comments = comments if task_name in language_tasks else comments.replace('embproj', 'simplereadout')
     train_model = build_model(
-        task_name=task_name, net_name=net_name, n_neurons=n_neurons, tau=tau, n_dt_per_step=timerepeat,
-        lr=gen_train.lr, batch_size=gen_train.batch_size, stack=stack, loss_name=loss_name,
+        task_name=task_name, net_name=net_name, n_neurons=n_neurons, tau=tau,
+        lr=gen_train.lr, stack=stack, loss_name=loss_name,
         embedding=embedding, optimizer_name=optimizer_name, lr_schedule=lr_schedule,
         weight_decay=weight_decay, clipnorm=clipnorm, initializer=initializer, comments=comments,
         language_tasks=language_tasks,
