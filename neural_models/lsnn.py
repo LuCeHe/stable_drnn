@@ -7,6 +7,55 @@ from GenericTools.stay_organized.utils import str2val
 tfd = tfp.distributions
 
 
+class non_spiking_LIF(tf.keras.layers.Layer):
+    """
+    LSNN
+    """
+
+    def get_config(self):
+        base_config = super().get_config()
+        return dict(list(base_config.items()) + list(self.init_args.items()))
+
+    def __init__(self, num_neurons=None, initializer='orthogonal',
+                 config='', v_eq=0,
+                 **kwargs):
+        super().__init__(**kwargs)
+
+        self.init_args = dict(num_neurons=num_neurons, initializer=initializer, )
+        self.__dict__.update(self.init_args)
+
+        self.state_size = (num_neurons,)
+
+    def build(self, input_shape):
+        n_in = input_shape[-1]
+        n_rec = self.num_neurons
+
+        self.input_weights = self.add_weight(shape=(n_in, n_rec), initializer=self.initializer, name='in_weights')
+        self.recurrent_weights = self.add_weight(shape=(n_rec, n_rec), initializer=self.initializer, name='rec_weights')
+        self.internal_current = self.add_weight(shape=(n_rec,), initializer='zeros', name='bias')
+
+        self.built = True
+
+    def currents_composition(self, inputs, old_spike):
+        i_in = inputs @ self.input_weights \
+               + old_spike @ self.recurrent_weights \
+               + self.internal_current
+
+        return i_in
+
+    def call(self, inputs, states, training=None):
+        if not training is None:
+            tf.keras.backend.set_learning_phase(training)
+
+        old_v = states[0]
+
+        v = self.currents_composition(inputs, old_v)
+
+        output = v
+        new_state = (v,)
+        return output, new_state
+
+
 class baseLSNN(tf.keras.layers.Layer):
     """
     LSNN
@@ -148,13 +197,13 @@ class aLSNN(baseLSNN):
 
         if 'LSC1' in self.config:
             alpha_v = .99  # 1/3 .86
-            tau = -1 / tf.math.log(alpha_v)
+            tau = 20  # -1 / tf.math.log(alpha_v)
             # print(tau)
             self.tau = self.add_weight(shape=(self.num_neurons,), initializer=tf.keras.initializers.Constant(value=tau),
                                        name='tau', trainable=False)
 
             alpha_a = .99  # 1/3 .86
-            tau_adaptation = -1 / tf.math.log(alpha_a)
+            tau_adaptation = 700  # -1 / tf.math.log(alpha_a)
             self.tau_adaptation = self.add_weight(shape=(self.num_neurons,),
                                                   initializer=tf.keras.initializers.Constant(value=tau_adaptation),
                                                   name='tau_adaptation', trainable=False)
@@ -181,13 +230,13 @@ class aLSNN(baseLSNN):
         elif 'lsc1' in self.config:
             # print('here?')
             alpha_v = .99  # 1/3 .86
-            tau = -1 / tf.math.log(alpha_v)
+            tau = 20  # -1 / tf.math.log(alpha_v)
             # print(tau)
             self.tau = self.add_weight(shape=(self.num_neurons,), initializer=tf.keras.initializers.Constant(value=tau),
                                        name='tau', trainable=False)
 
             alpha_a = .99  # 1/3 .86
-            tau_adaptation = -1 / tf.math.log(alpha_a)
+            tau_adaptation = 700  # -1 / tf.math.log(alpha_a)
             self.tau_adaptation = self.add_weight(shape=(self.num_neurons,),
                                                   initializer=tf.keras.initializers.Constant(value=tau_adaptation),
                                                   name='tau_adaptation', trainable=False)
@@ -217,12 +266,12 @@ class aLSNN(baseLSNN):
             #                                       initializer=tf.keras.initializers.Constant(value=tau_adaptation),
             #                                       name='tau_adaptation', trainable=True)
 
-            self.tau = self.add_weight(shape=(self.num_neurons,), initializer=
-            tf.keras.initializers.RandomUniform(minval=200, maxval=200),
-                                       name='tau', trainable=False)
-            self.tau_adaptation = self.add_weight(shape=(self.num_neurons,), initializer=
-            tf.keras.initializers.RandomUniform(minval=20, maxval=20),
-                                                  name='tau_adaptation', trainable=False)
+            self.tau = self.add_weight(
+                shape=(self.num_neurons,), initializer=tf.keras.initializers.RandomUniform(minval=20, maxval=20),
+                name='tau', trainable=False)
+            self.tau_adaptation = self.add_weight(
+                shape=(self.num_neurons,), initializer=tf.keras.initializers.RandomUniform(minval=700, maxval=700),
+                name='tau_adaptation', trainable=False)
 
             self.dampening = 1 / tf.sqrt(2.)
             beta = str2val(self.config, 'beta', float, default=1 / self.dampening)
@@ -251,20 +300,20 @@ class aLSNN(baseLSNN):
                                            linv,
                                            tf.keras.initializers.RandomUniform(minval=0.3, maxval=.99)
                                        ),
-                                       name='tau', trainable=True)
+                                       name='tau', trainable=False)
             self.tau_adaptation = self.add_weight(shape=(self.num_neurons,),
                                                   initializer=FuncOnInitializer(
                                                       linv,
                                                       tf.keras.initializers.RandomUniform(minval=0.3, maxval=.99)
                                                   ),
-                                                  name='tau_adaptation', trainable=True)
+                                                  name='tau_adaptation', trainable=False)
             self.dampening = tf.random.uniform((self.num_neurons,), minval=0.2, maxval=1.)
             self.beta = self.add_weight(shape=(self.num_neurons,),
                                         initializer=tf.keras.initializers.RandomUniform(minval=1., maxval=2.),
-                                        name='beta', trainable=True)
+                                        name='beta', trainable=False)
             self.thr = self.add_weight(shape=(self.num_neurons,),
                                        initializer=tf.keras.initializers.RandomUniform(minval=0.01, maxval=1.),
-                                       name='thr', trainable=True)
+                                       name='thr', trainable=False)
 
         else:
             self.tau = self.add_weight(shape=(self.num_neurons,),
@@ -286,7 +335,8 @@ class aLSNN(baseLSNN):
 
         self.spike_type = SurrogatedStep(config=self.config, dampening=dampening, sharpness=self.sharpness)
 
-        print(f'ta: {self.tau_adaptation[0].numpy}, t: {self.tau[0].numpy}, beta: {self.beta[0].numpy}, thr: {self.thr[0].numpy}')
+        print(
+            f'ta: {self.tau_adaptation[0].numpy}, t: {self.tau[0].numpy}, beta: {self.beta[0].numpy}, thr: {self.thr[0].numpy}')
         # print(self.tau_adaptation[0], self.tau[0], self.beta[0], self.thr[0])
 
 

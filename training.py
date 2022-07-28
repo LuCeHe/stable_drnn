@@ -44,7 +44,7 @@ def config():
     task_name = 'heidelberg'
 
     # test configuration
-    epochs = 0
+    epochs = 2
     steps_per_epoch = 1
     batch_size = 8
     stack = 2
@@ -56,7 +56,7 @@ def config():
     n_neurons = None
     embedding = 'learned:None:None:{}'.format(n_neurons) if task_name in language_tasks else False
 
-    comments = 'LSC2_timerepeat:2'
+    comments = 'nsLIFreadout'
 
     # optimizer properties
     lr = None  # 7e-4
@@ -140,7 +140,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
         language_tasks=language_tasks,
         in_len=gen_train.in_len, n_in=gen_train.in_dim, out_len=gen_train.out_len,
         n_out=gen_train.out_dim, tau_adaptation=tau_adaptation,
-        final_epochs=gen_train.epochs, final_steps_per_epoch=gen_train.steps_per_epoch
+        final_epochs=gen_train.epochs, final_steps_per_epoch=gen_train.steps_per_epoch, batch_size=batch_size
     )
 
     results = {}

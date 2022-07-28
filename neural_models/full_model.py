@@ -72,7 +72,7 @@ def Expert(i, j, stateful, task_name, net_name, n_neurons, tau, initializer,
 def build_model(task_name, net_name, n_neurons, tau, lr, stack, batch_size,
                 loss_name, embedding, optimizer_name, tau_adaptation, lr_schedule, weight_decay, clipnorm,
                 initializer, comments, in_len, n_in, out_len, n_out, final_epochs, final_steps_per_epoch,
-                language_tasks, stateful= None):
+                language_tasks, stateful=None):
     drate = str2val(comments, 'dropout', float, .1)
     # network definition
     # weights initialization
@@ -148,8 +148,16 @@ def build_model(task_name, net_name, n_neurons, tau, lr, stack, batch_size,
         rnn_input = output_cell
 
     output = output_cell
-    readout = Dense(n_out, name='decoder', kernel_initializer=initializer)
-    output_net = readout(output)
+
+    if not 'nsLIFreadout' in comments:
+
+        readout = Dense(n_out, name='decoder', kernel_initializer=initializer)
+        output_net = readout(output)
+    else:
+        print('here!')
+        cell = models.non_spiking_LIF(num_neurons=n_neurons, initializer=initializer)
+        readout = RNN(cell, return_sequences=True, name='decoder', stateful=stateful)
+        output_net = readout(output)
 
     loss = str2val(comments, 'loss', output_type=str, default=loss)
     output_net = AddLossLayer(loss=loss)([output_words, output_net])

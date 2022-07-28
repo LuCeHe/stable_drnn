@@ -28,20 +28,20 @@ stack = 2
 
 # net
 net_name = 'aLSNN'
-n_neurons = 8
-batch_size = 32
+n_neurons = 128
+batch_size = 128
 initializer = 'glorot_uniform'  # uniform glorot_uniform orthogonal glorot_normal NoZeroGlorot random_uniform
-task_name = 'wordptb'  # random wordptb heidelberg
+task_name = 'random'  # random wordptb heidelberg
 embedding = 'learned:None:None:{}'.format(n_neurons) if task_name in language_tasks else False
 
-n_seeds = 2  # 10
+n_seeds = 10  # 10
 time_steps = 100
 # n_rnns = 3
-# list_comments = ['LSC1', 'LSC2', 'dampening:1.', 'randominit', 'lscc', 'original', 'LSTM', 'LSTM_LSC']
+# list_comments = ['LSC1', 'LSC2', 'dampening:1.', 'randominit', 'lscc', 'original', 'LSTM', 'LSTM_LSC', 'lsc1']
 # list_comments = ['LSC1', 'LSC2', 'LSC2_ingain:1.414', 'randominit', '']
-list_comments = ['LSC1', 'LSC2', '']
+list_comments = ['LSC1', 'lsc1', 'LSC2', '']
 
-plot_vargrad = False
+plot_vargrad = True
 plot_binomial = False
 plot_activity = True
 
@@ -51,7 +51,7 @@ if task_name == 'random':
     tin = np.random.randn(batch_size, time_steps, in_dim)
     # tout = np.random.randn(batch_size, time_steps, out_dim)
     tout = tf.random.uniform(shape=(batch_size, time_steps), maxval=out_dim, dtype=tf.int32, seed=10)
-    print(tout)
+
     loss_name = 'sparse_categorical_crossentropy'  # mse
 else:
     gen_train = Task(timerepeat=2, epochs=0, batch_size=batch_size, steps_per_epoch=0,
@@ -66,7 +66,7 @@ else:
 gs, acts, thrs, cvolts = [], [], [], []
 
 tin = tf.cast(tf.convert_to_tensor(tin, dtype=tf.float32), tf.float32)
-tout = tf.cast(tf.convert_to_tensor(tout, dtype=tf.float32), tf.float32)
+tout = tf.convert_to_tensor(tf.cast(tout, tf.float32), dtype=tf.float32)
 
 save_folder = os.path.join(CDIR, 'data', initializer)
 os.makedirs(save_folder, exist_ok=True)
@@ -94,7 +94,7 @@ for comments in list_comments:
                 n_out=out_dim, tau_adaptation=int(time_steps / 2),
                 final_epochs=0, final_steps_per_epoch=0, batch_size=batch_size, stateful=False
             )
-            model.summary()
+            # model.summary()
             loss_fn = get_loss(loss_name)
 
             # x = tf.constant(3.0)
@@ -103,21 +103,20 @@ for comments in list_comments:
                 g.watch(tout)
                 inlayer = tin
                 if task_name in language_tasks:
-                    lns = [layer.name for layer in model.layers]
-                    print(lns)
+                    # lns = [layer.name for layer in model.layers]
 
                     ln = [layer.name for layer in model.layers if 'encoder_0_0' in layer.name][0]
-                    print(ln)
                     # inlayer = model.get_layer(ln).output
                     inlayer = model.get_layer(ln).input
                     # inlayer = model.get_layer(ln)
+                    raise ValueError('This code has to be finished')
 
                 lout = model([tin, tout])
                 loss = loss_fn(tout, lout)
             dy_dx = g.gradient(loss, inlayer)
-            print('hey!')
-            print(dy_dx)
-            print(loss)
+            # print('hey!')
+            # print(dy_dx)
+            # print(loss)
 
             test_model = get_test_model(model)
             trt = test_model.predict([tin, tout], batch_size=tin.shape[0])
@@ -175,7 +174,7 @@ if plot_vargrad:
     for i in range(len(list_comments)):
         axs[1, i].pcolormesh(acts[i][0].T, cmap='Greys')
 
-        for j in range(128):
+        for j in range(min(n_neurons, 128)):
             axs[2, i].plot(thrs[i][0, ..., j], color=colors_thr[j])
 
         for var, c in zip(gs[i], colors):
@@ -318,9 +317,13 @@ if plot_activity:
         n, bins, patches = axs[i].hist(cv, 100, density=True, facecolor='g', alpha=0.75)
         # print(n)
         # print(bins)
-        axs[i].plot(bins[:-1], n, '--', color='b')
-        popt, pcov = curve_fit(double_exp, bins[:-1], n, p0=(1.0, 1.0, 1.0, 1.0, .0, .0))
-
+        # axs[i].plot(bins[:-1], n, '--', color='b')
+        popt, pcov = curve_fit(double_exp, bins[:-1], n, p0=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0))
         axs[i].plot(bins[:-1], double_exp(bins[:-1], *popt), '--', color='r')
+        axs[i].plot(bins[:-1], double_exp(bins[:-1], *popt)/(popt[0]+ popt[4]), '--', color='r')
+        print(c, *popt)
+
+    pathplot = os.path.join(save_folder, 'vdist.png')
+    fig.savefig(pathplot, bbox_inches='tight')
 
     plt.show()
