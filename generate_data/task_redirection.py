@@ -7,6 +7,8 @@ FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
 STATSPATH = os.path.abspath(os.path.join(CDIR, '..', 'data', 'task_stats.csv'))
 
+language_tasks = ['ptb', 'wiki103', 'wmt14', 'time_ae_merge', 'monkey', 'wordptb']
+
 
 def Task(timerepeat=1, batch_size=64, steps_per_epoch=None, epochs=1, name='time_ae', train_val_test='train',
          neutral_phase_length=0, category_coding='onehot', inherit_from_gen=False, maxlen=100, output_type='[io]',

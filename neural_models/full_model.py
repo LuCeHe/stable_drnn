@@ -22,8 +22,7 @@ metrics = [
 ]
 
 
-def Expert(i, j, stateful, task_name, net_name, n_neurons, tau, initializer,
-           tau_adaptation, n_out, comments, batch_size):
+def Expert(i, j, stateful, task_name, net_name, n_neurons, initializer, comments, batch_size):
     ij = '_{}_{}'.format(i, j)
 
     thr = str2val(comments, 'thr', float, .01)
@@ -40,7 +39,7 @@ def Expert(i, j, stateful, task_name, net_name, n_neurons, tau, initializer,
 
     if 'LSNN' in net_name:
         stack_info = '_stacki:{}'.format(i)
-        cell = models.net(net_name)(num_neurons=n_neurons, tau=tau, tau_adaptation=tau_adaptation,
+        cell = models.net(net_name)(num_neurons=n_neurons,
                                     initializer=initializer, config=comments + stack_info, thr=thr)
         rnn = RNN(cell, return_sequences=True, name='encoder' + ij, stateful=stateful)
 
@@ -69,9 +68,9 @@ def Expert(i, j, stateful, task_name, net_name, n_neurons, tau, initializer,
     return call
 
 
-def build_model(task_name, net_name, n_neurons, tau, lr, stack, batch_size,
-                loss_name, embedding, optimizer_name, tau_adaptation, lr_schedule, weight_decay, clipnorm,
-                initializer, comments, in_len, n_in, out_len, n_out, final_epochs, final_steps_per_epoch,
+def build_model(task_name, net_name, n_neurons, lr, stack, batch_size,
+                loss_name, embedding, optimizer_name, lr_schedule, weight_decay, clipnorm,
+                initializer, comments, in_len, n_in, out_len, n_out, final_epochs,
                 language_tasks, stateful=None):
     drate = str2val(comments, 'dropout', float, .1)
     # network definition
@@ -113,9 +112,8 @@ def build_model(task_name, net_name, n_neurons, tau, lr, stack, batch_size,
     else:
         rnn_input = x  # [input_scaling * x]
 
-    expert = lambda i, j, c, n: Expert(i, j, stateful, task_name, net_name, n_neurons=n, tau=tau,
-                                       initializer=initializer, tau_adaptation=tau_adaptation, n_out=n_out,
-                                       comments=c, batch_size=batch_size)
+    expert = lambda i, j, c, n: Expert(i, j, stateful, task_name, net_name, n_neurons=n,
+                                       initializer=initializer, comments=c, batch_size=batch_size)
 
     if isinstance(stack, str):
         stack = [int(s) for s in stack.split(':')]
@@ -150,11 +148,9 @@ def build_model(task_name, net_name, n_neurons, tau, lr, stack, batch_size,
     output = output_cell
 
     if not 'nsLIFreadout' in comments:
-
         readout = Dense(n_out, name='decoder', kernel_initializer=initializer)
         output_net = readout(output)
     else:
-        print('here!')
         cell = models.non_spiking_LIF(num_neurons=n_neurons, initializer=initializer)
         readout = RNN(cell, return_sequences=True, name='decoder', stateful=stateful)
         output_net = readout(output)

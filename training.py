@@ -5,6 +5,8 @@ import pandas as pd
 
 import tensorflow as tf
 
+from alif_sg.initialization_plots import adapt_sg_shape
+
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 os.environ["TF_GPU_ALLOCATOR"] = "cuda_malloc_async"
 os.environ["TF_CPP_VMODULE"] = "gpu_process_state=10,gpu_cudamallocasync_allocator=10"
@@ -19,7 +21,7 @@ from GenericTools.keras_tools.plot_tools import plot_history
 from GenericTools.stay_organized.VeryCustomSacred import CustomExperiment, ChooseGPU
 from GenericTools.stay_organized.utils import timeStructured, setReproducible, str2val
 
-from alif_sg.generate_data.task_redirection import Task, checkTaskMeanVariance
+from alif_sg.generate_data.task_redirection import Task, checkTaskMeanVariance, language_tasks
 # from alif_sg.visualization_tools.training_tests import Tests
 from alif_sg.neural_models.full_model import build_model
 
@@ -28,8 +30,6 @@ CDIR = os.path.dirname(FILENAME)
 
 ex = CustomExperiment('-als', base_dir=CDIR, seed=11)
 logger = logging.getLogger('alif_sg')
-
-language_tasks = ['ptb', 'wiki103', 'wmt14', 'time_ae_merge', 'monkey', 'wordptb']
 
 
 @ex.config
@@ -44,9 +44,9 @@ def config():
     task_name = 'heidelberg'
 
     # test configuration
-    epochs = 2
-    steps_per_epoch = 1
-    batch_size = 8
+    epochs = 5
+    steps_per_epoch = 5
+    batch_size = 32
     stack = 2
 
     # net
@@ -56,18 +56,18 @@ def config():
     n_neurons = None
     embedding = 'learned:None:None:{}'.format(n_neurons) if task_name in language_tasks else False
 
-    comments = 'nsLIFreadout'
+    comments = ''  # 'nsLIFreadout_adaptsg_dropout:0.50'
 
     # optimizer properties
-    lr = None  # 7e-4
+    lr = .001  # 7e-4 None
     optimizer_name = 'AdaBelief'  # AdaBelief AdamW SWAAdaBelief
     lr_schedule = ''  # 'warmup_cosine_restarts'
     weight_decay_prop_lr = None
-    weight_decay = .01 if not 'mnist' in task_name else 0.  # weight_decay_prop_lr * lr
+    weight_decay = .0 if not 'mnist' in task_name else 0.  # weight_decay_prop_lr * lr
     clipnorm = None  # not 1., to avoid NaN in the embedding, only ptb though
 
     loss_name = 'sparse_categorical_crossentropy'  # categorical_crossentropy categorical_focal_loss contrastive_loss
-    initializer = 'glorot_uniform'  # uniform glorot_uniform orthogonal glorot_normal NoZeroGlorot
+    initializer = 'orthogonal'  # uniform glorot_uniform orthogonal glorot_normal NoZeroGlorot
 
     continue_training = ''
     save_model = False
@@ -133,16 +133,25 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
 
     comments = comments if task_name in language_tasks else comments.replace('embproj', 'simplereadout')
     train_model = build_model(
-        task_name=task_name, net_name=net_name, n_neurons=n_neurons, tau=tau,
+        task_name=task_name, net_name=net_name, n_neurons=n_neurons,
         lr=gen_train.lr, stack=stack, loss_name=loss_name,
         embedding=embedding, optimizer_name=optimizer_name, lr_schedule=lr_schedule,
         weight_decay=weight_decay, clipnorm=clipnorm, initializer=initializer, comments=comments,
-        language_tasks=language_tasks,
-        in_len=gen_train.in_len, n_in=gen_train.in_dim, out_len=gen_train.out_len,
-        n_out=gen_train.out_dim, tau_adaptation=tau_adaptation,
-        final_epochs=gen_train.epochs, final_steps_per_epoch=gen_train.steps_per_epoch, batch_size=batch_size
+        language_tasks=language_tasks, in_len=gen_train.in_len, n_in=gen_train.in_dim, out_len=gen_train.out_len,
+        n_out=gen_train.out_dim, final_epochs=gen_train.epochs, batch_size=batch_size
     )
 
+    if 'adaptsg' in comments:
+        comments = adapt_sg_shape(task_name, gen_train.in_len, train_model, comments)
+        del train_model
+        train_model = build_model(
+            task_name=task_name, net_name=net_name, n_neurons=n_neurons,
+            lr=gen_train.lr, stack=stack, loss_name=loss_name,
+            embedding=embedding, optimizer_name=optimizer_name, lr_schedule=lr_schedule,
+            weight_decay=weight_decay, clipnorm=clipnorm, initializer=initializer, comments=comments,
+            language_tasks=language_tasks, in_len=gen_train.in_len, n_in=gen_train.in_dim, out_len=gen_train.out_len,
+            n_out=gen_train.out_dim, final_epochs=gen_train.epochs, batch_size=batch_size
+        )
     results = {}
 
     train_model.summary()
@@ -166,13 +175,37 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
             ExtendedTensorBoard(validation_data=val_data, log_dir=other_dir, histogram_freq=print_every),
         )
 
+    layers = [weight for layer in train_model.layers for weight in layer.weights]
+    names = [weight.name for layer in train_model.layers for weight in layer.weights]
+    print(names)
+    n_weight = [5, 16]
+    olds = {}
+    for n in n_weight:
+        old_w = np.mean(train_model.get_weights()[n])
+        # print(layers[n][0, 0])
+        olds.update({n: [names[n], old_w]})
+        print(n, names[n], old_w)
+
     train_model.fit(gen_train, validation_data=gen_val,
                     epochs=final_epochs, steps_per_epoch=steps_per_epoch,
                     callbacks=callbacks)
 
     actual_epochs = 0
     if final_epochs > 0:
+
+        for k, v in olds.items():
+            print(k, *v)
+
+        for n in n_weight:
+            old_w = np.mean(train_model.get_weights()[n])
+            print(n, names[n], old_w)
+
         train_model.load_weights(checkpoint_filepath)
+
+        for n in n_weight:
+            old_w = np.mean(train_model.get_weights()[n])
+            print(n, names[n], old_w)
+
         history_df = pd.read_csv(history_path)
 
         actual_epochs = history_df['epoch'].iloc[-1] + 1
@@ -208,7 +241,15 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
     for k in evaluation.keys():
         results['test_' + k] = evaluation[k]
 
+    gen_test = Task(timerepeat=timerepeat, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
+                    name=task_name, train_val_test='val', maxlen=maxlen, comments=comments)
+
+    evaluation = train_model.evaluate(gen_test, return_dict=True, verbose=True)
+    for k in evaluation.keys():
+        results['valval_' + k] = evaluation[k]
+
     results['n_params'] = train_model.count_params()
+    results['full_comments'] = comments
     results['final_epochs'] = str(actual_epochs)
     results['final_steps_per_epoch'] = final_steps_per_epoch
 

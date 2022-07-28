@@ -19,7 +19,7 @@ HSITORIESPATH = os.path.join(EXPERIMENTS, 'histories.json')
 plot_lsc_vs_naive = True
 plot_dampenings_and_betas = False
 
-task_name = 'all'  # heidelberg wordptb sl_mnist all
+task_name = 'heidelberg'  # heidelberg wordptb sl_mnist all
 
 # sparse_mode_accuracy sparse_categorical_crossentropy bpc sparse_mode_accuracy_test_10
 # val_sparse_mode_accuracy
@@ -94,7 +94,7 @@ else:
 # df = df[df['d'].str.contains('2022-07-09--')]
 # df = df[df['d'].str.contains('2022-07-11--')]
 
-df = df[(df['d'].str.contains('2022-07-19--')) | (df['d'].str.contains('2022-07-14--'))]
+# df = df[(df['d'].str.contains('2022-07-19--')) | (df['d'].str.contains('2022-07-14--'))]
 df = df.sort_values(by=metric)
 
 for c_name in columns_to_remove:
@@ -122,6 +122,7 @@ if plot_lsc_vs_naive:
         tasks = [task_name]
 
     idf = df[df['optimizer_name'].str.contains(optimizer_name)]
+    idf['comments'] = idf['comments'].str.replace('_timerepeat:2', '')
 
     for task in tasks:
         iidf = idf[idf['task_name'].str.contains(task)]
@@ -131,15 +132,15 @@ if plot_lsc_vs_naive:
         print(iidf.to_string())
         n_plots = 10
         colors_for_type = {
-            # 'LSC': 'Greens',
+            'LSC1': 'Blues',
             # 'dampening:1.': 'Oranges',
             'randominit': 'Reds',
-            # 'lscc': 'Blues',
+            'lsc1': 'Greens',
             # 'LSC_dampening:1.': 'Purples',
             # 'original': 'Purples',
             '': 'Purples',
             'LSC2': 'Oranges',
-            'LSC2_ingain:1.414': 'Greens',
+            # 'LSC2_ingain:1.414': 'Greens',
         }
 
         # types = ['LSC', 'dampening:1.', 'randominit', 'lscc', 'LSC_dampening:1.', 'original', '']
@@ -148,8 +149,8 @@ if plot_lsc_vs_naive:
         # types = ['LSC', 'randominit', 'original']
         fig, axs = plt.subplots(1, 2, figsize=(6, 2), sharey=True, gridspec_kw={'wspace': .05})
         for i in range(2):
-            for comment in types:
-                iiidf = iidf[iidf['comments'].eq(comment)]
+            for comment in types :
+                iiidf = iidf[iidf['comments'].eq(comment.replace('_timerepeat:2', ''))]
                 print(iiidf.to_string())
                 # print(colors[comment])
                 cmap = plt.cm.get_cmap(colors_for_type[comment])
