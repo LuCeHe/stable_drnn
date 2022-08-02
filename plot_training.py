@@ -1,9 +1,16 @@
-import os, json
+import os, json, copy
 from tqdm import tqdm
 import numpy as np
 import pandas as pd
+import matplotlib as mpl
+
+from GenericTools.stay_organized.mpl_tools import load_plot_settings
+mpl, pd = load_plot_settings(mpl=mpl, pd=pd)
+
 import matplotlib.pyplot as plt
 from datetime import timedelta, datetime
+
+from GenericTools.stay_organized.plot_tricks import large_num_to_reasonable_string
 
 FMT = '%Y-%m-%dT%H:%M:%S'
 from GenericTools.stay_organized.unzip import unzip_good_exps
@@ -16,28 +23,36 @@ GEXPERIMENTS = os.path.join(CDIR, 'good_experiments')
 CSVPATH = os.path.join(EXPERIMENTS, 'summary.h5')
 HSITORIESPATH = os.path.join(EXPERIMENTS, 'histories.json')
 
-plot_lsc_vs_naive = True
+plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 
-task_name = 'heidelberg'  # heidelberg wordptb sl_mnist all
+task_name = 'ps_mnist'  # heidelberg wordptb sl_mnist all ps_mnist
 
 # sparse_mode_accuracy sparse_categorical_crossentropy bpc sparse_mode_accuracy_test_10
 # val_sparse_mode_accuracy
 metric = 'val_sparse_mode_accuracy'
 optimizer_name = 'SWAAdaBelief'  # SGD SWAAdaBelief
-metrics_oi = ['val_sparse_mode_accuracy', 'bpc', 'val_sparse_categorical_crossentropy']
+metrics_oi = ['val_sparse_mode_accuracy', 'val_perplexity', 'val_sparse_categorical_crossentropy',
+              'test_sparse_mode_accuracy']
 
 columns_to_remove = [
     'heaviside', '_test', 'epoch', 'weight', 'sLSTM_factor', 'save_model', 'clipnorm', 'GPU', 'batch_size',
-    'continue_training', 'embedding', 'lr_schedule'
+    'continue_training', 'embedding', 'lr_schedule', 'loss_name', 'lr', 'net_name', 'seed', 'stack', 'stop_time',
+    'convergence', 'n_neurons', 'optimizer_name'
 ]
+
+def shorten_losses(name):
+    shorter_name = name.replace('sparse_', '').replace('categorical_', '').replace('accuracy', 'acc').replace(
+            'crossentropy', 'xe').replace('perplexity', 'ppl')
+    # shorter_name = name
+    return shorter_name
 
 if not os.path.exists(CSVPATH):
 
     ds = unzip_good_exps(
         GEXPERIMENTS, EXPERIMENTS,
         exp_identifiers=[''], except_folders=[],
-        unzip_what=['history.json', 'config', 'run.json', 'results.json']
+        unzip_what=['history.json', 'config.json', 'run.json', 'results.json']
     )
 
     histories = {}
@@ -64,6 +79,7 @@ if not os.path.exists(CSVPATH):
         results = {}
         results.update(config.items())
         results.update(some_results.items())
+
         what = lambda k, v: np.nanmax(v) if 'acc' in k else np.nanmin(v)
         results.update({k: what(k, v) for k, v in history.items()})
         results.update({'d': d})
@@ -73,44 +89,48 @@ if not os.path.exists(CSVPATH):
                                 run['start_time'].split('.')[0], FMT)
                         })
 
-        small_df = pd.DataFrame([results])
+        results['n_params'] = large_num_to_reasonable_string(results['n_params'], 1)
 
+        small_df = pd.DataFrame([results])
         df = df.append(small_df)
         histories[d] = {k: v for k, v in history.items()}
-        # histories[d] = history.items()
 
     df = df.sort_values(by='comments')
 
     df.to_hdf(CSVPATH, key='df', mode='w')
     json.dump(histories, open(HSITORIESPATH, "w"))
-    # print(df.to_string())
 else:
-    # mdf = pd.read_csv(CSVPATH)
     df = pd.read_hdf(CSVPATH, 'df')  # load it
     with open(HSITORIESPATH) as f:
         histories = json.load(f)
 
-# print(df.to_string())
-# df = df[df['d'].str.contains('2022-07-09--')]
-# df = df[df['d'].str.contains('2022-07-11--')]
 
-# df = df[(df['d'].str.contains('2022-07-19--')) | (df['d'].str.contains('2022-07-14--'))]
+df = df[(df['d'].str.contains('2022-07-28--')) | (df['d'].str.contains('2022-07-29--'))]
 df = df.sort_values(by=metric)
 
 for c_name in columns_to_remove:
     df = df[df.columns.drop(list(df.filter(regex=c_name)))]
 
-new_column_names = {}
-for c_name in df.columns:
-    new_column_names.update({
-        c_name: c_name.replace('sparse_', '').replace('categorical_', '').replace('accuracy', 'acc').replace(
-            'crossentropy', 'xe').replace('perplexity', 'ppl')
-    })
+new_column_names = {c_name: shorten_losses(c_name) for c_name in df.columns}
 
 df.rename(columns=new_column_names, inplace=True)
 df = df[[c for c in df if c not in ['d', 'duration_experiment']] + ['d', 'duration_experiment']]
 
+metrics_oi = [shorten_losses(m) for m in metrics_oi]
+mdf = df.groupby(
+    ['task_name', 'initializer', 'comments'], as_index=False
+).agg({m: ['mean', 'std'] for m in metrics_oi})
+
+for m in metrics_oi:
+    mdf['mean_{}'.format(m)] = mdf[m]['mean']
+    mdf['std_{}'.format(m)] = mdf[m]['std']
+    mdf = mdf.drop([m], axis=1)
+
+mdf = mdf.sort_values(by='mean_val_mode_acc')
+
+
 print(df.to_string())
+print(mdf.to_string())
 
 if plot_lsc_vs_naive:
 
@@ -121,8 +141,10 @@ if plot_lsc_vs_naive:
     else:
         tasks = [task_name]
 
-    idf = df[df['optimizer_name'].str.contains(optimizer_name)]
+    # idf = df[df['optimizer_name'].str.contains(optimizer_name)]
+    idf = copy.deepcopy(df)
     idf['comments'] = idf['comments'].str.replace('_timerepeat:2', '')
+    idf['comments'] = idf['comments'].str.replace('timerepeat:2', '')
 
     for task in tasks:
         iidf = idf[idf['task_name'].str.contains(task)]

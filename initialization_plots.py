@@ -18,6 +18,10 @@ mpl = load_plot_settings(mpl=mpl, pd=None)
 from alif_sg.neural_models.lsnn import aLSNN
 from stochastic_spiking.visualization_tools.training_tests import get_test_model
 
+from scipy import special as sp
+
+bound = lambda l, t: sp.binom(t + l + 2, t) / t
+
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
 
@@ -33,7 +37,7 @@ def initialization_tests():
     n_neurons = 128
     batch_size = 128
     initializer = 'glorot_uniform'  # uniform glorot_uniform orthogonal glorot_normal NoZeroGlorot random_uniform
-    task_name = 'wordptb'  # random wordptb heidelberg
+    task_name = 'heidelberg'  # random wordptb heidelberg
     embedding = 'learned:None:None:{}'.format(n_neurons) if task_name in language_tasks else False
 
     n_seeds = 10  # 10
@@ -41,11 +45,11 @@ def initialization_tests():
     # n_rnns = 3
     # list_comments = ['LSC1', 'LSC2', 'dampening:1.', 'randominit', 'lscc', 'original', 'LSTM', 'LSTM_LSC', 'lsc1']
     # list_comments = ['LSC1', 'LSC2', 'LSC2_ingain:1.414', 'randominit', '']
-    list_comments = ['LSC1', 'lsc1', 'LSC2', '']
+    list_comments = ['LSC1', 'lsc1', 'LSC2', '', 'randominit', 'cLSTM']
 
-    plot_vargrad = False
+    plot_vargrad = True
     plot_binomial = False
-    plot_activity = True
+    plot_activity = False
     test_adaptive_pseudod = True
 
     if task_name == 'random':
@@ -87,15 +91,14 @@ def initialization_tests():
         if not os.path.exists(act_path):
             for seed in tqdm(range(n_seeds)):
                 setReproducible(seed)
+                netn = 'cLSTM' if 'cLSTM' in comments else net_name
                 model = build_model(
-                    task_name=task_name, net_name=net_name, n_neurons=n_neurons, tau=.1,
+                    task_name=task_name, net_name=netn, n_neurons=n_neurons,
                     lr=0, stack=stack, loss_name=loss_name,
                     embedding=embedding, optimizer_name='SWAAdaBelief', lr_schedule='',
                     weight_decay=.1, clipnorm=None, initializer=initializer, comments=comments,
-                    language_tasks=language_tasks,
-                    in_len=time_steps, n_in=in_dim, out_len=time_steps,
-                    n_out=out_dim, tau_adaptation=int(time_steps / 2),
-                    final_epochs=0, final_steps_per_epoch=0, batch_size=batch_size, stateful=False
+                    language_tasks=language_tasks, in_len=time_steps, n_in=in_dim, out_len=time_steps,
+                    n_out=out_dim, final_epochs=0, batch_size=batch_size, stateful=False
                 )
                 # model.summary()
                 loss_fn = get_loss(loss_name)
@@ -171,7 +174,7 @@ def initialization_tests():
         cvolts.append(centered_voltages)
 
     if plot_vargrad:
-        colors = [plt.cm.ocean(x) for x in np.linspace(0, 1., n_seeds)]
+        colors = [plt.cm.ocean(x) for x in np.linspace(.2, .8, n_seeds)]
         colors_thr = [plt.cm.Greens(x) for x in np.linspace(0, 1., 128)]
 
         Ts = np.arange(1, time_steps + 1)
@@ -180,11 +183,16 @@ def initialization_tests():
         for i in range(len(list_comments)):
             axs[1, i].pcolormesh(acts[i][0].T, cmap='Greys')
 
-            for j in range(min(n_neurons, 128)):
-                axs[2, i].plot(thrs[i][0, ..., j], color=colors_thr[j])
+            if not 'LSTM' in list_comments[i]:
+                for j in range(min(n_neurons, 128)):
+                    axs[2, i].plot(thrs[i][0, ..., j], color=colors_thr[j])
 
             for var, c in zip(gs[i], colors):
+                # print(Ts.shape, var.shape)
                 axs[0, i].plot(Ts, var, color=c)
+
+            y_bound = bound(stack, Ts) / n_neurons
+            axs[0, i].plot(Ts, list(reversed(y_bound)), '--', color='b')
 
         for i in range(2):
             for j in range(len(list_comments)):
@@ -221,9 +229,6 @@ def initialization_tests():
         plt.show()
 
     if plot_binomial:
-        from scipy import special as sp
-
-        bound = lambda l, t: sp.binom(t + l + 2, t) / t
 
         fig, axs = plt.subplots(1, 3, gridspec_kw={'wspace': .25, 'hspace': .1}, figsize=(10, 3))
 

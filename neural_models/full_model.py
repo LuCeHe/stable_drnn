@@ -39,8 +39,8 @@ def Expert(i, j, stateful, task_name, net_name, n_neurons, initializer, comments
 
     if 'LSNN' in net_name:
         stack_info = '_stacki:{}'.format(i)
-        cell = models.net(net_name)(num_neurons=n_neurons,
-                                    initializer=initializer, config=comments + stack_info, thr=thr)
+        cell = models.net(net_name)(
+            num_neurons=n_neurons, initializer=initializer, config=comments + stack_info, thr=thr)
         rnn = RNN(cell, return_sequences=True, name='encoder' + ij, stateful=stateful)
 
     elif 'cLSTM' in net_name:
@@ -147,12 +147,14 @@ def build_model(task_name, net_name, n_neurons, lr, stack, batch_size,
 
     output = output_cell
 
-    if not 'nsLIFreadout' in comments:
-        readout = Dense(n_out, name='decoder', kernel_initializer=initializer)
-        output_net = readout(output)
-    else:
+    if 'embproj' in comments:
+        output_net = emb(output, mode='projection')
+    elif 'nsLIFreadout' in comments:
         cell = models.non_spiking_LIF(num_neurons=n_neurons, initializer=initializer)
         readout = RNN(cell, return_sequences=True, name='decoder', stateful=stateful)
+        output_net = readout(output)
+    else:
+        readout = Dense(n_out, name='decoder', kernel_initializer=initializer)
         output_net = readout(output)
 
     loss = str2val(comments, 'loss', output_type=str, default=loss)

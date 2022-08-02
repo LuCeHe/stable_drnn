@@ -287,10 +287,10 @@ class aLSNN(baseLSNN):
 
             ingain = str2val(self.config, 'ingain', float, default=1.)
             self.input_weights = self.add_weight(shape=(n_input, self.num_neurons),
-                                                 initializer=tf.keras.initializers.Orthogonal(gain=ingain),
+                                                 initializer=self.initializer,
                                                  name='in_weights')
             self.recurrent_weights = self.add_weight(shape=(self.num_neurons, self.num_neurons),
-                                                     initializer=tf.keras.initializers.Orthogonal(gain=1.0),
+                                                     initializer=self.initializer,
                                                      name='rec_weights')
 
         elif 'randominit' in self.config:

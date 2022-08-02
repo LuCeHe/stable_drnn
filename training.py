@@ -5,6 +5,7 @@ import pandas as pd
 
 import tensorflow as tf
 
+from GenericTools.keras_tools.esoteric_callbacks.several_validations import MultipleValidationSets
 from alif_sg.initialization_plots import adapt_sg_shape
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
@@ -41,11 +42,11 @@ def config():
     # task and net
     # ps_mnist heidelberg s_mnist
     # wordptb sl_mnist
-    task_name = 'heidelberg'
+    task_name = 'wordptb'
 
     # test configuration
-    epochs = 5
-    steps_per_epoch = 5
+    epochs = 2
+    steps_per_epoch = 1
     batch_size = 32
     stack = 2
 
@@ -56,10 +57,10 @@ def config():
     n_neurons = None
     embedding = 'learned:None:None:{}'.format(n_neurons) if task_name in language_tasks else False
 
-    comments = ''  # 'nsLIFreadout_adaptsg_dropout:0.50'
+    comments = 'embproj'  # 'nsLIFreadout_adaptsg_dropout:0.50'
 
     # optimizer properties
-    lr = .001  # 7e-4 None
+    lr = None  # 7e-4 None
     optimizer_name = 'AdaBelief'  # AdaBelief AdamW SWAAdaBelief
     lr_schedule = ''  # 'warmup_cosine_restarts'
     weight_decay_prop_lr = None
@@ -67,7 +68,7 @@ def config():
     clipnorm = None  # not 1., to avoid NaN in the embedding, only ptb though
 
     loss_name = 'sparse_categorical_crossentropy'  # categorical_crossentropy categorical_focal_loss contrastive_loss
-    initializer = 'orthogonal'  # uniform glorot_uniform orthogonal glorot_normal NoZeroGlorot
+    initializer = 'glorot_uniform'  # uniform glorot_uniform orthogonal glorot_normal NoZeroGlorot
 
     continue_training = ''
     save_model = False
@@ -119,14 +120,13 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
                      name=task_name, train_val_test='train', maxlen=maxlen, comments=comments, lr=lr)
     gen_val = Task(timerepeat=timerepeat, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
                    name=task_name, train_val_test='val', maxlen=maxlen, comments=comments, lr=lr)
+    gen_test = Task(timerepeat=timerepeat, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
+                    name=task_name, train_val_test='test', maxlen=maxlen, comments=comments)
 
     comments += '_batchsize:' + str(gen_train.batch_size)
 
     final_epochs = gen_train.epochs
     final_steps_per_epoch = gen_train.steps_per_epoch
-    tau_adaptation = str2val(comments, 'taub', float, default=int(gen_train.in_len / 2))
-    tau = str2val(comments, 'tauv', float, default=.1)
-    # tau_adaptation = int(gen_train.in_len / 2)  # 200 800 4000
 
     if initializer in esoteric_initializers_list:
         initializer = get_initializer(initializer_name=initializer)
@@ -163,11 +163,12 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
     checkpoint_filepath = os.path.join(models_dir, 'checkpoint')
     callbacks = [
         LearningRateLogger(),
-        tf.keras.callbacks.CSVLogger(history_path),
         TimeStopping(stop_time, 1),  # 22h=79200 s, 21h=75600 s, 20h=72000 s, 12h = 43200 s, 6h = 21600 s, 72h = 259200
         tf.keras.callbacks.ModelCheckpoint(
             filepath=checkpoint_filepath, save_weights_only=True, monitor='val_loss', mode='min', save_best_only=True
-        )
+        ),
+        MultipleValidationSets({'v': gen_val, 't': gen_test}, verbose=0),
+        tf.keras.callbacks.CSVLogger(history_path),
     ]
 
     if 'tenb' in comments:
@@ -175,41 +176,17 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
             ExtendedTensorBoard(validation_data=val_data, log_dir=other_dir, histogram_freq=print_every),
         )
 
-    layers = [weight for layer in train_model.layers for weight in layer.weights]
-    names = [weight.name for layer in train_model.layers for weight in layer.weights]
-    print(names)
-    n_weight = [5, 16]
-    olds = {}
-    for n in n_weight:
-        old_w = np.mean(train_model.get_weights()[n])
-        # print(layers[n][0, 0])
-        olds.update({n: [names[n], old_w]})
-        print(n, names[n], old_w)
-
     train_model.fit(gen_train, validation_data=gen_val,
                     epochs=final_epochs, steps_per_epoch=steps_per_epoch,
                     callbacks=callbacks)
 
     actual_epochs = 0
     if final_epochs > 0:
-
-        for k, v in olds.items():
-            print(k, *v)
-
-        for n in n_weight:
-            old_w = np.mean(train_model.get_weights()[n])
-            print(n, names[n], old_w)
-
         train_model.load_weights(checkpoint_filepath)
-
-        for n in n_weight:
-            old_w = np.mean(train_model.get_weights()[n])
-            print(n, names[n], old_w)
 
         history_df = pd.read_csv(history_path)
 
         actual_epochs = history_df['epoch'].iloc[-1] + 1
-        # results['accumulated_epochs'] = str(int(results['accumulated_epochs']) + int(actual_epochs))
         history_dict = {k: history_df[k].tolist() for k in history_df.columns.tolist()}
 
         plot_filename = os.path.join(images_dir, 'history.png')
@@ -230,21 +207,14 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
 
     print('Fitting done!')
 
-    # plots after training
-    # stateful = True if 'ptb' in task_name else False
-    # if 'stateful' in comments: stateful = True
-    # timerepeat = timerepeat if not 'repetitionsschedule' in comments else timerepeat - 1
-    gen_test = Task(timerepeat=timerepeat, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
-                    name=task_name, train_val_test='test', maxlen=maxlen, comments=comments)
-
     evaluation = train_model.evaluate(gen_test, return_dict=True, verbose=True)
     for k in evaluation.keys():
         results['test_' + k] = evaluation[k]
 
-    gen_test = Task(timerepeat=timerepeat, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
-                    name=task_name, train_val_test='val', maxlen=maxlen, comments=comments)
+    gen_v = Task(timerepeat=timerepeat, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
+                 name=task_name, train_val_test='val', maxlen=maxlen, comments=comments)
 
-    evaluation = train_model.evaluate(gen_test, return_dict=True, verbose=True)
+    evaluation = train_model.evaluate(gen_v, return_dict=True, verbose=True)
     for k in evaluation.keys():
         results['valval_' + k] = evaluation[k]
 
@@ -253,5 +223,5 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
     results['final_epochs'] = str(actual_epochs)
     results['final_steps_per_epoch'] = final_steps_per_epoch
 
-    results_filename = os.path.join(*[other_dir, 'results.json'])
+    results_filename = os.path.join(other_dir, 'results.json')
     json.dump(results, open(results_filename, "w"))
