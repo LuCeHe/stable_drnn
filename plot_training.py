@@ -105,7 +105,8 @@ else:
         histories = json.load(f)
 
 
-df = df[(df['d'].str.contains('2022-07-28--')) | (df['d'].str.contains('2022-07-29--'))]
+# df = df[(df['d'].str.contains('2022-07-28--')) | (df['d'].str.contains('2022-07-29--'))]
+df = df[(df['d'].str.contains('2022-08-02--')) ]
 df = df.sort_values(by=metric)
 
 for c_name in columns_to_remove:
