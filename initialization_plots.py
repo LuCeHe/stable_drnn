@@ -45,7 +45,7 @@ def initialization_tests():
     # n_rnns = 3
     # list_comments = ['LSC1', 'LSC2', 'dampening:1.', 'randominit', 'lscc', 'original', 'LSTM', 'LSTM_LSC', 'lsc1']
     # list_comments = ['LSC1', 'LSC2', 'LSC2_ingain:1.414', 'randominit', '']
-    list_comments = ['LSC1', 'lsc1', 'LSC2', '', 'randominit', 'cLSTM']
+    list_comments = ['LSC1', 'lsc1', 'LSC2', '', 'randominit', 'cLSTM', 'veryrandom']
 
     plot_vargrad = True
     plot_binomial = False

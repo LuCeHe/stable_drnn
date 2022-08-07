@@ -29,11 +29,11 @@ plot_dampenings_and_betas = False
 task_name = 'ps_mnist'  # heidelberg wordptb sl_mnist all ps_mnist
 
 # sparse_mode_accuracy sparse_categorical_crossentropy bpc sparse_mode_accuracy_test_10
-# val_sparse_mode_accuracy
-metric = 'val_sparse_mode_accuracy'
+# val_sparse_mode_accuracy test_perplexity
+metric = 'test_perplexity'
 optimizer_name = 'SWAAdaBelief'  # SGD SWAAdaBelief
 metrics_oi = ['val_sparse_mode_accuracy', 'val_perplexity', 'val_sparse_categorical_crossentropy',
-              'test_sparse_mode_accuracy']
+              'test_sparse_mode_accuracy', 'test_perplexity']
 
 columns_to_remove = [
     'heaviside', '_test', 'epoch', 'weight', 'sLSTM_factor', 'save_model', 'clipnorm', 'GPU', 'batch_size',
@@ -106,7 +106,7 @@ else:
 
 
 # df = df[(df['d'].str.contains('2022-07-28--')) | (df['d'].str.contains('2022-07-29--'))]
-df = df[(df['d'].str.contains('2022-08-02--')) ]
+df = df[(df['d'].str.contains('2022-08-04--')) ]
 df = df.sort_values(by=metric)
 
 for c_name in columns_to_remove:
@@ -116,6 +116,8 @@ new_column_names = {c_name: shorten_losses(c_name) for c_name in df.columns}
 
 df.rename(columns=new_column_names, inplace=True)
 df = df[[c for c in df if c not in ['d', 'duration_experiment']] + ['d', 'duration_experiment']]
+
+print(df.to_string())
 
 metrics_oi = [shorten_losses(m) for m in metrics_oi]
 mdf = df.groupby(
@@ -127,10 +129,9 @@ for m in metrics_oi:
     mdf['std_{}'.format(m)] = mdf[m]['std']
     mdf = mdf.drop([m], axis=1)
 
-mdf = mdf.sort_values(by='mean_val_mode_acc')
+mdf = mdf.sort_values(by='mean_test_ppl')
 
 
-print(df.to_string())
 print(mdf.to_string())
 
 if plot_lsc_vs_naive:
