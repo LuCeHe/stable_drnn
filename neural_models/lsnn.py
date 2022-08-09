@@ -269,7 +269,7 @@ class aLSNN(baseLSNN):
             #                                       name='tau_adaptation', trainable=True)
 
             self.tau = self.add_weight(
-                shape=(self.num_neurons,), initializer=tf.keras.initializers.RandomUniform(minval=20, maxval=20),
+                shape=(self.num_neurons,), initializer=tf.keras.initializers.RandomUniform(minval=1.2, maxval=1.2),
                 name='tau', trainable=trainable)
             self.tau_adaptation = self.add_weight(
                 shape=(self.num_neurons,), initializer=tf.keras.initializers.RandomUniform(minval=700, maxval=700),
