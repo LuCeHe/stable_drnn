@@ -10,7 +10,7 @@ from stochastic_spiking.generate_data.base_generator import BaseGenerator
 
 CDIR = os.path.dirname(os.path.realpath(__file__))
 DATAPATH = os.path.abspath(os.path.join(CDIR, '..', 'data', 'mnist'))
-if not os.path.isdir(DATAPATH): os.mkdir(DATAPATH)
+# os.makedirs(DATAPATH, exist_ok=True)
 
 
 def generate_poisson_noise_np(prob_pattern, n_neurons=1, freezing_seed=None):
@@ -91,6 +91,7 @@ class SeqMNIST(BaseGenerator):
         self.steps_per_epoch = int(len(self.x) / self.batch_size) if steps_per_epoch == None else steps_per_epoch
 
         if self.permuted:
+            os.makedirs(DATAPATH, exist_ok=True)
             permutation_file = os.path.join(DATAPATH, 'permutation_size{}.npy'.format(self.original_size))
             if not os.path.isfile(permutation_file):
                 self.p = np.random.permutation(self.length)
