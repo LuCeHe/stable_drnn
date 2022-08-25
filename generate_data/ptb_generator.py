@@ -8,7 +8,6 @@ from alif_sg.generate_data.base_generator import BaseGenerator
 
 CDIR = os.path.dirname(os.path.realpath(__file__))
 DATAPATH = os.path.abspath(os.path.join(CDIR, '..', 'data', 'ptb'))
-if not os.path.isdir(DATAPATH): os.mkdir(DATAPATH)
 
 data_links = ['https://data.deepai.org/ptbdataset.zip']
 
@@ -47,6 +46,7 @@ class PTBGenerator(BaseGenerator):
             config=config)
 
         if len(os.listdir(DATAPATH)) == 0:
+            os.makedirs(DATAPATH, exist_ok=True)
             download_and_unzip(data_links, DATAPATH)
 
         self.maxlen = maxlen
