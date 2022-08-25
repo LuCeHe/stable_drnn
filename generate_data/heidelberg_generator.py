@@ -15,8 +15,6 @@ shd_train_filename = os.path.join(HEIDELBERGDIR, "shd_train.h5")
 npy_shd_train_filename = os.path.join(HEIDELBERGDIR, "trainX_4ms.npy")
 ssc_train_filename = os.path.join(HEIDELBERGDIR, "ssc_train.h5")
 
-if not os.path.isdir(HEIDELBERGDIR):
-    os.mkdir(HEIDELBERGDIR)
 
 data_links = [
     # 'https://compneuro.net/datasets/hd_audio.tar.gz',
@@ -132,6 +130,7 @@ class SpokenHeidelbergDigits(BaseGenerator):
     ):
 
         if not os.path.exists(shd_train_filename):
+            os.makedirs(HEIDELBERGDIR, exist_ok=True)
             download_and_unzip(data_links, HEIDELBERGDIR)
 
         if not os.path.exists(npy_shd_train_filename):
