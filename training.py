@@ -142,7 +142,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
     )
 
     if 'adaptsg' in comments:
-        comments = adapt_sg_shape(task_name, gen_train.in_len, train_model, comments)
+        comments = adapt_sg_shape(gen_train, train_model, comments)
         del train_model
         train_model = build_model(
             task_name=task_name, net_name=net_name, n_neurons=n_neurons,

@@ -19,6 +19,7 @@ from alif_sg.neural_models.lsnn import aLSNN
 from stochastic_spiking.visualization_tools.training_tests import get_test_model
 
 from scipy import special as sp
+from scipy.optimize import curve_fit
 
 bound = lambda l, t: sp.binom(t + l + 2, t) / t
 
@@ -349,15 +350,10 @@ def double_exp(x, a, b, c, d, e, f, g, h, i, l, m):
         + (c * np.exp(-d * x) + h * 1 / (1 + g * np.abs(x) ** (1 + l))) * np.heaviside(x, .5)  # one of best so far
 
 
-def adapt_sg_shape(task_name, maxlen, model, comments):
+def adapt_sg_shape(data_generator, model, comments):
     if 'adaptsg' in comments:
-        import matplotlib.pyplot as plt
-        from scipy.optimize import curve_fit
+        print('adapting_Sg!')
 
-        timerepeat = str2val(comments, 'timerepeat', int, default=1)
-
-        data_generator = Task(timerepeat=timerepeat, epochs=0, batch_size=128, steps_per_epoch=0,
-                              name=task_name, train_val_test='train', maxlen=maxlen, comments=comments, lr=0)
         (tin, tout), = data_generator.__getitem__()
 
         test_model = get_test_model(model)

@@ -5,6 +5,7 @@ import pandas as pd
 import matplotlib as mpl
 
 from GenericTools.stay_organized.mpl_tools import load_plot_settings
+
 mpl, pd = load_plot_settings(mpl=mpl, pd=pd)
 
 import matplotlib.pyplot as plt
@@ -33,19 +34,21 @@ task_name = 'ps_mnist'  # heidelberg wordptb sl_mnist all ps_mnist
 metric = 'test_perplexity'
 optimizer_name = 'SWAAdaBelief'  # SGD SWAAdaBelief
 metrics_oi = ['val_sparse_mode_accuracy', 'val_perplexity', 'val_sparse_categorical_crossentropy',
-              'test_sparse_mode_accuracy', 'test_perplexity']
+              'test_sparse_mode_accuracy', 'test_perplexity', 't_ppl', 't_acc', 'v_loss', 'v_ppl', 'final_epochs']
 
 columns_to_remove = [
-    'heaviside', '_test', 'epoch', 'weight', 'sLSTM_factor', 'save_model', 'clipnorm', 'GPU', 'batch_size',
+    'heaviside', '_test', 'weight', 'sLSTM_factor', 'save_model', 'clipnorm', 'GPU', 'batch_size',
     'continue_training', 'embedding', 'lr_schedule', 'loss_name', 'lr', 'net_name', 'seed', 'stack', 'stop_time',
     'convergence', 'n_neurons', 'optimizer_name'
 ]
 
+
 def shorten_losses(name):
     shorter_name = name.replace('sparse_', '').replace('categorical_', '').replace('accuracy', 'acc').replace(
-            'crossentropy', 'xe').replace('perplexity', 'ppl')
+        'crossentropy', 'xe').replace('perplexity', 'ppl')
     # shorter_name = name
     return shorter_name
+
 
 if not os.path.exists(CSVPATH):
 
@@ -104,9 +107,8 @@ else:
     with open(HSITORIESPATH) as f:
         histories = json.load(f)
 
-
 # df = df[(df['d'].str.contains('2022-07-28--')) | (df['d'].str.contains('2022-07-29--'))]
-df = df[(df['d'].str.contains('2022-08-04--')) ]
+# df = df[(df['d'].str.contains('2022-08-04--')) ]
 df = df.sort_values(by=metric)
 
 for c_name in columns_to_remove:
@@ -119,9 +121,12 @@ df = df[[c for c in df if c not in ['d', 'duration_experiment']] + ['d', 'durati
 
 print(df.to_string())
 
+group_cols = ['task_name', 'initializer', 'comments']
+counts = df.groupby(group_cols).size().reset_index(name='counts')
+
 metrics_oi = [shorten_losses(m) for m in metrics_oi]
 mdf = df.groupby(
-    ['task_name', 'initializer', 'comments'], as_index=False
+    group_cols, as_index=False
 ).agg({m: ['mean', 'std'] for m in metrics_oi})
 
 for m in metrics_oi:
@@ -129,8 +134,8 @@ for m in metrics_oi:
     mdf['std_{}'.format(m)] = mdf[m]['std']
     mdf = mdf.drop([m], axis=1)
 
-mdf = mdf.sort_values(by='mean_test_ppl')
-
+mdf = mdf.sort_values(by='mean_val_ppl')
+mdf['counts'] = counts['counts']
 
 print(mdf.to_string())
 
@@ -173,7 +178,7 @@ if plot_lsc_vs_naive:
         # types = ['LSC', 'randominit', 'original']
         fig, axs = plt.subplots(1, 2, figsize=(6, 2), sharey=True, gridspec_kw={'wspace': .05})
         for i in range(2):
-            for comment in types :
+            for comment in types:
                 iiidf = iidf[iidf['comments'].eq(comment.replace('_timerepeat:2', ''))]
                 print(iiidf.to_string())
                 # print(colors[comment])
