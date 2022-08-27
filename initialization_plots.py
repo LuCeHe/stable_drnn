@@ -374,6 +374,8 @@ def adapt_sg_shape(data_generator, model, comments):
             try:
                 popt, _ = curve_fit(double_exp, bins[:-1], n, p0=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, .5, .5, .5, .5, .5))
             except Exception as e:
+                print('\n\n            Non Adapted SG!\n\n')
+                print(e)
                 popt = [
                     1, 1, 1, 1,
                     1, 1, 1, 1,
