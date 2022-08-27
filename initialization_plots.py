@@ -25,33 +25,17 @@ bound = lambda l, t: sp.binom(t + l + 2, t) / t
 
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
+EXPERIMENTS = os.path.join(CDIR, 'experiments')
 
 
-def initialization_tests():
+def get_data(n_neurons, time_steps, list_comments, save_folder, n_seeds, initializer, stack):
     seed = 41
-
-    # test configuration
-    stack = 2
 
     # net
     net_name = 'aLSNN'
-    n_neurons = 128
     batch_size = 128
-    initializer = 'glorot_uniform'  # uniform glorot_uniform orthogonal glorot_normal NoZeroGlorot random_uniform
     task_name = 'heidelberg'  # random wordptb heidelberg
     embedding = 'learned:None:None:{}'.format(n_neurons) if task_name in language_tasks else False
-
-    n_seeds = 10  # 10
-    time_steps = 100
-    # n_rnns = 3
-    # list_comments = ['LSC1', 'LSC2', 'dampening:1.', 'randominit', 'lscc', 'original', 'LSTM', 'LSTM_LSC', 'lsc1']
-    # list_comments = ['LSC1', 'LSC2', 'LSC2_ingain:1.414', 'randominit', '']
-    list_comments = ['LSC1', 'lsc1', 'LSC2', '', 'randominit', 'cLSTM', 'veryrandom']
-
-    plot_vargrad = True
-    plot_binomial = False
-    plot_activity = False
-    test_adaptive_pseudod = True
 
     if task_name == 'random':
         out_dim = 4
@@ -76,7 +60,6 @@ def initialization_tests():
     tin = tf.cast(tf.convert_to_tensor(tin, dtype=tf.float32), tf.float32)
     tout = tf.convert_to_tensor(tf.cast(tout, tf.float32), dtype=tf.float32)
 
-    save_folder = os.path.join(CDIR, 'data', initializer)
     os.makedirs(save_folder, exist_ok=True)
     for comments in list_comments:
 
@@ -173,6 +156,28 @@ def initialization_tests():
         acts.append(activities)
         thrs.append(thresholds)
         cvolts.append(centered_voltages)
+
+    return gs, acts, thrs, cvolts
+
+
+def initialization_tests():
+    plot_vargrad = False
+    plot_binomial = False
+    plot_activity = True
+    test_adaptive_pseudod = False
+
+    # test configuration
+    stack = 2
+    n_neurons = 128
+    n_seeds = 10  # 10
+    time_steps = 100
+    initializer = 'glorot_uniform'  # uniform glorot_uniform orthogonal glorot_normal NoZeroGlorot random_uniform
+    save_folder = os.path.join(CDIR, 'data', initializer)
+
+    # list_comments = ['LSC1', 'lsc1', 'LSC2', '', 'randominit', 'cLSTM', 'veryrandom']
+    list_comments = ['LSC1', 'lsc1', 'LSC2', '', 'randominit', 'cLSTM']
+
+    gs, acts, thrs, cvolts = get_data(n_neurons, time_steps, list_comments, save_folder, n_seeds, initializer, stack)
 
     if plot_vargrad:
         colors = [plt.cm.ocean(x) for x in np.linspace(.2, .8, n_seeds)]
@@ -294,52 +299,54 @@ def initialization_tests():
         plt.show()
 
     if plot_activity:
-
-        colors = [plt.cm.ocean(x) for x in np.linspace(0, 1., n_seeds)]
-        colors_thr = [plt.cm.Greens(x) for x in np.linspace(0, 1., 128)]
-
-        Ts = np.arange(1, time_steps + 1)
-        fig, axs = plt.subplots(1, len(list_comments), gridspec_kw={'wspace': .3, 'hspace': .1}, figsize=(10, 5))
-
-        from scipy.optimize import curve_fit
-
-        # Here you give the initial parameters for a,b,c which Python then iterates over
-        # to find the best fit
-        # popt, pcov = curve_fit(double_exp, x, y, p0=(1.0, 1.0, 1.0, 1.0))
-        for i, c in enumerate(list_comments):
-            cv = cvolts[i].flatten()
-            # the histogram of the data
-            axs[i].set_title(c)
-            n, bins, patches = axs[i].hist(cv, 1000, density=True, facecolor='g', alpha=0.5)
-            popt, pcov = curve_fit(double_exp, bins[:-1], n, p0=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, .5, .5, .5, .5, .5))
-            popt = [-4.70412568e-04, 2.72106219e+00, - 6.93245581e-08, 8.43832680e+00,
-                    5.14831068e-02, - 1.24047899e-01, 9.01356952e-02, - 1.05512663e-01,
-                    - 2.60721870e-01, - 9.96660911e-01, 1.44756129e+00]
-            popt = [abs(p) for p in popt]
-            # axs[i].plot(bins[:-1], double_exp(bins[:-1], *popt), '--', color='r')
-            maxval = max(popt[0] + popt[4], popt[2] + popt[7])
-            axs[i].plot(bins[:-1], double_exp(bins[:-1], *popt) / maxval, '--', color='r')
-            print(c, *popt)
-
-        pathplot = os.path.join(save_folder, 'vdist.png')
-        fig.savefig(pathplot, bbox_inches='tight')
-
-        plt.show()
+        plot_act(cvolts, list_comments)
 
     if test_adaptive_pseudod:
-        # import tensorflow as tf
+        test_adaptsg()
 
-        params = [-0.20201285957912918, 2.5118566166639584, -0.6673356614771232, 1.2510880363762846,
-                  -0.049519468893990996,
-                  0.004120122160092256, 2.0072643043174256, 0.8743848390304889, 1.5061652880205298, 1.1392061683504318,
-                  0.30571907616976585]
 
-        config = 'eppseudod'
-        for l, v in zip(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'l', 'm'], params):
-            config += f'_{l}:{v}'
-        print(config)
-        v_sc = tf.random.uniform((2, 3))
-        ChoosePseudoHeaviside(v_sc, config=config, sharpness=1, dampening=1)
+def plot_act(cvolts, list_comments):
+    # colors = [plt.cm.ocean(x) for x in np.linspace(0, 1., n_seeds)]
+    # colors_thr = [plt.cm.Greens(x) for x in np.linspace(0, 1., 128)]
+
+    fig, axs = plt.subplots(1, len(list_comments), gridspec_kw={'wspace': .3, 'hspace': .1}, figsize=(10, 5))
+
+    # Here you give the initial parameters for a,b,c which Python then iterates over
+    # to find the best fit
+    # popt, pcov = curve_fit(double_exp, x, y, p0=(1.0, 1.0, 1.0, 1.0))
+    for i, c in enumerate(list_comments):
+        cv = cvolts[i].flatten()
+        # the histogram of the data
+        axs[i].set_title(c)
+        n, bins, patches = axs[i].hist(cv, 1000, density=True, facecolor='g', alpha=0.5)
+        popt, pcov = curve_fit(double_exp, bins[:-1], n, p0=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, .5, .5, .5, .5, .5))
+        popt = [-4.70412568e-04, 2.72106219e+00, - 6.93245581e-08, 8.43832680e+00,
+                5.14831068e-02, - 1.24047899e-01, 9.01356952e-02, - 1.05512663e-01,
+                - 2.60721870e-01, - 9.96660911e-01, 1.44756129e+00]
+        popt = [abs(p) for p in popt]
+        # axs[i].plot(bins[:-1], double_exp(bins[:-1], *popt), '--', color='r')
+        maxval = max(popt[0] + popt[4], popt[2] + popt[7])
+        axs[i].plot(bins[:-1], double_exp(bins[:-1], *popt) / maxval, '--', color='r')
+        print(c, *popt)
+
+    pathplot = os.path.join(EXPERIMENTS, 'vdist.png')
+    fig.savefig(pathplot, bbox_inches='tight')
+
+    plt.show()
+
+
+def test_adaptsg():
+    params = [-0.20201285957912918, 2.5118566166639584, -0.6673356614771232, 1.2510880363762846,
+              -0.049519468893990996,
+              0.004120122160092256, 2.0072643043174256, 0.8743848390304889, 1.5061652880205298, 1.1392061683504318,
+              0.30571907616976585]
+
+    config = 'eppseudod'
+    for l, v in zip(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'l', 'm'], params):
+        config += f'_{l}:{v}'
+    print(config)
+    v_sc = tf.random.uniform((2, 3))
+    ChoosePseudoHeaviside(v_sc, config=config, sharpness=1, dampening=1)
 
 
 def double_exp(x, a, b, c, d, e, f, g, h, i, l, m):
@@ -352,7 +359,6 @@ def double_exp(x, a, b, c, d, e, f, g, h, i, l, m):
 
 def adapt_sg_shape(data_generator, model, comments):
     if 'adaptsg' in comments:
-        print('adapting_Sg!')
 
         (tin, tout), = data_generator.__getitem__()
 
@@ -360,14 +366,23 @@ def adapt_sg_shape(data_generator, model, comments):
         trt = test_model.predict([tin, tout], batch_size=tin.shape[0])
         trt = {name: pred for name, pred in zip(test_model.output_names, trt)}
 
-        cv = trt['encoder_0_0_3'].flatten()
+        activity_names = [k for k in trt.keys() if k.endswith('_3') and k.startswith('encoder')]
+        for i, k in enumerate(activity_names):
+            cv = trt[k].flatten()
 
-        n, bins, patches = plt.hist(cv, 1000, density=True, facecolor='g', alpha=0.5)
-        popt, _ = curve_fit(double_exp, bins[:-1], n, p0=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, .5, .5, .5, .5, .5))
+            n, bins, patches = plt.hist(cv, 1000, density=True, facecolor='g', alpha=0.5)
+            try:
+                popt, _ = curve_fit(double_exp, bins[:-1], n, p0=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, .5, .5, .5, .5, .5))
+            except Exception as e:
+                popt = [
+                    1, 1, 1, 1,
+                    1, 1, 1, 1,
+                    1, 1, 0
+                ]
 
-        comments += '_eppseudod'
-        for l, v in zip(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'l', 'm'], popt):
-            comments += f'_{l}:{v}'
+            comments += '_eppseudod'
+            for l, v in zip(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'l', 'm'], popt):
+                comments += f'_{l}{i}:{v}'
     return comments
 
 
