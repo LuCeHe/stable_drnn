@@ -6,7 +6,7 @@ import pandas as pd
 import tensorflow as tf
 
 from GenericTools.keras_tools.esoteric_callbacks.several_validations import MultipleValidationSets
-from alif_sg.initialization_plots import adapt_sg_shape
+from sg_design_lif.neural_models.config import default_config
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 os.environ["TF_GPU_ALLOCATOR"] = "cuda_malloc_async"
@@ -22,9 +22,12 @@ from GenericTools.keras_tools.plot_tools import plot_history
 from GenericTools.stay_organized.VeryCustomSacred import CustomExperiment, ChooseGPU
 from GenericTools.stay_organized.utils import timeStructured, setReproducible, str2val
 
-from alif_sg.generate_data.task_redirection import Task, checkTaskMeanVariance, language_tasks
+from sg_design_lif.neural_models.full_model import build_model
+from sg_design_lif.generate_data.task_redirection import Task, checkTaskMeanVariance, language_tasks
 # from alif_sg.visualization_tools.training_tests import Tests
-from alif_sg.neural_models.full_model import build_model
+# from alif_sg.neural_models.full_model import build_model
+from alif_sg.initialization_plots import adapt_sg_shape
+from alif_sg.neural_models.sgdLSC import apply_LSC
 
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
@@ -52,12 +55,13 @@ def config():
 
     # net
     # aLSNN cLSTM
-    net_name = 'aLSNN'
+    net_name = 'LSTM'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
     n_neurons = None
+
     embedding = 'learned:None:None:{}'.format(n_neurons) if task_name in language_tasks else False
 
-    comments = 'embproj'  # 'nsLIFreadout_adaptsg_dropout:0.50'
+    comments = 'findLSC'  # 'nsLIFreadout_adaptsg_dropout:0.50'
 
     # optimizer properties
     lr = None  # 7e-4 None
@@ -82,23 +86,14 @@ def config():
 def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
          seed, net_name, n_neurons, lr, stack, loss_name, embedding, optimizer_name,
          lr_schedule, weight_decay, clipnorm, initializer, stop_time, _log):
-    if n_neurons is None:
-        if task_name in language_tasks:
-            n_neurons = 1300
-        elif task_name == 'heidelberg':
-            n_neurons = 256
-        elif 'mnist' in task_name:
-            n_neurons = 128
-        else:
-            raise NotImplementedError
+    stack, batch_size, embedding, n_neurons, lr = default_config(stack, batch_size, embedding, n_neurons, lr, task_name)
 
-        if 'LSTM' in net_name:
-            n_neurons = int(n_neurons / 3)
+    sLSTM_factor = 2 / 3 if task_name == 'wordptb' else 1 / 3
+    n_neurons = n_neurons if not 'LSTM' in net_name else int(n_neurons * sLSTM_factor)
 
     exp_dir = os.path.join(CDIR, ex.observers[0].basedir)
     comments += '_**folder:' + exp_dir + '**_'
 
-    config_dir = os.path.join(exp_dir, '1')
     images_dir = os.path.join(exp_dir, 'images')
     other_dir = os.path.join(exp_dir, 'other_outputs')
     models_dir = os.path.join(exp_dir, 'trained_models')
@@ -117,9 +112,9 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
 
     # task definition
     gen_train = Task(timerepeat=timerepeat, epochs=epochs, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
-                     name=task_name, train_val_test='train', maxlen=maxlen, comments=comments, lr=lr)
+                     name=task_name, train_val_test='train', maxlen=maxlen, comments=comments)
     gen_val = Task(timerepeat=timerepeat, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
-                   name=task_name, train_val_test='val', maxlen=maxlen, comments=comments, lr=lr)
+                   name=task_name, train_val_test='val', maxlen=maxlen, comments=comments)
     gen_test = Task(timerepeat=timerepeat, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
                     name=task_name, train_val_test='test', maxlen=maxlen, comments=comments)
 
@@ -132,26 +127,25 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
         initializer = get_initializer(initializer_name=initializer)
 
     comments = comments if task_name in language_tasks else comments.replace('embproj', 'simplereadout')
-    train_model = build_model(
+    # task_name, net_name, n_neurons, tau, lr, stack,
+    # loss_name, embedding, optimizer_name, tau_adaptation, lr_schedule, weight_decay, clipnorm,
+    # initializer, comments, in_len, n_in, out_len, n_out, final_epochs,
+    initial_state = None
+    model_args = dict(
         task_name=task_name, net_name=net_name, n_neurons=n_neurons,
-        lr=gen_train.lr, stack=stack, loss_name=loss_name,
+        lr=lr, stack=stack, loss_name=loss_name,
         embedding=embedding, optimizer_name=optimizer_name, lr_schedule=lr_schedule,
         weight_decay=weight_decay, clipnorm=clipnorm, initializer=initializer, comments=comments,
-        language_tasks=language_tasks, in_len=gen_train.in_len, n_in=gen_train.in_dim, out_len=gen_train.out_len,
-        n_out=gen_train.out_dim, final_epochs=gen_train.epochs, batch_size=batch_size
+        in_len=gen_train.in_len, n_in=gen_train.in_dim, out_len=gen_train.out_len,
+        n_out=gen_train.out_dim, final_epochs=gen_train.epochs,
     )
+    train_model = build_model(**model_args)
 
     if 'adaptsg' in comments:
         comments = adapt_sg_shape(gen_train, train_model, comments)
+        model_args['comments'] = comments
         del train_model
-        train_model = build_model(
-            task_name=task_name, net_name=net_name, n_neurons=n_neurons,
-            lr=gen_train.lr, stack=stack, loss_name=loss_name,
-            embedding=embedding, optimizer_name=optimizer_name, lr_schedule=lr_schedule,
-            weight_decay=weight_decay, clipnorm=clipnorm, initializer=initializer, comments=comments,
-            language_tasks=language_tasks, in_len=gen_train.in_len, n_in=gen_train.in_dim, out_len=gen_train.out_len,
-            n_out=gen_train.out_dim, final_epochs=gen_train.epochs, batch_size=batch_size
-        )
+        train_model = build_model(**model_args)
     results = {}
 
     train_model.summary()
@@ -175,6 +169,17 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
         callbacks.append(
             ExtendedTensorBoard(validation_data=val_data, log_dir=other_dir, histogram_freq=print_every),
         )
+
+    if 'findLSC' in comments:
+        n_samples = 100
+        norm_pow = str2val(comments, 'normpow', int, default=2)
+        norm_pow = norm_pow if norm_pow > 0 else np.inf
+        new_model_args = model_args
+        new_model_args['comments'] = new_model_args['comments'] + '_reoldspike'
+
+        weights, losses, all_norms = apply_LSC(gen_train, model_args, norm_pow, n_samples, batch_size)
+        results['LSC_losses'] = losses
+        results['LSC_norms'] = all_norms
 
     train_model.fit(gen_train, validation_data=gen_val,
                     epochs=final_epochs, steps_per_epoch=steps_per_epoch,

@@ -11,7 +11,7 @@ from GenericTools.stay_organized.utils import setReproducible, str2val
 from GenericTools.keras_tools.esoteric_losses.loss_redirection import get_loss
 from alif_sg.generate_data.task_redirection import Task, language_tasks
 from alif_sg.neural_models.custom_lstm import customLSTMcell
-from alif_sg.neural_models.full_model import build_model
+from sg_design_lif.neural_models.full_model import build_model
 
 mpl = load_plot_settings(mpl=mpl, pd=None)
 
@@ -81,8 +81,8 @@ def get_data(n_neurons, time_steps, list_comments, save_folder, n_seeds, initial
                     lr=0, stack=stack, loss_name=loss_name,
                     embedding=embedding, optimizer_name='SWAAdaBelief', lr_schedule='',
                     weight_decay=.1, clipnorm=None, initializer=initializer, comments=comments,
-                    language_tasks=language_tasks, in_len=time_steps, n_in=in_dim, out_len=time_steps,
-                    n_out=out_dim, final_epochs=0, batch_size=batch_size, stateful=False
+                    in_len=time_steps, n_in=in_dim, out_len=time_steps,
+                    n_out=out_dim, final_epochs=0,
                 )
                 # model.summary()
                 loss_fn = get_loss(loss_name)
