@@ -21,7 +21,7 @@ def apply_LSC(gen_train, model_args, norm_pow, n_samples, batch_size, steps_per_
         stack = [model_args['n_neurons'] for _ in range(model_args['stack'])]
 
     # batch = [tf.convert_to_tensor(tf.cast(b, tf.float32), dtype=tf.float32) for b in batch[0]],
-    optimizer = tf.keras.optimizers.Adam(learning_rate=1e-4)
+    optimizer = tf.keras.optimizers.Adam(learning_rate=1e-3)
     states = []
 
     losses = []
@@ -43,6 +43,7 @@ def apply_LSC(gen_train, model_args, norm_pow, n_samples, batch_size, steps_per_
         batch = [tf.convert_to_tensor(tf.cast(b, tf.float32), dtype=tf.float32) for b in batch[0]],
 
         time_steps = batch[0][0].shape[1]
+        # time_steps = 2
         # print(time_steps)
         pbar2 = tqdm(total=time_steps, position=0)
 
@@ -96,13 +97,15 @@ def apply_LSC(gen_train, model_args, norm_pow, n_samples, batch_size, steps_per_
             # print('Norms:            ', norms)
             # print('Mean params: ', [tf.reduce_mean(w) for w in model.trainable_weights])
             # print('Loss:             ', loss)
-            losses.append(loss)
             states = states_p1
 
             weights = model.get_weights()
             tf.keras.backend.clear_session()
             norms = tf.reduce_mean(some_norms)
-            all_norms.append(norms)
+
+            all_norms.append(norms.numpy())
+            losses.append(loss.numpy())
+
             pbar2.update(1)
             pbar2.set_description(
                 f"Loss {round(loss.numpy(), 3)}; "

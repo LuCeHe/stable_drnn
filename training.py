@@ -50,14 +50,14 @@ def config():
     # test configuration
     epochs = 2
     steps_per_epoch = 1
-    batch_size = 32
+    batch_size = 2
     stack = 2
 
     # net
     # aLSNN cLSTM
     net_name = 'LSTM'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
-    n_neurons = None
+    n_neurons = 2
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task_name in language_tasks else False
 
@@ -178,8 +178,10 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
         new_model_args['comments'] = new_model_args['comments'] + '_reoldspike'
 
         weights, losses, all_norms = apply_LSC(gen_train, model_args, norm_pow, n_samples, batch_size)
-        results['LSC_losses'] = losses
-        results['LSC_norms'] = all_norms
+        train_model.set_weights(weights)
+
+        results['LSC_losses'] = str(losses)
+        results['LSC_norms'] = str(all_norms)
 
     train_model.fit(gen_train, validation_data=gen_val,
                     epochs=final_epochs, steps_per_epoch=steps_per_epoch,
