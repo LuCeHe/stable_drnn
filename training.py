@@ -178,7 +178,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
         new_model_args = model_args
         new_model_args['comments'] = new_model_args['comments'] + '_reoldspike'
 
-        weights, losses, all_norms = apply_LSC(gen_train, model_args, norm_pow, n_samples, batch_size)
+        weights, losses, all_norms = apply_LSC(gen_train, model_args, norm_pow, n_samples, batch_size, comments)
         train_model.set_weights(weights)
 
         results['LSC_losses'] = str(losses)

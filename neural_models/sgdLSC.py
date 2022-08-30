@@ -10,7 +10,7 @@ from alif_sg.generate_data.task_redirection import Task
 from sg_design_lif.neural_models.full_model import build_model
 
 
-def apply_LSC(gen_train, model_args, norm_pow, n_samples, batch_size, steps_per_epoch = 1):
+def apply_LSC(gen_train, model_args, norm_pow, n_samples, batch_size, comments = '', steps_per_epoch = 1):
     model_args['initial_state'] = ''
 
     stack = model_args['stack']
@@ -42,7 +42,7 @@ def apply_LSC(gen_train, model_args, norm_pow, n_samples, batch_size, steps_per_
         batch = gen_train.__getitem__(step)
         batch = [tf.convert_to_tensor(tf.cast(b, tf.float32), dtype=tf.float32) for b in batch[0]],
 
-        time_steps = batch[0][0].shape[1]
+        time_steps = batch[0][0].shape[1] if not 'test' in comments else 2
         # time_steps = 2
         # print(time_steps)
         pbar2 = tqdm(total=time_steps, position=0)
