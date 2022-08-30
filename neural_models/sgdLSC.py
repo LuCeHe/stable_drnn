@@ -76,10 +76,14 @@ def apply_LSC(gen_train, model_args, norm_pow, n_samples, batch_size, steps_per_
                     phc = tape.batch_jacobian(htp1, ct)
                     # print(phh.shape, pcc.shape, pch.shape, phc.shape)
 
+                    del htp1, ht, ctp1, ct
+
                     # transition derivative
                     td_1 = tf.concat([phh, phc], axis=1)
                     td_2 = tf.concat([pch, pcc], axis=1)
                     td = tf.concat([td_1, td_2], axis=2)
+
+                    del phh, pcc, pch, phc
 
                     x = tf.random.normal((td.shape[0], td.shape[-1], n_samples))
                     x_norm = tf.norm(x, ord=norm_pow, axis=1)
