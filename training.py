@@ -171,8 +171,9 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
         )
 
     if 'findLSC' in comments:
-        n_samples = 100
-        norm_pow = str2val(comments, 'normpow', int, default=2)
+        n_samples = str2val(comments, 'normsamples', int, default=100)
+        # n_samples = 100
+        norm_pow = str2val(comments, 'normpow', float, default=2)
         norm_pow = norm_pow if norm_pow > 0 else np.inf
         new_model_args = model_args
         new_model_args['comments'] = new_model_args['comments'] + '_reoldspike'

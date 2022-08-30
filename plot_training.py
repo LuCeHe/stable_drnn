@@ -31,14 +31,18 @@ task_name = 'ps_mnist'  # heidelberg wordptb sl_mnist all ps_mnist
 
 # sparse_mode_accuracy sparse_categorical_crossentropy bpc sparse_mode_accuracy_test_10
 # val_sparse_mode_accuracy test_perplexity
-metric = 'test_perplexity'
+metric = 'v_mode_acc'
 optimizer_name = 'SWAAdaBelief'  # SGD SWAAdaBelief
-metrics_oi = ['val_sparse_mode_accuracy', 'val_perplexity', 'val_sparse_categorical_crossentropy',
-              'test_sparse_mode_accuracy', 'test_perplexity', 't_ppl', 't_acc', 'v_loss', 'v_ppl', 'final_epochs']
+metrics_oi = [
+    # 'val_sparse_mode_accuracy', 'val_perplexity', 'val_sparse_categorical_crossentropy',
+    #           'test_sparse_mode_accuracy', 'test_perplexity',
+    't_ppl', 't_mode_acc', 'v_ppl', 'v_mode_acc',
+    # 'final_epochs'
+]
 
 columns_to_remove = [
     'heaviside', '_test', 'weight', 'sLSTM_factor', 'save_model', 'clipnorm', 'GPU', 'batch_size',
-    'continue_training', 'embedding', 'lr_schedule', 'loss_name', 'lr', 'net_name', 'seed', 'stack', 'stop_time',
+    'continue_training', 'embedding', 'lr_schedule', 'loss_name', 'lr', 'seed', 'stack', 'stop_time',
     'convergence', 'n_neurons', 'optimizer_name'
 ]
 
@@ -109,7 +113,6 @@ else:
 
 # df = df[(df['d'].str.contains('2022-07-28--')) | (df['d'].str.contains('2022-07-29--'))]
 # df = df[(df['d'].str.contains('2022-08-04--')) ]
-df = df.sort_values(by=metric)
 
 for c_name in columns_to_remove:
     df = df[df.columns.drop(list(df.filter(regex=c_name)))]
@@ -119,9 +122,10 @@ new_column_names = {c_name: shorten_losses(c_name) for c_name in df.columns}
 df.rename(columns=new_column_names, inplace=True)
 df = df[[c for c in df if c not in ['d', 'duration_experiment']] + ['d', 'duration_experiment']]
 
+df = df.sort_values(by=metric)
 print(df.to_string())
 
-group_cols = ['task_name', 'initializer', 'comments']
+group_cols = ['net_name', 'task_name', 'initializer', 'comments']
 counts = df.groupby(group_cols).size().reset_index(name='counts')
 
 metrics_oi = [shorten_losses(m) for m in metrics_oi]
@@ -134,7 +138,7 @@ for m in metrics_oi:
     mdf['std_{}'.format(m)] = mdf[m]['std']
     mdf = mdf.drop([m], axis=1)
 
-mdf = mdf.sort_values(by='mean_val_ppl')
+mdf = mdf.sort_values(by='mean_' + metric)
 mdf['counts'] = counts['counts']
 
 print(mdf.to_string())
