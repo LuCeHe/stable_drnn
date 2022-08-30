@@ -61,7 +61,7 @@ def config():
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task_name in language_tasks else False
 
-    comments = 'findLSC'  # 'nsLIFreadout_adaptsg_dropout:0.50'
+    comments = 'findLSC_test'  # 'nsLIFreadout_adaptsg_dropout:0.50'
 
     # optimizer properties
     lr = None  # 7e-4 None
