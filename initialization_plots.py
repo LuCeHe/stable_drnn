@@ -371,8 +371,8 @@ def adapt_sg_shape(data_generator, model, comments):
 
         n, bins, patches = plt.hist(cv, 1000, density=True, facecolor='g', alpha=0.5)
         try:
-            print('\n\n            Adapted SG!\n\n')
             popt, _ = curve_fit(double_exp, bins[:-1], n, p0=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, .5, .5, .5, .5, .5))
+            print('\n\n            Adapted SG!\n\n')
         except Exception as e:
             print('\n\n            Non Adapted SG error!\n\n')
             print(e)
