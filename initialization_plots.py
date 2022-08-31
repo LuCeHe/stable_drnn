@@ -5,7 +5,7 @@ import matplotlib as mpl
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
-from GenericTools.keras_tools.esoteric_layers.surrogated_step import ChoosePseudoHeaviside
+from GenericTools.keras_tools.esoteric_layers.surrogated_step import ChoosePseudoHeaviside, SpikeFunctionExpsPowerLaws
 from GenericTools.stay_organized.mpl_tools import load_plot_settings
 from GenericTools.stay_organized.utils import setReproducible, str2val
 from GenericTools.keras_tools.esoteric_losses.loss_redirection import get_loss
@@ -349,13 +349,27 @@ def test_adaptsg():
     ChoosePseudoHeaviside(v_sc, config=config, sharpness=1, dampening=1)
 
 
-def double_exp(x, a, b, c, d, e, f, g, h, i, l, m):
+def doubleexp(x, a, b, c, d, e, f, g, h, i, l, m):
     a, b, c, d, e, f, g, h, i, l, m = abs(a), abs(b), abs(c), abs(d), abs(e), abs(f), abs(g), abs(h), abs(i), abs(l), m
     x = x + m
     return \
-        (a * np.exp(b * x) + e * 1 / (1 + f * np.abs(x) ** (1 + i))) * np.heaviside(-x, .5) \
-        + (c * np.exp(-d * x) + h * 1 / (1 + g * np.abs(x) ** (1 + l))) * np.heaviside(x, .5)  # one of best so far
+        (a * tf.exp(b * x) + e * 1 / (1 + f * tf.abs(x) ** (1 + i))) * np.heaviside(-x, .5) \
+        + (c * tf.exp(-d * x) + h * 1 / (1 + g * tf.abs(x) ** (1 + l))) * np.heaviside(x, .5)  # one of best so far
 
+def movedgauss(x, a, b, c, d, e, f, g, h, i, l, m):
+    a, b, c, d, e, f, g, h, i, l, m = abs(a), abs(b), abs(c), abs(d), abs(e), abs(f), abs(g), abs(h), abs(i), abs(l), m
+    x = x + m
+    return a * tf.exp(-b * x**2)
+
+def get_shape(comments):
+    if 'doubleexp' in comments:
+        asgshape = doubleexp
+    elif 'movedgauss':
+        asgshape = movedgauss
+    else:
+        asgshape = movedgauss
+
+    return asgshape
 
 def adapt_sg_shape(data_generator, model, comments, test=False):
     (tin, tout), = data_generator.__getitem__()
@@ -376,8 +390,9 @@ def adapt_sg_shape(data_generator, model, comments, test=False):
         all_bins.append(bins[:-1])
         all_ns.append(n)
         try:
-
-            popt, _ = curve_fit(double_exp, bins[:-1], n, p0=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, .5, .5, .5, .5, .0))
+            # moved_gauss
+            shape_func = get_shape(comments)
+            popt, _ = curve_fit(shape_func, bins[:-1], n, p0=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, .5, .5, .5, .5, .0))
             print('\n\n            Adapted SG!\n\n')
         except Exception as e:
             print('\n\n            Non Adapted SG error!\n\n')
@@ -413,12 +428,12 @@ def test_adapt_sg_shape():
     task_name = 'sl_mnist'
     timerepeat = 2
     epochs = 1
-    comments = ''
+    comments = '8_noalif_nogradreset_dropout:.3_timerepeat:2_'
     n_neurons = 256
-    stack = 2
+    stack = 4
     batch_size = 32
     loss_name = 'sparse_categorical_crossentropy'
-    embedding = None  if not 'ptb' in task_name else f'learned:None:None:{n_neurons}'
+    embedding = None  if not 'ptb' in task_name else f'learned:None:None:{int(n_neurons/3)}'
     comments += '_**folder:' + EXPERIMENT + '**_'
     comments += '_batchsize:' + str(batch_size)
     gen_train = Task(timerepeat=timerepeat, epochs=epochs, batch_size=batch_size, steps_per_epoch=10,
@@ -426,7 +441,7 @@ def test_adapt_sg_shape():
 
     model_args = dict(task_name=task_name, net_name='maLSNN', n_neurons=n_neurons, lr=0.01, stack=stack,
                       loss_name=loss_name, embedding=embedding, optimizer_name='SGD', lr_schedule='',
-                      weight_decay=0.1, clipnorm=1., initializer='glorot_normal', comments=comments,
+                      weight_decay=0.1, clipnorm=1., initializer='glorot_uniform', comments=comments,
                       in_len=gen_train.in_len, n_in=gen_train.in_dim, out_len=gen_train.out_len,
                       n_out=gen_train.out_dim, final_epochs=gen_train.epochs)
     train_model = build_model(**model_args)
@@ -435,9 +450,10 @@ def test_adapt_sg_shape():
 
     fig, axs = plt.subplots(len(all_bins), 1, gridspec_kw={'wspace': .3, 'hspace': .1}, figsize=(10, 5))
 
+    shape_func = get_shape(comments)
     for i, (bin, n, popt) in enumerate(zip(all_bins, all_ns, popts)):
         axs[i].plot(bin, n, '-', color='r')
-        axs[i].plot(bin, double_exp(bin, *popt), '-', color='b')
+        axs[i].plot(bin, shape_func(bin, *popt), '-', color='b')
 
     plt.show()
 
