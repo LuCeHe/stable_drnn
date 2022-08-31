@@ -358,7 +358,6 @@ def double_exp(x, a, b, c, d, e, f, g, h, i, l, m):
 
 
 def adapt_sg_shape(data_generator, model, comments, test=False):
-
     (tin, tout), = data_generator.__getitem__()
 
     test_model = get_test_model(model)
@@ -368,6 +367,7 @@ def adapt_sg_shape(data_generator, model, comments, test=False):
     activity_names = [k for k in trt.keys() if k.endswith('_3') and k.startswith('encoder')]
     all_bins = []
     all_ns = []
+    popts = []
     for i, k in enumerate(activity_names):
         cv = trt[k].flatten()
 
@@ -388,13 +388,15 @@ def adapt_sg_shape(data_generator, model, comments, test=False):
                 1, 1, 0
             ]
 
+        popts.append(popt)
         comments += '_eppseudod'
         for l, v in zip(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'l', 'm'], popt):
             comments += f'_{l}{i}:{v}'
     if not test:
         return comments
     else:
-        return comments, all_bins, all_ns
+        return comments, all_bins, all_ns, popts
+
 
 def test_adapt_sg_shape():
     import time
@@ -408,37 +410,36 @@ def test_adapt_sg_shape():
         os.makedirs(d, exist_ok=True)
     os.makedirs(EXPERIMENT, exist_ok=True)
 
-
-    task_name = 'heidelberg'
+    task_name = 'sl_mnist'
     timerepeat = 2
     epochs = 1
     comments = ''
-    n_neurons = 100
-    stack = 4
-    batch_size = 64
+    n_neurons = 256
+    stack = 2
+    batch_size = 32
     loss_name = 'sparse_categorical_crossentropy'
-
+    embedding = None  if not 'ptb' in task_name else f'learned:None:None:{n_neurons}'
     comments += '_**folder:' + EXPERIMENT + '**_'
     comments += '_batchsize:' + str(batch_size)
     gen_train = Task(timerepeat=timerepeat, epochs=epochs, batch_size=batch_size, steps_per_epoch=10,
                      name=task_name, train_val_test='train', maxlen=100, comments=comments)
 
     model_args = dict(task_name=task_name, net_name='maLSNN', n_neurons=n_neurons, lr=0.01, stack=stack,
-                      loss_name=loss_name, embedding=None, optimizer_name='SGD', lr_schedule='',
+                      loss_name=loss_name, embedding=embedding, optimizer_name='SGD', lr_schedule='',
                       weight_decay=0.1, clipnorm=1., initializer='glorot_normal', comments=comments,
                       in_len=gen_train.in_len, n_in=gen_train.in_dim, out_len=gen_train.out_len,
                       n_out=gen_train.out_dim, final_epochs=gen_train.epochs)
     train_model = build_model(**model_args)
 
+    adapt_comments, all_bins, all_ns, popts = adapt_sg_shape(gen_train, train_model, comments, test=True)
 
-    adapt_comments, all_bins, all_ns = adapt_sg_shape(gen_train, train_model, comments, test=True)
+    fig, axs = plt.subplots(len(all_bins), 1, gridspec_kw={'wspace': .3, 'hspace': .1}, figsize=(10, 5))
 
-    fig, axs = plt.subplots(1, len(all_bins), gridspec_kw={'wspace': .3, 'hspace': .1}, figsize=(10, 5))
+    for i, (bin, n, popt) in enumerate(zip(all_bins, all_ns, popts)):
+        axs[i].plot(bin, n, '-', color='r')
+        axs[i].plot(bin, double_exp(bin, *popt), '-', color='b')
 
-    for i, (bin, n) in enumerate(zip(all_bins, all_ns)):
-        axs[i].plot(bin, n, '--', color='r')
-
-
+    plt.show()
 
 
 if __name__ == '__main__':
