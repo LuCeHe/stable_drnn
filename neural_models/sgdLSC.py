@@ -103,7 +103,8 @@ def apply_LSC(gen_train, model_args, norm_pow, n_samples, batch_size, comments =
             # print('Loss:             ', loss)
             states = states_p1
 
-            weights = model.get_weights()
+            if not np.isnan(loss.numpy()):
+                weights = model.get_weights()
             tf.keras.backend.clear_session()
             norms = tf.reduce_mean(some_norms)
 

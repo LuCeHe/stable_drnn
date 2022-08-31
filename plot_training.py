@@ -26,6 +26,7 @@ HSITORIESPATH = os.path.join(EXPERIMENTS, 'histories.json')
 
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
+plot_norms_pretraining = True
 
 task_name = 'ps_mnist'  # heidelberg wordptb sl_mnist all ps_mnist
 
@@ -113,6 +114,10 @@ else:
 
 # df = df[(df['d'].str.contains('2022-07-28--')) | (df['d'].str.contains('2022-07-29--'))]
 # df = df[(df['d'].str.contains('2022-08-04--')) ]
+df = df[~df['comments'].str.contains('test') ]
+
+df.loc[df['comments'].str.contains('noalif'), 'net_name'] = 'LIF'
+df.loc[df['net_name'].str.contains('maLSNN'), 'net_name'] = 'ALIF'
 
 for c_name in columns_to_remove:
     df = df[df.columns.drop(list(df.filter(regex=c_name)))]
@@ -142,6 +147,38 @@ mdf = mdf.sort_values(by='mean_' + metric)
 mdf['counts'] = counts['counts']
 
 print(mdf.to_string())
+
+nets = np.unique(mdf['net_name'])
+tasks = np.unique(mdf['task_name'])
+print('\n\n\n')
+for n in nets:
+    for t in tasks:
+        print(n, t)
+        idf = mdf[(mdf['net_name'].eq(n)) & (mdf['task_name'].eq(t))]
+
+        print(idf.to_string())
+        # pass
+
+if plot_norms_pretraining:
+    moi = 'norms' # losses norms
+    ref = 0 if metric == 'losses' else 1
+    fig, axs = plt.subplots(len(nets), len(tasks), figsize=(6, 2), gridspec_kw={'wspace': .05})
+
+    for i, n in enumerate(nets):
+        for j, t in enumerate(tasks):
+            idf = df[(df['net_name'].eq(n)) & (df['task_name'].eq(t))]
+
+            for index, row in idf.iterrows():
+                if 'LSC_' + moi in row.keys():
+                    if isinstance(row['LSC_' + moi], str):
+                        print(row['LSC_' + moi])
+                        print(row['LSC_' + moi][1:-1])
+                        metric = [float(s) for s in row['LSC_' + moi][1:-1].split(', ')]
+                        axs[i,j].plot(metric)
+
+    plt.show()
+
+
 
 if plot_lsc_vs_naive:
 

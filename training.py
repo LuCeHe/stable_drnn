@@ -173,7 +173,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
     if 'findLSC' in comments:
         n_samples = str2val(comments, 'normsamples', int, default=None)
         if n_samples is None:
-            n_samples = 100 if not 'ptb' in task_name else 25
+            n_samples = 100 if not 'ptb' in task_name else 20
 
         # n_samples = 100
         norm_pow = str2val(comments, 'normpow', float, default=2)
