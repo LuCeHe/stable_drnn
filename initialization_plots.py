@@ -358,33 +358,32 @@ def double_exp(x, a, b, c, d, e, f, g, h, i, l, m):
 
 
 def adapt_sg_shape(data_generator, model, comments):
-    if 'adaptsg' in comments:
 
-        (tin, tout), = data_generator.__getitem__()
+    (tin, tout), = data_generator.__getitem__()
 
-        test_model = get_test_model(model)
-        trt = test_model.predict([tin, tout], batch_size=tin.shape[0])
-        trt = {name: pred for name, pred in zip(test_model.output_names, trt)}
+    test_model = get_test_model(model)
+    trt = test_model.predict([tin, tout], batch_size=tin.shape[0])
+    trt = {name: pred for name, pred in zip(test_model.output_names, trt)}
 
-        activity_names = [k for k in trt.keys() if k.endswith('_3') and k.startswith('encoder')]
-        for i, k in enumerate(activity_names):
-            cv = trt[k].flatten()
+    activity_names = [k for k in trt.keys() if k.endswith('_3') and k.startswith('encoder')]
+    for i, k in enumerate(activity_names):
+        cv = trt[k].flatten()
 
-            n, bins, patches = plt.hist(cv, 1000, density=True, facecolor='g', alpha=0.5)
-            try:
-                popt, _ = curve_fit(double_exp, bins[:-1], n, p0=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, .5, .5, .5, .5, .5))
-            except Exception as e:
-                print('\n\n            Non Adapted SG!\n\n')
-                print(e)
-                popt = [
-                    1, 1, 1, 1,
-                    1, 1, 1, 1,
-                    1, 1, 0
-                ]
+        n, bins, patches = plt.hist(cv, 1000, density=True, facecolor='g', alpha=0.5)
+        try:
+            popt, _ = curve_fit(double_exp, bins[:-1], n, p0=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, .5, .5, .5, .5, .5))
+        except Exception as e:
+            print('\n\n            Non Adapted SG error!\n\n')
+            print(e)
+            popt = [
+                1, 1, 1, 1,
+                1, 1, 1, 1,
+                1, 1, 0
+            ]
 
-            comments += '_eppseudod'
-            for l, v in zip(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'l', 'm'], popt):
-                comments += f'_{l}{i}:{v}'
+        comments += '_eppseudod'
+        for l, v in zip(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'l', 'm'], popt):
+            comments += f'_{l}{i}:{v}'
     return comments
 
 
