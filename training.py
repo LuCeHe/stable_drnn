@@ -5,7 +5,6 @@ import pandas as pd
 
 import tensorflow as tf
 
-from GenericTools.keras_tools.esoteric_callbacks.several_validations import MultipleValidationSets
 from sg_design_lif.neural_models.config import default_config
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
@@ -21,11 +20,10 @@ from GenericTools.keras_tools.esoteric_callbacks import *
 from GenericTools.keras_tools.plot_tools import plot_history
 from GenericTools.stay_organized.VeryCustomSacred import CustomExperiment, ChooseGPU
 from GenericTools.stay_organized.utils import timeStructured, setReproducible, str2val
+from GenericTools.keras_tools.esoteric_callbacks.several_validations import MultipleValidationSets
+from GenericTools.keras_tools.esoteric_tasks.time_task_redirection import Task, checkTaskMeanVariance, language_tasks
 
 from sg_design_lif.neural_models.full_model import build_model
-from sg_design_lif.generate_data.task_redirection import Task, checkTaskMeanVariance, language_tasks
-# from alif_sg.visualization_tools.training_tests import Tests
-# from alif_sg.neural_models.full_model import build_model
 from alif_sg.neural_models.sgdLSC import apply_LSC
 
 FILENAME = os.path.realpath(__file__)

@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 from GenericTools.keras_tools.esoteric_losses import well_loss
 from GenericTools.keras_tools.expose_latent import expose_latent_model
-from sg_design_lif.generate_data.task_redirection import Task
+from GenericTools.keras_tools.esoteric_tasks.task_redirection import Task
 from sg_design_lif.neural_models.full_model import build_model
 
 
