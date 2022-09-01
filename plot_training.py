@@ -114,7 +114,7 @@ else:
 
 # df = df[(df['d'].str.contains('2022-07-28--')) | (df['d'].str.contains('2022-07-29--'))]
 # df = df[(df['d'].str.contains('2022-08-04--')) ]
-df = df[~df['comments'].str.contains('test') ]
+df = df[~df['comments'].str.contains('test')]
 
 df.loc[df['comments'].str.contains('noalif'), 'net_name'] = 'LIF'
 df.loc[df['net_name'].str.contains('maLSNN'), 'net_name'] = 'ALIF'
@@ -126,6 +126,10 @@ new_column_names = {c_name: shorten_losses(c_name) for c_name in df.columns}
 
 df.rename(columns=new_column_names, inplace=True)
 df = df[[c for c in df if c not in ['d', 'duration_experiment']] + ['d', 'duration_experiment']]
+
+print(df.columns)
+df = df[(df['d'].str.contains('2022-08-31'))]
+
 
 df = df.sort_values(by=metric)
 print(df.to_string())
@@ -160,7 +164,7 @@ for n in nets:
         # pass
 
 if plot_norms_pretraining:
-    moi = 'norms' # losses norms
+    moi = 'norms'  # losses norms
     ref = 0 if metric == 'losses' else 1
     fig, axs = plt.subplots(len(nets), len(tasks), figsize=(6, 2), gridspec_kw={'wspace': .05})
 
@@ -171,14 +175,12 @@ if plot_norms_pretraining:
             for index, row in idf.iterrows():
                 if 'LSC_' + moi in row.keys():
                     if isinstance(row['LSC_' + moi], str):
-                        print(row['LSC_' + moi])
-                        print(row['LSC_' + moi][1:-1])
+                        # print(row['LSC_' + moi])
+                        # print(row['LSC_' + moi][1:-1])
                         metric = [float(s) for s in row['LSC_' + moi][1:-1].split(', ')]
-                        axs[i,j].plot(metric)
+                        axs[i, j].plot(metric)
 
     plt.show()
-
-
 
 if plot_lsc_vs_naive:
 

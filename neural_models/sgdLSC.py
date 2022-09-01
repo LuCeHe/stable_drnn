@@ -10,7 +10,7 @@ from alif_sg.generate_data.task_redirection import Task
 from sg_design_lif.neural_models.full_model import build_model
 
 
-def apply_LSC(gen_train, model_args, norm_pow, n_samples, batch_size, comments = '', steps_per_epoch = 1):
+def apply_LSC(gen_train, model_args, norm_pow, n_samples, batch_size, comments = '', steps_per_epoch = 3):
     model_args['initial_state'] = ''
 
     stack = model_args['stack']

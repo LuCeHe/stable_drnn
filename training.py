@@ -26,7 +26,6 @@ from sg_design_lif.neural_models.full_model import build_model
 from sg_design_lif.generate_data.task_redirection import Task, checkTaskMeanVariance, language_tasks
 # from alif_sg.visualization_tools.training_tests import Tests
 # from alif_sg.neural_models.full_model import build_model
-from alif_sg.initialization_plots import adapt_sg_shape
 from alif_sg.neural_models.sgdLSC import apply_LSC
 
 FILENAME = os.path.realpath(__file__)
@@ -51,13 +50,13 @@ def config():
     epochs = 2
     steps_per_epoch = 1
     batch_size = 2
-    stack = 2
+    stack = None
 
     # net
-    # aLSNN cLSTM
+    # maLSNN cLSTM LSTM
     net_name = 'LSTM'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
-    n_neurons = 2
+    n_neurons = None
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task_name in language_tasks else False
 
@@ -90,6 +89,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
 
     sLSTM_factor = 2 / 3 if task_name == 'wordptb' else 1 / 3
     n_neurons = n_neurons if not 'LSTM' in net_name else int(n_neurons * sLSTM_factor)
+    stack = stack if not 'LSTM' in net_name else '1000:300'
 
     exp_dir = os.path.join(CDIR, ex.observers[0].basedir)
     comments += '_**folder:' + exp_dir + '**_'
@@ -141,11 +141,6 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
     )
     train_model = build_model(**model_args)
 
-    if 'adaptsg' in comments:
-        comments = adapt_sg_shape(gen_train, train_model, comments)
-        model_args['comments'] = comments
-        del train_model
-        train_model = build_model(**model_args)
     results = {}
 
     train_model.summary()
@@ -173,7 +168,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
     if 'findLSC' in comments:
         n_samples = str2val(comments, 'normsamples', int, default=None)
         if n_samples is None:
-            n_samples = 100 if not 'ptb' in task_name else 20
+            n_samples = 100 if not 'ptb' in task_name else 10
 
         # n_samples = 100
         norm_pow = str2val(comments, 'normpow', float, default=2)
