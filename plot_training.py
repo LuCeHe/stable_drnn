@@ -87,6 +87,7 @@ if not os.path.exists(CSVPATH):
         results = {}
         results.update(config.items())
         results.update(some_results.items())
+        results.update({'where': run['host']['hostname']})
 
         what = lambda k, v: np.nanmax(v) if 'acc' in k else np.nanmin(v)
         results.update({k: what(k, v) for k, v in history.items()})

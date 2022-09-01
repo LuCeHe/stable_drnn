@@ -6,11 +6,12 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 from GenericTools.keras_tools.esoteric_losses import well_loss
 from GenericTools.keras_tools.expose_latent import expose_latent_model
-from alif_sg.generate_data.task_redirection import Task
+from sg_design_lif.generate_data.task_redirection import Task
 from sg_design_lif.neural_models.full_model import build_model
 
 
-def apply_LSC(gen_train, model_args, norm_pow, n_samples, batch_size, comments = '', steps_per_epoch = 3):
+def apply_LSC(gen_train, model_args, norm_pow, n_samples, batch_size, steps_per_epoch=3):
+    comments = model_args['comments']
     model_args['initial_state'] = ''
 
     stack = model_args['stack']
@@ -35,7 +36,6 @@ def apply_LSC(gen_train, model_args, norm_pow, n_samples, batch_size, comments =
     for width in stack:
         for _ in range(n_states):
             states.append(tf.zeros((batch_size, width)))
-
 
     pbar1 = tqdm(total=steps_per_epoch, position=1)
     for step in range(steps_per_epoch):
@@ -114,7 +114,7 @@ def apply_LSC(gen_train, model_args, norm_pow, n_samples, batch_size, comments =
             pbar2.update(1)
             pbar2.set_description(
                 f"Loss {round(loss.numpy(), 3)}; "
-                f"mean params {str(round(tf.reduce_mean([tf.reduce_mean(w) for w in model.trainable_weights]).numpy(),3))}; "
+                f"mean params {str(round(tf.reduce_mean([tf.reduce_mean(w) for w in model.trainable_weights]).numpy(), 3))}; "
                 f"mean norms {str(round(norms.numpy(), 3))} "
             )
 
