@@ -52,7 +52,7 @@ def config():
 
     # net
     # maLSNN cLSTM LSTM
-    net_name = 'LSTM'
+    net_name = 'maLSNN'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
     n_neurons = None
 
@@ -83,11 +83,13 @@ def config():
 def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
          seed, net_name, n_neurons, lr, stack, loss_name, embedding, optimizer_name,
          lr_schedule, weight_decay, clipnorm, initializer, stop_time, _log):
-    stack, batch_size, embedding, n_neurons, lr = default_config(stack, batch_size, embedding, n_neurons, lr, task_name)
+    stack, batch_size, embedding, n_neurons, lr = default_config(
+        stack, batch_size, embedding, n_neurons, lr, task_name, lsc=True
+    )
 
     sLSTM_factor = 2 / 3 if task_name == 'wordptb' else 1 / 3
     n_neurons = n_neurons if not 'LSTM' in net_name else int(n_neurons * sLSTM_factor)
-    stack = stack if not 'LSTM' in net_name else '1000:300'
+    stack = stack if not 'LSTM' in net_name else '400:300'
 
     exp_dir = os.path.join(CDIR, ex.observers[0].basedir)
     comments += '_**folder:' + exp_dir + '**_'

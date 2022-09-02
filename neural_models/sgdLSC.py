@@ -10,7 +10,7 @@ from GenericTools.keras_tools.esoteric_tasks.task_redirection import Task
 from sg_design_lif.neural_models.full_model import build_model
 
 
-def apply_LSC(gen_train, model_args, norm_pow, n_samples, batch_size, steps_per_epoch=3):
+def apply_LSC(gen_train, model_args, norm_pow, n_samples, batch_size, steps_per_epoch=2):
     comments = model_args['comments']
     model_args['initial_state'] = ''
 
@@ -96,29 +96,30 @@ def apply_LSC(gen_train, model_args, norm_pow, n_samples, batch_size, steps_per_
                     loss = well_loss(min_value=1, max_value=1, walls_type='relu', axis='all')(norms)
                     mean_loss += loss
 
+            del x, x_norm, e, e_norm, norms, loss
             grads = tape.gradient(mean_loss, model.trainable_weights)
             optimizer.apply_gradients(zip(grads, model.trainable_weights))
-            # print('Norms:            ', norms)
-            # print('Mean params: ', [tf.reduce_mean(w) for w in model.trainable_weights])
-            # print('Loss:             ', loss)
+
             states = states_p1
 
-            if not np.isnan(loss.numpy()):
+            if not np.isnan(mean_loss.numpy()):
                 weights = model.get_weights()
             tf.keras.backend.clear_session()
             norms = tf.reduce_mean(some_norms)
 
             all_norms.append(norms.numpy())
-            losses.append(loss.numpy())
+            losses.append(mean_loss.numpy())
 
             pbar2.update(1)
             pbar2.set_description(
-                f"Loss {round(loss.numpy(), 3)}; "
+                f"Step {step}; "
+                f"Loss {str(round(mean_loss.numpy(), 3))}; "
                 f"mean params {str(round(tf.reduce_mean([tf.reduce_mean(w) for w in model.trainable_weights]).numpy(), 3))}; "
                 f"mean norms {str(round(norms.numpy(), 3))} "
             )
 
             del model, tape, grads
+        del batch
 
         pbar1.update(1)
 
