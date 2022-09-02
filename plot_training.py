@@ -128,7 +128,6 @@ new_column_names = {c_name: shorten_losses(c_name) for c_name in df.columns}
 df.rename(columns=new_column_names, inplace=True)
 df = df[[c for c in df if c not in ['d', 'duration_experiment']] + ['d', 'duration_experiment']]
 
-print(df.columns)
 df = df[(df['d'].str.contains('2022-08-31'))]
 
 
@@ -158,7 +157,7 @@ tasks = np.unique(mdf['task_name'])
 print('\n\n\n')
 for n in nets:
     for t in tasks:
-        print(n, t)
+        print(n, t, 'mean_' + metric)
         idf = mdf[(mdf['net_name'].eq(n)) & (mdf['task_name'].eq(t))]
 
         print(idf.to_string())
