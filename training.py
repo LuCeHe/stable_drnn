@@ -42,7 +42,7 @@ def config():
     # task and net
     # ps_mnist heidelberg s_mnist
     # wordptb sl_mnist
-    task_name = 'wordptb'
+    task_name = 'heidelberg'
 
     # test configuration
     epochs = 2
@@ -52,13 +52,13 @@ def config():
 
     # net
     # maLSNN cLSTM LSTM
-    net_name = 'maLSNN'
+    net_name = 'LSTM'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
     n_neurons = None
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task_name in language_tasks else False
 
-    comments = 'findLSC_test'  # 'nsLIFreadout_adaptsg_dropout:0.50'
+    comments = ''  # 'nsLIFreadout_adaptsg_dropout:0.50' findLSC_test
 
     # optimizer properties
     lr = None  # 7e-4 None
@@ -87,9 +87,9 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
         stack, batch_size, embedding, n_neurons, lr, task_name, lsc=True
     )
 
-    sLSTM_factor = 2 / 3 if task_name == 'wordptb' else 1 / 3
+    sLSTM_factor = 1 / 3
     n_neurons = n_neurons if not 'LSTM' in net_name else int(n_neurons * sLSTM_factor)
-    stack = stack if not 'LSTM' in net_name else '400:300'
+    stack = '400:300' if ('LSTM' in net_name and task_name == 'wordptb') else stack
 
     exp_dir = os.path.join(CDIR, ex.observers[0].basedir)
     comments += '_**folder:' + exp_dir + '**_'
@@ -139,11 +139,8 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
         in_len=gen_train.in_len, n_in=gen_train.in_dim, out_len=gen_train.out_len,
         n_out=gen_train.out_dim, final_epochs=gen_train.epochs,
     )
-    train_model = build_model(**model_args)
 
     results = {}
-
-    train_model.summary()
 
     history_path = other_dir + '/log.csv'
     print_every = 2  # int(final_epochs / 10) if not final_epochs < 10 else 1
@@ -180,10 +177,15 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
             gen_train=gen_train, model_args=new_model_args, norm_pow=norm_pow, n_samples=n_samples,
             batch_size=batch_size
         )
-        train_model.set_weights(weights)
 
         results['LSC_losses'] = str(losses)
         results['LSC_norms'] = str(all_norms)
+
+    train_model = build_model(**model_args)
+    train_model.summary()
+
+    if 'findLSC' in comments:
+        train_model.set_weights(weights)
 
     train_model.fit(gen_train, validation_data=gen_val,
                     epochs=final_epochs, steps_per_epoch=steps_per_epoch,
@@ -234,3 +236,4 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
 
     results_filename = os.path.join(other_dir, 'results.json')
     json.dump(results, open(results_filename, "w"))
+    print('DONE')

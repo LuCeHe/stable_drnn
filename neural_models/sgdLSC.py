@@ -123,6 +123,7 @@ def apply_LSC(gen_train, model_args, norm_pow, n_samples, batch_size, steps_per_
 
         pbar1.update(1)
 
+    tf.keras.backend.clear_session()
     return weights, losses, all_norms
 
 
