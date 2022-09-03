@@ -1,4 +1,4 @@
-import os, shutil, logging, json
+import os, shutil, logging, json, copy
 
 import numpy as np
 import pandas as pd
@@ -58,7 +58,7 @@ def config():
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task_name in language_tasks else False
 
-    comments = ''  # 'nsLIFreadout_adaptsg_dropout:0.50' findLSC_test
+    comments = 'findLSC_test'  # 'nsLIFreadout_adaptsg_dropout:0.50' findLSC_test
 
     # optimizer properties
     lr = None  # 7e-4 None
@@ -170,7 +170,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
         # n_samples = 100
         norm_pow = str2val(comments, 'normpow', float, default=2)
         norm_pow = norm_pow if norm_pow > 0 else np.inf
-        new_model_args = model_args
+        new_model_args = copy.deepcopy(model_args)
         new_model_args['comments'] = new_model_args['comments'] + '_reoldspike'
 
         weights, losses, all_norms = apply_LSC(

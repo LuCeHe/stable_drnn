@@ -26,7 +26,7 @@ HSITORIESPATH = os.path.join(EXPERIMENTS, 'histories.json')
 
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
-plot_norms_pretraining = True
+plot_norms_pretraining = False
 
 task_name = 'ps_mnist'  # heidelberg wordptb sl_mnist all ps_mnist
 
@@ -128,7 +128,7 @@ new_column_names = {c_name: shorten_losses(c_name) for c_name in df.columns}
 df.rename(columns=new_column_names, inplace=True)
 df = df[[c for c in df if c not in ['d', 'duration_experiment']] + ['d', 'duration_experiment']]
 
-df = df[(df['d'].str.contains('2022-08-31'))]
+# df = df[(df['d'].str.contains('2022-08-31'))]
 
 
 df = df.sort_values(by=metric)
@@ -154,14 +154,14 @@ print(mdf.to_string())
 
 nets = np.unique(mdf['net_name'])
 tasks = np.unique(mdf['task_name'])
-print('\n\n\n')
-for n in nets:
-    for t in tasks:
-        print(n, t, 'mean_' + metric)
-        idf = mdf[(mdf['net_name'].eq(n)) & (mdf['task_name'].eq(t))]
-
-        print(idf.to_string())
-        # pass
+# print('\n\n\n')
+# for n in nets:
+#     for t in tasks:
+#         print(n, t, 'mean_' + metric)
+#         idf = mdf[(mdf['net_name'].eq(n)) & (mdf['task_name'].eq(t))]
+#
+#         print(idf.to_string())
+#         # pass
 
 if plot_norms_pretraining:
     moi = 'norms'  # losses norms
