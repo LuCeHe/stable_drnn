@@ -111,8 +111,11 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
     comments = str2val(comments, 'maxlen', int, default=maxlen, replace=maxlen)
 
     # task definition
-    gen_train = Task(timerepeat=timerepeat, epochs=epochs, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
-                     name=task_name, train_val_test='train', maxlen=maxlen, comments=comments)
+    train_task_args = dict(
+        timerepeat=timerepeat, epochs=epochs, batch_size=batch_size, steps_per_epoch=steps_per_epoch, name=task_name,
+        train_val_test='train', maxlen=maxlen, comments=comments
+    )
+    gen_train = Task(**train_task_args)
     gen_val = Task(timerepeat=timerepeat, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
                    name=task_name, train_val_test='val', maxlen=maxlen, comments=comments)
     gen_test = Task(timerepeat=timerepeat, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
@@ -174,7 +177,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
         new_model_args['comments'] = new_model_args['comments'] + '_reoldspike'
 
         weights, losses, all_norms = apply_LSC(
-            gen_train=gen_train, model_args=new_model_args, norm_pow=norm_pow, n_samples=n_samples,
+            train_task_args=train_task_args, model_args=new_model_args, norm_pow=norm_pow, n_samples=n_samples,
             batch_size=batch_size
         )
 

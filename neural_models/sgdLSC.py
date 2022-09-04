@@ -6,11 +6,13 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 from GenericTools.keras_tools.esoteric_losses import well_loss
 from GenericTools.keras_tools.expose_latent import expose_latent_model
-from GenericTools.keras_tools.esoteric_tasks.task_redirection import Task
+from GenericTools.keras_tools.esoteric_tasks.time_task_redirection import Task
 from sg_design_lif.neural_models.full_model import build_model
 
 
-def apply_LSC(gen_train, model_args, norm_pow, n_samples, batch_size, steps_per_epoch=2):
+def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, steps_per_epoch=2):
+    gen_train = Task(**train_task_args)
+
     comments = model_args['comments']
     model_args['initial_state'] = ''
 
@@ -122,6 +124,8 @@ def apply_LSC(gen_train, model_args, norm_pow, n_samples, batch_size, steps_per_
         del batch
 
         pbar1.update(1)
+
+    del gen_train
 
     tf.keras.backend.clear_session()
     return weights, losses, all_norms
