@@ -153,6 +153,8 @@ mdf = mdf.sort_values(by='mean_' + metric)
 mdf['counts'] = counts['counts']
 
 print(mdf.to_string())
+print('Max experiment length: ', max(df['duration_experiment']))
+
 
 nets = np.unique(mdf['net_name'])
 tasks = np.unique(mdf['task_name'])
