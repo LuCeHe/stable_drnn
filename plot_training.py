@@ -27,13 +27,14 @@ HSITORIESPATH = os.path.join(EXPERIMENTS, 'histories.json')
 
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
-plot_norms_pretraining = True
+plot_norms_pretraining = False
+plot_losses = True
 
 task_name = 'ps_mnist'  # heidelberg wordptb sl_mnist all ps_mnist
 
 # sparse_mode_accuracy sparse_categorical_crossentropy bpc sparse_mode_accuracy_test_10
 # val_sparse_mode_accuracy test_perplexity
-metric = 'v_mode_acc'
+metric = 'v_ppl'
 optimizer_name = 'SWAAdaBelief'  # SGD SWAAdaBelief
 metrics_oi = [
     # 'val_sparse_mode_accuracy', 'val_perplexity', 'val_sparse_categorical_crossentropy',
@@ -115,7 +116,7 @@ else:
         histories = json.load(f)
 
 # df = df[(df['d'].str.contains('2022-07-28--')) | (df['d'].str.contains('2022-07-29--'))]
-df = df[(df['d'].str.contains('2022-09-03--')) ]
+# df = df[(df['d'].str.contains('2022-09-03--')) ]
 df = df[~df['comments'].str.contains('test')]
 
 df.loc[df['comments'].str.contains('noalif'), 'net_name'] = 'LIF'
@@ -194,6 +195,36 @@ if plot_norms_pretraining:
     plt.show()
 
 
+if plot_losses:
+    moi = 'sparse_mode_accuracy'  # losses norms sparse_mode_accuracy perplexity
+    ref = 0 if metric == 'losses' else 1
+    fig, axs = plt.subplots(len(nets), len(tasks), figsize=(6, 2), gridspec_kw={'wspace': .05})
+
+    if len(nets) == 1:
+        axs = axs[None]
+
+
+    cmap = plt.cm.get_cmap('Paired')
+    norms = [0.1, 1, 2, 3, -1]
+    colors = cmap(np.arange(len(norms)) / len(norms))
+    for i, n in enumerate(nets):
+        for j, t in enumerate(tasks):
+            idf = df[(df['net_name'].eq(n)) & (df['task_name'].eq(t))]
+
+            for index, row in idf.iterrows():
+                if 'findLSC_' in row['comments']:
+                    normpow = str2val(row['comments'], 'normpow', float, default=1)
+                    color = colors[norms.index(normpow)]
+                else:
+                    color = 'red'
+                    normpow = '-'
+                metric = histories[row['d']]['val_' + moi]
+                axs[i, j].plot(metric, color=color, label=normpow)
+
+            axs[i, j].set_title(f'{n}: {t}')
+
+    axs[i, j].legend()
+    plt.show()
 
 if plot_lsc_vs_naive:
 

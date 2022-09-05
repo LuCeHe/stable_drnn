@@ -10,7 +10,8 @@ from GenericTools.keras_tools.esoteric_tasks.time_task_redirection import Task
 from sg_design_lif.neural_models.full_model import build_model
 
 
-def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, steps_per_epoch=2):
+def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, steps_per_epoch=2, epsilon=.01,
+              patience=50):
     gen_train = Task(**train_task_args)
 
     comments = model_args['comments']
@@ -40,7 +41,9 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
             states.append(tf.zeros((batch_size, width)))
 
     pbar1 = tqdm(total=steps_per_epoch, position=1)
+    epsilon_steps = 0
     for step in range(steps_per_epoch):
+
         batch = gen_train.__getitem__(step)
         batch = [tf.convert_to_tensor(tf.cast(b, tf.float32), dtype=tf.float32) for b in batch[0]],
 
@@ -105,9 +108,16 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
             states = states_p1
 
             if not np.isnan(mean_loss.numpy()):
+                del weights
                 weights = model.get_weights()
             tf.keras.backend.clear_session()
             norms = tf.reduce_mean(some_norms)
+
+            if abs(norms.numpy() - 1) < epsilon:
+                epsilon_steps += 1
+
+            if epsilon_steps > patience:
+                break
 
             all_norms.append(norms.numpy())
             losses.append(mean_loss.numpy())
@@ -124,6 +134,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
         del batch
 
         pbar1.update(1)
+        if epsilon_steps > patience:
+            break
 
     del gen_train
 
