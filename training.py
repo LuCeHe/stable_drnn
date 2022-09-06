@@ -4,7 +4,11 @@ import numpy as np
 import pandas as pd
 
 import tensorflow as tf
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
 tf.autograph.experimental.do_not_convert
+import warnings
+warnings.filterwarnings('ignore')
 from sg_design_lif.neural_models.config import default_config
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
