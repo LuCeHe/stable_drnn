@@ -2,7 +2,7 @@ import os, time
 import numpy as np
 import tensorflow as tf
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-os.environ['AUTOGRAPH_VERBOSITY'] = 1
+os.environ['AUTOGRAPH_VERBOSITY'] = '1'
 
 
 tf.autograph.experimental.do_not_convert
