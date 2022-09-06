@@ -155,7 +155,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                 del weights
                 weights = model.get_weights()
             tf.keras.backend.clear_session()
-            print(some_norms)
+            # print(some_norms)
             norms = tf.reduce_mean(some_norms)
 
             if abs(norms.numpy() - 1) < epsilon:
