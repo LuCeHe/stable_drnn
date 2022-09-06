@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 import tensorflow as tf
-
+tf.autograph.experimental.do_not_convert
 from sg_design_lif.neural_models.config import default_config
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
