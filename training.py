@@ -48,17 +48,17 @@ def config():
     epochs = 2
     steps_per_epoch = 1
     batch_size = 2
-    stack = None
+    stack = 2
 
     # net
     # maLSNN cLSTM LSTM
-    net_name = 'LSTM'
+    net_name = 'maLSNN'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
-    n_neurons = None
+    n_neurons = 100
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task_name in language_tasks else False
 
-    comments = 'findLSC_test'  # 'nsLIFreadout_adaptsg_dropout:0.50' findLSC_test
+    comments = 'findLSC_test_lscdepth:1_lscout:1'  # 'nsLIFreadout_adaptsg_dropout:0.50' findLSC_test
 
     # optimizer properties
     lr = None  # 7e-4 None
@@ -167,6 +167,8 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
 
     if 'findLSC' in comments:
         n_samples = str2val(comments, 'normsamples', int, default=None)
+        lscdepth = bool(str2val(comments, 'lscdepth', int, default=0))
+        lscout = bool(str2val(comments, 'lscout', int, default=0))
         if n_samples is None:
             n_samples = 100 if not 'ptb' in task_name else 10
 
@@ -178,7 +180,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
 
         weights, losses, all_norms = apply_LSC(
             train_task_args=train_task_args, model_args=new_model_args, norm_pow=norm_pow, n_samples=n_samples,
-            batch_size=batch_size
+            batch_size=batch_size, depth_norm=lscdepth, decoder_norm=lscout
         )
 
         results['LSC_losses'] = str(losses)

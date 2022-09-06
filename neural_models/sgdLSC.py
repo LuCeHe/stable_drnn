@@ -1,17 +1,40 @@
 import os, time
 import numpy as np
 import tensorflow as tf
+
 import matplotlib.pyplot as plt
 
 from tqdm import tqdm
 from GenericTools.keras_tools.esoteric_losses import well_loss
-from GenericTools.keras_tools.expose_latent import expose_latent_model
 from GenericTools.keras_tools.esoteric_tasks.time_task_redirection import Task
 from sg_design_lif.neural_models.full_model import build_model
 
 
+def get_norms(tape, lower_states, upper_states, n_samples, norm_pow):
+    hss = []
+    for hlm1 in lower_states:
+        hs = [tape.batch_jacobian(hl, hlm1) for hl in upper_states]
+        hss.append(tf.concat(hs, axis=1))
+
+    if len(hss) > 1:
+        td = tf.concat(hss, axis=2)
+    else:
+        td = hss[0]
+
+    del hss, hs
+
+    x = tf.random.normal((td.shape[0], td.shape[-1], n_samples))
+    x_norm = tf.norm(x, ord=norm_pow, axis=1)
+    e = tf.einsum('bij,bjk->bik', td, x)
+    e_norm = tf.norm(e, ord=norm_pow, axis=1)
+
+    norms = e_norm / x_norm
+    norms = tf.reduce_max(norms, axis=-1)
+    return norms
+
+
 def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, steps_per_epoch=2, epsilon=.01,
-              patience=50):
+              patience=50, depth_norm=True, encoder_norm=False, decoder_norm=True):
     gen_train = Task(**train_task_args)
 
     comments = model_args['comments']
@@ -56,52 +79,73 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
             # print(t, '-' * 30)
             bt = batch[0][0][:, t, :][:, None]
             wt = batch[0][1][:, t][:, None]
-            with tf.GradientTape(persistent=True) as tape:
+            with tf.GradientTape(persistent=True, watch_accessed_variables=True) as tape:
                 tape.watch(wt)
                 tape.watch(bt)
                 tape.watch(states)
                 model = build_model(**model_args)
-                # model = build_model()
+
                 if not weights is None:
                     model.set_weights(weights)
                 outputs = model([bt, wt, *states])
                 states_p1 = outputs[1:]
 
+                # if depth_norm:
+
                 mean_loss = 0
                 some_norms = []
+                state_below = None
                 for i, _ in enumerate(stack):
+
                     htp1 = states_p1[i * n_states + hi]
                     ht = states[i * n_states + hi]
                     ctp1 = states_p1[i * n_states + ci]
                     ct = states[i * n_states + ci]
 
-                    phh = tape.batch_jacobian(htp1, ht)
-                    pcc = tape.batch_jacobian(ctp1, ct)
-                    pch = tape.batch_jacobian(ctp1, ht)
-                    phc = tape.batch_jacobian(htp1, ct)
-                    # print(phh.shape, pcc.shape, pch.shape, phc.shape)
+                    norms = get_norms(tape=tape, lower_states=[ht, ct], upper_states=[htp1, ctp1], n_samples=n_samples,
+                                      norm_pow=norm_pow)
 
-                    del htp1, ht, ctp1, ct
-
-                    # transition derivative
-                    td_1 = tf.concat([phh, phc], axis=1)
-                    td_2 = tf.concat([pch, pcc], axis=1)
-                    td = tf.concat([td_1, td_2], axis=2)
-
-                    del phh, pcc, pch, phc
-
-                    x = tf.random.normal((td.shape[0], td.shape[-1], n_samples))
-                    x_norm = tf.norm(x, ord=norm_pow, axis=1)
-                    e = tf.einsum('bij,bjk->bik', td, x)
-                    e_norm = tf.norm(e, ord=norm_pow, axis=1)
-
-                    norms = e_norm / x_norm
-                    norms = tf.reduce_max(norms, axis=-1)
                     some_norms.append(tf.reduce_mean(norms))
                     loss = well_loss(min_value=1, max_value=1, walls_type='relu', axis='all')(norms)
                     mean_loss += loss
 
-            del x, x_norm, e, e_norm, norms, loss
+                    if encoder_norm and i == 0:
+                        norms = get_norms(tape=tape, lower_states=[bt[:, 0, :]], upper_states=[htp1, ctp1],
+                                          n_samples=n_samples,
+                                          norm_pow=norm_pow)
+
+                        some_norms.append(tf.reduce_mean(norms))
+                        loss = well_loss(min_value=1, max_value=1, walls_type='relu', axis='all')(norms)
+                        mean_loss += loss
+
+                    td2 = None
+                    if depth_norm:
+
+                        hl = htp1
+                        cl = ctp1
+                        if not state_below is None:
+                            hlm1, clm1 = state_below
+                            norms = get_norms(tape=tape, lower_states=[hlm1, clm1], upper_states=[hl, cl],
+                                              n_samples=n_samples, norm_pow=norm_pow)
+
+                            some_norms.append(tf.reduce_mean(norms))
+                            loss = well_loss(min_value=1, max_value=1, walls_type='relu', axis='all')(norms)
+                            mean_loss += loss
+
+                        state_below = (hl, cl)
+                        del hl, cl
+
+                    if decoder_norm and i == len(stack) - 1:
+                        norms = get_norms(tape=tape, lower_states=[htp1, ctp1], upper_states=[outputs[0][:, 0, :]],
+                                          n_samples=n_samples,
+                                          norm_pow=norm_pow)
+
+                        some_norms.append(tf.reduce_mean(norms))
+                        loss = well_loss(min_value=1, max_value=1, walls_type='relu', axis='all')(norms)
+                        mean_loss += loss
+
+                    del htp1, ht, ctp1, ct
+
             grads = tape.gradient(mean_loss, model.trainable_weights)
             optimizer.apply_gradients(zip(grads, model.trainable_weights))
 
@@ -111,6 +155,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                 del weights
                 weights = model.get_weights()
             tf.keras.backend.clear_session()
+            print(some_norms)
             norms = tf.reduce_mean(some_norms)
 
             if abs(norms.numpy() - 1) < epsilon:
