@@ -6,7 +6,7 @@ from GenericTools.keras_tools.expose_latent import expose_latent_model
 from alif_sg.neural_models.sgdLSC import get_norms
 from alif_sg.neural_models.modified_efficientnet import EfficientNetB0
 
-batch_size = 2
+batch_size = 1
 steps_per_epoch = 3
 optimizer = tf.keras.optimizers.Adam(learning_rate=1e-3)
 
@@ -87,21 +87,87 @@ def sample_axis(tensor, axis=1, max_dim=1024):
 # optimizer.apply_gradients(zip(grads, neff.trainable_weights))
 
 
-effnet = EfficientNetB0()
+# tf.keras.utils.plot_model(effnet)
 
-lnames = [layer.name for layer in effnet.layers]
 
-# assert all([len(effnet.get_layer(ln).output) == 1 for ln in lnames])
+def split_effnet():
+    effnet = EfficientNetB0()
+    lnames = [layer.name for layer in effnet.layers]
 
-pairs = sorted(np.random.choice(len(lnames), 2, replace=False))
-# pairs = [10, -1]
-print(pairs)
-premodel = tf.keras.models.Model(effnet.inputs, effnet.get_layer(lnames[pairs[0]]).output)
-intermodel = tf.keras.models.Model(
-    effnet.get_layer(lnames[pairs[0] + 1]).output,
-    effnet.get_layer(lnames[pairs[1]]).output
-)
+    for _ in range(3):
+        pairs = sorted(np.random.choice(len(lnames), 2, replace=False))
+        input_shape = effnet.layers[pairs[0] + 1].input_shape[1:]
+        if not isinstance(input_shape, list):
+            break
 
-preinter = premodel(batch)
-interout = intermodel(preinter)
-print(interout)
+    input_shape = effnet.layers[pairs[0] + 1].input_shape[1:]
+    premodel = tf.keras.models.Model(effnet.inputs, effnet.get_layer(lnames[pairs[0]]).output)
+
+    DL_input = tf.keras.layers.Input(input_shape)
+    DL_model = DL_input
+    for layer in effnet.layers[pairs[0] + 1:pairs[1] + 1]:
+        if isinstance(layer.input, list):
+            break
+        DL_model = layer(DL_model)
+    intermodel = tf.keras.models.Model(inputs=DL_input, outputs=DL_model)
+
+    print(pairs)
+
+    return premodel, intermodel
+
+
+all_norms = []
+all_losses = []
+n_tries = 5
+n_exceptions = 0
+for i in range(n_tries):
+    print('-===-' * 30)
+    print('Step', i)
+    if True:
+    # try:
+        with tf.GradientTape(persistent=True, watch_accessed_variables=True) as tape:
+            tape.watch(batch)
+
+            premodel, intermodel = split_effnet()
+
+            preinter = premodel(batch)
+
+            tape.watch(preinter)
+
+            interout = intermodel(preinter)
+
+            inp = preinter
+            oup = interout
+
+            inp = tf.reshape(inp, [inp.shape[0], -1])
+            oup = tf.reshape(oup, [oup.shape[0], -1])
+            inp = sample_axis(inp, axis=1, max_dim=1024)
+            oup = sample_axis(oup, axis=1, max_dim=1024)
+            print(type(oup), type(inp))
+            print('oup zeros', tf.math.count_nonzero(oup))
+            print('inp zeros', tf.math.count_nonzero(inp))
+
+            j = tape.batch_jacobian(oup, inp)
+            print('j zeros', tf.math.count_nonzero(j))
+            print(type(oup), type(inp))
+            loss = tf.reduce_mean(oup)
+            j = tape.gradient(inp, loss)
+            print(loss)
+            print(j)
+            print('j zeros', tf.math.count_nonzero(j))
+
+            print(inp.shape, oup.shape)
+            norms = get_norms(tape, [inp], [oup], n_samples=100, norm_pow=2)
+            # norms = get_norms(tape, [batch], [oup], n_samples=100, norm_pow=2)
+            loss = tf.reduce_mean(tf.abs(norms - 1))
+
+            print(tf.reduce_mean(norms), tf.reduce_mean(loss))
+
+        grads = tape.gradient(loss, intermodel.trainable_weights)
+        print(grads)
+        optimizer.apply_gradients(zip(grads, intermodel.trainable_weights))
+    # except Exception as e:
+    #     print(e)
+    #     n_exceptions += 1
+
+print(f'{n_exceptions}/{n_tries} Failures')
