@@ -30,7 +30,9 @@ def get_norms(tape, lower_states, upper_states, n_samples, norm_pow):
         td = hss[0]
 
     del hss, hs
-    print('nonzero:', tf.math.count_nonzero(td))
+
+    # print('nonzero:', tf.math.count_nonzero(td))
+
     x = tf.random.normal((td.shape[0], td.shape[-1], n_samples))
     x_norm = tf.norm(x, ord=norm_pow, axis=1)
     e = tf.einsum('bij,bjk->bik', td, x)

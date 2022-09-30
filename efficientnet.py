@@ -6,11 +6,14 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 
 from GenericTools.keras_tools.esoteric_callbacks import LearningRateLogger, TimeStopping
+from GenericTools.keras_tools.esoteric_tasks.numpy_generator import NumpyClassificationGenerator
 from GenericTools.keras_tools.plot_tools import plot_history
 from GenericTools.stay_organized.utils import NumpyEncoder
 from alif_sg.neural_models.modified_efficientnet import EfficientNetB0
-from neural_models.activations_tf import activations_with_temperature, critical_cws, critical_cbs
+
+# from neural_models.activations_tf import activations_with_temperature, critical_cws, critical_cbs
 # from neural_models.modified_efficientnet import EfficientNetB0
+from alif_sg.neural_models.nonrecLSC import apply_LSC_no_time
 
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
@@ -23,6 +26,34 @@ EXPERIMENT = os.path.join(EXPERIMENTS, time_string + random_string + '_lsc-effne
 os.makedirs(EXPERIMENT, exist_ok=True)
 
 
+def build_model(args, input_shape, classes, effnet=None):
+    # model parameters initialization
+    kernel_initializer, bias_initializer = 'default', 'default'
+    if effnet is None:
+        effnet = EfficientNetB0(
+            include_top=False, weights=None, activation=args.activation,
+            batch_normalization=bool(args.batch_normalization),
+            kernel_initializer=kernel_initializer,
+            bias_initializer=bias_initializer,
+            comments=args.comments
+        )
+
+    readout = tf.keras.layers.Conv2D(
+        classes, 7,
+        kernel_initializer='he_normal' if kernel_initializer == 'default' else kernel_initializer,
+        bias_initializer='zeros' if bias_initializer == 'default' else bias_initializer
+    )
+    reshape = tf.keras.layers.Reshape((classes,))
+
+    # model graph construction
+    input_layer = tf.keras.layers.Input(input_shape)
+    outeff = effnet(input_layer)
+    outmodel = reshape(readout(outeff))
+
+    model = tf.keras.models.Model(input_layer, outmodel)
+    return model
+
+
 def main():
     parser = argparse.ArgumentParser()
 
@@ -30,16 +61,13 @@ def main():
     parser.add_argument("--batch_size", default=64, type=int, help="Batch size")
     parser.add_argument("--seed", default=0, type=int, help="Random seed")
     parser.add_argument("--epochs", default=3, type=int, help="Batch size")
-    parser.add_argument("--steps_per_epoch", default=1, type=int, help="Batch size")
+    parser.add_argument("--steps_per_epoch", default=3, type=int, help="Batch size")
     parser.add_argument("--lr", default=.001, type=float, help="Learning rate")
     parser.add_argument("--batch_normalization", default=1, type=int, help="Batch normalization")
-    parser.add_argument("--comments", default='', type=str, help="String to activate extra behaviors")
+    parser.add_argument("--comments", default='findLSC', type=str, help="String to activate extra behaviors")
     parser.add_argument("--dataset", default='mnist', type=str, help="Dataset to train on",
                         choices=['cifar10', 'cifar100', 'mnist'])
-    parser.add_argument(
-        "--activation", default='cguderman.1', type=str, help="Activation to train on",
-        choices=['cguderman1', 'cguderman.1', 'cguderman.01', 'cswish1', 'cswish.1', 'cswish.01', 'relu', 'gelu_new']
-    )
+    parser.add_argument("--activation", default='swish', type=str, help="Activation", choices=['swish', 'relu'])
     parser.add_argument(
         "--initialization", default='default', type=str, help="Activation to train on",
         choices=['he', 'critical', 'default']
@@ -66,31 +94,35 @@ def main():
     classes = np.max(y_train) + 1
     input_shape = x_train.shape[1:]
 
-    # model parameters initialization
-    activation = activations_with_temperature[args.activation]
-    kernel_initializer, bias_initializer = 'default', 'default'
-    effnet = EfficientNetB0(
-        include_top=False, weights=None, activation=activation,
-        batch_normalization=bool(args.batch_normalization),
-        kernel_initializer=kernel_initializer,
-        bias_initializer=bias_initializer,
-        comments=args.comments
-    )
-
-    readout = tf.keras.layers.Conv2D(
-            classes, 7,
-            kernel_initializer='he_normal' if kernel_initializer == 'default' else kernel_initializer,
-            bias_initializer='zeros' if bias_initializer == 'default' else bias_initializer
+    results = {}
+    if 'findLSC' in args.comments:
+        gen_val = NumpyClassificationGenerator(
+            x_train, y_train,
+            epochs=3, steps_per_epoch=args.steps_per_epoch,
+            batch_size=2,
+            output_type='[i]o'
         )
-    reshape = tf.keras.layers.Reshape((classes, ))
 
+        kernel_initializer, bias_initializer = 'default', 'default'
+        bm = lambda: EfficientNetB0(
+            include_top=False, weights=None, activation=args.activation,
+            batch_normalization=bool(args.batch_normalization),
+            kernel_initializer=kernel_initializer,
+            bias_initializer=bias_initializer,
+            comments=args.comments
+        )
+        weights, all_losses, all_norms, fail_rate = apply_LSC_no_time(
+            bm, generator=gen_val, max_dim=1024, n_samples=100, norm_pow=2
+        )
+        effnet = bm()
+        effnet.set_weights(weights)
+        model = build_model(args, input_shape, classes, effnet=effnet)
 
-    # model graph construction
-    input_layer = tf.keras.layers.Input(input_shape)
-    outeff = effnet(input_layer)
-    outmodel = reshape(readout(outeff))
-
-    model = tf.keras.models.Model(input_layer, outmodel)
+        results['LSC_losses'] = str(all_losses)
+        results['LSC_norms'] = str(all_norms)
+        results['pretrain_fail_rate'] = str(fail_rate)
+    else:
+        model = build_model(args, input_shape, classes)
     model.summary()
 
     # training
@@ -109,7 +141,6 @@ def main():
         callbacks=callbacks, steps_per_epoch=args.steps_per_epoch if args.steps_per_epoch > 0 else None
     )
 
-    results = {}
     evaluation = model.evaluate(x_test, y_test, return_dict=True, verbose=True)
     for k in evaluation.keys():
         results['test_' + k] = evaluation[k]
