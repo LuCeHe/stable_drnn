@@ -8,7 +8,7 @@ from sklearn.model_selection import train_test_split
 from GenericTools.keras_tools.esoteric_callbacks import LearningRateLogger, TimeStopping
 from GenericTools.keras_tools.esoteric_tasks.numpy_generator import NumpyClassificationGenerator
 from GenericTools.keras_tools.plot_tools import plot_history
-from GenericTools.stay_organized.utils import NumpyEncoder
+from GenericTools.stay_organized.utils import NumpyEncoder, str2val
 from alif_sg.neural_models.modified_efficientnet import EfficientNetB0
 
 # from neural_models.activations_tf import activations_with_temperature, critical_cws, critical_cbs
@@ -111,8 +111,10 @@ def main():
             bias_initializer=bias_initializer,
             comments=args.comments
         )
+        max_dim = str2val(args.comments, 'max_dim', int, default=512)
+
         weights, all_losses, all_norms, fail_rate = apply_LSC_no_time(
-            bm, generator=gen_val, max_dim=1024, n_samples=100, norm_pow=2
+            bm, generator=gen_val, max_dim=max_dim, n_samples=100, norm_pow=2
         )
         effnet = bm()
         effnet.set_weights(weights)
