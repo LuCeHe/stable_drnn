@@ -6,9 +6,14 @@ from GenericTools.keras_tools.expose_latent import expose_latent_model
 from alif_sg.neural_models.sgdLSC import get_norms
 from alif_sg.neural_models.modified_efficientnet import EfficientNetB0
 
-batch_size = 1
+batch_size = 4
 steps_per_epoch = 3
-optimizer = tf.keras.optimizers.Adam(learning_rate=1e-3)
+n_tries = 5
+n_exceptions = 0
+max_dim = 32
+test_weight_id = 10
+
+optimizer = tf.keras.optimizers.Adam(learning_rate=1e2)
 
 (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
 
@@ -19,93 +24,58 @@ x_test = x_test if x_test.shape[-1] == 3 else tf.image.resize(x_test[..., None],
 classes = np.max(y_train) + 1
 input_shape = x_train.shape[1:]
 
-readout = tf.keras.layers.Conv2D(classes, 7, kernel_initializer='he_normal', bias_initializer='zeros')
-reshape = tf.keras.layers.Reshape((classes,))
-
-# model graph construction
-input_layer = tf.keras.layers.Input(input_shape)
-# outeff = effnet(input_layer)
-# outmodel = reshape(readout(outeff))
-#
-# model = tf.keras.models.Model(input_layer, outmodel)
-# model.summary()
-
-# lnames = [layer.name for layer in effnet.layers]
-# neff = expose_latent_model(effnet)
-
 batch = x_train[:batch_size]
 batch = tf.convert_to_tensor(tf.cast(batch, tf.float32), dtype=tf.float32)
 
 
-def sample_axis(tensor, axis=1, max_dim=1024):
+def sample_axis(tensor, max_dim=1024, return_deshuffling=False):
+    # FIXME, not sure if functional for axis different from 1
+    axis = 1
     if tensor.shape[axis] > max_dim:
         newdim_inp = sorted(np.random.choice(tensor.shape[axis], max_dim, replace=False))
         tp = tf.transpose(tensor)
         g = tf.gather(tp, indices=newdim_inp)
-        tensor = tf.transpose(g)
+        out_tensor = tf.transpose(g)
+    else:
+        out_tensor = tensor
 
-    return tensor
+    if not return_deshuffling:
+        return out_tensor
 
+    else:
+        remaining_indices = list(set(range(tensor.shape[axis])).difference(set(newdim_inp)))
 
-#
-# all_norms = []
-# all_losses = []
-# for i in range(steps_per_epoch):
-#     print('Step', i)
-#     with tf.GradientTape(persistent=True, watch_accessed_variables=True) as tape:
-#         tape.watch(batch)
-#
-#         effnet = EfficientNetB0()
-#         neff, layer_names = expose_latent_model(effnet, return_names=True)
-#         print(layer_names)
-#         outputs = neff(batch)
-#
-#         pairs = sorted(np.random.choice(len(layer_names), 2, replace=False))
-#         pairs = [10, -1]
-#
-#         inp = tf.reshape(outputs[pairs[0]], [outputs[pairs[0]].shape[0], -1])
-#         oup = tf.reshape(outputs[pairs[1]], [outputs[pairs[1]].shape[0], -1])
-#
-#         inp = neff.get_layer(layer_names[pairs[0]])
-# inp = sample_axis(inp, axis=1, max_dim=1024)
-# oup = sample_axis(oup, axis=1, max_dim=1024)
+        shuffled_indices = newdim_inp + remaining_indices
+        deshuffle_indices = np.array(shuffled_indices).argsort()
 
-# j = tape.batch_jacobian(inp, oup)
-# print(j.shape)
-#     norms = get_norms(tape, [inp], [oup], n_samples=100, norm_pow=2)
-#     # norms = get_norms(tape, [batch], [oup], n_samples=100, norm_pow=2)
-#
-#     loss = well_loss(min_value=1, max_value=1, walls_type='relu', axis='all')(norms)
-#     all_norms.append(tf.reduce_mean(norms))
-#     all_losses.append(tf.reduce_mean(loss))
-#
-#     print(pairs)
-#     print(tf.reduce_mean(norms), tf.reduce_mean(loss))
-#
-# grads = tape.gradient(loss, neff.trainable_weights)
-# print(grads)
-# optimizer.apply_gradients(zip(grads, neff.trainable_weights))
+        # sample = tf.gather(params, indices=newdim_inp).numpy()
+        remainder_transpose = tf.gather(tp, indices=remaining_indices)
+        remainder = tf.transpose(remainder_transpose)
+
+        return out_tensor, remainder, deshuffle_indices
 
 
-# tf.keras.utils.plot_model(effnet)
+def desample_axis(sample, remainder, deshuffle_indices):
+    # FIXME, not sure if functional for axis different from 1
+    axis = 1
+
+    concat = tf.concat([sample, remainder], axis=axis)
+    concat = tf.transpose(concat)
+    deshuffled = tf.gather(concat, indices=deshuffle_indices)
+    deshuffled = tf.transpose(deshuffled)
+
+    return deshuffled
 
 
-def split_effnet():
-    effnet = EfficientNetB0()
-    lnames = [layer.name for layer in effnet.layers]
+def split_effnet(almost_seq_model, pairs):
+    lnames = [layer.name for layer in almost_seq_model.layers]
 
-    for _ in range(3):
-        pairs = sorted(np.random.choice(len(lnames), 2, replace=False))
-        input_shape = effnet.layers[pairs[0] + 1].input_shape[1:]
-        if not isinstance(input_shape, list):
-            break
-
-    input_shape = effnet.layers[pairs[0] + 1].input_shape[1:]
-    premodel = tf.keras.models.Model(effnet.inputs, effnet.get_layer(lnames[pairs[0]]).output)
+    input_shape = almost_seq_model.layers[pairs[0] + 1].input_shape[1:]
+    premodel = tf.keras.models.Model(almost_seq_model.inputs, almost_seq_model.get_layer(lnames[pairs[0]]).output)
 
     DL_input = tf.keras.layers.Input(input_shape)
     DL_model = DL_input
-    for layer in effnet.layers[pairs[0] + 1:pairs[1] + 1]:
+    for layer in almost_seq_model.layers[pairs[0] + 1:pairs[1] + 1]:
         if isinstance(layer.input, list):
             break
         DL_model = layer(DL_model)
@@ -118,56 +88,71 @@ def split_effnet():
 
 all_norms = []
 all_losses = []
-n_tries = 5
-n_exceptions = 0
+weights = None
 for i in range(n_tries):
     print('-===-' * 30)
     print('Step', i)
-    if True:
-    # try:
-        with tf.GradientTape(persistent=True, watch_accessed_variables=True) as tape:
-            tape.watch(batch)
 
-            premodel, intermodel = split_effnet()
+    with tf.GradientTape(persistent=True, watch_accessed_variables=True) as tape:
+        tape.watch(batch)
 
-            preinter = premodel(batch)
+        # split model in three
 
-            tape.watch(preinter)
+        effnet = EfficientNetB0()
 
-            interout = intermodel(preinter)
+        if not weights is None:
+            effnet.set_weights(weights)
 
-            inp = preinter
-            oup = interout
+        lnames = [layer.name for layer in effnet.layers]
+        for _ in range(3):
+            pairs = sorted(np.random.choice(len(lnames), 2, replace=False))
+            input_shape = effnet.layers[pairs[0] + 1].input_shape[1:]
+            if not isinstance(input_shape, list):
+                break
 
-            inp = tf.reshape(inp, [inp.shape[0], -1])
-            oup = tf.reshape(oup, [oup.shape[0], -1])
-            inp = sample_axis(inp, axis=1, max_dim=1024)
-            oup = sample_axis(oup, axis=1, max_dim=1024)
-            print(type(oup), type(inp))
-            print('oup zeros', tf.math.count_nonzero(oup))
-            print('inp zeros', tf.math.count_nonzero(inp))
+        print('Effnet mean weights', tf.reduce_mean([tf.reduce_mean(tf.cast(t, tf.float32)) for t in effnet.weights]))
 
-            j = tape.batch_jacobian(oup, inp)
-            print('j zeros', tf.math.count_nonzero(j))
-            print(type(oup), type(inp))
-            loss = tf.reduce_mean(oup)
-            j = tape.gradient(inp, loss)
-            print(loss)
-            print(j)
-            print('j zeros', tf.math.count_nonzero(j))
+        premodel, intermodel = split_effnet(effnet, pairs)
 
-            print(inp.shape, oup.shape)
-            norms = get_norms(tape, [inp], [oup], n_samples=100, norm_pow=2)
-            # norms = get_norms(tape, [batch], [oup], n_samples=100, norm_pow=2)
-            loss = tf.reduce_mean(tf.abs(norms - 1))
+        preinter = premodel(batch)
 
-            print(tf.reduce_mean(norms), tf.reduce_mean(loss))
+        tape.watch(preinter)
 
-        grads = tape.gradient(loss, intermodel.trainable_weights)
-        print(grads)
-        optimizer.apply_gradients(zip(grads, intermodel.trainable_weights))
-    # except Exception as e:
-    #     print(e)
-    #     n_exceptions += 1
+        # flatten and deflatten to make sure the flat version is in the gradient graph
+        # preinter_shape = preinter.shape
+        flat_inp = tf.reshape(preinter, [preinter.shape[0], -1])
 
-print(f'{n_exceptions}/{n_tries} Failures')
+        # sample and desample to make sure that the sample is in the graph,
+        # so the derivative will be taken correctly
+        shuffinp, reminder, indices = sample_axis(flat_inp, max_dim=max_dim, return_deshuffling=True)
+        defhuffledinp = desample_axis(shuffinp, reminder, indices)
+
+        assert tf.math.reduce_all(tf.equal(defhuffledinp, flat_inp))
+
+        new_preinter = tf.reshape(defhuffledinp, preinter.shape)
+
+        assert tf.math.reduce_all(tf.equal(new_preinter, preinter))
+
+        interout = intermodel(new_preinter)
+
+        inp = shuffinp
+        oup = interout
+
+        # inp = tf.reshape(inp, [inp.shape[0], -1])
+        oup = tf.reshape(oup, [oup.shape[0], -1])
+        oup = sample_axis(oup, max_dim=max_dim)
+
+        norms = get_norms(tape, [inp], [oup], n_samples=100, norm_pow=2)
+        loss = tf.reduce_mean(tf.abs(norms - 1))
+
+        all_norms.append(tf.reduce_mean(norms))
+        all_losses.append(tf.reduce_mean(loss))
+
+        print(tf.reduce_mean(norms), tf.reduce_mean(loss))
+
+    grads = tape.gradient(loss, intermodel.trainable_weights)
+    optimizer.apply_gradients(zip(grads, intermodel.trainable_weights))
+
+    weights = effnet.get_weights()
+
+    print('Effnet mean weights', tf.reduce_mean([tf.reduce_mean(tf.cast(t, tf.float32)) for t in effnet.weights]))

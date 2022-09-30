@@ -1,0 +1,1 @@
+# question: if a matrix has all its submatrices of norm 1, does it have norm 1?
