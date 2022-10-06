@@ -5,6 +5,7 @@ import pandas as pd
 import matplotlib as mpl
 
 from GenericTools.stay_organized.mpl_tools import load_plot_settings
+from GenericTools.stay_organized.standardize_strings import shorten_losses
 from GenericTools.stay_organized.utils import str2val
 
 mpl, pd = load_plot_settings(mpl=mpl, pd=pd)
