@@ -1,13 +1,10 @@
 import os, time
 import numpy as np
+import warnings
 import tensorflow as tf
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['AUTOGRAPH_VERBOSITY'] = '1'
-
-tf.autograph.experimental.do_not_convert
-import warnings
-
 warnings.filterwarnings('ignore')
 
 import matplotlib.pyplot as plt
@@ -17,8 +14,12 @@ from GenericTools.keras_tools.esoteric_losses import well_loss
 from GenericTools.keras_tools.esoteric_tasks.time_task_redirection import Task
 from sg_design_lif.neural_models.full_model import build_model
 
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+os.environ['AUTOGRAPH_VERBOSITY'] = '1'
+warnings.filterwarnings('ignore')
 
-def get_norms(tape, lower_states, upper_states, n_samples, norm_pow):
+
+def get_norms(tape, lower_states, upper_states, n_samples, norm_pow, sampled_lsc=False):
     hss = []
     for hlm1 in lower_states:
         hs = [tape.batch_jacobian(hl, hlm1) for hl in upper_states]
@@ -33,18 +34,27 @@ def get_norms(tape, lower_states, upper_states, n_samples, norm_pow):
 
     # print('nonzero:', tf.math.count_nonzero(td))
 
-    x = tf.random.normal((td.shape[0], td.shape[-1], n_samples))
-    x_norm = tf.norm(x, ord=norm_pow, axis=1)
-    e = tf.einsum('bij,bjk->bik', td, x)
-    e_norm = tf.norm(e, ord=norm_pow, axis=1)
+    if not sampled_lsc and norm_pow in [1, 2, np.inf]:
+        if norm_pow is np.inf:
+            norms = tf.reduce_sum(tf.abs(td), axis=2)
+            norms = tf.reduce_max(norms, axis=-1)
+        elif norm_pow == 1:
+            norms = tf.reduce_sum(tf.abs(td), axis=1)
+            norms = tf.reduce_max(norms, axis=-1)
 
-    norms = e_norm / x_norm
-    norms = tf.reduce_max(norms, axis=-1)
+        elif norm_pow == 2:
+            s, _, _ = tf.linalg.svd(td)
+            norms = s[..., 0]
+    else:
+
+        x = tf.random.normal((td.shape[0], td.shape[-1], n_samples))
+        x_norm = tf.norm(x, ord=norm_pow, axis=1)
+        e = tf.einsum('bij,bjk->bik', td, x)
+        e_norm = tf.norm(e, ord=norm_pow, axis=1)
+
+        norms = e_norm / x_norm
+        norms = tf.reduce_max(norms, axis=-1)
     return norms
-
-
-def get_loss():
-    return
 
 
 def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, steps_per_epoch=2, epsilon=.01,
@@ -85,22 +95,24 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
     model = build_model(**model_args)
     weights = model.get_weights()
     weight_names = [weight.name for layer in model.layers for weight in layer.weights]
-    results.update({f'{n}_mean': [tf.reduce_mean(w)] for n, w in zip(weight_names, weights)})
-    results.update({f'{n}_var': [tf.math.reduce_variance(w)] for n, w in zip(weight_names, weights)})
+    results.update({f'{n}_mean': [tf.reduce_mean(w).numpy()] for n, w in zip(weight_names, weights)})
+    results.update({f'{n}_var': [tf.math.reduce_variance(w).numpy()] for n, w in zip(weight_names, weights)})
     del model
 
     for step in range(steps_per_epoch):
 
         batch = gen_train.__getitem__(step)
         batch = [tf.convert_to_tensor(tf.cast(b, tf.float32), dtype=tf.float32) for b in batch[0]],
+        if 'gausslsc' in comments:
+            batch = [tf.convert_to_tensor(tf.cast(b, tf.float32), dtype=tf.float32) for b in batch[0]],
+        elif 'berlsc' in comments:
+            batch = [tf.math.greater(tf.random.uniform(b.shape), .5) for b in batch[0]],
+            batch = [tf.cast(b, dtype=tf.float32) for b in batch[0]],
 
         time_steps = batch[0][0].shape[1] if not 'test' in comments else 2
-        # time_steps = 2
-        # print(time_steps)
         pbar2 = tqdm(total=time_steps, position=0)
 
         for t in range(time_steps):
-            # print(t, '-' * 30)
             bt = batch[0][0][:, t, :][:, None]
             wt = batch[0][1][:, t][:, None]
             with tf.GradientTape(persistent=True, watch_accessed_variables=True) as tape:
@@ -196,8 +208,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                 f"mean norms {str(round(norms.numpy(), 3))} "
             )
             for n, w in zip(weight_names, model.get_weights()):
-                results[f'{n}_mean'].append(tf.reduce_mean(w))
-                results[f'{n}_var'].append(tf.math.reduce_variance(w))
+                results[f'{n}_mean'].append(tf.reduce_mean(w).numpy())
+                results[f'{n}_var'].append(tf.math.reduce_variance(w).numpy())
 
             del model, tape, grads
         del batch
@@ -208,7 +220,11 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
     del gen_train
 
-    results.update(LSC_losses=losses, LSC_norms=all_norms)
+    for n in weight_names:
+        results[f'{n}_mean'] = str(results[f'{n}_mean'])
+        results[f'{n}_var'] = str(results[f'{n}_var'])
+
+    results.update(LSC_losses=str(losses), LSC_norms=str(all_norms))
 
     tf.keras.backend.clear_session()
     return weights, results

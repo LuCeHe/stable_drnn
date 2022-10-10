@@ -1,15 +1,32 @@
 import os, shutil, logging, json, copy
 
-import numpy as np
 import pandas as pd
 
+"""Silence every unnecessary warning from tensorflow."""
+logging.getLogger('tensorflow').setLevel(logging.ERROR)
+os.environ["KMP_AFFINITY"] = "noverbose"
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+# We wrap this inside a try-except block
+# because we do not want to be the one package
+# that crashes when TensorFlow is not installed
+# when we are the only package that requires it
+# in a given Jupyter Notebook, such as when the
+# package import is simply copy-pasted.
+try:
+    import tensorflow as tf
+
+    tf.get_logger().setLevel('ERROR')
+    tf.autograph.set_verbosity(3)
+except ModuleNotFoundError:
+    pass
+
+import warnings
 import tensorflow as tf
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['AUTOGRAPH_VERBOSITY'] = '1'
-
-tf.autograph.experimental.do_not_convert
-import warnings
 warnings.filterwarnings('ignore')
+
 from sg_design_lif.neural_models.config import default_config
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
@@ -24,7 +41,7 @@ from GenericTools.keras_tools.esoteric_initializers import esoteric_initializers
 from GenericTools.keras_tools.esoteric_callbacks import *
 from GenericTools.keras_tools.plot_tools import plot_history
 from GenericTools.stay_organized.VeryCustomSacred import CustomExperiment, ChooseGPU
-from GenericTools.stay_organized.utils import timeStructured, setReproducible, str2val
+from GenericTools.stay_organized.utils import timeStructured, setReproducible, str2val, NumpyEncoder
 from GenericTools.keras_tools.esoteric_callbacks.several_validations import MultipleValidationSets
 from GenericTools.keras_tools.esoteric_tasks.time_task_redirection import Task, checkTaskMeanVariance, language_tasks
 
@@ -47,10 +64,10 @@ def config():
     # task and net
     # ps_mnist heidelberg s_mnist
     # wordptb sl_mnist
-    task_name = 'heidelberg'
+    task_name = 'sl_mnist'
 
     # test configuration
-    epochs = 2
+    epochs = 0
     steps_per_epoch = 1
     batch_size = 2
     stack = 2
@@ -63,11 +80,12 @@ def config():
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task_name in language_tasks else False
 
-    comments = 'findLSC_test_lscdepth:1_lscout:1'  # 'nsLIFreadout_adaptsg_dropout:0.50' findLSC_test
+    comments = 'findLSC_test_lscdepth:1_lscout:1_gaussbeta_test_gausslsc'  # 'nsLIFreadout_adaptsg_dropout:0.50' findLSC_test
+    # comments = ''  # 'nsLIFreadout_adaptsg_dropout:0.50' findLSC_test
 
     # optimizer properties
     lr = None  # 7e-4 None
-    optimizer_name = 'AdaBelief'  # AdaBelief AdamW SWAAdaBelief
+    optimizer_name = 'AdamW'  # AdaBelief AdamW SWAAdaBelief
     lr_schedule = ''  # 'warmup_cosine_restarts'
     weight_decay_prop_lr = None
     weight_decay = .0 if not 'mnist' in task_name else 0.  # weight_decay_prop_lr * lr
@@ -188,7 +206,6 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
             batch_size=batch_size, depth_norm=lscdepth, decoder_norm=lscout
         )
         results.update(lsc_results)
-
     train_model = build_model(**model_args)
     train_model.summary()
 
