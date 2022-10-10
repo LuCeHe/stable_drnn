@@ -23,7 +23,9 @@ CDIR = os.path.dirname(FILENAME)
 EXPERIMENTS = os.path.join(CDIR, 'experiments')
 GEXPERIMENTS = os.path.join(CDIR, 'good_experiments')
 
+
 CSVPATH = os.path.join(EXPERIMENTS, 'summary.h5')
+CSVPATH = r'D:\work\alif_sg\good_experiments\2022-08-20--learned-LSC\summary.h5'
 HSITORIESPATH = os.path.join(EXPERIMENTS, 'histories.json')
 
 plot_lsc_vs_naive = False
@@ -47,7 +49,7 @@ metrics_oi = [
 columns_to_remove = [
     'heaviside', '_test', 'weight', 'sLSTM_factor', 'save_model', 'clipnorm', 'GPU', 'batch_size',
     'continue_training', 'embedding', 'lr_schedule', 'loss_name', 'lr', 'seed', 'stack', 'stop_time',
-    'convergence', 'n_neurons', 'optimizer_name'
+    'convergence', 'n_neurons', 'optimizer_name', 'LSC'
 ]
 
 
@@ -130,7 +132,8 @@ df = df[[c for c in df if c not in ['d', 'duration_experiment']] + ['d', 'durati
 
 
 df = df.sort_values(by=metric)
-print(df.to_string())
+print(list(df.columns))
+# print(df.to_string())
 
 group_cols = ['net_name', 'task_name', 'initializer', 'comments']
 counts = df.groupby(group_cols).size().reset_index(name='counts')

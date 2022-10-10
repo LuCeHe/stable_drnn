@@ -64,24 +64,24 @@ def config():
     # task and net
     # ps_mnist heidelberg s_mnist
     # wordptb sl_mnist
-    task_name = 'sl_mnist'
+    task_name = 'heidelberg'
 
     # test configuration
     epochs = 0
     steps_per_epoch = 1
     batch_size = 2
-    stack = 2
+    stack = None
 
     # net
     # maLSNN cLSTM LSTM
-    net_name = 'maLSNN'
+    net_name = 'LSTM'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
-    n_neurons = 100
+    n_neurons = None
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task_name in language_tasks else False
 
-    comments = 'findLSC_test_lscdepth:1_lscout:1_gaussbeta_test_gausslsc'  # 'nsLIFreadout_adaptsg_dropout:0.50' findLSC_test
-    # comments = ''  # 'nsLIFreadout_adaptsg_dropout:0.50' findLSC_test
+    comments = 'findLSC_test_lscdepth:1_lscout:1_gaussbeta_test_gausslsc_ptb1'  # 'nsLIFreadout_adaptsg_dropout:0.50' findLSC_test
+    comments = ''  # 'nsLIFreadout_adaptsg_dropout:0.50' findLSC_test
 
     # optimizer properties
     lr = None  # 7e-4 None
@@ -110,9 +110,16 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
         stack, batch_size, embedding, n_neurons, lr, task_name, lsc=True
     )
 
-    sLSTM_factor = 1 / 3
+
+    if task_name == 'heidelberg':
+        sLSTM_factor = .37  # 1 / 3
+    elif task_name == 'sl_mnist':
+        sLSTM_factor = 1 / 3
+    else:
+        sLSTM_factor = 1 / 3
+
     n_neurons = n_neurons if not 'LSTM' in net_name else int(n_neurons * sLSTM_factor)
-    stack = '400:300' if ('LSTM' in net_name and task_name == 'wordptb') else stack
+    stack = '700:300' if ('LSTM' in net_name and task_name == 'wordptb') else stack
 
     exp_dir = os.path.join(CDIR, ex.observers[0].basedir)
     comments += '_**folder:' + exp_dir + '**_'
@@ -134,10 +141,8 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
     comments = str2val(comments, 'maxlen', int, default=maxlen, replace=maxlen)
 
     # task definition
-    train_task_args = dict(
-        timerepeat=timerepeat, epochs=epochs, batch_size=batch_size, steps_per_epoch=steps_per_epoch, name=task_name,
-        train_val_test='train', maxlen=maxlen, comments=comments
-    )
+    train_task_args = dict(timerepeat=timerepeat, epochs=epochs, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
+                           name=task_name, train_val_test='train', maxlen=maxlen, comments=comments)
     gen_train = Task(**train_task_args)
     gen_val = Task(timerepeat=timerepeat, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
                    name=task_name, train_val_test='val', maxlen=maxlen, comments=comments)
@@ -206,6 +211,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
             batch_size=batch_size, depth_norm=lscdepth, decoder_norm=lscout
         )
         results.update(lsc_results)
+
     train_model = build_model(**model_args)
     train_model.summary()
 
