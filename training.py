@@ -29,7 +29,7 @@ from GenericTools.keras_tools.esoteric_callbacks.several_validations import Mult
 from GenericTools.keras_tools.esoteric_tasks.time_task_redirection import Task, checkTaskMeanVariance, language_tasks
 
 from sg_design_lif.neural_models.full_model import build_model
-from alif_sg.neural_models.sgdLSC import apply_LSC
+from alif_sg.neural_models.recLSC import apply_LSC
 
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
@@ -183,13 +183,11 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
         new_model_args = copy.deepcopy(model_args)
         new_model_args['comments'] = new_model_args['comments'] + '_reoldspike'
 
-        weights, losses, all_norms = apply_LSC(
+        weights, lsc_results = apply_LSC(
             train_task_args=train_task_args, model_args=new_model_args, norm_pow=norm_pow, n_samples=n_samples,
             batch_size=batch_size, depth_norm=lscdepth, decoder_norm=lscout
         )
-
-        results['LSC_losses'] = str(losses)
-        results['LSC_norms'] = str(all_norms)
+        results.update(lsc_results)
 
     train_model = build_model(**model_args)
     train_model.summary()

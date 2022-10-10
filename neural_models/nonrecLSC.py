@@ -6,7 +6,7 @@ from GenericTools.keras_tools.convenience_operations import sample_axis, desampl
 from GenericTools.keras_tools.esoteric_losses import well_loss
 from GenericTools.keras_tools.esoteric_tasks.numpy_generator import NumpyClassificationGenerator
 from GenericTools.keras_tools.expose_latent import expose_latent_model, split_model
-from alif_sg.neural_models.sgdLSC import get_norms
+from alif_sg.neural_models.recLSC import get_norms
 from alif_sg.neural_models.modified_efficientnet import EfficientNetB0
 
 
