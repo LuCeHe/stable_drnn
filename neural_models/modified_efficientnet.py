@@ -24,14 +24,17 @@ Reference:
 import copy
 import math
 
+from keras.applications import imagenet_utils
 from tensorflow.python.keras import backend
-from tensorflow.python.keras.applications import imagenet_utils
+# from tensorflow.python.keras.applications import imagenet_utils
 from tensorflow.python.keras.engine import training
-from tensorflow.python.keras.layers import VersionAwareLayers
+# from tensorflow.python.keras.layers import VersionAwareLayers
+import tensorflow.keras.layers as layers
 from tensorflow.python.keras.utils import data_utils
 from tensorflow.python.keras.utils import layer_utils
 from tensorflow.python.lib.io import file_io
 from tensorflow.python.util.tf_export import keras_export
+import tensorflow as tf
 
 BASE_WEIGHTS_PATH = 'https://storage.googleapis.com/keras-applications/'
 
@@ -137,7 +140,7 @@ DENSE_KERNEL_INITIALIZER = {
     }
 }
 
-layers = VersionAwareLayers()
+# layers = VersionAwareLayers()
 
 BASE_DOCSTRING = """Instantiates the {name} architecture.
 
@@ -294,7 +297,6 @@ def EfficientNet(
         data_format=backend.image_data_format(),
         require_flatten=include_top,
         weights=weights)
-
     if input_tensor is None:
         img_input = layers.Input(shape=input_shape)
     else:
@@ -405,7 +407,8 @@ def EfficientNet(
         inputs = img_input
 
     # Create model.
-    model = training.Model(inputs, x, name=model_name)
+    # model = training.Model(inputs, x, name=model_name)
+    model = tf.keras.models.Model(inputs, x, name=model_name)
 
     # Load weights.
     if weights == 'imagenet':
@@ -545,8 +548,8 @@ def block(
     return x
 
 
-@keras_export('keras.applications.efficientnet.EfficientNetB0',
-              'keras.applications.EfficientNetB0')
+# @keras_export('keras.applications.efficientnet.EfficientNetB0',
+#               'keras.applications.EfficientNetB0')
 def EfficientNetB0(include_top=False,
                    weights=None,
                    input_tensor=None,
@@ -577,8 +580,8 @@ def EfficientNetB0(include_top=False,
         **kwargs)
 
 
-@keras_export('keras.applications.efficientnet.EfficientNetB1',
-              'keras.applications.EfficientNetB1')
+# @keras_export('keras.applications.efficientnet.EfficientNetB1',
+#               'keras.applications.EfficientNetB1')
 def EfficientNetB1(include_top=True,
                    weights='imagenet',
                    input_tensor=None,
@@ -603,8 +606,8 @@ def EfficientNetB1(include_top=True,
         **kwargs)
 
 
-@keras_export('keras.applications.efficientnet.EfficientNetB2',
-              'keras.applications.EfficientNetB2')
+# @keras_export('keras.applications.efficientnet.EfficientNetB2',
+#               'keras.applications.EfficientNetB2')
 def EfficientNetB2(include_top=True,
                    weights='imagenet',
                    input_tensor=None,
@@ -629,8 +632,8 @@ def EfficientNetB2(include_top=True,
         **kwargs)
 
 
-@keras_export('keras.applications.efficientnet.EfficientNetB3',
-              'keras.applications.EfficientNetB3')
+# @keras_export('keras.applications.efficientnet.EfficientNetB3',
+#               'keras.applications.EfficientNetB3')
 def EfficientNetB3(include_top=True,
                    weights='imagenet',
                    input_tensor=None,
@@ -655,8 +658,8 @@ def EfficientNetB3(include_top=True,
         **kwargs)
 
 
-@keras_export('keras.applications.efficientnet.EfficientNetB4',
-              'keras.applications.EfficientNetB4')
+# @keras_export('keras.applications.efficientnet.EfficientNetB4',
+#               'keras.applications.EfficientNetB4')
 def EfficientNetB4(include_top=True,
                    weights='imagenet',
                    input_tensor=None,
@@ -681,8 +684,8 @@ def EfficientNetB4(include_top=True,
         **kwargs)
 
 
-@keras_export('keras.applications.efficientnet.EfficientNetB5',
-              'keras.applications.EfficientNetB5')
+# @keras_export('keras.applications.efficientnet.EfficientNetB5',
+#               'keras.applications.EfficientNetB5')
 def EfficientNetB5(include_top=True,
                    weights='imagenet',
                    input_tensor=None,
@@ -707,8 +710,8 @@ def EfficientNetB5(include_top=True,
         **kwargs)
 
 
-@keras_export('keras.applications.efficientnet.EfficientNetB6',
-              'keras.applications.EfficientNetB6')
+# @keras_export('keras.applications.efficientnet.EfficientNetB6',
+#               'keras.applications.EfficientNetB6')
 def EfficientNetB6(include_top=True,
                    weights='imagenet',
                    input_tensor=None,
@@ -733,8 +736,8 @@ def EfficientNetB6(include_top=True,
         **kwargs)
 
 
-@keras_export('keras.applications.efficientnet.EfficientNetB7',
-              'keras.applications.EfficientNetB7')
+# @keras_export('keras.applications.efficientnet.EfficientNetB7',
+#               'keras.applications.EfficientNetB7')
 def EfficientNetB7(include_top=True,
                    weights='imagenet',
                    input_tensor=None,
@@ -759,41 +762,3 @@ def EfficientNetB7(include_top=True,
         **kwargs)
 
 
-EfficientNetB0.__doc__ = BASE_DOCSTRING.format(name='EfficientNetB0')
-EfficientNetB1.__doc__ = BASE_DOCSTRING.format(name='EfficientNetB1')
-EfficientNetB2.__doc__ = BASE_DOCSTRING.format(name='EfficientNetB2')
-EfficientNetB3.__doc__ = BASE_DOCSTRING.format(name='EfficientNetB3')
-EfficientNetB4.__doc__ = BASE_DOCSTRING.format(name='EfficientNetB4')
-EfficientNetB5.__doc__ = BASE_DOCSTRING.format(name='EfficientNetB5')
-EfficientNetB6.__doc__ = BASE_DOCSTRING.format(name='EfficientNetB6')
-EfficientNetB7.__doc__ = BASE_DOCSTRING.format(name='EfficientNetB7')
-
-
-@keras_export('keras.applications.efficientnet.preprocess_input')
-def preprocess_input(x, data_format=None):  # pylint: disable=unused-argument
-    """A placeholder method for backward compatibility.
-
-    The preprocessing logic has been included in the efficientnet model
-    implementation. Users are no longer required to call this method to normalize
-    the input data. This method does nothing and only kept as a placeholder to
-    align the API surface between old and new version of model.
-
-    Args:
-      x: A floating point `numpy.array` or a `tf.Tensor`.
-      data_format: Optional data format of the image tensor/array. Defaults to
-        None, in which case the global setting
-        `tf.keras.backend.image_data_format()` is used (unless you changed it,
-        it defaults to "channels_last").{mode}
-
-    Returns:
-      Unchanged `numpy.array` or `tf.Tensor`.
-    """
-    return x
-
-
-@keras_export('keras.applications.efficientnet.decode_predictions')
-def decode_predictions(preds, top=5):
-    return imagenet_utils.decode_predictions(preds, top=top)
-
-
-decode_predictions.__doc__ = imagenet_utils.decode_predictions.__doc__

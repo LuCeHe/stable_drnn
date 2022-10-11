@@ -19,7 +19,7 @@ os.environ['AUTOGRAPH_VERBOSITY'] = '1'
 warnings.filterwarnings('ignore')
 
 
-def get_norms(tape, lower_states, upper_states, n_samples, norm_pow, sampled_lsc=False):
+def get_norms(tape, lower_states, upper_states, n_samples=100, norm_pow=2, sampled_lsc=False):
     hss = []
     for hlm1 in lower_states:
         hs = [tape.batch_jacobian(hl, hlm1) for hl in upper_states]
@@ -32,7 +32,7 @@ def get_norms(tape, lower_states, upper_states, n_samples, norm_pow, sampled_lsc
 
     del hss, hs
 
-    # print('nonzero:', tf.math.count_nonzero(td))
+    print('nonzero:', tf.math.count_nonzero(td))
 
     if not sampled_lsc and norm_pow in [1, 2, np.inf]:
         if norm_pow is np.inf:

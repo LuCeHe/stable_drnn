@@ -10,10 +10,13 @@ from alif_sg.neural_models.recLSC import get_norms
 from alif_sg.neural_models.modified_efficientnet import EfficientNetB0
 
 
-def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_pow=2):
+def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_pow=2, fanin=False, forward_lsc=False):
     assert callable(build_model)
-
-    optimizer = tf.keras.optimizers.Adam(learning_rate=1e1)
+    if forward_lsc:
+        learning_rate = .1
+    else:
+        learning_rate = 1e1
+    optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
     all_norms = []
     all_losses = []
@@ -27,9 +30,11 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
         pbar = tqdm(total=generator.steps_per_epoch)
 
         generator.on_epoch_end()
-        for i in range(generator.steps_per_epoch):
+        for step in range(generator.steps_per_epoch):
+
             try:
-                batch = generator.__getitem__(i)[0]
+                # if True:
+                batch = generator.__getitem__(step)[0]
                 batch = tf.convert_to_tensor(tf.cast(batch, tf.float32), dtype=tf.float32)
 
                 with tf.GradientTape(persistent=True, watch_accessed_variables=True) as tape:
@@ -53,32 +58,47 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
 
                     tape.watch(preinter)
 
-                    # flatten and deflatten to make sure the flat version is in the gradient graph
-                    # preinter_shape = preinter.shape
-                    flat_inp = tf.reshape(preinter, [preinter.shape[0], -1])
+                    if not forward_lsc:
+                        # flatten and deflatten to make sure the flat version is in the gradient graph
+                        # preinter_shape = preinter.shape
+                        flat_inp = tf.reshape(preinter, [preinter.shape[0], -1])
 
-                    # sample and desample to make sure that the sample is in the graph,
-                    # so the derivative will be taken correctly
-                    shuffinp, reminder, indices = sample_axis(flat_inp, max_dim=max_dim, return_deshuffling=True)
-                    defhuffledinp = desample_axis(shuffinp, reminder, indices)
+                        # sample and desample to make sure that the sample is in the graph,
+                        # so the derivative will be taken correctly
+                        shuffinp, reminder, indices = sample_axis(flat_inp, max_dim=max_dim, return_deshuffling=True)
+                        defhuffledinp = desample_axis(shuffinp, reminder, indices)
 
-                    assert tf.math.reduce_all(tf.equal(defhuffledinp, flat_inp))
+                        assert tf.math.reduce_all(tf.equal(defhuffledinp, flat_inp))
 
-                    new_preinter = tf.reshape(defhuffledinp, preinter.shape)
+                        new_preinter = tf.reshape(defhuffledinp, preinter.shape)
 
-                    assert tf.math.reduce_all(tf.equal(new_preinter, preinter))
+                        assert tf.math.reduce_all(tf.equal(new_preinter, preinter))
+                    else:
+                        new_preinter = preinter
 
                     interout = intermodel(new_preinter)
 
-                    inp = shuffinp
-                    oup = interout
+                    if not forward_lsc:
+                        inp = shuffinp
+                        oup = interout
 
-                    # inp = tf.reshape(inp, [inp.shape[0], -1])
-                    oup = tf.reshape(oup, [oup.shape[0], -1])
-                    oup = sample_axis(oup, max_dim=max_dim)
-                    # print(inp.shape, oup.shape)
-                    norms = get_norms(tape, [inp], [oup], n_samples=n_samples, norm_pow=norm_pow)
-                    loss = tf.reduce_mean(tf.abs(norms - 1))
+                        # inp = tf.reshape(inp, [inp.shape[0], -1])
+                        reoup = tf.reshape(oup, [oup.shape[0], -1])
+                        oup = sample_axis(reoup, max_dim=max_dim)
+
+                        norms = get_norms(tape, [inp], [oup], n_samples=n_samples, norm_pow=norm_pow)  # good
+                        # norms = get_norms(tape, [oup], [inp], n_samples=n_samples, norm_pow=norm_pow)  # bad
+
+                        if not fanin:
+                            factor = 1
+                        else:
+                            factor = max_dim / reoup.shape[-1]
+                        loss = tf.reduce_mean(tf.abs(norms - factor))
+                    else:
+                        varin = tf.math.reduce_variance(new_preinter)
+                        varout = tf.math.reduce_variance(interout)
+                        loss = tf.reduce_mean(tf.abs(varin - varout))
+                        norms = varout / varin
 
                     av_weights = tf.reduce_mean([tf.reduce_mean(tf.cast(t, tf.float32)) for t in model.weights])
                     ma_loss = loss if ma_loss is None else ma_loss * 9 / 10 + loss / 10
@@ -102,10 +122,11 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
 
             pbar.update(1)
             pbar.set_description(
-                f"Pretrain epoch {epoch + 1} step {i + 1}, "
+                f"Pretrain epoch {epoch + 1} step {step + 1}, "
                 f"Loss {show_loss}, Norms {show_norm}, "
                 f"Av. Weights {show_avw},"
-                f" Fail rate {n_failures / (epoch + 1) / (i + 1)}"
+                f" Failures {n_failures},"
+                f" Fail rate {n_failures / ((step + 1) + epoch * generator.steps_per_epoch)}"
             )
 
     fail_rate = n_failures / generator.epochs / generator.steps_per_epoch
