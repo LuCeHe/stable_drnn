@@ -33,7 +33,7 @@ def get_argparse():
     parser = argparse.ArgumentParser()
 
     # Required parameters
-    parser.add_argument("--batch_size", default=64, type=int, help="Batch size")
+    parser.add_argument("--batch_size", default=2, type=int, help="Batch size")
     parser.add_argument("--seed", default=0, type=int, help="Random seed")
     parser.add_argument("--epochs", default=3, type=int, help="Batch size")
     parser.add_argument("--steps_per_epoch", default=3, type=int, help="Batch size")
@@ -117,20 +117,18 @@ def main(args):
             bias_initializer=bias_initializer,
             comments=args.comments
         )
-        max_dim = str2val(args.comments, 'max_dim', int, default=64)
+        max_dim = str2val(args.comments, 'maxdim', int, default=64)
         fanin = str2val(args.comments, 'fanin', bool, default=False)
         flsc = str2val(args.comments, 'flsc', bool, default=False)
 
-        weights, all_losses, all_norms, fail_rate = apply_LSC_no_time(
+        weights, lsc_results = apply_LSC_no_time(
             bm, generator=gen_val, max_dim=max_dim, norm_pow=2, fanin=fanin, forward_lsc=flsc
         )
         effnet = bm()
         effnet.set_weights(weights)
         model = build_model(args, input_shape, classes, effnet=effnet)
 
-        results['LSC_losses'] = str(all_losses)
-        results['LSC_norms'] = str(all_norms)
-        results['pretrain_fail_rate'] = str(fail_rate)
+        results.update(lsc_results)
     else:
         model = build_model(args, input_shape, classes)
     model.summary()

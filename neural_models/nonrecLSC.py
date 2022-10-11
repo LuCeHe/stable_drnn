@@ -10,6 +10,25 @@ from alif_sg.neural_models.recLSC import get_norms
 from alif_sg.neural_models.modified_efficientnet import EfficientNetB0
 
 
+def get_weights_statistics(results, weight_names, weights):
+    for n, w in zip(weight_names, weights):
+
+        try:
+            m = tf.reduce_mean(w).numpy()
+        except Exception as e:
+            m = None
+
+        try:
+            v = tf.math.reduce_variance(w).numpy()
+        except Exception as e:
+            v = None
+
+        results[f'{n}_mean'].append(m)
+        results[f'{n}_var'].append(v)
+
+    return results
+
+
 def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_pow=2, fanin=False, forward_lsc=False):
     assert callable(build_model)
     if forward_lsc:
@@ -20,7 +39,19 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
 
     all_norms = []
     all_losses = []
-    weights = None
+
+    results = {}
+
+    # get initial values of model
+    model = build_model()
+    weights = model.get_weights()
+    weight_names = [weight.name for layer in model.layers for weight in layer.weights]
+    results.update({f'{n}_mean': [] for n in weight_names})
+    results.update({f'{n}_var': [] for n in weight_names})
+
+    results = get_weights_statistics(results, weight_names, weights)
+
+    del model
 
     ma_loss, ma_norm = None, None
     show_loss, show_norm, show_avw = None, None, None
@@ -104,13 +135,14 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
                     ma_loss = loss if ma_loss is None else ma_loss * 9 / 10 + loss / 10
                     norm = tf.reduce_mean(norms)
                     ma_norm = norm if ma_norm is None else ma_norm * 9 / 10 + norm / 10
-                    all_norms.append(norm)
-                    all_losses.append(loss)
+                    all_norms.append(norm.numpy())
+                    all_losses.append(loss.numpy())
 
                 grads = tape.gradient(loss, intermodel.trainable_weights)
                 optimizer.apply_gradients(zip(grads, intermodel.trainable_weights))
 
                 weights = model.get_weights()
+                results = get_weights_statistics(results, weight_names, weights)
 
                 show_loss = str(ma_loss.numpy().round(6))
                 show_norm = str(ma_norm.numpy().round(3))
@@ -133,8 +165,13 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
 
     del model, generator
 
+    for n in weight_names:
+        results[f'{n}_mean'] = str(results[f'{n}_mean'])
+        results[f'{n}_var'] = str(results[f'{n}_var'])
+
+    results.update(LSC_losses=str(all_losses), LSC_norms=str(all_norms), LSC_fail_rate=str(fail_rate))
     tf.keras.backend.clear_session()
-    return weights, all_losses, all_norms, fail_rate
+    return weights, results
 
 
 if __name__ == '__main__':
