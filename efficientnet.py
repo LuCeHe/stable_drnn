@@ -1,5 +1,10 @@
 import argparse, os, time, json, shutil, socket, random
 import numpy as np
+
+from GenericTools.keras_tools.silence_tensorflow import silence_tf
+
+silence_tf()
+
 import tensorflow as tf
 import pandas as pd
 
@@ -168,6 +173,10 @@ def main(args):
 
 if __name__ == "__main__":
     args = get_argparse()
+
+    with open(os.path.join(EXPERIMENT, 'results.txt'), "w") as f:
+        f.write(json.dumps(vars(args), indent=4, cls=NumpyEncoder))
+
     time_start = time.perf_counter()
     results = main(args)
     time_elapsed = (time.perf_counter() - time_start)
@@ -178,8 +187,7 @@ if __name__ == "__main__":
 
     string_result = json.dumps(results, indent=4, cls=NumpyEncoder)
     print(string_result)
-    path = os.path.join(EXPERIMENT, 'results.txt')
-    with open(path, "w") as f:
+    with open(os.path.join(EXPERIMENT, 'results.txt'), "w") as f:
         f.write(string_result)
 
     shutil.make_archive(EXPERIMENT, 'zip', EXPERIMENT)

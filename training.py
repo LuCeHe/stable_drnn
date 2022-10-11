@@ -2,31 +2,11 @@ import os, shutil, logging, json, copy
 
 import pandas as pd
 
-"""Silence every unnecessary warning from tensorflow."""
-logging.getLogger('tensorflow').setLevel(logging.ERROR)
-os.environ["KMP_AFFINITY"] = "noverbose"
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-# We wrap this inside a try-except block
-# because we do not want to be the one package
-# that crashes when TensorFlow is not installed
-# when we are the only package that requires it
-# in a given Jupyter Notebook, such as when the
-# package import is simply copy-pasted.
-try:
-    import tensorflow as tf
+from GenericTools.keras_tools.silence_tensorflow import silence_tf
 
-    tf.get_logger().setLevel('ERROR')
-    tf.autograph.set_verbosity(3)
-except ModuleNotFoundError:
-    pass
+silence_tf()
 
-import warnings
 import tensorflow as tf
-
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-os.environ['AUTOGRAPH_VERBOSITY'] = '1'
-warnings.filterwarnings('ignore')
-
 from sg_design_lif.neural_models.config import default_config
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
@@ -109,7 +89,6 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
     stack, batch_size, embedding, n_neurons, lr = default_config(
         stack, batch_size, embedding, n_neurons, lr, task_name, lsc=True
     )
-
 
     if task_name == 'heidelberg':
         sLSTM_factor = .37  # 1 / 3

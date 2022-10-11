@@ -32,7 +32,7 @@ def get_norms(tape, lower_states, upper_states, n_samples=100, norm_pow=2, sampl
 
     del hss, hs
 
-    print('nonzero:', tf.math.count_nonzero(td))
+    # print('nonzero:', tf.math.count_nonzero(td))
 
     if not sampled_lsc and norm_pow in [1, 2, np.inf]:
         if norm_pow is np.inf:
