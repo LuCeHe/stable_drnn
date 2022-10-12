@@ -29,7 +29,8 @@ def get_weights_statistics(results, weight_names, weights):
     return results
 
 
-def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_pow=2, fanin=False, forward_lsc=False):
+def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_pow=2, fanin=False, forward_lsc=False,
+                      nlayerjump=None):
     assert callable(build_model)
     if forward_lsc:
         learning_rate = .1
@@ -64,9 +65,9 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
         for step in range(generator.steps_per_epoch):
 
             try:
-                # if True:
+            # if True:
                 batch = generator.__getitem__(step)[0]
-                batch = tf.convert_to_tensor(tf.cast(batch, tf.float32), dtype=tf.float32)
+                batch = [tf.convert_to_tensor(tf.cast(b, tf.float32), dtype=tf.float32) for b in batch]
 
                 with tf.GradientTape(persistent=True, watch_accessed_variables=True) as tape:
                     tape.watch(batch)
@@ -83,6 +84,8 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
                         if not isinstance(input_shape, list):
                             break
 
+                    if isinstance(nlayerjump,int):
+                        pairs[1] = pairs[0]+nlayerjump
                     premodel, intermodel = split_model(model, pairs)
 
                     preinter = premodel(batch)
