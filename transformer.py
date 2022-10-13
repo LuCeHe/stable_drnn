@@ -62,19 +62,6 @@ def main(args, experiment_dir):
         comments += 'test'
 
     GLOBAL_BATCH_SIZE = (args.batch_size * 1)
-    gen_train = WMT_ENDE(
-        data_dir=DATADIR, batch_size=GLOBAL_BATCH_SIZE, bpe_vocab_size=BPE_VOCAB_SIZE,
-        seq_max_len_source=SEQ_MAX_LEN_SOURCE, seq_max_len_target=SEQ_MAX_LEN_TARGET, data_limit=DATA_LIMIT,
-        train_ratio=TRAIN_RATIO, epochs=args.epochs, steps_per_epoch=args.steps_per_epoch, data_split='train',
-        comments=comments
-    )
-
-    gen_val = WMT_ENDE(
-        data_dir=DATADIR, batch_size=GLOBAL_BATCH_SIZE, bpe_vocab_size=BPE_VOCAB_SIZE,
-        seq_max_len_source=SEQ_MAX_LEN_SOURCE, seq_max_len_target=SEQ_MAX_LEN_TARGET, data_limit=DATA_LIMIT,
-        train_ratio=TRAIN_RATIO, epochs=args.epochs, steps_per_epoch=args.steps_per_epoch, data_split='val',
-        comments=comments
-    )
 
 
 
@@ -93,13 +80,23 @@ def main(args, experiment_dir):
     )
 
     if 'findLSC' in args.comments:
+
+        gen_lsc = WMT_ENDE(
+            data_dir=DATADIR, batch_size=2, bpe_vocab_size=BPE_VOCAB_SIZE,
+            seq_max_len_source=SEQ_MAX_LEN_SOURCE, seq_max_len_target=SEQ_MAX_LEN_TARGET, data_limit=DATA_LIMIT,
+            train_ratio=TRAIN_RATIO, epochs=args.epochs, steps_per_epoch=args.steps_per_epoch, data_split='train',
+            comments=comments
+        )
+
         max_dim = str2val(args.comments, 'maxdim', int, default=64)
         fanin = str2val(args.comments, 'fanin', bool, default=False)
         flsc = str2val(args.comments, 'flsc', bool, default=False)
 
         weights, lsc_results = apply_LSC_no_time(
-            bm, generator=gen_val, max_dim=max_dim, norm_pow=2, fanin=fanin, forward_lsc=flsc, nlayerjump=2
+            bm, generator=gen_lsc, max_dim=max_dim, norm_pow=2, fanin=fanin, forward_lsc=flsc, nlayerjump=2
         )
+
+        del gen_lsc
         model = bm()
         model.set_weights(weights)
 
@@ -108,6 +105,20 @@ def main(args, experiment_dir):
         model = bm()
     model.summary()
 
+
+    gen_train = WMT_ENDE(
+        data_dir=DATADIR, batch_size=GLOBAL_BATCH_SIZE, bpe_vocab_size=BPE_VOCAB_SIZE,
+        seq_max_len_source=SEQ_MAX_LEN_SOURCE, seq_max_len_target=SEQ_MAX_LEN_TARGET, data_limit=DATA_LIMIT,
+        train_ratio=TRAIN_RATIO, epochs=args.epochs, steps_per_epoch=args.steps_per_epoch, data_split='train',
+        comments=comments
+    )
+
+    gen_val = WMT_ENDE(
+        data_dir=DATADIR, batch_size=GLOBAL_BATCH_SIZE, bpe_vocab_size=BPE_VOCAB_SIZE,
+        seq_max_len_source=SEQ_MAX_LEN_SOURCE, seq_max_len_target=SEQ_MAX_LEN_TARGET, data_limit=DATA_LIMIT,
+        train_ratio=TRAIN_RATIO, epochs=args.epochs, steps_per_epoch=args.steps_per_epoch, data_split='val',
+        comments=comments
+    )
 
     # learning_rate = CustomSchedule(D_MODEL)
     learning_rate = 1e-4

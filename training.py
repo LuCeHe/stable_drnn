@@ -185,6 +185,8 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
         new_model_args = copy.deepcopy(model_args)
         new_model_args['comments'] = new_model_args['comments'] + '_reoldspike'
 
+        new_task_args = copy.deepcopy(train_task_args)
+        new_task_args['batch_size'] = new_task_args['batch_size'] if not 'ptb' in task_name else 8
         weights, lsc_results = apply_LSC(
             train_task_args=train_task_args, model_args=new_model_args, norm_pow=norm_pow, n_samples=n_samples,
             batch_size=batch_size, depth_norm=lscdepth, decoder_norm=lscout

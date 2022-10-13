@@ -1,10 +1,13 @@
 import os, json, copy
+
+from GenericTools.stay_organized.submit_jobs import dict2iter
 from tqdm import tqdm
 import numpy as np
 import pandas as pd
 import matplotlib as mpl
 
 from GenericTools.stay_organized.mpl_tools import load_plot_settings
+from GenericTools.stay_organized.pandardize import experiments_to_pandas
 from GenericTools.stay_organized.standardize_strings import shorten_losses
 from GenericTools.stay_organized.utils import str2val
 
@@ -23,15 +26,17 @@ CDIR = os.path.dirname(FILENAME)
 EXPERIMENTS = os.path.join(CDIR, 'experiments')
 GEXPERIMENTS = os.path.join(CDIR, 'good_experiments')
 
+expsid = 'als'  # effnet als
+h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
+# CSVPATH = r'D:\work\alif_sg\good_experiments\2022-08-20--learned-LSC\summary.h5'
+# HSITORIESPATH = os.path.join(EXPERIMENTS, 'histories.json')
 
-CSVPATH = os.path.join(EXPERIMENTS, 'summary.h5')
-CSVPATH = r'D:\work\alif_sg\good_experiments\2022-08-20--learned-LSC\summary.h5'
-HSITORIESPATH = os.path.join(EXPERIMENTS, 'histories.json')
-
+pandas_means = True
+missing_exps = True
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
-plot_losses = True
+plot_losses = False
 
 task_name = 'ps_mnist'  # heidelberg wordptb sl_mnist all ps_mnist
 
@@ -49,76 +54,30 @@ metrics_oi = [
 columns_to_remove = [
     'heaviside', '_test', 'weight', 'sLSTM_factor', 'save_model', 'clipnorm', 'GPU', 'batch_size',
     'continue_training', 'embedding', 'lr_schedule', 'loss_name', 'lr', 'seed', 'stack', 'stop_time',
-    'convergence', 'n_neurons', 'optimizer_name', 'LSC'
+    'convergence', 'n_neurons', 'optimizer_name', 'LSC', ' list', 'artifacts', 'command', 'heartbeat', 'meta',
+    'resources', 'host', 'start_time', 'status',
 ]
 
+df = experiments_to_pandas(
+    h5path=h5path, zips_folder=GEXPERIMENTS, unzips_folder=EXPERIMENTS, experiments_identifier=expsid,
+    exclude_files=['cout.txt']
+)
 
+if 'host' in df.columns:
+    df['where'] = df['host'].apply(lambda x: x['hostname'])
 
+if 'n_params' in df.columns:
+    df['n_params'] = df['n_params'].apply(lambda x: large_num_to_reasonable_string(x, 1))
 
-if not os.path.exists(CSVPATH):
+if 'stop_time' in df.columns and 'start_time' in df.columns:
+    df['duration_experiment'] = df['stop_time'].apply(lambda x: datetime.strptime(x.split('.')[0], FMT)) - \
+                                df['start_time'].apply(lambda x: datetime.strptime(x.split('.')[0], FMT))
 
-    ds = unzip_good_exps(
-        GEXPERIMENTS, EXPERIMENTS,
-        exp_identifiers=[''], except_folders=[],
-        unzip_what=['history.json', 'config.json', 'run.json', 'results.json']
-    )
-
-    histories = {}
-    df = pd.DataFrame(columns=[])
-
-    for d in tqdm(ds, desc='Creating pandas'):
-        history_path = os.path.join(d, 'other_outputs', 'history.json')
-        config_path = os.path.join(d, '1', 'config.json')
-        run_path = os.path.join(d, '1', 'run.json')
-        results_path = os.path.join(d, 'other_outputs', 'results.json')
-
-        with open(config_path) as f:
-            config = json.load(f)
-
-        with open(history_path) as f:
-            history = json.load(f)
-
-        with open(run_path) as f:
-            run = json.load(f)
-
-        with open(results_path) as f:
-            some_results = json.load(f)
-
-        results = {}
-        results.update(config.items())
-        results.update(some_results.items())
-        results.update({'where': run['host']['hostname']})
-
-        what = lambda k, v: np.nanmax(v) if 'acc' in k else np.nanmin(v)
-        results.update({k: what(k, v) for k, v in history.items()})
-        results.update({'d': d})
-
-        results.update({'duration_experiment':
-                            datetime.strptime(run['stop_time'].split('.')[0], FMT) - datetime.strptime(
-                                run['start_time'].split('.')[0], FMT)
-                        })
-
-        results['n_params'] = large_num_to_reasonable_string(results['n_params'], 1)
-
-        small_df = pd.DataFrame([results])
-        df = df.append(small_df)
-        histories[d] = {k: v for k, v in history.items()}
-
-    df = df.sort_values(by='comments')
-
-    df.to_hdf(CSVPATH, key='df', mode='w')
-    json.dump(histories, open(HSITORIESPATH, "w"))
-else:
-    df = pd.read_hdf(CSVPATH, 'df')  # load it
-    with open(HSITORIESPATH) as f:
-        histories = json.load(f)
-
-# df = df[(df['d'].str.contains('2022-07-28--')) | (df['d'].str.contains('2022-07-29--'))]
-# df = df[(df['d'].str.contains('2022-09-03--')) ]
 df = df[~df['comments'].str.contains('test')]
 
-df.loc[df['comments'].str.contains('noalif'), 'net_name'] = 'LIF'
-df.loc[df['net_name'].str.contains('maLSNN'), 'net_name'] = 'ALIF'
+if 'net_name' in df.columns:
+    df.loc[df['comments'].str.contains('noalif'), 'net_name'] = 'LIF'
+    df.loc[df['net_name'].str.contains('maLSNN'), 'net_name'] = 'ALIF'
 
 for c_name in columns_to_remove:
     df = df[df.columns.drop(list(df.filter(regex=c_name)))]
@@ -126,45 +85,128 @@ for c_name in columns_to_remove:
 new_column_names = {c_name: shorten_losses(c_name) for c_name in df.columns}
 
 df.rename(columns=new_column_names, inplace=True)
-df = df[[c for c in df if c not in ['d', 'duration_experiment']] + ['d', 'duration_experiment']]
-
-# df = df[(df['d'].str.contains('2022-08-31'))]
+# df = df[[c for c in df if c not in ['d', 'duration_experiment']] + ['d', 'duration_experiment']]
 
 
-df = df.sort_values(by=metric)
+if metric in df.keys():
+    df = df.sort_values(by=metric)
 print(list(df.columns))
-# print(df.to_string())
+# print(df['experiment'])
+# print(df['host'])
+print(df.to_string())
 
-group_cols = ['net_name', 'task_name', 'initializer', 'comments']
-counts = df.groupby(group_cols).size().reset_index(name='counts')
+if pandas_means:
+    group_cols = ['net_name', 'task_name', 'initializer', 'comments']
+    counts = df.groupby(group_cols).size().reset_index(name='counts')
 
-metrics_oi = [shorten_losses(m) for m in metrics_oi]
-mdf = df.groupby(
-    group_cols, as_index=False
-).agg({m: ['mean', 'std'] for m in metrics_oi})
+    metrics_oi = [shorten_losses(m) for m in metrics_oi]
+    mdf = df.groupby(
+        group_cols, as_index=False
+    ).agg({m: ['mean', 'std'] for m in metrics_oi})
 
-for m in metrics_oi:
-    mdf['mean_{}'.format(m)] = mdf[m]['mean']
-    mdf['std_{}'.format(m)] = mdf[m]['std']
-    mdf = mdf.drop([m], axis=1)
+    for m in metrics_oi:
+        mdf['mean_{}'.format(m)] = mdf[m]['mean']
+        mdf['std_{}'.format(m)] = mdf[m]['std']
+        mdf = mdf.drop([m], axis=1)
 
-mdf = mdf.sort_values(by='mean_' + metric)
-mdf['counts'] = counts['counts']
+    mdf = mdf.sort_values(by='mean_' + metric)
+    mdf['counts'] = counts['counts']
 
-print(mdf.to_string())
-print('Max experiment length: ', max(df['duration_experiment']))
+    tasks = np.unique(mdf['task_name'])
+    nets = np.unique(mdf['net_name'])
 
+    for task in tasks:
+        for net in nets:
+            if not net == 'LIF':
+                print('-===-' * 30)
+                print(task, net)
+                idf = mdf[mdf['task_name'].str.contains(task) & mdf['net_name'].str.contains(net)]
+                print(idf.to_string())
 
-nets = np.unique(mdf['net_name'])
-tasks = np.unique(mdf['task_name'])
-# print('\n\n\n')
-# for n in nets:
-#     for t in tasks:
-#         print(n, t, 'mean_' + metric)
-#         idf = mdf[(mdf['net_name'].eq(n)) & (mdf['task_name'].eq(t))]
-#
-#         print(idf.to_string())
-#         # pass
+    print(mdf.to_string())
+    print('Max experiment length: ', max(df['duration_experiment']))
+
+if missing_exps:
+    # columns of interest
+    coi = ['seed', 'task_name', 'net_name', 'comments']
+    import pandas as pd
+
+    sdf = pd.read_hdf(h5path, 'df')
+
+    sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
+
+    seed = 0
+    n_seeds = 4
+    seeds = [l + seed for l in range(n_seeds)]
+    incomplete_comments = '32_embproj_nogradreset_dropout:.3_timerepeat:2_'
+
+    experiments = []
+    experiment = {
+        # 'task_name': ['heidelberg', 'ps_mnist', 's_mnist', 'ss_mnist', 'sps_mnist', 'sl_mnist'],
+        'task_name': ['heidelberg', 'wordptb', 'wordptb1', 'sl_mnist'],
+        'net_name': ['maLSNN', 'LSTM'], 'seed': seeds,
+        'comments': [
+            incomplete_comments,
+            incomplete_comments + f'findLSC_normpow:1',
+            incomplete_comments + f'findLSC_normpow:-1',
+            incomplete_comments + f'findLSC_normpow:2',
+            incomplete_comments + f'findLSC_normpow:2_lscdepth:1_lscout:0',
+            incomplete_comments + f'findLSC_normpow:2_lscdepth:1_lscout:1',
+            incomplete_comments + f'findLSC_normpow:2_berlsc',
+            incomplete_comments + f'findLSC_normpow:2_gausslsc',
+        ],
+    }
+    experiments.append(experiment)
+
+    experiment = {
+        # 'task_name': ['heidelberg', 'ps_mnist', 's_mnist', 'ss_mnist', 'sps_mnist', 'sl_mnist'],
+        'task_name': ['heidelberg', 'wordptb', 'wordptb1', 'sl_mnist'],
+        'net_name': ['maLSNN'], 'seed': seeds,
+        'comments': [
+            incomplete_comments + f'findLSC_normpow:2_gaussbeta',
+            incomplete_comments + f'findLSC_normpow:2_gaussbeta_berlsc',
+            incomplete_comments + f'findLSC_normpow:2_gaussbeta_gausslsc',
+        ],
+    }
+    experiments.append(experiment)
+
+    ds = dict2iter(experiments)
+    print(ds[0])
+
+    data = {k: [] for k in coi}
+    for d in ds:
+        for k in data.keys():
+            insertion = d[k]
+            data[k].append(insertion)
+
+    all_exps = pd.DataFrame.from_dict(data)
+    # print(all_exps.to_string())
+
+    # remove the experiments that were run successfully
+    df = pd.concat([sdf, all_exps])
+    df = df.drop_duplicates(keep=False)
+
+    keys = list(all_exps.columns.values)
+    i1 = all_exps.set_index(keys).index
+    i2 = df.set_index(keys).index
+    df = df[i2.isin(i1)]
+
+    sdf = sdf.drop_duplicates()
+
+    # df = df[~df['task_name'].str.contains('wordptb1')]
+    df = df[~df['task_name'].str.contains('wordptb')]
+    # df = df[df['task_name'].str.contains('wordptb')]
+
+    print('left, done, all: ', df.shape, sdf.shape, all_exps.shape)
+    print('left')
+    print(df.to_string())
+
+    experiments = []
+    for index, row in df.iterrows():
+        experiment = {k: [row[k]] for k in df.columns}
+        experiments.append(experiment)
+
+    print(experiments)
 
 if plot_norms_pretraining:
     moi = 'norms'  # losses norms
@@ -173,7 +215,6 @@ if plot_norms_pretraining:
 
     if len(nets) == 1:
         axs = axs[None]
-
 
     cmap = plt.cm.get_cmap('Paired')
     norms = [0.1, 1, 2, 3, -1]
@@ -195,7 +236,6 @@ if plot_norms_pretraining:
     axs[i, j].legend()
     plt.show()
 
-
 if plot_losses:
     moi = 'sparse_mode_accuracy'  # losses norms sparse_mode_accuracy perplexity
     ref = 0 if metric == 'losses' else 1
@@ -203,7 +243,6 @@ if plot_losses:
 
     if len(nets) == 1:
         axs = axs[None]
-
 
     cmap = plt.cm.get_cmap('Paired')
     norms = [0.1, 1, 2, 3, -1]
