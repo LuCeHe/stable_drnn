@@ -54,8 +54,8 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
 
     del model
 
-    ma_loss, ma_norm = None, None
-    show_loss, show_norm, show_avw = None, None, None
+    ma_loss, ma_norm, ma_factor = None, None, None
+    show_loss, show_norm, show_avw, show_factor = None, None, None, None
     n_failures = 0
 
     for epoch in range(generator.epochs):
@@ -64,10 +64,13 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
         generator.on_epoch_end()
         for step in range(generator.steps_per_epoch):
 
-            try:
             # if True:
+            try:
                 batch = generator.__getitem__(step)[0]
-                batch = [tf.convert_to_tensor(tf.cast(b, tf.float32), dtype=tf.float32) for b in batch]
+                if isinstance(batch, list):
+                    batch = [tf.convert_to_tensor(tf.cast(b, tf.float32), dtype=tf.float32) for b in batch]
+                else:
+                    batch = tf.convert_to_tensor(tf.cast(batch, tf.float32), dtype=tf.float32)
 
                 with tf.GradientTape(persistent=True, watch_accessed_variables=True) as tape:
                     tape.watch(batch)
@@ -84,8 +87,8 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
                         if not isinstance(input_shape, list):
                             break
 
-                    if isinstance(nlayerjump,int):
-                        pairs[1] = pairs[0]+nlayerjump
+                    if isinstance(nlayerjump, int):
+                        pairs[1] = pairs[0] + nlayerjump
                     premodel, intermodel = split_model(model, pairs)
 
                     preinter = premodel(batch)
@@ -136,6 +139,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
 
                     av_weights = tf.reduce_mean([tf.reduce_mean(tf.cast(t, tf.float32)) for t in model.weights])
                     ma_loss = loss if ma_loss is None else ma_loss * 9 / 10 + loss / 10
+                    ma_factor = factor if ma_factor is None else ma_factor * 9 / 10 + factor / 10
                     norm = tf.reduce_mean(norms)
                     ma_norm = norm if ma_norm is None else ma_norm * 9 / 10 + norm / 10
                     all_norms.append(norm.numpy())
@@ -144,10 +148,15 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
                 grads = tape.gradient(loss, intermodel.trainable_weights)
                 optimizer.apply_gradients(zip(grads, intermodel.trainable_weights))
 
-                weights = model.get_weights()
+                new_weights = model.get_weights()
+                av_weights = tf.reduce_mean([tf.reduce_mean(tf.cast(t, tf.float32)) for t in new_weights])
+                if not tf.math.is_nan(av_weights):
+                    weights = new_weights
+
                 results = get_weights_statistics(results, weight_names, weights)
 
-                show_loss = str(ma_loss.numpy().round(6))
+                show_factor = str(np.array(ma_factor).round(3))
+                show_loss = str(ma_loss.numpy().round(3))
                 show_norm = str(ma_norm.numpy().round(3))
                 show_avw = str(av_weights.numpy().round(3))
 
@@ -155,13 +164,14 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
                 print(e)
                 n_failures += 1
 
+            show_failure = str(np.array(n_failures / ((step + 1) + epoch * generator.steps_per_epoch)).round(3))
             pbar.update(1)
             pbar.set_description(
                 f"Pretrain epoch {epoch + 1} step {step + 1}, "
-                f"Loss {show_loss}, Norms {show_norm}, "
-                f"Av. Weights {show_avw},"
-                f" Failures {n_failures},"
-                f" Fail rate {n_failures / ((step + 1) + epoch * generator.steps_per_epoch)}"
+                f"Loss {show_loss}, Norms {show_norm}, Factor {show_factor}, "
+                f"Av. Weights {show_avw}, "
+                f"Failures {n_failures}, "
+                f"Fail rate {show_failure} "
             )
 
     fail_rate = n_failures / generator.epochs / generator.steps_per_epoch

@@ -33,14 +33,14 @@ def get_argparse():
     parser = argparse.ArgumentParser()
 
     # Required parameters
-    parser.add_argument("--batch_size", default=2, type=int, help="Batch size")
+    parser.add_argument("--batch_size", default=32, type=int, help="Batch size")
     parser.add_argument("--seed", default=0, type=int, help="Random seed")
     parser.add_argument("--epochs", default=3, type=int, help="Batch size")
     parser.add_argument("--steps_per_epoch", default=3, type=int, help="Batch size")
     parser.add_argument("--lr", default=.001, type=float, help="Learning rate")
     parser.add_argument("--batch_normalization", default=1, type=int, help="Batch normalization")
     parser.add_argument("--comments", default='findLSC_fanin:1', type=str, help="String to activate extra behaviors")
-    parser.add_argument("--dataset", default='mnist', type=str, help="Dataset to train on",
+    parser.add_argument("--dataset", default='cifar10', type=str, help="Dataset to train on",
                         choices=['cifar10', 'cifar100', 'mnist'])
     parser.add_argument("--activation", default='swish', type=str, help="Activation", choices=['swish', 'relu'])
     parser.add_argument(
