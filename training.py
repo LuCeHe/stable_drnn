@@ -2,9 +2,9 @@ import os, shutil, logging, json, copy
 
 import pandas as pd
 
-from GenericTools.keras_tools.silence_tensorflow import silence_tf
+# from GenericTools.keras_tools.silence_tensorflow import silence_tf
 
-silence_tf()
+# silence_tf()
 
 import tensorflow as tf
 from sg_design_lif.neural_models.config import default_config
