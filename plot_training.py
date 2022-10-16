@@ -51,11 +51,13 @@ metrics_oi = [
     # 'final_epochs'
 ]
 
+
+plot_only = ['n_params', 'comments', 'epochs', 'initializer', 'net_name', 'steps_per_epoch', 'task_name',] + metrics_oi
 columns_to_remove = [
     'heaviside', '_test', 'weight', 'sLSTM_factor', 'save_model', 'clipnorm', 'GPU', 'batch_size',
     'continue_training', 'embedding', 'lr_schedule', 'loss_name', 'lr', 'seed', 'stack', 'stop_time',
     'convergence', 'n_neurons', 'optimizer_name', 'LSC', ' list', 'artifacts', 'command', 'heartbeat', 'meta',
-    'resources', 'host', 'start_time', 'status',
+    'resources', 'host', 'start_time', 'status', 'experiment', 'result',
 ]
 
 df = experiments_to_pandas(
@@ -90,6 +92,10 @@ df.rename(columns=new_column_names, inplace=True)
 
 if metric in df.keys():
     df = df.sort_values(by=metric)
+
+if not plot_only is None:
+    df = df[plot_only]
+
 print(list(df.columns))
 # print(df['experiment'])
 # print(df['host'])
@@ -124,7 +130,7 @@ if pandas_means:
                 print(idf.to_string())
 
     print(mdf.to_string())
-    print('Max experiment length: ', max(df['duration_experiment']))
+    # print('Max experiment length: ', max(df['duration_experiment']))
 
 if missing_exps:
     # columns of interest

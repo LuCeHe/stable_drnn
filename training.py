@@ -2,9 +2,9 @@ import os, shutil, logging, json, copy
 
 import pandas as pd
 
-# from GenericTools.keras_tools.silence_tensorflow import silence_tf
+from GenericTools.keras_tools.silence_tensorflow import silence_tf
 
-# silence_tf()
+silence_tf()
 
 import tensorflow as tf
 from sg_design_lif.neural_models.config import default_config
@@ -54,7 +54,7 @@ def config():
 
     # net
     # maLSNN cLSTM LSTM
-    net_name = 'LSTM'
+    net_name = 'GRU'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
     n_neurons = None
 
