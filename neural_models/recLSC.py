@@ -19,7 +19,7 @@ os.environ['AUTOGRAPH_VERBOSITY'] = '1'
 warnings.filterwarnings('ignore')
 
 
-def get_norms(tape, lower_states, upper_states, n_samples=100, norm_pow=2, sampled_lsc=False):
+def get_norms(tape, lower_states, upper_states, n_samples=-1, norm_pow=2):
     hss = []
     for hlm1 in lower_states:
         hs = [tape.batch_jacobian(hl, hlm1) for hl in upper_states]
@@ -34,7 +34,7 @@ def get_norms(tape, lower_states, upper_states, n_samples=100, norm_pow=2, sampl
 
     # print('nonzero:', tf.math.count_nonzero(td))
 
-    if not sampled_lsc and norm_pow in [1, 2, np.inf]:
+    if n_samples < 1 and norm_pow in [1, 2, np.inf]:
         if norm_pow is np.inf:
             norms = tf.reduce_sum(tf.abs(td), axis=2)
             norms = tf.reduce_max(norms, axis=-1)
@@ -58,7 +58,7 @@ def get_norms(tape, lower_states, upper_states, n_samples=100, norm_pow=2, sampl
 
 
 def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, steps_per_epoch=2, epsilon=.01,
-              patience=50, depth_norm=True, encoder_norm=False, decoder_norm=True):
+              patience=50, depth_norm=True, encoder_norm=False, decoder_norm=True, learn=True, time_steps=None):
     # FIXME: generalize this loop for any recurrent model
     gen_train = Task(**train_task_args)
 
@@ -78,6 +78,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
     losses = []
     all_norms = []
+    rec_norms = {}
 
     # the else is valid for the LSTM
     hi, ci = (1, 2) if 'LSNN' in net_name else (0, 1)
@@ -100,6 +101,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
     del model
 
     for step in range(steps_per_epoch):
+        for i, _ in enumerate(stack):
+            rec_norms[f'batch {step} layer {i}'] = []
 
         batch = gen_train.__getitem__(step)
         batch = [tf.convert_to_tensor(tf.cast(b, tf.float32), dtype=tf.float32) for b in batch[0]],
@@ -109,10 +112,10 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
             batch = [tf.math.greater(tf.random.uniform(b.shape), .5) for b in batch[0]],
             batch = [tf.cast(b, dtype=tf.float32) for b in batch[0]],
 
-        time_steps = batch[0][0].shape[1] if not 'test' in comments else 2
-        pbar2 = tqdm(total=time_steps, position=0)
+        ts = batch[0][0].shape[1] if time_steps is None else time_steps
+        pbar2 = tqdm(total=ts, position=0)
 
-        for t in range(time_steps):
+        for t in range(ts):
             bt = batch[0][0][:, t, :][:, None]
             wt = batch[0][1][:, t][:, None]
             with tf.GradientTape(persistent=True, watch_accessed_variables=True) as tape:
@@ -137,7 +140,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
                     norms = get_norms(tape=tape, lower_states=[ht, ct], upper_states=[htp1, ctp1], n_samples=n_samples,
                                       norm_pow=norm_pow)
-
+                    rec_norms[f'batch {step} layer {i}'].append(tf.reduce_mean(norms).numpy())
                     some_norms.append(tf.reduce_mean(norms))
                     loss = well_loss(min_value=1, max_value=1, walls_type='relu', axis='all')(norms)
                     mean_loss += loss
@@ -151,7 +154,6 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                         loss = well_loss(min_value=1, max_value=1, walls_type='relu', axis='all')(norms)
                         mean_loss += loss
 
-                    td2 = None
                     if depth_norm:
 
                         hl = htp1
@@ -179,8 +181,10 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
                     del htp1, ht, ctp1, ct
 
-            grads = tape.gradient(mean_loss, model.trainable_weights)
-            optimizer.apply_gradients(zip(grads, model.trainable_weights))
+            if learn:
+                grads = tape.gradient(mean_loss, model.trainable_weights)
+                optimizer.apply_gradients(zip(grads, model.trainable_weights))
+                del grads
 
             states = states_p1
 
@@ -211,7 +215,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                 results[f'{n}_mean'].append(tf.reduce_mean(w).numpy())
                 results[f'{n}_var'].append(tf.math.reduce_variance(w).numpy())
 
-            del model, tape, grads
+            del model, tape
         del batch
 
         pbar1.update(1)
@@ -224,8 +228,10 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
         results[f'{n}_mean'] = str(results[f'{n}_mean'])
         results[f'{n}_var'] = str(results[f'{n}_var'])
 
-    results.update(LSC_losses=str(losses), LSC_norms=str(all_norms))
+    # results.update(LSC_losses=str(losses), LSC_norms=str(all_norms))
+    results.update(LSC_losses=str(losses), LSC_norms=str(all_norms), rec_norms=rec_norms)
 
+    print(rec_norms)
     tf.keras.backend.clear_session()
     return weights, results
 

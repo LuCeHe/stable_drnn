@@ -87,18 +87,9 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
          seed, net_name, n_neurons, lr, stack, loss_name, embedding, optimizer_name,
          lr_schedule, weight_decay, clipnorm, initializer, stop_time, _log):
     stack, batch_size, embedding, n_neurons, lr = default_config(
-        stack, batch_size, embedding, n_neurons, lr, task_name, lsc=True
+        stack, batch_size, embedding, n_neurons, lr, task_name, net_name
     )
 
-    if task_name == 'heidelberg':
-        sLSTM_factor = .37  # 1 / 3
-    elif task_name == 'sl_mnist':
-        sLSTM_factor = 1 / 3
-    else:
-        sLSTM_factor = 1 / 3
-
-    n_neurons = n_neurons if not 'LSTM' in net_name else int(n_neurons * sLSTM_factor)
-    stack = '700:300' if ('LSTM' in net_name and task_name == 'wordptb') else stack
 
     exp_dir = os.path.join(CDIR, ex.observers[0].basedir)
     comments += '_**folder:' + exp_dir + '**_'
@@ -173,7 +164,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
         )
 
     if 'findLSC' in comments:
-        n_samples = str2val(comments, 'normsamples', int, default=None)
+        n_samples = str2val(comments, 'normsamples', int, default=-1)
         lscdepth = bool(str2val(comments, 'lscdepth', int, default=0))
         lscout = bool(str2val(comments, 'lscout', int, default=0))
         if n_samples is None:
