@@ -3,6 +3,10 @@ import os, json, argparse
 from GenericTools.keras_tools.esoteric_tasks.time_task_redirection import language_tasks, Task
 from GenericTools.stay_organized.utils import str2val, NumpyEncoder
 
+from GenericTools.keras_tools.silence_tensorflow import silence_tf
+
+silence_tf()
+
 from sg_design_lif.neural_models.config import default_config
 from alif_sg.neural_models.recLSC import apply_LSC
 
@@ -13,8 +17,8 @@ EXPS = os.path.join(CDIR, 'experiments')
 # start with LSTM on SHD
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--steps_per_epoch", default=1, type=int, help="Batch size")
-parser.add_argument("--time_steps", default=1, type=int, help="timesteps")
+parser.add_argument("--steps_per_epoch", default=2, type=int, help="Batch size")
+parser.add_argument("--time_steps", default=2, type=int, help="timesteps")
 parser.add_argument("--task_name", default='heidelberg', type=str)
 parser.add_argument("--net_name", default='maLSNN', type=str)
 args = parser.parse_args()
