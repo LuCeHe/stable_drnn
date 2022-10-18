@@ -1,5 +1,7 @@
 import os, json, argparse
 import numpy as np
+import scipy
+from scipy import stats
 
 from GenericTools.keras_tools.esoteric_tasks.time_task_redirection import language_tasks, Task
 from GenericTools.stay_organized.utils import str2val, NumpyEncoder
@@ -23,12 +25,12 @@ parser.add_argument("--steps_per_epoch", default=1, type=int)
 parser.add_argument("--batch_size", default=128, type=int)
 parser.add_argument("--time_steps", default=2, type=int)
 parser.add_argument("--task_name", default='heidelberg', type=str)
-parser.add_argument("--net_name", default='LSTM', type=str)
+parser.add_argument("--net_name", default='maLSNN', type=str)
+parser.add_argument("--findLSC", default=0, type=int)
 args = parser.parse_args()
 
 string_args = json.dumps(vars(args), indent=4, cls=NumpyEncoder)
 print(string_args)
-
 
 epochs = 1
 batch_size = args.batch_size
@@ -74,11 +76,20 @@ if not os.path.exists(results_filename):
         n_out=gen_train.out_dim, final_epochs=epochs,
     )
 
+    weights = None
+    if args.findLSC:
+        weights, _ = apply_LSC(
+            train_task_args=train_task_args, model_args=model_args, norm_pow=2, n_samples=-1,
+            batch_size=batch_size, depth_norm=False, decoder_norm=False, learn=True,
+            steps_per_epoch=2,
+            time_steps=time_steps
+        )
+
     _, lsc_results = apply_LSC(
         train_task_args=train_task_args, model_args=model_args, norm_pow=2, n_samples=-1,
         batch_size=batch_size, depth_norm=False, decoder_norm=False, learn=False,
         steps_per_epoch=steps_per_epoch,
-        time_steps=time_steps
+        time_steps=time_steps, weights=weights
     )
 
     # json.dump(lsc_results, open(results_filename, "w"), cls=NumpyEncoder)
@@ -94,24 +105,48 @@ else:
 
 print(lsc_results.keys())
 
-layer = 1
-norms = [v for k, v in lsc_results['rec_norms'].items() if f'layer {layer}' in k][0]
+# plt.rc('text', usetex=True)
+fig, axs = plt.subplots(3, 2, figsize=(6, 3), gridspec_kw={'wspace': .2, 'hspace': .5})
 
-print(norms)
-print([len(n) for n in norms])
-# print([n.shape for n in norms])
+for i in [0, 1]:
+    layer = i
+    norms = [v for k, v in lsc_results['rec_norms'].items() if f'layer {layer}' in k][0]
 
-norms = np.array(norms).T
-means = np.mean(norms, axis=0)
-normalized_norms = norms - means
-t1x = normalized_norms[:, 0]
-cov_i = normalized_norms * t1x[..., None]
-cov = np.mean(cov_i, axis=0)
+    norms = np.array(norms).T
+    means = np.mean(norms, axis=0)
+    normalized_norms = norms - means
+    t1x = normalized_norms[:, 0]
 
-print(norms.shape, norms[0].shape, t1x.shape, cov_i.shape)
-print(cov)
+    time_steps = normalized_norms.shape[1]
+    corr = []
+    ps = []
+    covs = []
+    for t in range(time_steps):
+        ns = normalized_norms[:, t]
+        r, p = scipy.stats.pearsonr(ns, t1x)
+        c = np.cov(ns, t1x)[0][1]
+        covs.append(c)
+        corr.append(r)
+        ps.append(p)
 
-plt.plot(cov)
+    axs[0, i].plot(covs)
+    axs[1, i].plot(corr)
+    axs[2, i].plot(ps, color='r', linestyle='--')
+
+    axs[2, i].set_xlabel('t')
+    axs[0, i].set_title(f'layer {i + 1}')
+    axs[0, 0].set_ylabel(r'$Covariance$')
+    axs[1, 0].set_ylabel(r'$Correlation$')
+    axs[2, 0].set_ylabel(r'$p$-$value$')
+
+for ax in axs.reshape(-1):
+    for pos in ['right', 'left', 'bottom', 'top']:
+        ax.spines[pos].set_visible(False)
+
+# axs[0, 1].tick_params(labelleft=False, left=False)
+
+fig.align_ylabels(axs[:, 0])
+
+pathplot = os.path.join(EXPS, f'rec_norms_{net_name}_{task_name}.png')
+fig.savefig(pathplot, bbox_inches='tight')
 plt.show()
-
-# c = (norms-)

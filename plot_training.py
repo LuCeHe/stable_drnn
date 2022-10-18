@@ -336,7 +336,6 @@ if plot_lsc_vs_naive:
             for pos in ['right', 'left', 'bottom', 'top']:
                 ax.spines[pos].set_visible(False)
 
-        # axs[1].axes.yaxis.set_ticklabels([])
         axs[1].tick_params(labelleft=False, left=False)
         pathplot = os.path.join(CDIR, 'experiments', f'lscvsrandom_{task}.png')
         fig.savefig(pathplot, bbox_inches='tight')

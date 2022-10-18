@@ -58,7 +58,8 @@ def get_norms(tape, lower_states, upper_states, n_samples=-1, norm_pow=2):
 
 
 def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, steps_per_epoch=2, epsilon=.01,
-              patience=50, depth_norm=True, encoder_norm=False, decoder_norm=True, learn=True, time_steps=None):
+              patience=50, depth_norm=True, encoder_norm=False, decoder_norm=True, learn=True, time_steps=None,
+              weights=None):
     # FIXME: generalize this loop for any recurrent model
     gen_train = Task(**train_task_args)
 
@@ -93,8 +94,9 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
     results = {}
 
     # get initial values of model
-    model = build_model(**model_args)
-    weights = model.get_weights()
+    if weights is None:
+        model = build_model(**model_args)
+        weights = model.get_weights()
     weight_names = [weight.name for layer in model.layers for weight in layer.weights]
     results.update({f'{n}_mean': [tf.reduce_mean(w).numpy()] for n, w in zip(weight_names, weights)})
     results.update({f'{n}_var': [tf.math.reduce_variance(w).numpy()] for n, w in zip(weight_names, weights)})
