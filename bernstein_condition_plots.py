@@ -1,9 +1,11 @@
 import os, json, argparse
+import numpy as np
 
 from GenericTools.keras_tools.esoteric_tasks.time_task_redirection import language_tasks, Task
 from GenericTools.stay_organized.utils import str2val, NumpyEncoder
 
 from GenericTools.keras_tools.silence_tensorflow import silence_tf
+import matplotlib.pyplot as plt
 
 silence_tf()
 
@@ -17,15 +19,19 @@ EXPS = os.path.join(CDIR, 'experiments')
 # start with LSTM on SHD
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--steps_per_epoch", default=2, type=int, help="Batch size")
-parser.add_argument("--time_steps", default=2, type=int, help="timesteps")
+parser.add_argument("--steps_per_epoch", default=1, type=int)
+parser.add_argument("--batch_size", default=128, type=int)
+parser.add_argument("--time_steps", default=2, type=int)
 parser.add_argument("--task_name", default='heidelberg', type=str)
-parser.add_argument("--net_name", default='maLSNN', type=str)
+parser.add_argument("--net_name", default='LSTM', type=str)
 args = parser.parse_args()
+
+string_args = json.dumps(vars(args), indent=4, cls=NumpyEncoder)
+print(string_args)
 
 
 epochs = 1
-batch_size = 1
+batch_size = args.batch_size
 steps_per_epoch = args.steps_per_epoch
 time_steps = args.time_steps
 stack = None
@@ -89,12 +95,13 @@ else:
 print(lsc_results.keys())
 
 layer = 1
-norms = [v for k, v in lsc_results['rec_norms'].items() if f'layer {layer}' in k]
+norms = [v for k, v in lsc_results['rec_norms'].items() if f'layer {layer}' in k][0]
 
+print(norms)
 print([len(n) for n in norms])
-import numpy as np
+# print([n.shape for n in norms])
 
-norms = np.array(norms)
+norms = np.array(norms).T
 means = np.mean(norms, axis=0)
 normalized_norms = norms - means
 t1x = normalized_norms[:, 0]
@@ -103,5 +110,8 @@ cov = np.mean(cov_i, axis=0)
 
 print(norms.shape, norms[0].shape, t1x.shape, cov_i.shape)
 print(cov)
+
+plt.plot(cov)
+plt.show()
 
 # c = (norms-)

@@ -140,7 +140,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
                     norms = get_norms(tape=tape, lower_states=[ht, ct], upper_states=[htp1, ctp1], n_samples=n_samples,
                                       norm_pow=norm_pow)
-                    rec_norms[f'batch {step} layer {i}'].append(tf.reduce_mean(norms).numpy())
+                    print(norms.shape)
+                    rec_norms[f'batch {step} layer {i}'].append(norms.numpy())
                     some_norms.append(tf.reduce_mean(norms))
                     loss = well_loss(min_value=1, max_value=1, walls_type='relu', axis='all')(norms)
                     mean_loss += loss
