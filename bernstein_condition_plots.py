@@ -44,7 +44,7 @@ comments = '32_embproj_nogradreset_dropout:.3_timerepeat:2_reoldspike_test'
 # for net_name in ['LSTM', 'maLSNN']:
 #     for task_name in ['heidelberg', 'wordptb', 'sl_mnist']:
 print(net_name, task_name)
-results_filename = os.path.join(EXPS, f'rec_norms_{net_name}_{task_name}.json')
+results_filename = os.path.join(EXPS, f'rec_norms_{net_name}_{task_name}_LSC{args.findLSC}.json')
 if not os.path.exists(results_filename):
 
     # task definition
@@ -147,6 +147,6 @@ for ax in axs.reshape(-1):
 
 fig.align_ylabels(axs[:, 0])
 
-pathplot = os.path.join(EXPS, f'rec_norms_{net_name}_{task_name}.png')
+pathplot = os.path.join(EXPS, f'rec_norms_{net_name}_{task_name}_LSC{args.findLSC}.png')
 fig.savefig(pathplot, bbox_inches='tight')
 plt.show()
