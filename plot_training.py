@@ -32,7 +32,8 @@ h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 # HSITORIESPATH = os.path.join(EXPERIMENTS, 'histories.json')
 
 pandas_means = True
-missing_exps = True
+make_latex = True
+missing_exps = False
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -104,6 +105,7 @@ print(list(df.columns))
 print(df.to_string())
 
 if pandas_means:
+    show_per_tasknet = False
     group_cols = ['net_name', 'task_name', 'initializer', 'comments']
     counts = df.groupby(group_cols).size().reset_index(name='counts')
 
@@ -112,6 +114,7 @@ if pandas_means:
         group_cols, as_index=False
     ).agg({m: ['mean', 'std'] for m in metrics_oi})
 
+    print(mdf.columns)
     for m in metrics_oi:
         mdf['mean_{}'.format(m)] = mdf[m]['mean']
         mdf['std_{}'.format(m)] = mdf[m]['std']
@@ -123,16 +126,98 @@ if pandas_means:
     tasks = np.unique(mdf['task_name'])
     nets = np.unique(mdf['net_name'])
 
-    for task in tasks:
-        for net in nets:
-            if not net == 'LIF':
-                print('-===-' * 30)
-                print(task, net)
-                idf = mdf[mdf['task_name'].str.contains(task) & mdf['net_name'].str.contains(net)]
-                print(idf.to_string())
+    if show_per_tasknet:
+        for task in tasks:
+            for net in nets:
+                if not net == 'LIF':
+                    print('-===-' * 30)
+                    print(task, net)
+                    idf = mdf[mdf['task_name'].str.contains(task) & mdf['net_name'].str.contains(net)]
+                    print(idf.to_string())
 
     print(mdf.to_string())
+
+
     # print('Max experiment length: ', max(df['duration_experiment']))
+
+    def cm_(metric='ppl'):
+        c = 1
+        if 'acc' in metric:
+            c = 100
+
+        def compactify_metrics(row):
+            mtppl = round(c * row[f'mean_t_{metric}'].values[0], 2)
+            stppl = round(c * row[f'std_t_{metric}'].values[0], 2)
+            mvppl = round(c * row[f'mean_v_{metric}'].values[0], 2)
+            svppl = round(c * row[f'std_v_{metric}'].values[0], 2)
+
+            return f"{str(mvppl)}\pm{str(svppl)}/{str(mtppl)}\pm{str(stppl)}"
+
+        return compactify_metrics
+
+
+    def choose_metric(row):
+        if row['task_name'].values[0] == 'wordptb':
+            metric = row['ppl']
+        else:
+            metric = row['acc']
+        return metric
+
+
+    if make_latex:
+        net = 'LSTM'
+        idf = mdf[mdf['net_name'].str.contains(net)]
+        idf['ppl'] = idf.apply(cm_('ppl'), axis=1)
+        idf['acc'] = idf.apply(cm_('mode_acc'), axis=1)
+        idf['metric'] = idf.apply(choose_metric, axis=1)
+        # idf = idf[idf.columns.drop(list(idf.filter(regex='std')) + list(idf.filter(regex='mean')))]
+        idf = idf[idf.columns.drop(list(idf.filter(regex='acc')) + list(idf.filter(regex='ppl')))]
+        idf = idf[idf.columns.drop(['counts', 'initializer', 'net_name'])]
+        # idf = idf[idf.columns.drop(['initializer', 'net_name'])]
+
+        idf['comments'] = idf['comments'].str.replace('32_embproj_nogradreset_dropout:.3_timerepeat:2_', '', regex=True)
+        idf['comments'] = idf['comments'].str.replace('find', '', regex=True)
+        idf['comments'] = idf['comments'].str.replace('normpow:-1', r'\\infty', regex=True)
+        idf['comments'] = idf['comments'].str.replace('normpow:', '', regex=True)
+        idf['comments'] = idf['comments'].str.replace('_gausslsc', ' + g', regex=True)
+        idf['comments'] = idf['comments'].str.replace('_berlsc', ' + b', regex=True)
+        idf['comments'] = idf['comments'].str.replace('_gaussbeta', r'\\beta', regex=True)
+        idf['comments'] = idf['comments'].str.replace('_lscdepth:1_lscout:0', '^{(d)}', regex=True)
+        idf['comments'] = idf['comments'].str.replace('_lscdepth:1_lscout:1', '^{(dr)}', regex=True)
+        idf = idf[~idf['comments'].str.contains('timerepeat:1')]
+
+        conditions = np.unique(idf['comments'])
+        tasks = ['sl_mnist', 'heidelberg', 'wordptb']
+        order_conditions = ['', 'LSC_1', 'LSC_2', r'LSC_\infty', 'LSC_2 + g', 'LSC_2 + b',
+                            r'LSC_2\beta', r'LSC_2\beta + g', r'LSC_2\beta + b',
+                            'LSC_2^{(d)}', 'LSC_2^{(dr)}']
+
+        idf['comments'] = pd.Categorical(idf['comments'], order_conditions)
+        pdf = pd.pivot_table(idf, values='metric', index=['comments'], columns=['task_name'], aggfunc=np.sum)
+        pdf = pdf.replace([0], '-')
+
+        for t in tasks:
+            pdf[t] = pdf[''][t]
+            # mdf['std_{}'.format(m)] = mdf[m]['std']
+        pdf = pdf.drop([''], axis=1)
+
+        print(pdf.columns)
+        # pdf = pdf[tasks]
+
+        # pdf.sort_values('comments')
+        # dfs = []
+        # for task in tasks:
+        #     tdf = idf[~idf['task_name'].str.contains(task)]
+        #     tdf = tdf[tdf.columns.drop(['task_name'])]
+        #
+        #     dfs.append(tdf)
+
+        print(conditions)
+
+        print(idf.to_string())
+        print(pdf.to_string())
+
+        print(pdf.to_latex(index=True, escape=False))
 
 if missing_exps:
     # columns of interest

@@ -23,7 +23,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--steps_per_epoch", default=1, type=int)
 parser.add_argument("--batch_size", default=128, type=int)
 parser.add_argument("--time_steps", default=2, type=int)
-parser.add_argument("--task_name", default='heidelberg', type=str)
+parser.add_argument("--task_name", default='wordptb', type=str)
 parser.add_argument("--net_name", default='maLSNN', type=str)
 parser.add_argument("--findLSC", default=0, type=int)
 args = parser.parse_args()
@@ -116,7 +116,7 @@ for i in [0, 1]:
     norms = np.array(norms).T
 
     if args.task_name == 'sl_mnist':
-        norms = norms[:, 9:]
+        norms = norms[:, 10:]
     else:
         norms = norms[:, 1:]
 
@@ -124,7 +124,7 @@ for i in [0, 1]:
     normalized_norms = norms - means
     t1x = normalized_norms[:, 0]
 
-    print(normalized_norms.shape)
+    # print(normalized_norms.shape)
     time_steps = normalized_norms.shape[1]
     corr = []
     ps = []
