@@ -19,14 +19,13 @@ CDIR = os.path.dirname(FILENAME)
 EXPS = os.path.join(CDIR, 'experiments')
 
 # start with LSTM on SHD
-
 parser = argparse.ArgumentParser()
 parser.add_argument("--steps_per_epoch", default=1, type=int)
 parser.add_argument("--batch_size", default=128, type=int)
 parser.add_argument("--time_steps", default=2, type=int)
-parser.add_argument("--task_name", default='heidelberg', type=str)
-parser.add_argument("--net_name", default='maLSNN', type=str)
-parser.add_argument("--findLSC", default=0, type=int)
+parser.add_argument("--task_name", default='sl_mnist', type=str)
+parser.add_argument("--net_name", default='LSTM', type=str)
+parser.add_argument("--findLSC", default=1, type=int)
 args = parser.parse_args()
 
 string_args = json.dumps(vars(args), indent=4, cls=NumpyEncoder)
@@ -111,24 +110,29 @@ fig, axs = plt.subplots(3, 2, figsize=(6, 3), gridspec_kw={'wspace': .2, 'hspace
 for i in [0, 1]:
     layer = i
     norms = [v for k, v in lsc_results['rec_norms'].items() if f'layer {layer}' in k][0]
-
     norms = np.array(norms).T
+
+    if args.task_name=='sl_mnist':
+        norms = norms[:, 9:]
+
     means = np.mean(norms, axis=0)
     normalized_norms = norms - means
     t1x = normalized_norms[:, 0]
 
+    print(normalized_norms.shape)
     time_steps = normalized_norms.shape[1]
     corr = []
     ps = []
     covs = []
+
     for t in range(time_steps):
         ns = normalized_norms[:, t]
+        print(ns[:11])
         r, p = scipy.stats.pearsonr(ns, t1x)
         c = np.cov(ns, t1x)[0][1]
         covs.append(c)
         corr.append(r)
         ps.append(p)
-
     axs[0, i].plot(covs)
     axs[1, i].plot(corr)
     axs[2, i].plot(ps, color='r', linestyle='--')

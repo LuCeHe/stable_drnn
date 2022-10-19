@@ -94,8 +94,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
     results = {}
 
     # get initial values of model
+    model = build_model(**model_args)
     if weights is None:
-        model = build_model(**model_args)
         weights = model.get_weights()
     weight_names = [weight.name for layer in model.layers for weight in layer.weights]
     results.update({f'{n}_mean': [tf.reduce_mean(w).numpy()] for n, w in zip(weight_names, weights)})
