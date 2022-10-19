@@ -8,9 +8,10 @@ import matplotlib.pyplot as plt
 from GenericTools.stay_organized.mpl_tools import load_plot_settings
 from GenericTools.stay_organized.utils import setReproducible, str2val
 from GenericTools.keras_tools.esoteric_losses.loss_redirection import get_loss
-from alif_sg.generate_data.task_redirection import Task, language_tasks
-from alif_sg.neural_models.custom_lstm import customLSTMcell
-from sg_design_lif.neural_models.full_model import build_model
+# from alif_sg.generate_data.task_redirection import Task, language_tasks
+# from alif_sg.neural_models.custom_lstm import customLSTMcell
+# from sg_design_lif.neural_models.full_model import build_model
+from stochastic_spiking.generate_data.task_redirection import language_tasks
 
 mpl = load_plot_settings(mpl=mpl, pd=None)
 
@@ -160,8 +161,8 @@ def get_data(n_neurons, time_steps, list_comments, save_folder, n_seeds, initial
 
 def initialization_tests():
     plot_vargrad = False
-    plot_binomial = False
-    plot_activity = True
+    plot_binomial = True
+    plot_activity = False
     test_adaptive_pseudod = False
 
     # test configuration
@@ -175,7 +176,9 @@ def initialization_tests():
     # list_comments = ['LSC1', 'lsc1', 'LSC2', '', 'randominit', 'cLSTM', 'veryrandom']
     list_comments = ['LSC1', 'lsc1', 'LSC2', '', 'randominit', 'cLSTM']
 
-    gs, acts, thrs, cvolts = get_data(n_neurons, time_steps, list_comments, save_folder, n_seeds, initializer, stack)
+    if plot_vargrad or plot_activity:
+        gs, acts, thrs, cvolts = get_data(n_neurons, time_steps, list_comments, save_folder, n_seeds, initializer,
+                                          stack)
 
     if plot_vargrad:
         colors = [plt.cm.ocean(x) for x in np.linspace(.2, .8, n_seeds)]
@@ -234,7 +237,7 @@ def initialization_tests():
 
     if plot_binomial:
 
-        fig, axs = plt.subplots(1, 3, gridspec_kw={'wspace': .25, 'hspace': .1}, figsize=(10, 3))
+        fig, axs = plt.subplots(1, 3, gridspec_kw={'wspace': .5, 'hspace': .1}, figsize=(6, 3))
 
         T = 10000
         dL = 5
@@ -261,7 +264,7 @@ def initialization_tests():
         axs[2].plot(ts, y)
         axs[2].set_xlabel(r'$100\Delta l=T$')
 
-        axs[0].set_ylabel(r'$\frac{1}{T}\binom{T + \Delta l +2}{T}$')
+        axs[0].set_ylabel(r'$\frac{1}{T}\binom{T + \Delta l +2}{T}$', fontsize=24)
 
         axs[0].set_yscale('log')
         axs[1].set_yscale('log')
@@ -289,6 +292,13 @@ def initialization_tests():
         axs[0].yaxis.set_minor_formatter(mpl.ticker.NullFormatter())
         axs[1].yaxis.set_minor_formatter(mpl.ticker.NullFormatter())
         # axs[2].yaxis.set_minor_formatter(mpl.ticker.NullFormatter())
+
+        for ax in axs.reshape(-1):
+            for pos in ['right', 'left', 'bottom', 'top']:
+                ax.spines[pos].set_visible(False)
+
+            xlabels = [f'{int(x / 1000)}K' if not x == 0 else int(x) for x in ax.get_xticks()]
+            ax.set_xticklabels(xlabels)
 
         # axs[0].tick_params(axis='y', which='minor')
         pathplot = os.path.join(CDIR, 'experiments', 'subexp.png')
@@ -331,9 +341,6 @@ def plot_act(cvolts, list_comments):
     fig.savefig(pathplot, bbox_inches='tight')
 
     plt.show()
-
-
-
 
 
 if __name__ == '__main__':

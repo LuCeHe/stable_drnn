@@ -23,13 +23,16 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--steps_per_epoch", default=1, type=int)
 parser.add_argument("--batch_size", default=128, type=int)
 parser.add_argument("--time_steps", default=2, type=int)
-parser.add_argument("--task_name", default='sl_mnist', type=str)
-parser.add_argument("--net_name", default='LSTM', type=str)
-parser.add_argument("--findLSC", default=1, type=int)
+parser.add_argument("--task_name", default='heidelberg', type=str)
+parser.add_argument("--net_name", default='maLSNN', type=str)
+parser.add_argument("--findLSC", default=0, type=int)
 args = parser.parse_args()
 
 string_args = json.dumps(vars(args), indent=4, cls=NumpyEncoder)
 print(string_args)
+
+clean_task_name = {'sl_mnist': 'sl-MNIST', 'wordptb': 'PTB', 'heidelberg': 'SHD'}
+clean_net_name = {'LSTM': 'LSTM', 'maLSNN': 'ALIF'}
 
 epochs = 1
 batch_size = args.batch_size
@@ -112,8 +115,10 @@ for i in [0, 1]:
     norms = [v for k, v in lsc_results['rec_norms'].items() if f'layer {layer}' in k][0]
     norms = np.array(norms).T
 
-    if args.task_name=='sl_mnist':
+    if args.task_name == 'sl_mnist':
         norms = norms[:, 9:]
+    else:
+        norms = norms[:, 1:]
 
     means = np.mean(norms, axis=0)
     normalized_norms = norms - means
@@ -127,7 +132,7 @@ for i in [0, 1]:
 
     for t in range(time_steps):
         ns = normalized_norms[:, t]
-        print(ns[:11])
+        # print(ns[:11])
         r, p = scipy.stats.pearsonr(ns, t1x)
         c = np.cov(ns, t1x)[0][1]
         covs.append(c)
@@ -150,6 +155,7 @@ for ax in axs.reshape(-1):
 # axs[0, 1].tick_params(labelleft=False, left=False)
 
 fig.align_ylabels(axs[:, 0])
+fig.suptitle(f'{clean_net_name[net_name]} on {clean_task_name[task_name]}', y=1.1, fontsize=14)
 
 pathplot = os.path.join(EXPS, f'rec_norms_{net_name}_{task_name}_LSC{args.findLSC}.png')
 fig.savefig(pathplot, bbox_inches='tight')

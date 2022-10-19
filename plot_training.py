@@ -51,20 +51,22 @@ metrics_oi = [
     # 'final_epochs'
 ]
 
-
-plot_only = ['n_params', 'comments', 'epochs', 'initializer', 'net_name', 'steps_per_epoch', 'task_name',] + metrics_oi
+plot_only = ['net_name', 'n_params', 'comments', 'epochs', 'initializer', 'optimizer_name', 'steps_per_epoch',
+             'task_name', 'path'] + metrics_oi
 columns_to_remove = [
     'heaviside', '_test', 'weight', 'sLSTM_factor', 'save_model', 'clipnorm', 'GPU', 'batch_size',
     'continue_training', 'embedding', 'lr_schedule', 'loss_name', 'lr', 'seed', 'stack', 'stop_time',
     'convergence', 'n_neurons', 'optimizer_name', 'LSC', ' list', 'artifacts', 'command', 'heartbeat', 'meta',
     'resources', 'host', 'start_time', 'status', 'experiment', 'result',
 ]
+columns_to_remove = []
 
 df = experiments_to_pandas(
     h5path=h5path, zips_folder=GEXPERIMENTS, unzips_folder=EXPERIMENTS, experiments_identifier=expsid,
     exclude_files=['cout.txt']
 )
 
+print(df.columns)
 if 'host' in df.columns:
     df['where'] = df['host'].apply(lambda x: x['hostname'])
 
@@ -149,7 +151,7 @@ if missing_exps:
     experiments = []
     experiment = {
         # 'task_name': ['heidelberg', 'ps_mnist', 's_mnist', 'ss_mnist', 'sps_mnist', 'sl_mnist'],
-        'task_name': ['heidelberg', 'wordptb', 'wordptb1', 'sl_mnist'],
+        'task_name': ['heidelberg', 'wordptb', 'sl_mnist'],
         'net_name': ['maLSNN', 'LSTM'], 'seed': seeds,
         'comments': [
             incomplete_comments,
@@ -166,7 +168,7 @@ if missing_exps:
 
     experiment = {
         # 'task_name': ['heidelberg', 'ps_mnist', 's_mnist', 'ss_mnist', 'sps_mnist', 'sl_mnist'],
-        'task_name': ['heidelberg', 'wordptb', 'wordptb1', 'sl_mnist'],
+        'task_name': ['heidelberg', 'wordptb', 'sl_mnist'],
         'net_name': ['maLSNN'], 'seed': seeds,
         'comments': [
             incomplete_comments + f'findLSC_normpow:2_gaussbeta',
@@ -200,7 +202,7 @@ if missing_exps:
     sdf = sdf.drop_duplicates()
 
     # df = df[~df['task_name'].str.contains('wordptb1')]
-    df = df[~df['task_name'].str.contains('wordptb')]
+    # df = df[~df['task_name'].str.contains('wordptb')]
     # df = df[df['task_name'].str.contains('wordptb')]
 
     print('left, done, all: ', df.shape, sdf.shape, all_exps.shape)
