@@ -81,10 +81,19 @@ if not os.path.exists(results_filename):
     weights = None
     if args.findLSC:
 
+        new_model_args = copy.deepcopy(model_args)
+        new_comments = new_model_args['comments'] + '_reoldspike'
+        new_batch_size = batch_size
+        if 'ptb' in task_name:
+            new_comments = str2val(new_comments, 'batchsize', replace=8)
+            new_batch_size = 8
+
+        new_model_args['comments'] = new_comments
+
         new_task_args = copy.deepcopy(train_task_args)
         new_task_args['batch_size'] = new_task_args['batch_size'] if not 'ptb' in task_name else 8
         weights, _ = apply_LSC(
-            train_task_args=new_task_args, model_args=model_args, norm_pow=2, n_samples=-1,
+            train_task_args=new_task_args, model_args=new_model_args, norm_pow=2, n_samples=-1,
             batch_size=batch_size, depth_norm=False, decoder_norm=False, learn=True,
             steps_per_epoch=2,
             time_steps=time_steps
