@@ -59,7 +59,7 @@ def get_norms(tape, lower_states, upper_states, n_samples=-1, norm_pow=2):
 
 def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, steps_per_epoch=2, epsilon=.01,
               patience=50, depth_norm=True, encoder_norm=False, decoder_norm=True, learn=True, time_steps=None,
-              weights=None):
+              weights=None, save_weights_path=None):
     # FIXME: generalize this loop for any recurrent model
     gen_train = Task(**train_task_args)
 
@@ -95,12 +95,27 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
     # get initial values of model
     model = build_model(**model_args)
+
+    if not save_weights_path is None:
+        os.makedirs(save_weights_path, exist_ok=True)
+        # Guardar configuración JSON en el disco
+        config_path = os.path.join(save_weights_path, 'model_config_lsc_before.json')
+        json_config = model.to_json()
+        with open(config_path, 'w') as json_file:
+            json_file.write(json_config)
+        # Guardar pesos en el disco
+        weights_path = os.path.join(save_weights_path, 'model_weights_lsc_before.h5')
+        model.save_weights(weights_path)
+        print('here')
+
     if weights is None:
         weights = model.get_weights()
     weight_names = [weight.name for layer in model.layers for weight in layer.weights]
     results.update({f'{n}_mean': [tf.reduce_mean(w).numpy()] for n, w in zip(weight_names, weights)})
     results.update({f'{n}_var': [tf.math.reduce_variance(w).numpy()] for n, w in zip(weight_names, weights)})
-    del model
+
+
+    model, tape = None, None
 
     for step in range(steps_per_epoch):
         for i, _ in enumerate(stack):
@@ -125,6 +140,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
         for t in range(ts):
             bt = batch[0][0][:, t, :][:, None]
             wt = batch[0][1][:, t][:, None]
+
+            del model, tape
             with tf.GradientTape(persistent=True, watch_accessed_variables=True) as tape:
                 tape.watch(wt)
                 tape.watch(bt)
@@ -198,6 +215,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
             if not np.isnan(mean_loss.numpy()):
                 del weights
                 weights = model.get_weights()
+
             tf.keras.backend.clear_session()
             # print(some_norms)
             norms = tf.reduce_mean(some_norms)
@@ -222,7 +240,6 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                 results[f'{n}_mean'].append(tf.reduce_mean(w).numpy())
                 results[f'{n}_var'].append(tf.math.reduce_variance(w).numpy())
 
-            del model, tape
         del batch
 
         pbar1.update(1)
@@ -235,6 +252,18 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
         results[f'{n}_mean'] = str(results[f'{n}_mean'])
         results[f'{n}_var'] = str(results[f'{n}_var'])
 
+
+    if not save_weights_path is None:
+        # Guardar configuración JSON en el disco
+        config_path = os.path.join(save_weights_path, 'model_config_lsc_after.json')
+        json_config = model.to_json()
+        with open(config_path, 'w') as json_file:
+            json_file.write(json_config)
+        # Guardar pesos en el disco
+        weights_path = os.path.join(save_weights_path, 'model_weights_lsc_after.h5')
+        model.save_weights(weights_path)
+
+    del model, tape
     # results.update(LSC_losses=str(losses), LSC_norms=str(all_norms))
     results.update(LSC_losses=str(losses), LSC_norms=str(all_norms), rec_norms=rec_norms)
 
