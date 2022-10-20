@@ -44,24 +44,24 @@ def config():
     # task and net
     # ps_mnist heidelberg s_mnist
     # wordptb sl_mnist
-    task_name = 'heidelberg'
+    task_name = 'wordptb'
 
     # test configuration
     epochs = 0
     steps_per_epoch = 1
-    batch_size = 2
+    batch_size = None
     stack = None
 
     # net
     # maLSNN cLSTM LSTM
-    net_name = 'GRU'
+    net_name = 'maLSNN'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
     n_neurons = None
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task_name in language_tasks else False
 
-    comments = 'findLSC_test_lscdepth:1_lscout:1_gaussbeta_test_gausslsc_ptb1'  # 'nsLIFreadout_adaptsg_dropout:0.50' findLSC_test
-    comments = ''  # 'nsLIFreadout_adaptsg_dropout:0.50' findLSC_test
+    comments = '32_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_normpow:2_gaussbeta_berlsc'  # 'nsLIFreadout_adaptsg_dropout:0.50' findLSC_test
+    # comments = ''  # 'nsLIFreadout_adaptsg_dropout:0.50' findLSC_test
 
     # optimizer properties
     lr = None  # 7e-4 None
@@ -89,7 +89,6 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
     stack, batch_size, embedding, n_neurons, lr = default_config(
         stack, batch_size, embedding, n_neurons, lr, task_name, net_name
     )
-
 
     exp_dir = os.path.join(CDIR, ex.observers[0].basedir)
     comments += '_**folder:' + exp_dir + '**_'
@@ -164,6 +163,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
         )
 
     if 'findLSC' in comments:
+        print('Finding the LSC...')
         n_samples = str2val(comments, 'normsamples', int, default=-1)
         lscdepth = bool(str2val(comments, 'lscdepth', int, default=0))
         lscout = bool(str2val(comments, 'lscout', int, default=0))
@@ -174,13 +174,19 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
         norm_pow = str2val(comments, 'normpow', float, default=2)
         norm_pow = norm_pow if norm_pow > 0 else np.inf
         new_model_args = copy.deepcopy(model_args)
-        new_model_args['comments'] = new_model_args['comments'] + '_reoldspike'
+        new_comments = new_model_args['comments'] + '_reoldspike'
+        new_batch_size = batch_size
+        if 'ptb' in task_name:
+            new_comments = str2val(new_comments, 'batchsize', replace=8)
+            new_batch_size = 8
 
+        new_model_args['comments'] = new_comments
         new_task_args = copy.deepcopy(train_task_args)
         new_task_args['batch_size'] = new_task_args['batch_size'] if not 'ptb' in task_name else 8
+
         weights, lsc_results = apply_LSC(
-            train_task_args=train_task_args, model_args=new_model_args, norm_pow=norm_pow, n_samples=n_samples,
-            batch_size=batch_size, depth_norm=lscdepth, decoder_norm=lscout
+            train_task_args=new_task_args, model_args=new_model_args, norm_pow=norm_pow, n_samples=n_samples,
+            batch_size=new_batch_size, depth_norm=lscdepth, decoder_norm=lscout
         )
         results.update(lsc_results)
 

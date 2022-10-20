@@ -113,6 +113,11 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
         elif 'berlsc' in comments:
             batch = [tf.math.greater(tf.random.uniform(b.shape), .5) for b in batch[0]],
             batch = [tf.cast(b, dtype=tf.float32) for b in batch[0]],
+        elif 'shufflelsc' in comments:
+            shapes = [b.shape for b in batch[0]]
+            flatbatch = [tf.reshape(b, [-1, 2]) for b in batch[0]],
+            shuffled = [tf.random.shuffle(b) for b in flatbatch[0]],
+            batch = [tf.reshape(b, s) for s, b in zip(shapes, shuffled[0])],
 
         ts = batch[0][0].shape[1] if time_steps is None else time_steps
         pbar2 = tqdm(total=ts, position=0)
@@ -142,7 +147,6 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
                     norms = get_norms(tape=tape, lower_states=[ht, ct], upper_states=[htp1, ctp1], n_samples=n_samples,
                                       norm_pow=norm_pow)
-                    print(norms.shape)
                     rec_norms[f'batch {step} layer {i}'].append(norms.numpy())
                     some_norms.append(tf.reduce_mean(norms))
                     loss = well_loss(min_value=1, max_value=1, walls_type='relu', axis='all')(norms)

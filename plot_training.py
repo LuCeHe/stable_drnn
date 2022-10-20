@@ -31,9 +31,9 @@ h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 # CSVPATH = r'D:\work\alif_sg\good_experiments\2022-08-20--learned-LSC\summary.h5'
 # HSITORIESPATH = os.path.join(EXPERIMENTS, 'histories.json')
 
-pandas_means = True
-make_latex = True
-missing_exps = False
+pandas_means = False
+make_latex = False
+missing_exps = True
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -288,7 +288,7 @@ if missing_exps:
 
     # df = df[~df['task_name'].str.contains('wordptb1')]
     # df = df[~df['task_name'].str.contains('wordptb')]
-    # df = df[df['task_name'].str.contains('wordptb')]
+    df = df[df['task_name'].str.contains('wordptb')]
 
     print('left, done, all: ', df.shape, sdf.shape, all_exps.shape)
     print('left')
