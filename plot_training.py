@@ -31,9 +31,9 @@ h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 # CSVPATH = r'D:\work\alif_sg\good_experiments\2022-08-20--learned-LSC\summary.h5'
 # HSITORIESPATH = os.path.join(EXPERIMENTS, 'histories.json')
 
-pandas_means = False
+pandas_means = True
 make_latex = False
-missing_exps = True
+missing_exps = False
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -67,7 +67,6 @@ df = experiments_to_pandas(
     exclude_files=['cout.txt']
 )
 
-print(df.columns)
 if 'host' in df.columns:
     df['where'] = df['host'].apply(lambda x: x['hostname'])
 
@@ -93,6 +92,15 @@ df.rename(columns=new_column_names, inplace=True)
 # df = df[[c for c in df if c not in ['d', 'duration_experiment']] + ['d', 'duration_experiment']]
 
 
+
+print(df['v_ppl list'].head())
+print(df['t_ppl list'].head())
+
+
+import sys
+sys.exit()
+
+
 if metric in df.keys():
     df = df.sort_values(by=metric)
 
@@ -105,7 +113,7 @@ print(list(df.columns))
 print(df.to_string())
 
 if pandas_means:
-    show_per_tasknet = False
+    show_per_tasknet = True
     group_cols = ['net_name', 'task_name', 'initializer', 'comments']
     counts = df.groupby(group_cols).size().reset_index(name='counts')
 
@@ -135,7 +143,7 @@ if pandas_means:
                     idf = mdf[mdf['task_name'].str.contains(task) & mdf['net_name'].str.contains(net)]
                     print(idf.to_string())
 
-    print(mdf.to_string())
+    # print(mdf.to_string())
 
 
     # print('Max experiment length: ', max(df['duration_experiment']))
