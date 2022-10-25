@@ -31,9 +31,10 @@ h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 # CSVPATH = r'D:\work\alif_sg\good_experiments\2022-08-20--learned-LSC\summary.h5'
 # HSITORIESPATH = os.path.join(EXPERIMENTS, 'histories.json')
 
-pandas_means = False
+pandas_means = True
+show_per_tasknet = True
 make_latex = False
-missing_exps = True
+missing_exps = False
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -110,7 +111,6 @@ print(list(df.columns))
 print(df.to_string())
 
 if pandas_means:
-    show_per_tasknet = False
     group_cols = ['net_name', 'task_name', 'initializer', 'comments']
     counts = df.groupby(group_cols).size().reset_index(name='counts')
 
