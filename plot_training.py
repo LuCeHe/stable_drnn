@@ -31,9 +31,9 @@ h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 # CSVPATH = r'D:\work\alif_sg\good_experiments\2022-08-20--learned-LSC\summary.h5'
 # HSITORIESPATH = os.path.join(EXPERIMENTS, 'histories.json')
 
-pandas_means = True
+pandas_means = False
 make_latex = False
-missing_exps = False
+missing_exps = True
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -91,15 +91,12 @@ new_column_names = {c_name: shorten_losses(c_name) for c_name in df.columns}
 df.rename(columns=new_column_names, inplace=True)
 # df = df[[c for c in df if c not in ['d', 'duration_experiment']] + ['d', 'duration_experiment']]
 
+# df['v_ppl argmin'] = df.apply(lambda row: np.argmin(row['v_ppl list']), axis=1)
 
-
-print(df['v_ppl list'].head())
-print(df['t_ppl list'].head())
-
-
-import sys
-sys.exit()
-
+df['v_ppl'] = df.apply(lambda row: np.min(row['v_ppl list']), axis=1)
+df['t_ppl'] = df.apply(lambda row: row['t_ppl list'][row['v_ppl argmin']], axis=1)
+df['v_mode_acc'] = df.apply(lambda row: np.max(row['v_mode_acc list']), axis=1)
+df['t_mode_acc'] = df.apply(lambda row: row['t_mode_acc list'][row['v_mode_acc argmax']], axis=1)
 
 if metric in df.keys():
     df = df.sort_values(by=metric)
@@ -113,7 +110,7 @@ print(list(df.columns))
 print(df.to_string())
 
 if pandas_means:
-    show_per_tasknet = True
+    show_per_tasknet = False
     group_cols = ['net_name', 'task_name', 'initializer', 'comments']
     counts = df.groupby(group_cols).size().reset_index(name='counts')
 
@@ -122,11 +119,11 @@ if pandas_means:
         group_cols, as_index=False
     ).agg({m: ['mean', 'std'] for m in metrics_oi})
 
-    print(mdf.columns)
     for m in metrics_oi:
         mdf['mean_{}'.format(m)] = mdf[m]['mean']
         mdf['std_{}'.format(m)] = mdf[m]['std']
         mdf = mdf.drop([m], axis=1)
+    mdf = mdf.droplevel(level=1, axis=1)
 
     mdf = mdf.sort_values(by='mean_' + metric)
     mdf['counts'] = counts['counts']
@@ -143,40 +140,65 @@ if pandas_means:
                     idf = mdf[mdf['task_name'].str.contains(task) & mdf['net_name'].str.contains(net)]
                     print(idf.to_string())
 
-    # print(mdf.to_string())
 
 
-    # print('Max experiment length: ', max(df['duration_experiment']))
+    def compactify_metrics(metric='ppl'):
 
-    def cm_(metric='ppl'):
-        c = 1
-        if 'acc' in metric:
-            c = 100
+        def cm(row):
+            mt = row[f'mean_t_{metric}']
+            st = row[f'std_t_{metric}']
+            mv = row[f'mean_v_{metric}']
+            sv = row[f'std_v_{metric}']
 
-        def compactify_metrics(row):
-            mtppl = round(c * row[f'mean_t_{metric}'].values[0], 2)
-            stppl = round(c * row[f'std_t_{metric}'].values[0], 2)
-            mvppl = round(c * row[f'mean_v_{metric}'].values[0], 2)
-            svppl = round(c * row[f'std_v_{metric}'].values[0], 2)
+            return f"{str(mv)}\pm{str(sv)}/{str(mt)}\pm{str(st)}"
 
-            return f"{str(mvppl)}\pm{str(svppl)}/{str(mtppl)}\pm{str(stppl)}"
-
-        return compactify_metrics
+        return cm
 
 
     def choose_metric(row):
-        if row['task_name'].values[0] == 'wordptb':
+        if row['task_name'] == 'wordptb':
             metric = row['ppl']
         else:
             metric = row['acc']
         return metric
 
 
+    def bolden_best(metric='mean_t_ppl'):
+        c = 1
+        if 'acc' in metric:
+            c = 100
+
+        def bb(row):
+            value = row[f'{metric}'] #.values[0]
+            if value == row[f'best_{metric}']:
+                bolden = True
+            else:
+                bolden = False
+
+            value = round(c * value, 2)
+            if bolden:
+                value = r'\textbf{' + str(value) + '}'
+            else:
+                value = f'{value}'
+            return value
+
+        return bb
+
+
     if make_latex:
         net = 'LSTM'
         idf = mdf[mdf['net_name'].str.contains(net)]
-        idf['ppl'] = idf.apply(cm_('ppl'), axis=1)
-        idf['acc'] = idf.apply(cm_('mode_acc'), axis=1)
+
+        metrics_cols = [c for c in idf.columns if 'ppl' in c or 'acc' in c]
+        for m in metrics_cols:
+            mode = 'max' if 'acc' in m and not 'std' in m else 'min'
+            print(m, mode)
+            idf[f'best_{m}'] = idf.groupby(['task_name'])[m].transform(mode)
+            idf[m] = idf.apply(bolden_best(m), axis=1)
+
+        print(idf.to_string())
+        idf['ppl'] = idf.apply(compactify_metrics('ppl'), axis=1)
+        idf['acc'] = idf.apply(compactify_metrics('mode_acc'), axis=1)
         idf['metric'] = idf.apply(choose_metric, axis=1)
         # idf = idf[idf.columns.drop(list(idf.filter(regex='std')) + list(idf.filter(regex='mean')))]
         idf = idf[idf.columns.drop(list(idf.filter(regex='acc')) + list(idf.filter(regex='ppl')))]
@@ -201,13 +223,15 @@ if pandas_means:
                             'LSC_2^{(d)}', 'LSC_2^{(dr)}']
 
         idf['comments'] = pd.Categorical(idf['comments'], order_conditions)
+        print(idf.to_string())
+
         pdf = pd.pivot_table(idf, values='metric', index=['comments'], columns=['task_name'], aggfunc=np.sum)
         pdf = pdf.replace([0], '-')
 
-        for t in tasks:
-            pdf[t] = pdf[''][t]
+        # for t in tasks:
+        #     pdf[t] = pdf[''][t]
             # mdf['std_{}'.format(m)] = mdf[m]['std']
-        pdf = pdf.drop([''], axis=1)
+        # pdf = pdf.drop([''], axis=1)
 
         print(pdf.columns)
         # pdf = pdf[tasks]
@@ -244,7 +268,7 @@ if missing_exps:
     experiments = []
     experiment = {
         # 'task_name': ['heidelberg', 'ps_mnist', 's_mnist', 'ss_mnist', 'sps_mnist', 'sl_mnist'],
-        'task_name': ['heidelberg', 'wordptb', 'sl_mnist'],
+        'task_name': ['heidelberg', 'sl_mnist'],
         'net_name': ['maLSNN', 'LSTM'], 'seed': seeds,
         'comments': [
             incomplete_comments,
@@ -255,6 +279,24 @@ if missing_exps:
             incomplete_comments + f'findLSC_normpow:2_lscdepth:1_lscout:1',
             incomplete_comments + f'findLSC_normpow:2_berlsc',
             incomplete_comments + f'findLSC_normpow:2_gausslsc',
+            incomplete_comments + f'findLSC_normpow:2_shufflelsc',
+        ],
+    }
+    experiments.append(experiment)
+    experiment = {
+        # 'task_name': ['heidelberg', 'ps_mnist', 's_mnist', 'ss_mnist', 'sps_mnist', 'sl_mnist'],
+        'task_name': ['wordptb'],
+        'net_name': ['maLSNN', 'LSTM'], 'seed': seeds,
+        'comments': [
+            incomplete_comments,
+            incomplete_comments + f'findLSC_normpow:1',
+            incomplete_comments + f'findLSC_normpow:-1',
+            incomplete_comments + f'findLSC_normpow:2',
+            incomplete_comments + f'findLSC_normpow:2_lscdepth:1_lscout:0',
+            incomplete_comments + f'findLSC_normpow:2_lscdepth:1_lscout:1',
+            # incomplete_comments + f'findLSC_normpow:2_berlsc',
+            # incomplete_comments + f'findLSC_normpow:2_gausslsc',
+            incomplete_comments + f'findLSC_normpow:2_shufflelsc',
         ],
     }
     experiments.append(experiment)
@@ -264,6 +306,7 @@ if missing_exps:
         'task_name': ['heidelberg', 'wordptb', 'sl_mnist'],
         'net_name': ['maLSNN'], 'seed': seeds,
         'comments': [
+            incomplete_comments + f'_gaussbeta',
             incomplete_comments + f'findLSC_normpow:2_gaussbeta',
             incomplete_comments + f'findLSC_normpow:2_gaussbeta_berlsc',
             incomplete_comments + f'findLSC_normpow:2_gaussbeta_gausslsc',
@@ -296,7 +339,7 @@ if missing_exps:
 
     # df = df[~df['task_name'].str.contains('wordptb1')]
     # df = df[~df['task_name'].str.contains('wordptb')]
-    df = df[df['task_name'].str.contains('wordptb')]
+    # df = df[df['task_name'].str.contains('wordptb')]
 
     print('left, done, all: ', df.shape, sdf.shape, all_exps.shape)
     print('left')

@@ -47,7 +47,7 @@ def config():
     task_name = 'heidelberg'
 
     # test configuration
-    epochs = 0
+    epochs = 2
     steps_per_epoch = 1
     batch_size = 2
     stack = None
@@ -60,7 +60,7 @@ def config():
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task_name in language_tasks else False
 
-    comments = '32_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_normpow:2_gaussbeta_berlsc_savelscweights_test'  # 'nsLIFreadout_adaptsg_dropout:0.50' findLSC_test
+    comments = '32_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_normpow:2_gaussbeta_gausslsc_test'  # 'nsLIFreadout_adaptsg_dropout:0.50' findLSC_test
     # comments = ''  # 'nsLIFreadout_adaptsg_dropout:0.50' findLSC_test
 
     # optimizer properties
@@ -113,10 +113,6 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
     train_task_args = dict(timerepeat=timerepeat, epochs=epochs, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
                            name=task_name, train_val_test='train', maxlen=maxlen, comments=comments)
     gen_train = Task(**train_task_args)
-    gen_val = Task(timerepeat=timerepeat, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
-                   name=task_name, train_val_test='val', maxlen=maxlen, comments=comments)
-    gen_test = Task(timerepeat=timerepeat, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
-                    name=task_name, train_val_test='test', maxlen=maxlen, comments=comments)
 
     comments += '_batchsize:' + str(gen_train.batch_size)
 
@@ -144,7 +140,45 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
 
     history_path = other_dir + '/log.csv'
     print_every = 2  # int(final_epochs / 10) if not final_epochs < 10 else 1
-    val_data = gen_val.__getitem__()
+
+
+    if 'findLSC' in comments:
+        print('Finding the LSC...')
+        n_samples = str2val(comments, 'normsamples', int, default=-1)
+        lscdepth = bool(str2val(comments, 'lscdepth', int, default=0))
+        lscout = bool(str2val(comments, 'lscout', int, default=0))
+
+        # n_samples = 100
+        norm_pow = str2val(comments, 'normpow', float, default=2)
+        norm_pow = norm_pow if norm_pow > 0 else np.inf
+        new_model_args = copy.deepcopy(model_args)
+        new_comments = new_model_args['comments'] + '_reoldspike'
+        new_batch_size = batch_size
+        if 'ptb' in task_name:
+            new_batch_size = 2
+            new_comments = str2val(new_comments, 'batchsize', replace=new_batch_size)
+
+        new_model_args['comments'] = new_comments
+        new_task_args = copy.deepcopy(train_task_args)
+        new_task_args['batch_size'] = new_task_args['batch_size'] if not 'ptb' in task_name else new_batch_size
+
+        lscw_filepath = os.path.join(models_dir, 'lsc')
+        save_weights_path = lscw_filepath if 'savelscweights' in comments else None
+        time_steps = 2 if'test' in comments else None
+
+        del gen_train
+        weights, lsc_results = apply_LSC(
+            train_task_args=new_task_args, model_args=new_model_args, norm_pow=norm_pow, n_samples=n_samples,
+            batch_size=new_batch_size, depth_norm=lscdepth, decoder_norm=lscout, save_weights_path=save_weights_path,
+            time_steps=time_steps
+        )
+        results.update(lsc_results)
+
+    gen_train = Task(**train_task_args)
+    gen_val = Task(timerepeat=timerepeat, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
+                   name=task_name, train_val_test='val', maxlen=maxlen, comments=comments)
+    gen_test = Task(timerepeat=timerepeat, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
+                    name=task_name, train_val_test='test', maxlen=maxlen, comments=comments)
 
     checkpoint_filepath = os.path.join(models_dir, 'checkpoint')
     callbacks = [
@@ -158,41 +192,10 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
     ]
 
     if 'tenb' in comments:
+        val_data = gen_val.__getitem__()
         callbacks.append(
             ExtendedTensorBoard(validation_data=val_data, log_dir=other_dir, histogram_freq=print_every),
         )
-
-    if 'findLSC' in comments:
-        print('Finding the LSC...')
-        n_samples = str2val(comments, 'normsamples', int, default=-1)
-        lscdepth = bool(str2val(comments, 'lscdepth', int, default=0))
-        lscout = bool(str2val(comments, 'lscout', int, default=0))
-        if n_samples is None:
-            n_samples = 100 if not 'ptb' in task_name else 10
-
-        # n_samples = 100
-        norm_pow = str2val(comments, 'normpow', float, default=2)
-        norm_pow = norm_pow if norm_pow > 0 else np.inf
-        new_model_args = copy.deepcopy(model_args)
-        new_comments = new_model_args['comments'] + '_reoldspike'
-        new_batch_size = batch_size
-        if 'ptb' in task_name:
-            new_comments = str2val(new_comments, 'batchsize', replace=8)
-            new_batch_size = 8
-
-        new_model_args['comments'] = new_comments
-        new_task_args = copy.deepcopy(train_task_args)
-        new_task_args['batch_size'] = new_task_args['batch_size'] if not 'ptb' in task_name else 8
-
-        lscw_filepath = os.path.join(models_dir, 'lsc')
-        save_weights_path = lscw_filepath if 'savelscweights' in comments else None
-        time_steps = 2 if'test' in comments else None
-        weights, lsc_results = apply_LSC(
-            train_task_args=new_task_args, model_args=new_model_args, norm_pow=norm_pow, n_samples=n_samples,
-            batch_size=new_batch_size, depth_norm=lscdepth, decoder_norm=lscout, save_weights_path=save_weights_path,
-            time_steps=time_steps
-        )
-        results.update(lsc_results)
 
     train_model = build_model(**model_args)
     train_model.summary()
