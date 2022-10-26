@@ -1,5 +1,8 @@
 import os, json, copy
 
+from GenericTools.keras_tools.esoteric_layers import AddLossLayer, AddMetricsLayer
+from GenericTools.keras_tools.esoteric_layers.rate_voltage_reg import RateVoltageRegularization
+
 from GenericTools.stay_organized.submit_jobs import dict2iter
 from tqdm import tqdm
 import numpy as np
@@ -10,6 +13,7 @@ from GenericTools.stay_organized.mpl_tools import load_plot_settings
 from GenericTools.stay_organized.pandardize import experiments_to_pandas
 from GenericTools.stay_organized.standardize_strings import shorten_losses
 from GenericTools.stay_organized.utils import str2val
+from sg_design_lif.neural_models import maLSNN
 
 mpl, pd = load_plot_settings(mpl=mpl, pd=pd)
 
@@ -31,14 +35,15 @@ h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 # CSVPATH = r'D:\work\alif_sg\good_experiments\2022-08-20--learned-LSC\summary.h5'
 # HSITORIESPATH = os.path.join(EXPERIMENTS, 'histories.json')
 
-pandas_means = True
-show_per_tasknet = True
+pandas_means = False
+show_per_tasknet = False
 make_latex = False
-missing_exps = True
+missing_exps = False
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
 plot_losses = False
+plot_weights = True
 
 task_name = 'ps_mnist'  # heidelberg wordptb sl_mnist all ps_mnist
 
@@ -98,14 +103,13 @@ df['v_ppl'] = df.apply(lambda row: np.min(row['v_ppl list']), axis=1)
 df['t_ppl'] = df.apply(lambda row: row['t_ppl list'][row['v_ppl argmin']], axis=1)
 df['v_mode_acc'] = df.apply(lambda row: np.max(row['v_mode_acc list']), axis=1)
 
-
 # FIXME: 14 experiments got nans in the validation, plot them anyway?
 df = df[~df['v_mode_acc argmax'].isna()]
 
 print(df['v_mode_acc argmax'].isna().sum())
 df['v_mode_acc argmax'] = df['v_mode_acc argmax'].astype(int)
-print(df['v_mode_acc argmax'] )
-df['t_mode_acc'] = df.apply(lambda row  : row['t_mode_acc list'][row['v_mode_acc argmax']], axis=1)
+print(df['v_mode_acc argmax'])
+df['t_mode_acc'] = df.apply(lambda row: row['t_mode_acc list'][row['v_mode_acc argmax']], axis=1)
 
 if metric in df.keys():
     df = df.sort_values(by=metric)
@@ -149,7 +153,6 @@ if pandas_means:
                     print(idf.to_string())
 
 
-
     def compactify_metrics(metric='ppl'):
 
         def cm(row):
@@ -177,7 +180,7 @@ if pandas_means:
             c = 100
 
         def bb(row):
-            value = row[f'{metric}'] #.values[0]
+            value = row[f'{metric}']  # .values[0]
             if value == row[f'best_{metric}']:
                 bolden = True
             else:
@@ -212,10 +215,8 @@ if pandas_means:
         idf['ppl'] = idf.apply(compactify_metrics('ppl min'), axis=1)
         idf['acc'] = idf.apply(compactify_metrics('mode_acc max'), axis=1)
         idf['metric'] = idf.apply(choose_metric, axis=1)
-        # idf = idf[idf.columns.drop(list(idf.filter(regex='std')) + list(idf.filter(regex='mean')))]
         idf = idf[idf.columns.drop(list(idf.filter(regex='acc')) + list(idf.filter(regex='ppl')))]
         idf = idf[idf.columns.drop(['counts', 'initializer', 'net_name'])]
-        # idf = idf[idf.columns.drop(['initializer', 'net_name'])]
 
         idf['comments'] = idf['comments'].str.replace('32_embproj_nogradreset_dropout:.3_timerepeat:2_', '', regex=True)
         idf['comments'] = idf['comments'].str.replace('find', '', regex=True)
@@ -228,11 +229,12 @@ if pandas_means:
         idf['comments'] = idf['comments'].str.replace('_lscdepth:1_lscout:0', '^{(d)}', regex=True)
         idf['comments'] = idf['comments'].str.replace('_lscdepth:1_lscout:1', '^{(dr)}', regex=True)
         idf = idf[~idf['comments'].str.contains('timerepeat:1')]
+        idf['comments'] = idf['comments'].replace(r'^\s*$', 'no LSC', regex=True)
+        # idf['comments'] = idf['comments'].replace(r'\beta', r'\beta no LSC', regex=True)
 
         conditions = np.unique(idf['comments'])
         tasks = ['sl_mnist', 'heidelberg', 'wordptb']
-        print(idf.comments)
-        order_conditions = ['', 'LSC_1', 'LSC_2', r'LSC_\infty', 'LSC_2 + g', 'LSC_2 + b','LSC_2 + s',
+        order_conditions = ['no LSC', 'LSC_1', 'LSC_2', r'LSC_\infty', 'LSC_2 + g', 'LSC_2 + b', 'LSC_2 + s',
                             r'\beta', r'LSC_2\beta', r'LSC_2\beta + g', r'LSC_2\beta + b',
                             'LSC_2^{(d)}', 'LSC_2^{(dr)}']
 
@@ -242,21 +244,7 @@ if pandas_means:
         pdf = pd.pivot_table(idf, values='metric', index=['comments'], columns=['task_name'], aggfunc=np.sum)
         pdf = pdf.replace([0], '-')
 
-        # for t in tasks:
-        #     pdf[t] = pdf[''][t]
-        #     mdf['std_{}'.format(m)] = mdf[m]['std']
-        # pdf = pdf.drop([''], axis=1)
         pdf = pdf[tasks]
-        print(pdf.columns)
-        # pdf = pdf[tasks]
-
-        # pdf.sort_values('comments')
-        # dfs = []
-        # for task in tasks:
-        #     tdf = idf[~idf['task_name'].str.contains(task)]
-        #     tdf = tdf[tdf.columns.drop(['task_name'])]
-        #
-        #     dfs.append(tdf)
 
         print(conditions)
 
@@ -329,7 +317,6 @@ if missing_exps:
     }
     experiments.append(experiment)
 
-
     experiment = {
         # 'task_name': ['heidelberg', 'ps_mnist', 's_mnist', 'ss_mnist', 'sps_mnist', 'sl_mnist'],
         'task_name': ['wordptb'],
@@ -341,7 +328,6 @@ if missing_exps:
         ],
     }
     experiments.append(experiment)
-
 
     ds = dict2iter(experiments)
     print(ds[0])
@@ -380,6 +366,67 @@ if missing_exps:
         experiments.append(experiment)
 
     print(experiments)
+
+if plot_weights:
+    comment = '32_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_normpow:2_savelscweights'
+    task = 'heidelberg'
+    gauss_beta = False
+    net_name = 'LSTM'
+    df = df[df['comments'].str.contains('save')]
+    df = df[df['comments'].str.contains(comment)]
+    df = df[df['task_name'].str.contains(task)]
+    df = df[df['net_name'].str.contains(net_name)]
+    if gauss_beta:
+        df = df[df['comments'].str.contains('gaussbeta')]
+    else:
+        df = df[~df['comments'].str.contains('gaussbeta')]
+
+    path = df.head(1)['path'].values[0]
+    _, exp_identifiers = os.path.split(path)
+
+    print(path)
+    print(exp_identifiers)
+    ds = unzip_good_exps(
+        GEXPERIMENTS, EXPERIMENTS,
+        exp_identifiers=[exp_identifiers], except_folders=[],
+        unzip_what=['model_']
+    )
+
+    import tensorflow as tf
+
+    # befaft = 'before'
+    axs = None
+    for befaft in ['before', 'after']:
+        color = '#097B2A' if befaft == 'before' else '#40DE6E'
+        json_path = os.path.join(path, 'trained_models', 'lsc', f'model_config_lsc_{befaft}.json')
+        h5_path = os.path.join(path, 'trained_models', 'lsc', f'model_weights_lsc_{befaft}.h5')
+        with open(json_path) as json_file:
+            json_config = json_file.read()
+        model = tf.keras.models.model_from_json(
+            json_config, custom_objects={
+                'maLSNN': maLSNN, 'RateVoltageRegularization': RateVoltageRegularization, 'AddLossLayer': AddLossLayer,
+                'SparseCategoricalCrossentropy': tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+                'AddMetricsLayer': AddMetricsLayer
+            }
+        )
+        model.load_weights(h5_path)
+        weights = model.get_weights()
+        weight_names = [weight.name for layer in model.layers for weight in layer.weights]
+
+        print(len(weights))
+        cols = 4
+        n_bins = 50
+        if axs is None:
+            fig, axs = plt.subplots(cols, int(len(weights) / cols))
+
+        for i, (ax, w, wn) in enumerate(zip(axs.flat, weights, weight_names)):
+            print(wn)
+            # ax.scatter([i // 2 + 1, i], [i, i // 3])
+            ax.hist(w.flatten(), bins=n_bins, color=color, alpha=.5, density=True, lw=1, ec=color)
+            clean_name = wn.replace('encoder_0_0/', '').replace('encoder_1_0/', '')
+            ax.set_title(clean_name)
+
+    plt.show()
 
 if plot_norms_pretraining:
     moi = 'norms'  # losses norms
