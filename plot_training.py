@@ -33,7 +33,7 @@ h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 pandas_means = True
 show_per_tasknet = True
-make_latex = False
+make_latex = True
 missing_exps = False
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
@@ -44,12 +44,12 @@ task_name = 'ps_mnist'  # heidelberg wordptb sl_mnist all ps_mnist
 
 # sparse_mode_accuracy sparse_categorical_crossentropy bpc sparse_mode_accuracy_test_10
 # val_sparse_mode_accuracy test_perplexity
-metric = 'v_ppl'
+metric = 'v_ppl min'
 optimizer_name = 'SWAAdaBelief'  # SGD SWAAdaBelief
 metrics_oi = [
     # 'val_sparse_mode_accuracy', 'val_perplexity', 'val_sparse_categorical_crossentropy',
     #           'test_sparse_mode_accuracy', 'test_perplexity',
-    't_ppl', 't_mode_acc', 'v_ppl', 'v_mode_acc',
+    't_ppl min', 't_mode_acc max', 'v_ppl min', 'v_mode_acc max',
     # 'final_epochs'
 ]
 
@@ -97,7 +97,15 @@ df.rename(columns=new_column_names, inplace=True)
 df['v_ppl'] = df.apply(lambda row: np.min(row['v_ppl list']), axis=1)
 df['t_ppl'] = df.apply(lambda row: row['t_ppl list'][row['v_ppl argmin']], axis=1)
 df['v_mode_acc'] = df.apply(lambda row: np.max(row['v_mode_acc list']), axis=1)
-df['t_mode_acc'] = df.apply(lambda row: row['t_mode_acc list'][row['v_mode_acc argmax']], axis=1)
+
+
+# FIXME: 14 experiments got nans in the validation, plot them anyway?
+df = df[~df['v_mode_acc argmax'].isna()]
+
+print(df['v_mode_acc argmax'].isna().sum())
+df['v_mode_acc argmax'] = df['v_mode_acc argmax'].astype(int)
+print(df['v_mode_acc argmax'] )
+df['t_mode_acc'] = df.apply(lambda row  : row['t_mode_acc list'][row['v_mode_acc argmax']], axis=1)
 
 if metric in df.keys():
     df = df.sort_values(by=metric)
@@ -186,8 +194,12 @@ if pandas_means:
 
 
     if make_latex:
+
         net = 'LSTM'
+
         idf = mdf[mdf['net_name'].str.contains(net)]
+        idf = idf[~idf['comments'].str.contains('reoldspike')]
+        idf = idf[~idf['comments'].str.contains('savelscweights')]
 
         metrics_cols = [c for c in idf.columns if 'ppl' in c or 'acc' in c]
         for m in metrics_cols:
@@ -197,8 +209,8 @@ if pandas_means:
             idf[m] = idf.apply(bolden_best(m), axis=1)
 
         print(idf.to_string())
-        idf['ppl'] = idf.apply(compactify_metrics('ppl'), axis=1)
-        idf['acc'] = idf.apply(compactify_metrics('mode_acc'), axis=1)
+        idf['ppl'] = idf.apply(compactify_metrics('ppl min'), axis=1)
+        idf['acc'] = idf.apply(compactify_metrics('mode_acc max'), axis=1)
         idf['metric'] = idf.apply(choose_metric, axis=1)
         # idf = idf[idf.columns.drop(list(idf.filter(regex='std')) + list(idf.filter(regex='mean')))]
         idf = idf[idf.columns.drop(list(idf.filter(regex='acc')) + list(idf.filter(regex='ppl')))]
@@ -211,6 +223,7 @@ if pandas_means:
         idf['comments'] = idf['comments'].str.replace('normpow:', '', regex=True)
         idf['comments'] = idf['comments'].str.replace('_gausslsc', ' + g', regex=True)
         idf['comments'] = idf['comments'].str.replace('_berlsc', ' + b', regex=True)
+        idf['comments'] = idf['comments'].str.replace('_shufflelsc', ' + s', regex=True)
         idf['comments'] = idf['comments'].str.replace('_gaussbeta', r'\\beta', regex=True)
         idf['comments'] = idf['comments'].str.replace('_lscdepth:1_lscout:0', '^{(d)}', regex=True)
         idf['comments'] = idf['comments'].str.replace('_lscdepth:1_lscout:1', '^{(dr)}', regex=True)
@@ -218,8 +231,9 @@ if pandas_means:
 
         conditions = np.unique(idf['comments'])
         tasks = ['sl_mnist', 'heidelberg', 'wordptb']
-        order_conditions = ['', 'LSC_1', 'LSC_2', r'LSC_\infty', 'LSC_2 + g', 'LSC_2 + b',
-                            r'LSC_2\beta', r'LSC_2\beta + g', r'LSC_2\beta + b',
+        print(idf.comments)
+        order_conditions = ['', 'LSC_1', 'LSC_2', r'LSC_\infty', 'LSC_2 + g', 'LSC_2 + b','LSC_2 + s',
+                            r'\beta', r'LSC_2\beta', r'LSC_2\beta + g', r'LSC_2\beta + b',
                             'LSC_2^{(d)}', 'LSC_2^{(dr)}']
 
         idf['comments'] = pd.Categorical(idf['comments'], order_conditions)
@@ -230,9 +244,9 @@ if pandas_means:
 
         # for t in tasks:
         #     pdf[t] = pdf[''][t]
-            # mdf['std_{}'.format(m)] = mdf[m]['std']
+        #     mdf['std_{}'.format(m)] = mdf[m]['std']
         # pdf = pdf.drop([''], axis=1)
-
+        pdf = pdf[tasks]
         print(pdf.columns)
         # pdf = pdf[tasks]
 

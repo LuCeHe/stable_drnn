@@ -23,9 +23,9 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--steps_per_epoch", default=1, type=int)
 parser.add_argument("--batch_size", default=128, type=int)
 parser.add_argument("--time_steps", default=2, type=int)
-parser.add_argument("--task_name", default='wordptb', type=str)
+parser.add_argument("--task_name", default='heidelberg', type=str)
 parser.add_argument("--net_name", default='maLSNN', type=str)
-parser.add_argument("--findLSC", default=0, type=int)
+parser.add_argument("--findLSC", default=1, type=int)
 args = parser.parse_args()
 
 string_args = json.dumps(vars(args), indent=4, cls=NumpyEncoder)
@@ -85,16 +85,17 @@ if not os.path.exists(results_filename):
         new_comments = new_model_args['comments'] + '_reoldspike'
         new_batch_size = batch_size
         if 'ptb' in task_name:
-            new_comments = str2val(new_comments, 'batchsize', replace=8)
             new_batch_size = 8
+            new_comments = str2val(new_comments, 'batchsize', replace=new_batch_size)
 
         new_model_args['comments'] = new_comments
 
         new_task_args = copy.deepcopy(train_task_args)
-        new_task_args['batch_size'] = new_task_args['batch_size'] if not 'ptb' in task_name else 8
+        new_task_args['batch_size'] = new_task_args['batch_size'] if not 'ptb' in task_name else new_batch_size
+
         weights, _ = apply_LSC(
             train_task_args=new_task_args, model_args=new_model_args, norm_pow=2, n_samples=-1,
-            batch_size=batch_size, depth_norm=False, decoder_norm=False, learn=True,
+            batch_size=new_batch_size, depth_norm=False, decoder_norm=False, learn=True,
             steps_per_epoch=2,
             time_steps=time_steps
         )
