@@ -106,7 +106,6 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
         # Guardar pesos en el disco
         weights_path = os.path.join(save_weights_path, 'model_weights_lsc_before.h5')
         model.save_weights(weights_path)
-        print('here')
 
     if weights is None:
         weights = model.get_weights()
@@ -267,7 +266,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
     # results.update(LSC_losses=str(losses), LSC_norms=str(all_norms))
     results.update(LSC_losses=str(losses), LSC_norms=str(all_norms), rec_norms=rec_norms)
 
-    print(rec_norms)
+    # print(rec_norms)
     tf.keras.backend.clear_session()
     return weights, results
 

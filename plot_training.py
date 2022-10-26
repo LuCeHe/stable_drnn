@@ -33,8 +33,8 @@ h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 pandas_means = True
 show_per_tasknet = True
-make_latex = True
-missing_exps = False
+make_latex = False
+missing_exps = True
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -195,7 +195,7 @@ if pandas_means:
 
     if make_latex:
 
-        net = 'LSTM'
+        net = 'ALIF'
 
         idf = mdf[mdf['net_name'].str.contains(net)]
         idf = idf[~idf['comments'].str.contains('reoldspike')]
@@ -317,16 +317,31 @@ if missing_exps:
 
     experiment = {
         # 'task_name': ['heidelberg', 'ps_mnist', 's_mnist', 'ss_mnist', 'sps_mnist', 'sl_mnist'],
-        'task_name': ['heidelberg', 'wordptb', 'sl_mnist'],
+        'task_name': ['heidelberg', 'sl_mnist'],
         'net_name': ['maLSNN'], 'seed': seeds,
         'comments': [
             incomplete_comments + f'_gaussbeta',
             incomplete_comments + f'findLSC_normpow:2_gaussbeta',
             incomplete_comments + f'findLSC_normpow:2_gaussbeta_berlsc',
             incomplete_comments + f'findLSC_normpow:2_gaussbeta_gausslsc',
+            incomplete_comments + f'findLSC_normpow:2_gaussbeta_shufflelsc',
         ],
     }
     experiments.append(experiment)
+
+
+    experiment = {
+        # 'task_name': ['heidelberg', 'ps_mnist', 's_mnist', 'ss_mnist', 'sps_mnist', 'sl_mnist'],
+        'task_name': ['wordptb'],
+        'net_name': ['maLSNN'], 'seed': seeds,
+        'comments': [
+            incomplete_comments + f'_gaussbeta',
+            incomplete_comments + f'findLSC_normpow:2_gaussbeta',
+            incomplete_comments + f'findLSC_normpow:2_gaussbeta_shufflelsc',
+        ],
+    }
+    experiments.append(experiment)
+
 
     ds = dict2iter(experiments)
     print(ds[0])

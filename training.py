@@ -44,12 +44,12 @@ def config():
     # task and net
     # ps_mnist heidelberg s_mnist
     # wordptb sl_mnist
-    task_name = 'heidelberg'
+    task_name = 'wordptb'
 
     # test configuration
     epochs = 2
     steps_per_epoch = 1
-    batch_size = 2
+    batch_size = None
     stack = None
 
     # net
@@ -60,7 +60,7 @@ def config():
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task_name in language_tasks else False
 
-    comments = '32_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_normpow:2_gaussbeta_gausslsc_test'  # 'nsLIFreadout_adaptsg_dropout:0.50' findLSC_test
+    comments = '32_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_normpow:2_lscdepth:1_lscout:1_test'  # 'nsLIFreadout_adaptsg_dropout:0.50' findLSC_test
     # comments = ''  # 'nsLIFreadout_adaptsg_dropout:0.50' findLSC_test
 
     # optimizer properties
@@ -155,12 +155,16 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
         new_comments = new_model_args['comments'] + '_reoldspike'
         new_batch_size = batch_size
         if 'ptb' in task_name:
-            new_batch_size = 2
+            new_batch_size = 2 if not 'lscdepth:1' in comments else 1
+            new_comments = str2val(new_comments, 'batchsize', replace=new_batch_size)
+
+        if 'heidelberg' in task_name and 'maLSNN' in net_name and 'lscdepth:1_lscout:1' in comments:
+            new_batch_size = 128
             new_comments = str2val(new_comments, 'batchsize', replace=new_batch_size)
 
         new_model_args['comments'] = new_comments
         new_task_args = copy.deepcopy(train_task_args)
-        new_task_args['batch_size'] = new_task_args['batch_size'] if not 'ptb' in task_name else new_batch_size
+        new_task_args['batch_size'] = new_batch_size
 
         lscw_filepath = os.path.join(models_dir, 'lsc')
         save_weights_path = lscw_filepath if 'savelscweights' in comments else None
