@@ -1,4 +1,4 @@
-import os, json, copy
+import os, json, copy, time
 
 from GenericTools.keras_tools.esoteric_layers import AddLossLayer, AddMetricsLayer
 from GenericTools.keras_tools.esoteric_layers.rate_voltage_reg import RateVoltageRegularization
@@ -73,15 +73,15 @@ df = experiments_to_pandas(
     exclude_files=['cout.txt']
 )
 
-if 'host' in df.columns:
-    df['where'] = df['host'].apply(lambda x: x['hostname'])
 
 if 'n_params' in df.columns:
     df['n_params'] = df['n_params'].apply(lambda x: large_num_to_reasonable_string(x, 1))
 
-if 'stop_time' in df.columns and 'start_time' in df.columns:
-    df['duration_experiment'] = df['stop_time'].apply(lambda x: datetime.strptime(x.split('.')[0], FMT)) - \
-                                df['start_time'].apply(lambda x: datetime.strptime(x.split('.')[0], FMT))
+# if 'host' in df.columns:
+#     df['where'] = df['host'].apply(lambda x: x['hostname'])
+# if 'stop_time' in df.columns and 'start_time' in df.columns:
+#     df['duration_experiment'] = df['stop_time'].apply(lambda x: datetime.strptime(x.split('.')[0], FMT)) - \
+#                                 df['start_time'].apply(lambda x: datetime.strptime(x.split('.')[0], FMT))
 
 df = df[~df['comments'].str.contains('test')]
 
@@ -285,6 +285,7 @@ if missing_exps:
         ],
     }
     experiments.append(experiment)
+
     experiment = {
         # 'task_name': ['heidelberg', 'ps_mnist', 's_mnist', 'ss_mnist', 'sps_mnist', 'sl_mnist'],
         'task_name': ['wordptb'],
@@ -368,65 +369,210 @@ if missing_exps:
     print(experiments)
 
 if plot_weights:
-    comment = '32_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_normpow:2_savelscweights'
-    task = 'heidelberg'
+    plot_1 = True
+    plot_2 = False
+    import pickle
+    from matplotlib.lines import Line2D
+
+    task_name = 'sl_mnist'  # sl_mnist heidelberg
     gauss_beta = False
-    net_name = 'LSTM'
-    df = df[df['comments'].str.contains('save')]
+    normpow = -1 # 1, -1, 2
+
+    net_name = 'ALIF'  # ALIF LSTM
+
+    comment = f'_normpow:{normpow}_lscdepth:1_lscout:1'
+    def clean_weight_name(wn):
+
+        if 'encoder' in wn or 'reg' in wn:
+            layer = wn.split('_')[1]
+        else:
+            layer = 'd'
+
+        wn = wn.split('/')[-1].split(':')[0]
+        if 'input_weights' in wn:
+            wn = 'W_{' + f'in, {layer}' + '}'
+        elif 'recurrent_weights' in wn:
+            wn = 'W_{' + f'rec, {layer}' + '}'
+        elif 'tau_adaptation' in wn:
+            wn = r'\tau^{\vartheta}_{' + f'{layer}' + '}'
+        elif 'tau' in wn:
+            wn = r'\tau^{y}_{' + f'{layer}' + '}'
+        elif 'thr' in wn:
+            wn = r'b^{\vartheta}_{' + f'{layer}' + '}'
+        elif 'beta' in wn:
+            wn = r'\beta_{' + f'{layer}' + '}'
+        elif 'recurrent_kernel' in wn:
+            wn = r'U_{j,' + f'{layer}' + '}'
+        elif 'kernel' in wn:
+            wn = r'W_{j,' + f'{layer}' + '}'
+        elif 'bias' in wn:
+            wn = r'b_{j,' + f'{layer}' + '}'
+        elif 'switch' in wn:
+            wn = r'switch_{' + f'{layer}' + '}'
+        else:
+            wn = f'{wn}_{layer}'
+
+        return f'${wn}$'
+
+
+    df = df[df['comments'].str.contains('savelscweights')]
     df = df[df['comments'].str.contains(comment)]
-    df = df[df['task_name'].str.contains(task)]
+    df = df[df['task_name'].str.contains(task_name)]
     df = df[df['net_name'].str.contains(net_name)]
     if gauss_beta:
         df = df[df['comments'].str.contains('gaussbeta')]
     else:
         df = df[~df['comments'].str.contains('gaussbeta')]
 
+    print(df.to_string())
+    print(df.head(3)['path'].values)
     path = df.head(1)['path'].values[0]
     _, exp_identifiers = os.path.split(path)
 
-    print(path)
-    print(exp_identifiers)
     ds = unzip_good_exps(
         GEXPERIMENTS, EXPERIMENTS,
         exp_identifiers=[exp_identifiers], except_folders=[],
-        unzip_what=['model_']
+        unzip_what=['model_', '.txt', '.json', '.csv'], except_files=['cout.txt']
     )
 
-    import tensorflow as tf
-
-    # befaft = 'before'
     axs = None
-    for befaft in ['before', 'after']:
-        color = '#097B2A' if befaft == 'before' else '#40DE6E'
-        json_path = os.path.join(path, 'trained_models', 'lsc', f'model_config_lsc_{befaft}.json')
-        h5_path = os.path.join(path, 'trained_models', 'lsc', f'model_weights_lsc_{befaft}.h5')
-        with open(json_path) as json_file:
-            json_config = json_file.read()
-        model = tf.keras.models.model_from_json(
-            json_config, custom_objects={
-                'maLSNN': maLSNN, 'RateVoltageRegularization': RateVoltageRegularization, 'AddLossLayer': AddLossLayer,
-                'SparseCategoricalCrossentropy': tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-                'AddMetricsLayer': AddMetricsLayer
-            }
+
+    hists_path = os.path.join(EXPERIMENTS, f'hists_{net_name}_{task_name}_gb{gauss_beta}_normpow{normpow}.pickle')
+    if os.path.exists(hists_path):
+        hist_dict = pickle.load(open(hists_path, 'rb'))  # Unpickling the object
+    else:
+        import tensorflow as tf
+
+        hist_dict = {}
+
+    if plot_1:
+        for befaft in ['before', 'after']:
+            color = '#097B2A' if befaft == 'before' else '#40DE6E'
+
+            if not befaft in hist_dict.keys():
+                json_path = os.path.join(path, 'trained_models', 'lsc', f'model_config_lsc_{befaft}.json')
+                h5_path = os.path.join(path, 'trained_models', 'lsc', f'model_weights_lsc_{befaft}.h5')
+
+                with open(json_path) as json_file:
+                    json_config = json_file.read()
+
+                model = tf.keras.models.model_from_json(
+                    json_config, custom_objects={
+                        'maLSNN': maLSNN, 'RateVoltageRegularization': RateVoltageRegularization,
+                        'AddLossLayer': AddLossLayer,
+                        'SparseCategoricalCrossentropy': tf.keras.losses.SparseCategoricalCrossentropy(
+                            from_logits=True),
+                        'AddMetricsLayer': AddMetricsLayer
+                    }
+                )
+                model.load_weights(h5_path)
+                weights = model.get_weights()
+                weight_names = [weight.name for layer in model.layers for weight in layer.weights]
+                hist_dict[befaft] = {}
+
+            cols = 4
+            n_bins = 50
+            n_weights = len(hist_dict[befaft]) if os.path.exists(hists_path) else len(weights)
+            if axs is None:
+                fig, axs = plt.subplots(
+                    cols, int(n_weights / cols), gridspec_kw={'wspace': .2, 'hspace': 0.8}, figsize=(8, 8)
+                )
+
+            for ax, i in zip(axs.flat, range(n_weights)):
+                if not os.path.exists(hists_path):
+                    w = weights[i]
+                    wn = weight_names[i]
+                    counts, bins = np.histogram(w.flatten(), bins=n_bins)
+
+                    hist_dict[befaft][wn] = (bins, counts)
+
+                wn = list(hist_dict[befaft].keys())[i]
+                histogram = hist_dict[befaft][wn]
+
+                bins = histogram[0]
+                counts = histogram[1]
+                ax.hist(bins[:-1], bins, weights=counts, color=color, alpha=.5, density=True, lw=1, ec=color)
+                ax.set_title(clean_weight_name(wn))
+
+        for ax in axs.reshape(-1):
+            for pos in ['right', 'left', 'bottom', 'top']:
+                ax.spines[pos].set_visible(False)
+
+        legend_elements = [
+            Line2D(
+                [0], [0], color='#097B2A' if befaft == 'before' else '#40DE6E', lw=4,
+                label='no LSC' if befaft == 'before' else 'LSC'
+            )
+            for befaft in ['before', 'after']
+        ]
+
+        plt.legend(handles=legend_elements, loc='center', bbox_to_anchor=(-2.15, .5))
+
+        if not os.path.exists(hists_path):
+            pickle.dump(hist_dict, open(hists_path, 'wb'))
+
+        plot_filename = f'experiments/weights_{net_name}_{task_name}_gb{gauss_beta}.png'
+
+        fig.savefig(plot_filename, bbox_inches='tight')
+
+        plt.show()
+
+    if plot_2:
+
+        lstm_wns = ['encoder_0_0/lstm_cell/recurrent_kernel:0', 'encoder_1_0/lstm_cell_1/kernel:0']
+        alif_wns = ['encoder_0_0/ma_lsnn/thr:0', 'encoder_0_0/ma_lsnn/beta:0']
+
+        fig, axs = plt.subplots(
+            1, len(alif_wns + lstm_wns), gridspec_kw={'wspace': .3, 'hspace': 0.8}, figsize=(8, 3)
         )
-        model.load_weights(h5_path)
-        weights = model.get_weights()
-        weight_names = [weight.name for layer in model.layers for weight in layer.weights]
 
-        print(len(weights))
-        cols = 4
-        n_bins = 50
-        if axs is None:
-            fig, axs = plt.subplots(cols, int(len(weights) / cols))
+        lstm_path = os.path.join(EXPERIMENTS, f'hists_LSTM_{task_name}_gb{gauss_beta}.pickle')
+        lstm_dict = pickle.load(open(lstm_path, 'rb'))
+        alif_path = os.path.join(EXPERIMENTS, f'hists_ALIF_{task_name}_gb{gauss_beta}.pickle')
+        alif_dict = pickle.load(open(alif_path, 'rb'))
 
-        for i, (ax, w, wn) in enumerate(zip(axs.flat, weights, weight_names)):
-            print(wn)
-            # ax.scatter([i // 2 + 1, i], [i, i // 3])
-            ax.hist(w.flatten(), bins=n_bins, color=color, alpha=.5, density=True, lw=1, ec=color)
-            clean_name = wn.replace('encoder_0_0/', '').replace('encoder_1_0/', '')
-            ax.set_title(clean_name)
+        for befaft in ['before', 'after']:
+            color = '#097B2A' if befaft == 'before' else '#40DE6E'
 
-    plt.show()
+            for i, wn in enumerate(alif_wns):
+                histogram = alif_dict[befaft][wn]
+
+                bins = histogram[0]
+                counts = histogram[1]
+                axs[i].hist(bins[:-1], bins, weights=counts, color=color, alpha=.5, density=True, lw=1, ec=color)
+                axs[i].set_xlabel(clean_weight_name(wn))
+
+            for i, wn in enumerate(lstm_wns):
+                histogram = lstm_dict[befaft][wn]
+
+                bins = histogram[0]
+                counts = histogram[1]
+                axs[i + len(alif_wns)].hist(bins[:-1], bins, weights=counts, color=color, alpha=.5, density=True, lw=1,
+                                            ec=color)
+                axs[i + len(alif_wns)].set_xlabel(clean_weight_name(wn))
+
+        fig.text(0.70, .98, 'LSTM', ha='center', va='center', fontsize=16)
+        fig.text(0.29, .98, 'ALIF', ha='center', va='center', fontsize=16)
+
+        for ax in axs.reshape(-1):
+            ax.locator_params(axis='y', nbins=3)
+
+            for pos in ['right', 'left', 'bottom', 'top']:
+                ax.spines[pos].set_visible(False)
+
+        legend_elements = [
+            Line2D(
+                [0], [0], color='#097B2A' if befaft == 'before' else '#40DE6E', lw=4,
+                label='no LSC' if befaft == 'before' else 'LSC'
+            )
+            for befaft in ['before', 'after']
+        ]
+
+        plt.legend(ncol=2, handles=legend_elements, loc='center', bbox_to_anchor=(-1.6, -.35))
+        plot_filename = f'experiments/weights_aliflstm_{task_name}.pdf'
+        fig.savefig(plot_filename, bbox_inches='tight')
+
+        plt.show()
 
 if plot_norms_pretraining:
     moi = 'norms'  # losses norms

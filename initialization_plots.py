@@ -301,7 +301,7 @@ def initialization_tests():
             ax.set_xticklabels(xlabels)
 
         # axs[0].tick_params(axis='y', which='minor')
-        pathplot = os.path.join(CDIR, 'experiments', 'subexp.png')
+        pathplot = os.path.join(CDIR, 'experiments', 'subexp.pdf')
         fig.savefig(pathplot, bbox_inches='tight')
 
         plt.show()

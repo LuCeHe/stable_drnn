@@ -50,7 +50,6 @@ results_filename = os.path.join(EXPS, f'rec_norms_{net_name}_{task_name}_LSC{arg
 if not os.path.exists(results_filename):
 
     # task definition
-
     stack, batch_size, embedding, n_neurons, lr = default_config(
         stack, batch_size, None, None, None, task_name, net_name
     )
@@ -63,8 +62,8 @@ if not os.path.exists(results_filename):
     gen_train = Task(**train_task_args)
 
     comments += '_batchsize:' + str(batch_size)
-
     comments = comments if task_name in language_tasks else comments.replace('embproj', 'simplereadout')
+
     # task_name, net_name, n_neurons, tau, lr, stack,
     # loss_name, embedding, optimizer_name, tau_adaptation, lr_schedule, weight_decay, clipnorm,
     # initializer, comments, in_len, n_in, out_len, n_out, final_epochs,
