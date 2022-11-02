@@ -245,7 +245,7 @@ def initialization_tests():
         ts = np.linspace(1, T, 1000)
         y = bound(dL, ts)
 
-        axs[0].plot(ts, y)
+        axs[0].plot(ts, y, color='#018E32')
         axs[0].set_xlabel(r'$T$')
 
         T = 5
@@ -254,14 +254,14 @@ def initialization_tests():
         ls = np.linspace(1, dL, 1000)
         y = bound(ls, T)
 
-        axs[1].plot(ls, y)
+        axs[1].plot(ls, y, color='#018E32')
         axs[1].set_xlabel(r'$\Delta l$')
 
         T = 10000
         ts = np.linspace(1, T, 1000)
         y = bound(ts / 100, ts)
 
-        axs[2].plot(ts, y)
+        axs[2].plot(ts, y, color='#018E32')
         axs[2].set_xlabel(r'$100\Delta l=T$')
 
         axs[0].set_ylabel(r'$\frac{1}{T}\binom{T + \Delta l +2}{T}$', fontsize=24)

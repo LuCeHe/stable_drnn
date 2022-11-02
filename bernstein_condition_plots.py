@@ -7,9 +7,15 @@ from GenericTools.keras_tools.esoteric_tasks.time_task_redirection import langua
 from GenericTools.stay_organized.utils import str2val, NumpyEncoder
 
 from GenericTools.keras_tools.silence_tensorflow import silence_tf
-import matplotlib.pyplot as plt
 
 silence_tf()
+
+import matplotlib as mpl
+from GenericTools.stay_organized.mpl_tools import load_plot_settings
+
+mpl = load_plot_settings(mpl=mpl)
+
+import matplotlib.pyplot as plt
 
 from sg_design_lif.neural_models.config import default_config
 from alif_sg.neural_models.recLSC import apply_LSC
@@ -120,7 +126,7 @@ else:
 print(lsc_results.keys())
 
 # plt.rc('text', usetex=True)
-fig, axs = plt.subplots(3, 2, figsize=(6, 3), gridspec_kw={'wspace': .2, 'hspace': .5})
+fig, axs = plt.subplots(3, 2, figsize=(7, 3.5), gridspec_kw={'wspace': .2, 'hspace': .5})
 
 for i in [0, 1]:
     layer = i
@@ -144,31 +150,40 @@ for i in [0, 1]:
 
     for t in range(time_steps):
         ns = normalized_norms[:, t]
-        # print(ns[:11])
+
         r, p = scipy.stats.pearsonr(ns, t1x)
         c = np.cov(ns, t1x)[0][1]
         covs.append(c)
         corr.append(r)
         ps.append(p)
-    axs[0, i].plot(covs)
-    axs[1, i].plot(corr)
-    axs[2, i].plot(ps, color='r', linestyle='--')
+
+    axs[0, i].plot(covs, color='#BA850A')
+    axs[1, i].plot(corr, color='#900C3F')
+    axs[2, i].plot(ps, color='#B94D0C', linestyle='-')
+    axs[2, i].axhline(y=0.05, color='#B94D0C', linestyle='--')
+    # axs[2, i].set_yscale('log')
 
     axs[2, i].set_xlabel('t')
     axs[0, i].set_title(f'layer {i + 1}')
-    axs[0, 0].set_ylabel(r'$Covariance$')
-    axs[1, 0].set_ylabel(r'$Correlation$')
-    axs[2, 0].set_ylabel(r'$p$-$value$')
+    axs[0, 0].set_ylabel(r'$Covariance$', fontsize=12)
+    axs[1, 0].set_ylabel(r'$Correlation$', fontsize=12)
+    axs[2, 0].set_ylabel(r'$p$-$value$', fontsize=12)
+
+for j in [0, 1]:
+    for i in [1, 2]:
+        axs[i, j].yaxis.set_ticks([0, 1])
 
 for ax in axs.reshape(-1):
     for pos in ['right', 'left', 'bottom', 'top']:
         ax.spines[pos].set_visible(False)
+        xmin, xmax = ax.get_xlim()
+        ax.set_xlim([-1, xmax])
 
 # axs[0, 1].tick_params(labelleft=False, left=False)
 
 fig.align_ylabels(axs[:, 0])
-fig.suptitle(f'{clean_net_name[net_name]} on {clean_task_name[task_name]}', y=1.1, fontsize=14)
+fig.suptitle(f'{clean_net_name[net_name]} $a_k$ on {clean_task_name[task_name]}', y=1.05, fontsize=14)
 
-pathplot = os.path.join(EXPS, f'rec_norms_{net_name}_{task_name}_LSC{args.findLSC}.png')
+pathplot = os.path.join(EXPS, f'rec_norms_{net_name}_{task_name}_LSC{args.findLSC}.pdf')
 fig.savefig(pathplot, bbox_inches='tight')
 plt.show()

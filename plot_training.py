@@ -73,7 +73,6 @@ df = experiments_to_pandas(
     exclude_files=['cout.txt']
 )
 
-
 if 'n_params' in df.columns:
     df['n_params'] = df['n_params'].apply(lambda x: large_num_to_reasonable_string(x, 1))
 
@@ -369,6 +368,7 @@ if missing_exps:
     print(experiments)
 
 if plot_weights:
+    create_pickles = False
     plot_1 = True
     plot_2 = False
     import pickle
@@ -376,11 +376,13 @@ if plot_weights:
 
     task_name = 'sl_mnist'  # sl_mnist heidelberg
     gauss_beta = False
-    normpow = -1 # 1, -1, 2
+    normpow = -1  # 1, -1, 2
 
     net_name = 'ALIF'  # ALIF LSTM
 
     comment = f'_normpow:{normpow}_lscdepth:1_lscout:1'
+
+
     def clean_weight_name(wn):
 
         if 'encoder' in wn or 'reg' in wn:
@@ -437,19 +439,18 @@ if plot_weights:
 
     axs = None
 
-    hists_path = os.path.join(EXPERIMENTS, f'hists_{net_name}_{task_name}_gb{gauss_beta}_normpow{normpow}.pickle')
-    if os.path.exists(hists_path):
-        hist_dict = pickle.load(open(hists_path, 'rb'))  # Unpickling the object
-    else:
+    cols = 4
+    n_bins = 50
+
+    if create_pickles:
         import tensorflow as tf
 
-        hist_dict = {}
+        for norm in [1, 2, -1]:
+            hists_path = os.path.join(EXPERIMENTS, f'hists_{net_name}_{task_name}_gb{gauss_beta}_normpow{norm}.pickle')
 
-    if plot_1:
-        for befaft in ['before', 'after']:
-            color = '#097B2A' if befaft == 'before' else '#40DE6E'
+            hist_dict = {}
 
-            if not befaft in hist_dict.keys():
+            for befaft in ['before', 'after']:
                 json_path = os.path.join(path, 'trained_models', 'lsc', f'model_config_lsc_{befaft}.json')
                 h5_path = os.path.join(path, 'trained_models', 'lsc', f'model_weights_lsc_{befaft}.h5')
 
@@ -470,29 +471,49 @@ if plot_weights:
                 weight_names = [weight.name for layer in model.layers for weight in layer.weights]
                 hist_dict[befaft] = {}
 
-            cols = 4
-            n_bins = 50
-            n_weights = len(hist_dict[befaft]) if os.path.exists(hists_path) else len(weights)
-            if axs is None:
-                fig, axs = plt.subplots(
-                    cols, int(n_weights / cols), gridspec_kw={'wspace': .2, 'hspace': 0.8}, figsize=(8, 8)
-                )
+                for i in range(len(weights)):
+                    if not os.path.exists(hists_path):
+                        w = weights[i]
+                        wn = weight_names[i]
+                        counts, bins = np.histogram(w.flatten(), bins=n_bins)
 
-            for ax, i in zip(axs.flat, range(n_weights)):
-                if not os.path.exists(hists_path):
-                    w = weights[i]
-                    wn = weight_names[i]
-                    counts, bins = np.histogram(w.flatten(), bins=n_bins)
+                        hist_dict[befaft][wn] = (bins, counts)
 
-                    hist_dict[befaft][wn] = (bins, counts)
+            if not os.path.exists(hists_path):
+                pickle.dump(hist_dict, open(hists_path, 'wb'))
 
-                wn = list(hist_dict[befaft].keys())[i]
-                histogram = hist_dict[befaft][wn]
+    if plot_1:
+        kwargs = dict(histtype='step', alpha=1., density=True)
 
-                bins = histogram[0]
-                counts = histogram[1]
-                ax.hist(bins[:-1], bins, weights=counts, color=color, alpha=.5, density=True, lw=1, ec=color)
-                ax.set_title(clean_weight_name(wn))
+        norms = [1, 2, -1]
+        for norm in norms:
+            hists_path = os.path.join(EXPERIMENTS, f'hists_{net_name}_{task_name}_gb{gauss_beta}_normpow{norm}.pickle')
+
+            if os.path.exists(hists_path):
+                hist_dict = pickle.load(open(hists_path, 'rb'))  # Unpickling the object
+            else:
+                raise ValueError('Error: create pickles first!')
+
+            befafts = ['before', 'after'] if norm == 1 else ['after']
+            for befaft in befafts:
+                color = '#097B2A' if befaft == 'before' else '#40DE6E'
+                color = '#B94D0C' if norm == 2 else color
+                color = '#0C58B9' if norm == -1 else color
+
+                n_weights = len(hist_dict[befaft]) if os.path.exists(hists_path) else len(weights)
+                if axs is None:
+                    fig, axs = plt.subplots(
+                        cols, int(n_weights / cols), gridspec_kw={'wspace': .2, 'hspace': 0.8}, figsize=(8, 8)
+                    )
+
+                for ax, i in zip(axs.flat, range(n_weights)):
+                    wn = list(hist_dict[befaft].keys())[i]
+                    histogram = hist_dict[befaft][wn]
+
+                    bins = histogram[0]
+                    counts = histogram[1]
+                    ax.hist(bins[:-1], bins, weights=counts, color=color,  lw=2, ec=color, **kwargs)
+                    ax.set_title(clean_weight_name(wn))
 
         for ax in axs.reshape(-1):
             for pos in ['right', 'left', 'bottom', 'top']:
@@ -511,7 +532,7 @@ if plot_weights:
         if not os.path.exists(hists_path):
             pickle.dump(hist_dict, open(hists_path, 'wb'))
 
-        plot_filename = f'experiments/weights_{net_name}_{task_name}_gb{gauss_beta}.png'
+        plot_filename = f'experiments/weights_{net_name}_{task_name}_gb{gauss_beta}_normpow{normpow}.png'
 
         fig.savefig(plot_filename, bbox_inches='tight')
 
@@ -526,9 +547,9 @@ if plot_weights:
             1, len(alif_wns + lstm_wns), gridspec_kw={'wspace': .3, 'hspace': 0.8}, figsize=(8, 3)
         )
 
-        lstm_path = os.path.join(EXPERIMENTS, f'hists_LSTM_{task_name}_gb{gauss_beta}.pickle')
+        lstm_path = os.path.join(EXPERIMENTS, f'hists_LSTM_{task_name}_gb{gauss_beta}_normpow{normpow}.pickle')
         lstm_dict = pickle.load(open(lstm_path, 'rb'))
-        alif_path = os.path.join(EXPERIMENTS, f'hists_ALIF_{task_name}_gb{gauss_beta}.pickle')
+        alif_path = os.path.join(EXPERIMENTS, f'hists_ALIF_{task_name}_gb{gauss_beta}_normpow{normpow}.pickle')
         alif_dict = pickle.load(open(alif_path, 'rb'))
 
         for befaft in ['before', 'after']:

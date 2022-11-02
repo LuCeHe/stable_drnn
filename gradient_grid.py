@@ -3,10 +3,11 @@ import matplotlib as mpl
 
 from GenericTools.stay_organized.mpl_tools import load_plot_settings
 
+mpl = load_plot_settings(mpl=mpl)
+
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
-mpl = load_plot_settings(mpl=mpl)
 
 # Fixing random state for reproducibility
 np.random.seed(7)
@@ -46,16 +47,16 @@ for c, moves in zip(['#E08108', '#049A25'], [moves_1, moves_2]):
         axs.add_patch(arrow)
         xi, yi = nxi, nyi
 
-plt.text(1 + 1 / Nx / 2, 1 - 1 / Ny / 8, '$L$', fontsize=14, rotation=0)
-plt.text(1 + 1 / Nx / 2, 0 / Ny - 1 / Ny / 6, '$l$', fontsize=14, rotation=0)
-plt.text(1 + 1 / Nx / 2, 1 / Ny - 1 / Ny / 8, '$l+1$', fontsize=14, rotation=0)
+plt.text(1 + 1 / Nx / 2, 1 - 1 / Ny / 8, 'L', fontsize=14, rotation=0)
+plt.text(1 + 1 / Nx / 2, 0 / Ny - 1 / Ny / 6, 'l', fontsize=14, rotation=0)
+plt.text(1 + 1 / Nx / 2, 1 / Ny - 1 / Ny / 8, 'l + 1', fontsize=14, rotation=0)
 
-plt.text(1 - 1 / Nx / 10, 1 + 1 / Ny / 2, '$t$', fontsize=14, rotation=0)
-plt.text(0 / Nx - 0 / Nx / 5, 1 + 1 / Ny / 2, "$t'$", fontsize=14, rotation=0)
-plt.text(1 / Nx - 1 / Nx / 5, 1 + 1 / Ny / 2, "$t'+1$", fontsize=14, rotation=0)
+plt.text(1 - 1 / Nx / 10, 1 + 1 / Ny / 2, 't', fontsize=14, rotation=0)
+plt.text(0 / Nx - 0 / Nx / 5, 1 + 1 / Ny / 2, "t'", fontsize=14, rotation=0)
+plt.text(1 / Nx - 1 / Nx / 5, 1 + 1 / Ny / 2, "t' + 1", fontsize=14, rotation=0)
 
-plt.text(1 / Nx + 1 / Nx/8, 1 / Ny / 4 + 1 / Ny, r"$\frac{\partial h_{t'+2, l+1}}{\partial h_{t'+1, l+1}}$",
-         fontsize=14,         rotation=0)
+plt.text(1 / Nx + .8 / Nx / 8, 1 / Ny / 4 + 1.1 / Ny, r"$\frac{\partial h_{t'+2, l+1}}{\partial h_{t'+1, l+1}}$",
+         fontsize=18, rotation=0)
 
 plt.axis('off')
 
@@ -63,5 +64,3 @@ plot_filename = r'experiments/grad_grid.pdf'
 fig.savefig(plot_filename, bbox_inches='tight')
 
 plt.show()
-
-
