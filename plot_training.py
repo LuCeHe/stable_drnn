@@ -35,7 +35,7 @@ h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 # CSVPATH = r'D:\work\alif_sg\good_experiments\2022-08-20--learned-LSC\summary.h5'
 # HSITORIESPATH = os.path.join(EXPERIMENTS, 'histories.json')
 
-pandas_means = False
+pandas_means = True
 show_per_tasknet = False
 make_latex = False
 missing_exps = False
@@ -43,7 +43,8 @@ plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
 plot_losses = False
-plot_weights = True
+plot_weights = False
+plot_lrs = True
 
 task_name = 'ps_mnist'  # heidelberg wordptb sl_mnist all ps_mnist
 
@@ -59,10 +60,10 @@ metrics_oi = [
 ]
 
 plot_only = ['net_name', 'n_params', 'comments', 'epochs', 'initializer', 'optimizer_name', 'steps_per_epoch',
-             'task_name', 'path'] + metrics_oi
+             'task_name', 'path', 'lr'] + metrics_oi
 columns_to_remove = [
     'heaviside', '_test', 'weight', 'sLSTM_factor', 'save_model', 'clipnorm', 'GPU', 'batch_size',
-    'continue_training', 'embedding', 'lr_schedule', 'loss_name', 'lr', 'seed', 'stack', 'stop_time',
+    'continue_training', 'embedding', 'lr_schedule', 'loss_name', 'seed', 'stack', 'stop_time',
     'convergence', 'n_neurons', 'optimizer_name', 'LSC', ' list', 'artifacts', 'command', 'heartbeat', 'meta',
     'resources', 'host', 'start_time', 'status', 'experiment', 'result',
 ]
@@ -98,17 +99,20 @@ df.rename(columns=new_column_names, inplace=True)
 
 # df['v_ppl argmin'] = df.apply(lambda row: np.argmin(row['v_ppl list']), axis=1)
 
-df['v_ppl'] = df.apply(lambda row: np.min(row['v_ppl list']), axis=1)
+df['v_ppl'] = df.apply(lambda row: np.nanmin(row['v_ppl list']), axis=1)
 df['t_ppl'] = df.apply(lambda row: row['t_ppl list'][row['v_ppl argmin']], axis=1)
-df['v_mode_acc'] = df.apply(lambda row: np.max(row['v_mode_acc list']), axis=1)
-
-# FIXME: 14 experiments got nans in the validation, plot them anyway?
-df = df[~df['v_mode_acc argmax'].isna()]
-
-print(df['v_mode_acc argmax'].isna().sum())
-df['v_mode_acc argmax'] = df['v_mode_acc argmax'].astype(int)
-print(df['v_mode_acc argmax'])
-df['t_mode_acc'] = df.apply(lambda row: row['t_mode_acc list'][row['v_mode_acc argmax']], axis=1)
+# df['v_mode_acc'] = df.apply(lambda row: np.nanmax(row['v_mode_acc list']), axis=1)
+#
+# nansdf = df[df['v_mode_acc argmax'].isna()]
+# print(nansdf['path'].to_string())
+#
+# # FIXME: 14 experiments got nans in the heidelberg task validation, plot them anyway?
+# print('v_mode_acc nans:', df['v_mode_acc argmax'].isna().sum())
+# df = df[~df['v_mode_acc argmax'].isna()]
+#
+# print('v_mode_acc nans:', df['v_mode_acc argmax'].isna().sum())
+# df['v_mode_acc argmax'] = df['v_mode_acc argmax'].astype(int)
+# df['t_mode_acc'] = df.apply(lambda row: row['t_mode_acc list'][row['v_mode_acc argmax']], axis=1)
 
 if metric in df.keys():
     df = df.sort_values(by=metric)
@@ -122,7 +126,7 @@ print(list(df.columns))
 print(df.to_string())
 
 if pandas_means:
-    group_cols = ['net_name', 'task_name', 'initializer', 'comments']
+    group_cols = ['net_name', 'task_name', 'initializer', 'comments', 'lr']
     counts = df.groupby(group_cols).size().reset_index(name='counts')
 
     metrics_oi = [shorten_losses(m) for m in metrics_oi]
@@ -251,6 +255,35 @@ if pandas_means:
         print(pdf.to_string())
 
         print(pdf.to_latex(index=True, escape=False))
+
+if plot_lrs:
+    idf = df
+    idf = idf.dropna(subset=['lr'])
+    print(idf.to_string())
+
+    tasks = ['sl_mnist', 'heidelberg', 'wordptb']
+    lrs = np.unique(idf['lr'])
+    nets = np.unique(idf['net_name'])
+    fig, axs = plt.subplots(
+        len(tasks), 1, gridspec_kw={'wspace': .2, 'hspace': 0.8}, figsize=(8, 8)
+    )
+    colors = lambda net_name: '#FF5733' if net_name == 'ALIF' else '#1E55A9'
+    for i, task in enumerate(tasks):
+        for net in nets:
+            iidf = idf[idf['task_name'].eq(task) & idf['net_name'].eq(net)]
+            iidf = iidf.sort_values(by='lr')
+
+            # print(iidf.to_string())
+            vppls = iidf['v_ppl min'].values
+            lrs = iidf['lr'].values
+            axs[i].plot(lrs, vppls, color=colors(net))
+            axs[i].set_xscale('log')
+
+            iidf = iidf.sort_values(by='v_ppl min')
+            print(f"{net} on {task} got best vPPL {iidf['v_ppl min'].values[0]} for {iidf['lr'].values[0]}")
+            print(iidf)
+
+    plt.show()
 
 if missing_exps:
     # columns of interest
@@ -512,7 +545,7 @@ if plot_weights:
 
                     bins = histogram[0]
                     counts = histogram[1]
-                    ax.hist(bins[:-1], bins, weights=counts, color=color,  lw=2, ec=color, **kwargs)
+                    ax.hist(bins[:-1], bins, weights=counts, color=color, lw=2, ec=color, **kwargs)
                     ax.set_title(clean_weight_name(wn))
 
         for ax in axs.reshape(-1):

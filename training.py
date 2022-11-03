@@ -44,11 +44,11 @@ def config():
     # task and net
     # ps_mnist heidelberg s_mnist
     # wordptb sl_mnist
-    task_name = 'sl_mnist'
+    task_name = 'heidelberg'
 
     # test configuration
     epochs = 2
-    steps_per_epoch = 1
+    steps_per_epoch = None
     batch_size = None
     stack = None
 
@@ -60,7 +60,7 @@ def config():
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task_name in language_tasks else False
 
-    comments = '32_embproj_nogradreset_dropout:.3_timerepeat:2_test'  # 'nsLIFreadout_adaptsg_dropout:0.50' findLSC_test
+    comments = '32_embproj_nogradreset_dropout:.3_timerepeat:2'  # 'nsLIFreadout_adaptsg_dropout:0.50' findLSC_test
     # comments = ''  # 'nsLIFreadout_adaptsg_dropout:0.50' findLSC_test
 
     # optimizer properties
