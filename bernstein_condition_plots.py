@@ -59,6 +59,9 @@ if not os.path.exists(results_filename):
     stack, batch_size, embedding, n_neurons, lr = default_config(
         stack, batch_size, None, None, None, task_name, net_name
     )
+    stack = '700:300' if task_name == 'wordptb' else stack
+
+
     timerepeat = str2val(comments, 'timerepeat', int, default=1)
     maxlen = str2val(comments, 'maxlen', int, default=100)
     comments = str2val(comments, 'maxlen', int, default=maxlen, replace=maxlen)
