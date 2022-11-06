@@ -9,6 +9,8 @@ import numpy as np
 import pandas as pd
 import matplotlib as mpl
 
+import pickle
+from matplotlib.lines import Line2D
 from GenericTools.stay_organized.mpl_tools import load_plot_settings
 from GenericTools.stay_organized.pandardize import experiments_to_pandas
 from GenericTools.stay_organized.standardize_strings import shorten_losses
@@ -89,6 +91,11 @@ if 'net_name' in df.columns:
     df.loc[df['comments'].str.contains('noalif'), 'net_name'] = 'LIF'
     df.loc[df['net_name'].str.contains('maLSNN'), 'net_name'] = 'ALIF'
 
+df.loc[df['task_name'].str.contains('heidelberg'), 'task_name'] = 'SHD'
+df.loc[df['task_name'].str.contains('sl_mnist'), 'task_name'] = 'sl-MNIST'
+df.loc[df['task_name'].str.contains('wordptb'), 'task_name'] = 'PTB'
+
+
 for c_name in columns_to_remove:
     df = df[df.columns.drop(list(df.filter(regex=c_name)))]
 
@@ -145,6 +152,8 @@ if pandas_means:
 
     tasks = np.unique(mdf['task_name'])
     nets = np.unique(mdf['net_name'])
+
+    print(mdf.to_string())
 
     if show_per_tasknet:
         for task in tasks:
@@ -257,31 +266,52 @@ if pandas_means:
         print(pdf.to_latex(index=True, escape=False))
 
 if plot_lrs:
-    idf = df
+    idf = mdf
     idf = idf.dropna(subset=['lr'])
     print(idf.to_string())
 
-    tasks = ['sl_mnist', 'heidelberg', 'wordptb']
+    tasks = ['sl-MNIST', 'SHD', 'PTB']
     lrs = np.unique(idf['lr'])
-    nets = np.unique(idf['net_name'])
-    fig, axs = plt.subplots(
-        len(tasks), 1, gridspec_kw={'wspace': .2, 'hspace': 0.8}, figsize=(8, 8)
-    )
+    nets = ['LSTM', 'ALIF']
+
+
+
+    fig, axs = plt.subplots(1, len(tasks), gridspec_kw={'wspace': .2, 'hspace': 0.8}, figsize=(14, 3))
     colors = lambda net_name: '#FF5733' if net_name == 'ALIF' else '#1E55A9'
     for i, task in enumerate(tasks):
         for net in nets:
             iidf = idf[idf['task_name'].eq(task) & idf['net_name'].eq(net)]
             iidf = iidf.sort_values(by='lr')
 
-            # print(iidf.to_string())
-            vppls = iidf['v_ppl min'].values
+            vppls = iidf['mean_v_ppl min'].values
             lrs = iidf['lr'].values
+            stds = iidf['std_v_ppl min'].values
             axs[i].plot(lrs, vppls, color=colors(net))
+            axs[i].fill_between(lrs, vppls - stds/2, vppls + stds/2, alpha=0.5, color=colors(net))
             axs[i].set_xscale('log')
 
-            iidf = iidf.sort_values(by='v_ppl min')
-            print(f"{net} on {task} got best vPPL {iidf['v_ppl min'].values[0]} for {iidf['lr'].values[0]}")
-            print(iidf)
+            iidf = iidf.sort_values(by='mean_v_ppl min')
+            print(f"{net} on {task} got best vPPL {iidf['mean_v_ppl min'].values[0]} for {iidf['lr'].values[0]}")
+
+        axs[i].set_title(task)
+        axs[i].set_xticks([1e-2, 1e-3, 1e-4, 1e-5])
+        axs[i].locator_params(axis='y', nbins=5)
+    axs[0].set_ylabel('Perplexity')
+    axs[0].set_xlabel('Learning Rate')
+
+    for ax in axs.reshape(-1):
+        for pos in ['right', 'left', 'bottom', 'top']:
+            ax.spines[pos].set_visible(False)
+
+    legend_elements = [
+        Line2D([0], [0], color=colors(net), lw=4, label=net)
+        for net in nets
+    ]
+
+    plt.legend(handles=legend_elements, loc='center', bbox_to_anchor=(-2.15, .5))
+
+    plot_filename = f'experiments/lrs.pdf'
+    fig.savefig(plot_filename, bbox_inches='tight')
 
     plt.show()
 
@@ -404,8 +434,6 @@ if plot_weights:
     create_pickles = False
     plot_1 = True
     plot_2 = False
-    import pickle
-    from matplotlib.lines import Line2D
 
     task_name = 'sl_mnist'  # sl_mnist heidelberg
     gauss_beta = False

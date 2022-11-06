@@ -87,7 +87,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
          seed, net_name, n_neurons, lr, stack, loss_name, embedding, optimizer_name,
          lr_schedule, weight_decay, clipnorm, initializer, stop_time, _log):
     stack, batch_size, embedding, n_neurons, lr = default_config(
-        stack, batch_size, embedding, n_neurons, lr, task_name, net_name
+        stack, batch_size, embedding, n_neurons, lr, task_name, net_name, setting='LSC'
     )
 
     exp_dir = os.path.join(CDIR, ex.observers[0].basedir)
