@@ -36,6 +36,7 @@ from tensorflow.python.lib.io import file_io
 from tensorflow.python.util.tf_export import keras_export
 import tensorflow as tf
 
+
 BASE_WEIGHTS_PATH = 'https://storage.googleapis.com/keras-applications/'
 
 WEIGHTS_HASHES = {
@@ -320,9 +321,14 @@ def EfficientNet(
         """Round number of repeats based on depth multiplier."""
         return int(math.ceil(depth_coefficient * repeats))
 
+    if tf.__version__ =='2.10.0':
+        rescaling = layers.Rescaling(1. / 255.)
+    else:
+        rescaling = tf.keras.layers.experimental.preprocessing.Rescaling(1. / 255.)
+
     # Build stem
     x = img_input
-    x = layers.Rescaling(1. / 255.)(x)
+    x = rescaling(x)
     x = layers.Normalization(axis=bn_axis)(x)
 
     # if 'higherres' in comments:
