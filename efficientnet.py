@@ -1,6 +1,7 @@
 import argparse, os, time, json, shutil, socket, random
 import numpy as np
 
+from GenericTools.keras_tools.esoteric_activations.smoothrelus import Guderman_T
 from GenericTools.keras_tools.silence_tensorflow import silence_tf
 
 silence_tf()
@@ -28,6 +29,10 @@ random_string = ''.join([str(r) for r in np.random.choice(10, 4)])
 EXPERIMENT = os.path.join(EXPERIMENTS, time_string + random_string + '_lsc-effnet')
 os.makedirs(EXPERIMENT, exist_ok=True)
 
+extra_acts = {
+    'gudermanlu': Guderman_T(),
+}
+
 
 def get_argparse():
     parser = argparse.ArgumentParser()
@@ -39,10 +44,11 @@ def get_argparse():
     parser.add_argument("--steps_per_epoch", default=3, type=int, help="Batch size")
     parser.add_argument("--lr", default=.001, type=float, help="Learning rate")
     parser.add_argument("--batch_normalization", default=1, type=int, help="Batch normalization")
-    parser.add_argument("--comments", default='findLSC_fanin:1', type=str, help="String to activate extra behaviors")
-    parser.add_argument("--dataset", default='cifar10', type=str, help="Dataset to train on",
+    parser.add_argument("--comments", default='', type=str, help="String to activate extra behaviors")
+    parser.add_argument("--dataset", default='cifar100', type=str, help="Dataset to train on",
                         choices=['cifar10', 'cifar100', 'mnist'])
-    parser.add_argument("--activation", default='swish', type=str, help="Activation", choices=['swish', 'relu'])
+    parser.add_argument("--activation", default='gudermanlu', type=str, help="Activation",
+                        choices=['swish', 'relu', 'gudermanlu'])
     parser.add_argument(
         "--initialization", default='default', type=str, help="Activation to train on",
         choices=['he', 'critical', 'default']
@@ -56,9 +62,10 @@ def get_argparse():
 def build_model(args, input_shape, classes, effnet=None):
     # model parameters initialization
     kernel_initializer, bias_initializer = 'default', 'default'
+    activation = args.activation if not args.activation in extra_acts.keys() else extra_acts[args.activation]
     if effnet is None:
         effnet = EfficientNetB0(
-            include_top=False, weights=None, activation=args.activation,
+            include_top=False, weights=None, activation=activation,
             batch_normalization=bool(args.batch_normalization),
             kernel_initializer=kernel_initializer,
             bias_initializer=bias_initializer,
@@ -108,10 +115,11 @@ def main(args):
             batch_size=2,
             output_type='[i]o'
         )
+        activation = args.activation if not args.activation in extra_acts.keys() else extra_acts[args.activation]
 
         kernel_initializer, bias_initializer = 'default', 'default'
         bm = lambda: EfficientNetB0(
-            include_top=False, weights=None, activation=args.activation,
+            include_top=False, weights=None, activation=activation,
             batch_normalization=bool(args.batch_normalization),
             kernel_initializer=kernel_initializer,
             bias_initializer=bias_initializer,
@@ -144,12 +152,13 @@ def main(args):
     loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     optimizer = tf.keras.optimizers.Adam(learning_rate=args.lr)
     model.compile(optimizer, loss, metrics=['sparse_categorical_accuracy', 'sparse_categorical_crossentropy'])
+    steps_per_epoch = args.steps_per_epoch if args.steps_per_epoch > 0 else None
     model.fit(
         x_train, y_train, epochs=args.epochs, batch_size=args.batch_size, validation_data=(x_val, y_val),
-        callbacks=callbacks, steps_per_epoch=args.steps_per_epoch if args.steps_per_epoch > 0 else None
+        callbacks=callbacks, steps_per_epoch=steps_per_epoch
     )
 
-    evaluation = model.evaluate(x_test, y_test, return_dict=True, verbose=True)
+    evaluation = model.evaluate(x_test, y_test, return_dict=True, verbose=True, steps=steps_per_epoch)
     for k in evaluation.keys():
         results['test_' + k] = evaluation[k]
 

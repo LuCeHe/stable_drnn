@@ -3,7 +3,6 @@ import os
 import numpy as np
 import tensorflow as tf
 
-
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
@@ -16,7 +15,7 @@ class Transformer(object):
                  attention_head_count,
                  d_model,
                  d_point_wise_ff,
-                 dropout_prob, comments=''):
+                 dropout_prob, activation='relu', comments=''):
 
         # model hyper parameter variables
         self.encoder_count = encoder_count
@@ -38,6 +37,7 @@ class Transformer(object):
                 d_model,
                 d_point_wise_ff,
                 dropout_prob,
+                activation=activation,
                 comments=comments
             ) for _ in range(encoder_count)
         ]
@@ -48,6 +48,7 @@ class Transformer(object):
                 d_model,
                 d_point_wise_ff,
                 dropout_prob,
+                activation=activation,
                 comments=comments
             ) for _ in range(decoder_count)
         ]
@@ -75,7 +76,7 @@ class Transformer(object):
 
 
 class EncoderLayer(object):
-    def __init__(self, attention_head_count, d_model, d_point_wise_ff, dropout_prob, comments=''):
+    def __init__(self, attention_head_count, d_model, d_point_wise_ff, dropout_prob, activation='relu', comments=''):
         # super(EncoderLayer, self).__init__()
 
         # model hyper parameter variables
@@ -90,8 +91,7 @@ class EncoderLayer(object):
         self.layer_norm_1 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
 
         self.position_wise_feed_forward_layer = PositionWiseFeedForwardLayer(
-            d_point_wise_ff,
-            d_model
+            d_point_wise_ff, d_model, activation=activation
         )
         self.dropout_2 = tf.keras.layers.Dropout(dropout_prob)
         self.layer_norm_2 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
@@ -110,7 +110,7 @@ class EncoderLayer(object):
 
 
 class DecoderLayer(object):
-    def __init__(self, attention_head_count, d_model, d_point_wise_ff, dropout_prob, comments=''):
+    def __init__(self, attention_head_count, d_model, d_point_wise_ff, dropout_prob, activation='relu', comments=''):
         super(DecoderLayer, self).__init__()
 
         # model hyper parameter variables
@@ -130,8 +130,7 @@ class DecoderLayer(object):
         self.layer_norm_2 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
 
         self.position_wise_feed_forward_layer = PositionWiseFeedForwardLayer(
-            d_point_wise_ff,
-            d_model
+            d_point_wise_ff, d_model, activation=activation
         )
         self.dropout_3 = tf.keras.layers.Dropout(dropout_prob)
         self.layer_norm_3 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
@@ -152,14 +151,15 @@ class DecoderLayer(object):
 
 
 class PositionWiseFeedForwardLayer(tf.keras.layers.Layer):
-    def __init__(self, d_point_wise_ff, d_model):
+    def __init__(self, d_point_wise_ff, d_model, activation='relu'):
         super(PositionWiseFeedForwardLayer, self).__init__()
         self.w_1 = tf.keras.layers.Dense(d_point_wise_ff)
         self.w_2 = tf.keras.layers.Dense(d_model)
+        self.activation = tf.keras.layers.Activation(activation)
 
     def call(self, inputs):
         inputs = self.w_1(inputs)
-        inputs = tf.nn.relu(inputs)
+        inputs = self.activation(inputs)
         return self.w_2(inputs)
 
 
@@ -283,7 +283,9 @@ def build_model(
         attention_head_count,
         d_model,
         d_point_wise_ff,
-        dropout_prob, comments=''
+        dropout_prob,
+        activation='relu',
+        comments='',
 ):
     transformer = Transformer(
         inputs_vocab_size=inputs_vocab_size,
@@ -294,6 +296,7 @@ def build_model(
         d_model=d_model,
         d_point_wise_ff=d_point_wise_ff,
         dropout_prob=dropout_prob,
+        activation=activation,
         comments=comments
     )
 

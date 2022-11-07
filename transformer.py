@@ -5,6 +5,7 @@ import tensorflow as tf
 import numpy as np
 import pandas as pd
 
+from GenericTools.keras_tools.esoteric_activations.smoothrelus import Guderman_T
 from GenericTools.keras_tools.esoteric_callbacks import LearningRateLogger, TimeStopping, CSVLogger
 from GenericTools.keras_tools.esoteric_losses import sparse_perplexity
 from GenericTools.keras_tools.plot_tools import plot_history
@@ -25,10 +26,12 @@ named_tuple = time.localtime()  # get struct_time
 time_string = time.strftime("%Y-%m-%d--%H-%M-%S--", named_tuple)
 random_string = ''.join([str(r) for r in np.random.choice(10, 4)])
 
+extra_acts = {
+    'gudermanlu': Guderman_T(),
+}
 
 
 def main(args, experiment_dir):
-
     comments = args.comments
     results = vars(args)
     print(json.dumps(vars(args), indent=4, cls=NumpyEncoder))
@@ -63,7 +66,7 @@ def main(args, experiment_dir):
 
     GLOBAL_BATCH_SIZE = (args.batch_size * 1)
 
-
+    activation = args.activation if not args.activation in extra_acts.keys() else extra_acts[args.activation]
 
     bm = lambda: build_model(
         inputs_timesteps=SEQ_MAX_LEN_SOURCE,
@@ -76,7 +79,8 @@ def main(args, experiment_dir):
         d_model=D_MODEL,
         d_point_wise_ff=D_POINT_WISE_FF,
         dropout_prob=DROPOUT_PROB,
-        comments=args.comments
+        activation=activation,
+        comments=args.comments,
     )
 
     if 'findLSC' in args.comments:
@@ -104,7 +108,6 @@ def main(args, experiment_dir):
     else:
         model = bm()
     model.summary()
-
 
     gen_train = WMT_ENDE(
         data_dir=DATADIR, batch_size=GLOBAL_BATCH_SIZE, bpe_vocab_size=BPE_VOCAB_SIZE,
@@ -169,8 +172,8 @@ def main(args, experiment_dir):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--comments", default='findLSC', type=str,
-                        help="String to activate extra behaviors")
+    parser.add_argument("--comments", default='', type=str, help="String to activate extra behaviors")
+    parser.add_argument("--activation", default='swish', type=str, help="Network non-linearity")
     parser.add_argument("--seed", default=0, type=int, help="Random seed")
     parser.add_argument("--epochs", default=3, type=int, help="Epochs")
     parser.add_argument("--steps_per_epoch", default=2, type=int, help="Steps per epoch")
@@ -178,7 +181,6 @@ if __name__ == "__main__":
     parser.add_argument("--stop_time", default=60, type=int, help="Stop time")
     parser.add_argument("--results_dir", default=EXPERIMENTS, type=str, help="Experiments Folder")
     args = parser.parse_args()
-
 
     EXPERIMENT = os.path.join(args.results_dir, time_string + random_string + '_lsc-transformer')
     os.makedirs(EXPERIMENT, exist_ok=True)
