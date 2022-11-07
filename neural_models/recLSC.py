@@ -33,11 +33,11 @@ def get_norms(tape, lower_states, upper_states, n_samples=-1, norm_pow=2):
     del hss, hs
 
     # print('nonzero:', tf.math.count_nonzero(td))
-
     if n_samples < 1 and norm_pow in [1, 2, np.inf]:
         if norm_pow is np.inf:
             norms = tf.reduce_sum(tf.abs(td), axis=2)
             norms = tf.reduce_max(norms, axis=-1)
+
         elif norm_pow == 1:
             norms = tf.reduce_sum(tf.abs(td), axis=1)
             norms = tf.reduce_max(norms, axis=-1)
@@ -45,6 +45,9 @@ def get_norms(tape, lower_states, upper_states, n_samples=-1, norm_pow=2):
         elif norm_pow == 2:
             s, _, _ = tf.linalg.svd(td)
             norms = s[..., 0]
+
+        else:
+            raise NotImplementedError
     else:
 
         x = tf.random.normal((td.shape[0], td.shape[-1], n_samples))

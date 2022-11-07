@@ -30,7 +30,7 @@ from GenericTools.stay_organized.unzip import unzip_good_exps
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
 EXPERIMENTS = os.path.join(CDIR, 'experiments')
-GEXPERIMENTS = os.path.join(CDIR, 'good_experiments')
+GEXPERIMENTS = os.path.join(CDIR, 'good_experiments', '2022-10-10--good_for_initial_tables')
 
 expsid = 'als'  # effnet als
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
@@ -39,14 +39,14 @@ h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 pandas_means = True
 show_per_tasknet = False
-make_latex = False
+make_latex = True
 missing_exps = False
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
 plot_losses = False
 plot_weights = False
-plot_lrs = True
+plot_lrs = False
 
 task_name = 'ps_mnist'  # heidelberg wordptb sl_mnist all ps_mnist
 
@@ -79,12 +79,6 @@ df = experiments_to_pandas(
 if 'n_params' in df.columns:
     df['n_params'] = df['n_params'].apply(lambda x: large_num_to_reasonable_string(x, 1))
 
-# if 'host' in df.columns:
-#     df['where'] = df['host'].apply(lambda x: x['hostname'])
-# if 'stop_time' in df.columns and 'start_time' in df.columns:
-#     df['duration_experiment'] = df['stop_time'].apply(lambda x: datetime.strptime(x.split('.')[0], FMT)) - \
-#                                 df['start_time'].apply(lambda x: datetime.strptime(x.split('.')[0], FMT))
-
 df = df[~df['comments'].str.contains('test')]
 
 if 'net_name' in df.columns:
@@ -94,7 +88,6 @@ if 'net_name' in df.columns:
 df.loc[df['task_name'].str.contains('heidelberg'), 'task_name'] = 'SHD'
 df.loc[df['task_name'].str.contains('sl_mnist'), 'task_name'] = 'sl-MNIST'
 df.loc[df['task_name'].str.contains('wordptb'), 'task_name'] = 'PTB'
-
 
 for c_name in columns_to_remove:
     df = df[df.columns.drop(list(df.filter(regex=c_name)))]
@@ -108,18 +101,22 @@ df.rename(columns=new_column_names, inplace=True)
 
 df['v_ppl'] = df.apply(lambda row: np.nanmin(row['v_ppl list']), axis=1)
 df['t_ppl'] = df.apply(lambda row: row['t_ppl list'][row['v_ppl argmin']], axis=1)
-# df['v_mode_acc'] = df.apply(lambda row: np.nanmax(row['v_mode_acc list']), axis=1)
+df['v_mode_acc'] = df.apply(lambda row: np.nanmax(row['v_mode_acc list']), axis=1)
 #
 # nansdf = df[df['v_mode_acc argmax'].isna()]
 # print(nansdf['path'].to_string())
 #
 # # FIXME: 14 experiments got nans in the heidelberg task validation, plot them anyway?
 # print('v_mode_acc nans:', df['v_mode_acc argmax'].isna().sum())
-# df = df[~df['v_mode_acc argmax'].isna()]
+df = df[~df['v_mode_acc argmax'].isna()]
 #
 # print('v_mode_acc nans:', df['v_mode_acc argmax'].isna().sum())
-# df['v_mode_acc argmax'] = df['v_mode_acc argmax'].astype(int)
-# df['t_mode_acc'] = df.apply(lambda row: row['t_mode_acc list'][row['v_mode_acc argmax']], axis=1)
+df['v_mode_acc argmax'] = df['v_mode_acc argmax'].astype(int)
+df['t_mode_acc'] = df.apply(lambda row: row['t_mode_acc list'][row['v_mode_acc argmax']], axis=1)
+
+
+
+df = df[df['lr'].isna()]
 
 if metric in df.keys():
     df = df.sort_values(by=metric)
@@ -133,7 +130,8 @@ print(list(df.columns))
 print(df.to_string())
 
 if pandas_means:
-    group_cols = ['net_name', 'task_name', 'initializer', 'comments', 'lr']
+    # group_cols = ['net_name', 'task_name', 'initializer', 'comments', 'lr']
+    group_cols = ['net_name', 'task_name', 'initializer', 'comments']
     counts = df.groupby(group_cols).size().reset_index(name='counts')
 
     metrics_oi = [shorten_losses(m) for m in metrics_oi]
@@ -179,7 +177,7 @@ if pandas_means:
 
 
     def choose_metric(row):
-        if row['task_name'] == 'wordptb':
+        if row['task_name'] == 'PTB':
             metric = row['ppl']
         else:
             metric = row['acc']
@@ -210,11 +208,13 @@ if pandas_means:
 
     if make_latex:
 
-        net = 'ALIF'
+        net = 'LSTM'
 
         idf = mdf[mdf['net_name'].str.contains(net)]
         idf = idf[~idf['comments'].str.contains('reoldspike')]
         idf = idf[~idf['comments'].str.contains('savelscweights')]
+
+        # print(idf.to_string())
 
         metrics_cols = [c for c in idf.columns if 'ppl' in c or 'acc' in c]
         for m in metrics_cols:
@@ -245,7 +245,7 @@ if pandas_means:
         # idf['comments'] = idf['comments'].replace(r'\beta', r'\beta no LSC', regex=True)
 
         conditions = np.unique(idf['comments'])
-        tasks = ['sl_mnist', 'heidelberg', 'wordptb']
+        tasks = ['sl-MNIST', 'SHD', 'PTB']
         order_conditions = ['no LSC', 'LSC_1', 'LSC_2', r'LSC_\infty', 'LSC_2 + g', 'LSC_2 + b', 'LSC_2 + s',
                             r'\beta', r'LSC_2\beta', r'LSC_2\beta + g', r'LSC_2\beta + b',
                             'LSC_2^{(d)}', 'LSC_2^{(dr)}']
@@ -274,8 +274,6 @@ if plot_lrs:
     lrs = np.unique(idf['lr'])
     nets = ['LSTM', 'ALIF']
 
-
-
     fig, axs = plt.subplots(1, len(tasks), gridspec_kw={'wspace': .2, 'hspace': 0.8}, figsize=(14, 3))
     colors = lambda net_name: '#FF5733' if net_name == 'ALIF' else '#1E55A9'
     for i, task in enumerate(tasks):
@@ -287,7 +285,7 @@ if plot_lrs:
             lrs = iidf['lr'].values
             stds = iidf['std_v_ppl min'].values
             axs[i].plot(lrs, vppls, color=colors(net))
-            axs[i].fill_between(lrs, vppls - stds/2, vppls + stds/2, alpha=0.5, color=colors(net))
+            axs[i].fill_between(lrs, vppls - stds / 2, vppls + stds / 2, alpha=0.5, color=colors(net))
             axs[i].set_xscale('log')
 
             iidf = iidf.sort_values(by='mean_v_ppl min')
