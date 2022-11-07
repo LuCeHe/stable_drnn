@@ -59,7 +59,8 @@ def config():
     n_neurons = None
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task_name in language_tasks else False
-    comments = '32_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_normpow:-1_test_lscdepth:1_lscout:1'  # 'nsLIFreadout_adaptsg_dropout:0.50' findLSC_test
+    comments = '32_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_normpow:1_test_randwlsc'  # 'nsLIFreadout_adaptsg_dropout:0.50' findLSC_test
+    # comments = ''
 
     # optimizer properties
     lr = None  # 7e-4 None
@@ -139,7 +140,6 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
     history_path = other_dir + '/log.csv'
     print_every = 2  # int(final_epochs / 10) if not final_epochs < 10 else 1
 
-
     if 'findLSC' in comments:
         print('Finding the LSC...')
         n_samples = str2val(comments, 'normsamples', int, default=-1)
@@ -166,9 +166,10 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
 
         lscw_filepath = os.path.join(models_dir, 'lsc')
         save_weights_path = lscw_filepath if 'savelscweights' in comments else None
-        time_steps = 2 if'test' in comments else None
+        time_steps = 2 if 'test' in comments else None
 
         del gen_train
+        print(json.dumps(new_model_args, indent=4, cls=NumpyEncoder))
         weights, lsc_results = apply_LSC(
             train_task_args=new_task_args, model_args=new_model_args, norm_pow=norm_pow, n_samples=n_samples,
             batch_size=new_batch_size, depth_norm=lscdepth, decoder_norm=lscout, save_weights_path=save_weights_path,
@@ -253,7 +254,6 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
     results['final_steps_per_epoch'] = final_steps_per_epoch
 
     results_filename = os.path.join(other_dir, 'results.json')
-
 
     string_result = json.dumps(results, indent=4, cls=NumpyEncoder)
     print(string_result)

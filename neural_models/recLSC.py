@@ -125,6 +125,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
         batch = gen_train.__getitem__(step)
         batch = [tf.convert_to_tensor(tf.cast(b, tf.float32), dtype=tf.float32) for b in batch[0]],
+
         if 'gausslsc' in comments:
             batch = [tf.convert_to_tensor(tf.cast(b, tf.float32), dtype=tf.float32) for b in batch[0]],
         elif 'berlsc' in comments:
@@ -135,6 +136,9 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
             flatbatch = [tf.reshape(b, [-1, 2]) for b in batch[0]],
             shuffled = [tf.random.shuffle(b) for b in flatbatch[0]],
             batch = [tf.reshape(b, s) for s, b in zip(shapes, shuffled[0])],
+        elif 'randwlsc' in comments:
+            shapes = [b.shape for b in batch[0]]
+            batch = [tf.constant(np.random.choice(gen_train.vocab_size, size=s)) for s in shapes],
 
         ts = batch[0][0].shape[1] if time_steps is None else time_steps
         pbar2 = tqdm(total=ts, position=0)
