@@ -321,18 +321,18 @@ def EfficientNet(
         """Round number of repeats based on depth multiplier."""
         return int(math.ceil(depth_coefficient * repeats))
 
-    if tf.__version__ =='2.10.0':
-        rescaling = layers.Rescaling(1. / 255.)
-    else:
-        rescaling = tf.keras.layers.experimental.preprocessing.Rescaling(1. / 255.)
+    # if tf.__version__ =='2.10.0':
+    #     rescaling = layers.Rescaling(1. / 255.)
+    # else:
+    rescaling = tf.keras.layers.experimental.preprocessing.Rescaling(1. / 255.)
 
     # Build stem
     x = img_input
     x = rescaling(x)
-    x = layers.Normalization(axis=bn_axis)(x)
+    x = tf.keras.layers.experimental.preprocessing.Normalization(axis=bn_axis)(x)
 
     # if 'higherres' in comments:
-    x = layers.Resizing(224, 224, interpolation="bilinear")(x)
+    x = tf.keras.layers.experimental.preprocessing.Resizing(224, 224, interpolation="bilinear")(x)
 
     x = layers.ZeroPadding2D(
         padding=imagenet_utils.correct_pad(x, 3),
