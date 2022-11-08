@@ -31,6 +31,8 @@ os.makedirs(EXPERIMENT, exist_ok=True)
 
 extra_acts = {
     'gudermanlu': Guderman_T(),
+    'gudermanlu.1': Guderman_T(.1),
+    'swish.1': Swish_T(.1),
 }
 
 
@@ -47,8 +49,8 @@ def get_argparse():
     parser.add_argument("--comments", default='', type=str, help="String to activate extra behaviors")
     parser.add_argument("--dataset", default='cifar100', type=str, help="Dataset to train on",
                         choices=['cifar10', 'cifar100', 'mnist'])
-    parser.add_argument("--activation", default='gudermanlu', type=str, help="Activation",
-                        choices=['swish', 'relu', 'gudermanlu'])
+    parser.add_argument("--activation", default='swish.1', type=str, help="Activation",
+                        choices=['swish', 'relu', 'gudermanlu', 'swish.1', 'gudermanlu.1'])
     parser.add_argument(
         "--initialization", default='default', type=str, help="Activation to train on",
         choices=['he', 'critical', 'default']
