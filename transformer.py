@@ -62,7 +62,7 @@ def main(args, experiment_dir):
         BATCH_SIZE = 2
         D_MODEL = 10
         ATTENTION_HEAD_COUNT = 2
-        comments += 'test'
+        # comments += 'test'
 
     GLOBAL_BATCH_SIZE = (args.batch_size * 1)
 

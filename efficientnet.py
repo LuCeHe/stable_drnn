@@ -1,7 +1,7 @@
 import argparse, os, time, json, shutil, socket, random
 import numpy as np
 
-from GenericTools.keras_tools.esoteric_activations.smoothrelus import Guderman_T
+from GenericTools.keras_tools.esoteric_activations.smoothrelus import Guderman_T, Swish_T
 from GenericTools.keras_tools.silence_tensorflow import silence_tf
 
 silence_tf()
@@ -160,7 +160,8 @@ def main(args):
         callbacks=callbacks, steps_per_epoch=steps_per_epoch
     )
 
-    evaluation = model.evaluate(x_test, y_test, return_dict=True, verbose=True, steps=steps_per_epoch)
+    evaluation = model.evaluate(x_test, y_test, return_dict=True, verbose=True, steps=steps_per_epoch,
+                                batch_size=args.batch_size)
     for k in evaluation.keys():
         results['test_' + k] = evaluation[k]
 
