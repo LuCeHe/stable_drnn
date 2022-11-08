@@ -37,9 +37,9 @@ h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 # CSVPATH = r'D:\work\alif_sg\good_experiments\2022-08-20--learned-LSC\summary.h5'
 # HSITORIESPATH = os.path.join(EXPERIMENTS, 'histories.json')
 
-pandas_means = True
+pandas_means = False
 show_per_tasknet = False
-make_latex = True
+make_latex = False
 missing_exps = False
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
@@ -75,6 +75,8 @@ df = experiments_to_pandas(
     h5path=h5path, zips_folder=GEXPERIMENTS, unzips_folder=EXPERIMENTS, experiments_identifier=expsid,
     exclude_files=['cout.txt']
 )
+
+print(list(df.columns))
 
 if 'n_params' in df.columns:
     df['n_params'] = df['n_params'].apply(lambda x: large_num_to_reasonable_string(x, 1))
