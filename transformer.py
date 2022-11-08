@@ -182,8 +182,20 @@ if __name__ == "__main__":
     parser.add_argument("--results_dir", default=EXPERIMENTS, type=str, help="Experiments Folder")
     args = parser.parse_args()
 
+
     EXPERIMENT = os.path.join(args.results_dir, time_string + random_string + '_lsc-transformer')
     os.makedirs(EXPERIMENT, exist_ok=True)
+
+
+
+
+    string_result = json.dumps(vars(args), indent=4, cls=NumpyEncoder)
+    print(string_result)
+    path = os.path.join(EXPERIMENT, 'results.txt')
+    with open(path, "w") as f:
+        f.write(string_result)
+
+
 
     time_start = time.perf_counter()
     results = main(args, EXPERIMENT)
