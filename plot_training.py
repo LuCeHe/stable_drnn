@@ -1,4 +1,4 @@
-import os, json, copy, time
+import os, json, copy, time, shutil
 
 from GenericTools.keras_tools.esoteric_layers import AddLossLayer, AddMetricsLayer
 from GenericTools.keras_tools.esoteric_layers.rate_voltage_reg import RateVoltageRegularization
@@ -15,6 +15,7 @@ from GenericTools.stay_organized.mpl_tools import load_plot_settings
 from GenericTools.stay_organized.pandardize import experiments_to_pandas
 from GenericTools.stay_organized.standardize_strings import shorten_losses
 from GenericTools.stay_organized.utils import str2val
+from alif_sg.tools.plot_tools import clean_weight_name, get_path, clean_nid, color_nid
 from sg_design_lif.neural_models import maLSNN
 
 mpl, pd = load_plot_settings(mpl=mpl, pd=pd)
@@ -31,6 +32,7 @@ FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
 EXPERIMENTS = os.path.join(CDIR, 'experiments')
 GEXPERIMENTS = os.path.join(CDIR, 'good_experiments', '2022-10-10--good_for_initial_tables')
+GEXPERIMENTS = os.path.join(CDIR, 'good_experiments', '2022-10-10--good_for_initial_tables')
 
 expsid = 'als'  # effnet als
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
@@ -45,7 +47,7 @@ plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
 plot_losses = False
-plot_weights = False
+plot_weights = True
 plot_lrs = False
 
 task_name = 'ps_mnist'  # heidelberg wordptb sl_mnist all ps_mnist
@@ -115,8 +117,6 @@ df = df[~df['v_mode_acc argmax'].isna()]
 # print('v_mode_acc nans:', df['v_mode_acc argmax'].isna().sum())
 df['v_mode_acc argmax'] = df['v_mode_acc argmax'].astype(int)
 df['t_mode_acc'] = df.apply(lambda row: row['t_mode_acc list'][row['v_mode_acc argmax']], axis=1)
-
-
 
 df = df[df['lr'].isna()]
 
@@ -432,75 +432,31 @@ if missing_exps:
 
 if plot_weights:
     create_pickles = False
-    plot_1 = True
-    plot_2 = False
+    plot_1 = False
+    plot_2 = True
 
-    task_name = 'sl_mnist'  # sl_mnist heidelberg
+    net_name = 'LSTM'  # ALIF LSTM
+    task_name = 'sl-MNIST'  # sl_mnist heidelberg
     gauss_beta = False
-    normpow = -1  # 1, -1, 2
 
-    net_name = 'ALIF'  # ALIF LSTM
+    for normpow in [1, -1, 2]:
+        path = get_path(df, normpow, task_name, net_name, gauss_beta)
+        _, exp_identifiers = os.path.split(path)
 
-    comment = f'_normpow:{normpow}_lscdepth:1_lscout:1'
+        model_path = os.path.join(path, 'trained_models', 'lsc', 'model_weights_lsc_before.h5')
+        if not os.path.exists(model_path):
+            shutil.rmtree(path)
 
-
-    def clean_weight_name(wn):
-
-        if 'encoder' in wn or 'reg' in wn:
-            layer = wn.split('_')[1]
-        else:
-            layer = 'd'
-
-        wn = wn.split('/')[-1].split(':')[0]
-        if 'input_weights' in wn:
-            wn = 'W_{' + f'in, {layer}' + '}'
-        elif 'recurrent_weights' in wn:
-            wn = 'W_{' + f'rec, {layer}' + '}'
-        elif 'tau_adaptation' in wn:
-            wn = r'\tau^{\vartheta}_{' + f'{layer}' + '}'
-        elif 'tau' in wn:
-            wn = r'\tau^{y}_{' + f'{layer}' + '}'
-        elif 'thr' in wn:
-            wn = r'b^{\vartheta}_{' + f'{layer}' + '}'
-        elif 'beta' in wn:
-            wn = r'\beta_{' + f'{layer}' + '}'
-        elif 'recurrent_kernel' in wn:
-            wn = r'U_{j,' + f'{layer}' + '}'
-        elif 'kernel' in wn:
-            wn = r'W_{j,' + f'{layer}' + '}'
-        elif 'bias' in wn:
-            wn = r'b_{j,' + f'{layer}' + '}'
-        elif 'switch' in wn:
-            wn = r'switch_{' + f'{layer}' + '}'
-        else:
-            wn = f'{wn}_{layer}'
-
-        return f'${wn}$'
-
-
-    df = df[df['comments'].str.contains('savelscweights')]
-    df = df[df['comments'].str.contains(comment)]
-    df = df[df['task_name'].str.contains(task_name)]
-    df = df[df['net_name'].str.contains(net_name)]
-    if gauss_beta:
-        df = df[df['comments'].str.contains('gaussbeta')]
-    else:
-        df = df[~df['comments'].str.contains('gaussbeta')]
-
-    print(df.to_string())
-    print(df.head(3)['path'].values)
-    path = df.head(1)['path'].values[0]
-    _, exp_identifiers = os.path.split(path)
-
-    ds = unzip_good_exps(
-        GEXPERIMENTS, EXPERIMENTS,
-        exp_identifiers=[exp_identifiers], except_folders=[],
-        unzip_what=['model_', '.txt', '.json', '.csv'], except_files=['cout.txt']
-    )
+            # os.remove(path)
+            _ = unzip_good_exps(
+                GEXPERIMENTS, EXPERIMENTS,
+                exp_identifiers=[exp_identifiers], except_folders=[],
+                unzip_what=['model_', '.txt', '.json', '.csv'], except_files=['cout.txt']
+            )
 
     axs = None
 
-    cols = 4
+    cols = 3 if net_name == 'LSTM' else 6
     n_bins = 50
 
     if create_pickles:
@@ -508,6 +464,7 @@ if plot_weights:
 
         for norm in [1, 2, -1]:
             hists_path = os.path.join(EXPERIMENTS, f'hists_{net_name}_{task_name}_gb{gauss_beta}_normpow{norm}.pickle')
+            path = get_path(df, norm, task_name, net_name, gauss_beta)
 
             hist_dict = {}
 
@@ -531,40 +488,41 @@ if plot_weights:
                 weights = model.get_weights()
                 weight_names = [weight.name for layer in model.layers for weight in layer.weights]
                 hist_dict[befaft] = {}
+                print(weight_names)
 
                 for i in range(len(weights)):
                     if not os.path.exists(hists_path):
                         w = weights[i]
                         wn = weight_names[i]
                         counts, bins = np.histogram(w.flatten(), bins=n_bins)
-
-                        hist_dict[befaft][wn] = (bins, counts)
+                        print(counts)
+                        print(wn)
+                        if not 'switch' in wn:
+                            hist_dict[befaft][wn] = (bins, counts)
 
             if not os.path.exists(hists_path):
                 pickle.dump(hist_dict, open(hists_path, 'wb'))
 
     if plot_1:
-        kwargs = dict(histtype='step', alpha=1., density=True)
+        from matplotlib.ticker import FormatStrFormatter
 
-        norms = [1, 2, -1]
-        for norm in norms:
+        kwargs = dict(histtype='step', alpha=1., density=True, lw=1)
+
+        norms = [None, 1, 2, -1]
+        for norm_id in norms:
+            norm = norm_id if norm_id is not None else 1
             hists_path = os.path.join(EXPERIMENTS, f'hists_{net_name}_{task_name}_gb{gauss_beta}_normpow{norm}.pickle')
+            hist_dict = pickle.load(open(hists_path, 'rb'))  # Unpickling the object
 
-            if os.path.exists(hists_path):
-                hist_dict = pickle.load(open(hists_path, 'rb'))  # Unpickling the object
-            else:
-                raise ValueError('Error: create pickles first!')
-
-            befafts = ['before', 'after'] if norm == 1 else ['after']
+            befafts = ['before'] if norm_id is None else ['after']
             for befaft in befafts:
-                color = '#097B2A' if befaft == 'before' else '#40DE6E'
-                color = '#B94D0C' if norm == 2 else color
-                color = '#0C58B9' if norm == -1 else color
-
                 n_weights = len(hist_dict[befaft]) if os.path.exists(hists_path) else len(weights)
                 if axs is None:
+                    wspace = 0.1 if net_name == 'LSTM' else 0.4
+                    hspace = 1.6 if net_name == 'LSTM' else 1.6
                     fig, axs = plt.subplots(
-                        cols, int(n_weights / cols), gridspec_kw={'wspace': .2, 'hspace': 0.8}, figsize=(8, 8)
+                        int(n_weights / cols + 1), cols, gridspec_kw={'wspace': wspace, 'hspace': hspace},
+                        figsize=(10, 3)
                     )
 
                 for ax, i in zip(axs.flat, range(n_weights)):
@@ -573,27 +531,47 @@ if plot_weights:
 
                     bins = histogram[0]
                     counts = histogram[1]
-                    ax.hist(bins[:-1], bins, weights=counts, color=color, lw=2, ec=color, **kwargs)
-                    ax.set_title(clean_weight_name(wn))
+                    highest = max(counts) / sum(counts) / (bins[1] - bins[0])
 
-        for ax in axs.reshape(-1):
+                    ax.hist(bins[:-1], bins, weights=counts, color=color_nid(norm_id), ec=color_nid(norm_id), **kwargs)
+
+                    if highest > 100:
+                        ax.set_ylim([0, 20])
+                    ax.set_xlabel(clean_weight_name(wn), fontsize=12)
+                    ax.locator_params(axis='x', nbins=2)
+
+                    if max(bins) > 1:
+                        ax.xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
+                    else:
+                        ax.xaxis.set_major_formatter(FormatStrFormatter('%.1f'))
+
+                    if highest > 1:
+                        ax.yaxis.set_major_formatter(FormatStrFormatter('%.0f'))
+                    else:
+                        scientific_notation = "{:e}".format(highest)
+                        ax.yaxis.set_major_formatter(FormatStrFormatter(f'%.{scientific_notation[-1]}f'))
+
+                    ax.tick_params(axis='both', which='major', labelsize=8)
+
+        for i, ax in enumerate(axs.reshape(-1)):
             for pos in ['right', 'left', 'bottom', 'top']:
                 ax.spines[pos].set_visible(False)
 
+            if i >= len(hist_dict[befaft]):
+                ax.set_visible(False)  # to remove last plot
+
+        axs[0, 0].set_ylabel('Density', fontsize=12)
+
         legend_elements = [
-            Line2D(
-                [0], [0], color='#097B2A' if befaft == 'before' else '#40DE6E', lw=4,
-                label='no LSC' if befaft == 'before' else 'LSC'
-            )
-            for befaft in ['before', 'after']
+            Line2D([0], [0], color=color_nid(norm_id), lw=4, label=clean_nid(norm_id))
+            for norm_id in [None, 1, 2, -1]
         ]
 
-        plt.legend(handles=legend_elements, loc='center', bbox_to_anchor=(-2.15, .5))
+        fig.legend(ncol=5, handles=legend_elements, loc='lower center', bbox_to_anchor=(0.5, -.2), fontsize=12)
 
-        if not os.path.exists(hists_path):
-            pickle.dump(hist_dict, open(hists_path, 'wb'))
+        plt.suptitle(f"{net_name} weights with LSC pretraining on {task_name}", y=1.01, fontsize=16)
 
-        plot_filename = f'experiments/weights_{net_name}_{task_name}_gb{gauss_beta}_normpow{normpow}.png'
+        plot_filename = f'experiments/weights_{net_name}_{task_name}_gb{gauss_beta}.pdf'
 
         fig.savefig(plot_filename, bbox_inches='tight')
 
@@ -605,13 +583,15 @@ if plot_weights:
         alif_wns = ['encoder_0_0/ma_lsnn/thr:0', 'encoder_0_0/ma_lsnn/beta:0']
 
         fig, axs = plt.subplots(
-            1, len(alif_wns + lstm_wns), gridspec_kw={'wspace': .3, 'hspace': 0.8}, figsize=(8, 3)
+            1, len(lstm_wns + alif_wns), gridspec_kw={'wspace': .3, 'hspace': 0.8}, figsize=(8, 3)
         )
+
 
         lstm_path = os.path.join(EXPERIMENTS, f'hists_LSTM_{task_name}_gb{gauss_beta}_normpow{normpow}.pickle')
         lstm_dict = pickle.load(open(lstm_path, 'rb'))
         alif_path = os.path.join(EXPERIMENTS, f'hists_ALIF_{task_name}_gb{gauss_beta}_normpow{normpow}.pickle')
         alif_dict = pickle.load(open(alif_path, 'rb'))
+
 
         for befaft in ['before', 'after']:
             color = '#097B2A' if befaft == 'before' else '#40DE6E'
@@ -621,17 +601,17 @@ if plot_weights:
 
                 bins = histogram[0]
                 counts = histogram[1]
-                axs[i].hist(bins[:-1], bins, weights=counts, color=color, alpha=.5, density=True, lw=1, ec=color)
-                axs[i].set_xlabel(clean_weight_name(wn))
+                axs[i + len(lstm_wns)].hist(bins[:-1], bins, weights=counts, color=color, alpha=.5, density=True, lw=1, ec=color)
+                axs[i + len(lstm_wns)].set_xlabel(clean_weight_name(wn))
 
             for i, wn in enumerate(lstm_wns):
                 histogram = lstm_dict[befaft][wn]
 
                 bins = histogram[0]
                 counts = histogram[1]
-                axs[i + len(alif_wns)].hist(bins[:-1], bins, weights=counts, color=color, alpha=.5, density=True, lw=1,
-                                            ec=color)
-                axs[i + len(alif_wns)].set_xlabel(clean_weight_name(wn))
+                axs[i].hist(bins[:-1], bins, weights=counts, color=color, alpha=.5, density=True, lw=1,
+                            ec=color)
+                axs[i].set_xlabel(clean_weight_name(wn))
 
         fig.text(0.70, .98, 'LSTM', ha='center', va='center', fontsize=16)
         fig.text(0.29, .98, 'ALIF', ha='center', va='center', fontsize=16)

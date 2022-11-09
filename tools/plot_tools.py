@@ -1,0 +1,82 @@
+def clean_weight_name(wn):
+    if 'encoder' in wn or 'reg' in wn:
+        layer = wn.split('_')[1]
+    else:
+        layer = 'R'
+
+    wn = wn.split('/')[-1].split(':')[0]
+    if 'input_weights' in wn:
+        wn = 'W_{' + f'in, {layer}' + '}'
+    elif 'recurrent_weights' in wn:
+        wn = 'W_{' + f'rec, {layer}' + '}'
+    elif 'tau_adaptation' in wn:
+        wn = r'\tau^{\vartheta}_{' + f'{layer}' + '}'
+    elif 'tau' in wn:
+        wn = r'\tau^{y}_{' + f'{layer}' + '}'
+    elif 'thr' in wn:
+        wn = r'b^{\vartheta}_{' + f'{layer}' + '}'
+    elif 'beta' in wn:
+        wn = r'\beta_{' + f'{layer}' + '}'
+    elif 'recurrent_kernel' in wn:
+        wn = r'U_{j,' + f'{layer}' + '}'
+    elif 'kernel' in wn:
+        wn = r'W_{j,' + f'{layer}' + '}'
+    elif 'bias' in wn:
+        wn = r'b_{j,' + f'{layer}' + '}'
+    elif 'switch' in wn:
+        wn = r'switch_{' + f'{layer}' + '}'
+    else:
+        wn = f'{wn}_{layer}'
+
+    if layer == 'R':
+        wn = wn.replace('j,', '')
+
+    return f'${wn}$'
+
+
+def get_path(df, normpow, task_name, net_name, gauss_beta):
+    comment = f'_normpow:{normpow}_lscdepth:1_lscout:1'
+
+    idf = df[df['comments'].str.contains('savelscweights')]
+    idf = idf[idf['comments'].str.contains(comment)]
+    idf = idf[idf['task_name'].str.contains(task_name)]
+    idf = idf[idf['net_name'].str.contains(net_name)]
+    if gauss_beta:
+        idf = idf[idf['comments'].str.contains('gaussbeta')]
+    else:
+        idf = idf[~idf['comments'].str.contains('gaussbeta')]
+
+    print(idf.to_string())
+    print(idf.head(3)['path'].values)
+    path = idf.head(1)['path'].values[0]
+    return path
+
+
+def color_nid(norm_id):
+    # list of tab20 colors
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
+    # colors =[]
+    if norm_id is None:
+        return '#1f77b4' #'#097B2A'
+    elif norm_id == 1:
+        return '#ff7f0e' #'#40DE6E'
+    elif norm_id == 2:
+        return '#2ca02c' #'#B94D0C'
+    elif norm_id == -1:
+        return '#9467bd' #'#0C58B9'
+    else:
+        raise ValueError('norm_id not in [None, 1, 2, -1]')
+
+
+
+def clean_nid(norm_id):
+    if norm_id is None:
+        return 'no LSC'
+    elif norm_id == 1:
+        return '$p=1$'
+    elif norm_id == 2:
+        return '$p=2$'
+    elif norm_id == -1:
+        return '$p=\infty$'
+    else:
+        raise ValueError('norm_id not in [None, 1, 2, -1]')
