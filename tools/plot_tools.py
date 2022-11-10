@@ -80,3 +80,46 @@ def clean_nid(norm_id):
         return '$p=\infty$'
     else:
         raise ValueError('norm_id not in [None, 1, 2, -1]')
+
+
+def compactify_metrics(metric='ppl'):
+
+    def cm(row):
+        mt = row[f'mean_t_{metric}']
+        st = row[f'std_t_{metric}']
+        mv = row[f'mean_v_{metric}']
+        sv = row[f'std_v_{metric}']
+
+        return f"{str(mv)}\pm{str(sv)}/{str(mt)}\pm{str(st)}"
+
+    return cm
+
+
+def choose_metric(row):
+    if row['task_name'] == 'PTB':
+        metric = row['ppl']
+    else:
+        metric = row['acc']
+    return metric
+
+
+def bolden_best(metric='mean_t_ppl'):
+    c = 1
+    if 'acc' in metric:
+        c = 100
+
+    def bb(row):
+        value = row[f'{metric}']  # .values[0]
+        if value == row[f'best_{metric}']:
+            bolden = True
+        else:
+            bolden = False
+
+        value = round(c * value, 2)
+        if bolden:
+            value = r'\textbf{' + str(value) + '}'
+        else:
+            value = f'{value}'
+        return value
+
+    return bb
