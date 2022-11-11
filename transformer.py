@@ -5,7 +5,7 @@ import tensorflow as tf
 import numpy as np
 import pandas as pd
 
-from GenericTools.keras_tools.esoteric_activations.smoothrelus import Guderman_T
+from GenericTools.keras_tools.esoteric_activations.smoothrelus import Guderman_T, Swish_T
 from GenericTools.keras_tools.esoteric_callbacks import LearningRateLogger, TimeStopping, CSVLogger
 from GenericTools.keras_tools.esoteric_losses import sparse_perplexity
 from GenericTools.keras_tools.plot_tools import plot_history
@@ -28,6 +28,8 @@ random_string = ''.join([str(r) for r in np.random.choice(10, 4)])
 
 extra_acts = {
     'gudermanlu': Guderman_T(),
+    'gudermanlu.1': Guderman_T(.1),
+    'swish.1': Swish_T(.1),
 }
 
 
