@@ -6,8 +6,9 @@ from GenericTools.keras_tools.silence_tensorflow import silence_tf
 
 silence_tf()
 
-import tensorflow as tf
 from sg_design_lif.neural_models.config import default_config
+
+import tensorflow as tf
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 os.environ["TF_GPU_ALLOCATOR"] = "cuda_malloc_async"
@@ -33,6 +34,7 @@ CDIR = os.path.dirname(FILENAME)
 
 ex = CustomExperiment('-als', base_dir=CDIR, seed=11)
 logger = logging.getLogger('alif_sg')
+
 
 
 @ex.config
