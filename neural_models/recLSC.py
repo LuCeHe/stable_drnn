@@ -43,8 +43,7 @@ def get_norms(tape, lower_states, upper_states, n_samples=-1, norm_pow=2):
             norms = tf.reduce_max(norms, axis=-1)
 
         elif norm_pow == 2:
-            s, _, _ = tf.linalg.svd(td)
-            norms = s[..., 0]
+            norms = tf.linalg.svd(td, compute_uv=False)[..., 0]
 
         else:
             raise NotImplementedError

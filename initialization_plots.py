@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from GenericTools.stay_organized.mpl_tools import load_plot_settings
 from GenericTools.stay_organized.utils import setReproducible, str2val
 from GenericTools.keras_tools.esoteric_losses.loss_redirection import get_loss
+from keras_tools.esoteric_initializers.out_initializer import OutInitializer
 # from alif_sg.generate_data.task_redirection import Task, language_tasks
 # from alif_sg.neural_models.custom_lstm import customLSTMcell
 # from sg_design_lif.neural_models.full_model import build_model
@@ -343,7 +344,7 @@ def plot_act(cvolts, list_comments):
     plt.show()
 
 
-def get_norm(td, norm_pow):
+def get_norm(td, norm_pow, numpy=False):
     if norm_pow == -1:
         norms = tf.reduce_max(tf.reduce_sum(tf.abs(td), axis=2), axis=-1)
 
@@ -351,25 +352,111 @@ def get_norm(td, norm_pow):
         norms = tf.reduce_max(tf.reduce_sum(tf.abs(td), axis=1), axis=-1)
 
     elif norm_pow == 2:
-        norms = tf.linalg.svd(td)[0][..., 0]
+        norms = tf.linalg.svd(td, compute_uv=False)[..., 0]
+
+    elif norm_pow == 0:
+        norms = tf.abs(tf.linalg.eigvals(td)[..., 0])
 
     else:
         raise ValueError('norm_pow must be -1, 1 or 2')
 
-    return norms.numpy()
+    if numpy:
+        return norms.numpy()
+    return norms
 
 
 def plot_matrix_norms():
     batch_size = 1
     n = 1000
-    td = tf.random.normal((batch_size, n, n))
-    for norm_pow in [1, 2, -1]:
-        norms = get_norm(td, norm_pow)
-        den = np.sqrt(n) if norm_pow == 2 else n
-        print(norm_pow, norms / den)
-        # plt.hist(norms, 100)
-        # plt.show()
+    ns = np.linspace(10, 1000, 20)
+    norm_pows =  [1, 2, -1, 0]
+    data = {k:[] for k in norm_pows}
+
+    for n in tqdm(ns):
+        n = int(n)
+        # td = tf.random.normal((batch_size, n, n))
+        td = tf.random.uniform((batch_size, n, n), minval=-np.sqrt(3), maxval=np.sqrt(3))
+        # norms = get_norm(td, 2)
+        # print(n, norms[0])
+        for norm_pow in norm_pows:
+            norms = get_norm(td, norm_pow)
+            # den = np.sqrt(n) if norm_pow == 2 else n
+            data[norm_pow].append(norms[0])
+            den = 1
+            # print(norm_pow, norms / den)
+
+    fig, axs = plt.subplots(1, 1, gridspec_kw={'wspace': .3, 'hspace': .1}, figsize=(10, 5))
+
+    for norm_pow in norm_pows:
+        axs.plot(ns, data[norm_pow], label=f'norm_pow={norm_pow}')
+
+    axs.legend()
+    plt.show()
+    # td = tf.random.normal((batch_size, n, n))
+    # print(tf.reduce_mean(td), tf.math.reduce_variance(td))
+
+
+
+class GetNorm(tf.keras.layers.Layer):
+    def __init__(self, init_tensor, norm_pow, target_norm=1, **kwargs):
+        super().__init__(**kwargs)
+        self.init_tensor = init_tensor
+        self.norm_pow = norm_pow
+        self.target_norm = target_norm
+
+    def build(self, input_shape):
+        self.w = self.add_weight(
+                    name='w', shape=self.init_tensor.shape,
+                    initializer=OutInitializer(init_tensor=self.init_tensor),
+                    trainable=True
+                )
+
+        self.built = True
+
+    def call(self, inputs, **kwargs):
+        norms = get_norm(self.w, self.norm_pow)
+        loss = tf.reduce_mean(tf.square(norms - self.target_norm))
+        self.add_loss(loss)
+        self.add_metric(loss, name='cost', aggregation='mean')
+
+        return inputs
+
+
+def plot_matrix_norms_2():
+    n = 1000
+
+    # # td = tf.random.normal((n, n))
+    td = tf.random.uniform((n, n), minval=-np.sqrt(3), maxval=np.sqrt(3))
+
+    layer = GetNorm(td, norm_pow=2, target_norm=1)
+    layer.build((2, 2))
+    ins = tf.keras.layers.Input(shape=(2, 2))
+    outs = layer(ins)
+    model = tf.keras.Model(inputs=ins, outputs=outs)
+
+    optimizer  = tf.keras.optimizers.Adam(learning_rate=0.01)
+    model.compile(loss=None, optimizer=optimizer)
+
+    fake_data = tf.random.normal((2, 2))
+    history = model.fit(fake_data, fake_data, epochs=200, verbose=1)
+
+    fig, axs = plt.subplots(1, 2, gridspec_kw={'wspace': .3, 'hspace': .1}, figsize=(10, 5))
+    w = layer.w.numpy().flatten()
+    axs[0].hist(w, 50, density=True, facecolor='g', alpha=0.75)
+    axs[1].plot(history.history['loss'])
+    plt.show()
+
+
 
 
 if __name__ == '__main__':
-    plot_matrix_norms()
+    plot_matrix_norms_2()
+
+    # batch_size = 1
+    # n = 1000
+    #
+    # # td = tf.random.normal((n, n))
+    # td = tf.random.uniform((n, n), minval=-np.sqrt(3), maxval=np.sqrt(3))
+    # tdt = tf.transpose(td)
+    # print(tf.reduce_mean(td), tf.math.reduce_variance(td))
+    # print(tf.reduce_mean(td@tdt), tf.math.reduce_variance(td@tdt))
