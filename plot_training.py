@@ -32,8 +32,8 @@ from GenericTools.stay_organized.unzip import unzip_good_exps
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
 EXPERIMENTS = os.path.join(CDIR, 'experiments')
-GEXPERIMENTS = os.path.join(CDIR, 'good_experiments', '2022-10-10--good_for_initial_tables')
-GEXPERIMENTS = os.path.join(CDIR, 'good_experiments')
+GEXPERIMENTS = r'D:\work\alif_sg\good_experiments\2022-10-10--good_for_initial_tables'
+# GEXPERIMENTS = os.path.join(CDIR, 'good_experiments')
 
 expsid = 'als'  # effnet als
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
@@ -42,8 +42,8 @@ h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 pandas_means = True
 show_per_tasknet = False
-make_latex = False
-missing_exps = True
+make_latex = True
+missing_exps = False
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -101,16 +101,16 @@ new_column_names = {c_name: shorten_losses(c_name) for c_name in df.columns}
 
 df.rename(columns=new_column_names, inplace=True)
 
+# # FIXME: 14 experiments got nans in the heidelberg task validation, plot them anyway?
+# print('v_mode_acc nans:', df['v_mode_acc argmax'].isna().sum())
+df = df[~df['v_mode_acc argmax'].isna()]
+
 df['v_ppl argmin'] = df['v_ppl argmin'].astype(int)
 df['v_mode_acc argmax'] = df['v_mode_acc argmax'].astype(int)
 
 df['v_ppl'] = df.apply(lambda row: np.nanmin(row['v_ppl list']), axis=1)
 df['t_ppl'] = df.apply(lambda row: row['t_ppl list'][row['v_ppl argmin']], axis=1)
 df['v_mode_acc'] = df.apply(lambda row: np.nanmax(row['v_mode_acc list']), axis=1)
-
-# # FIXME: 14 experiments got nans in the heidelberg task validation, plot them anyway?
-# print('v_mode_acc nans:', df['v_mode_acc argmax'].isna().sum())
-# df = df[~df['v_mode_acc argmax'].isna()]
 
 df['t_mode_acc'] = df.apply(lambda row: row['t_mode_acc list'][row['v_mode_acc argmax']], axis=1)
 
@@ -185,7 +185,7 @@ if pandas_means:
         idf = idf[idf.columns.drop(list(idf.filter(regex='acc')) + list(idf.filter(regex='ppl')))]
         idf = idf[idf.columns.drop(['counts', 'initializer', 'net_name'])]
 
-        idf['comments'] = idf['comments'].str.replace('34_embproj_nogradreset_dropout:.3_timerepeat:2_', '', regex=True)
+        idf['comments'] = idf['comments'].str.replace('32_embproj_nogradreset_dropout:.3_timerepeat:2_', '', regex=True)
         idf['comments'] = idf['comments'].str.replace('find', '', regex=True)
         idf['comments'] = idf['comments'].str.replace('normpow:-1', r'\\infty', regex=True)
         idf['comments'] = idf['comments'].str.replace('normpow:', '', regex=True)
@@ -223,11 +223,14 @@ if pandas_means:
 
         pdf = pdf[tasks]
 
-        print(conditions)
+        for task in tasks:
+            pdf[task + '\nval'] = pdf[task].str.split("/", n=1, expand=True)[0]
+            pdf[task + '\ntest'] = pdf[task].str.split("/", n=1, expand=True)[1]
+            pdf.drop(columns=[task], inplace=True)
 
-        print(idf.to_string())
+        # pdf = pdf["Name"].str.split(" ", n=1, expand=True)
+
         print(pdf.to_string())
-
 
         print(pdf.to_latex(index=True, escape=False))
 

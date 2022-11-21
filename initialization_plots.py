@@ -343,5 +343,33 @@ def plot_act(cvolts, list_comments):
     plt.show()
 
 
+def get_norm(td, norm_pow):
+    if norm_pow == -1:
+        norms = tf.reduce_max(tf.reduce_sum(tf.abs(td), axis=2), axis=-1)
+
+    elif norm_pow == 1:
+        norms = tf.reduce_max(tf.reduce_sum(tf.abs(td), axis=1), axis=-1)
+
+    elif norm_pow == 2:
+        norms = tf.linalg.svd(td)[0][..., 0]
+
+    else:
+        raise ValueError('norm_pow must be -1, 1 or 2')
+
+    return norms.numpy()
+
+
+def plot_matrix_norms():
+    batch_size = 1
+    n = 1000
+    td = tf.random.normal((batch_size, n, n))
+    for norm_pow in [1, 2, -1]:
+        norms = get_norm(td, norm_pow)
+        den = np.sqrt(n) if norm_pow == 2 else n
+        print(norm_pow, norms / den)
+        # plt.hist(norms, 100)
+        # plt.show()
+
+
 if __name__ == '__main__':
-    initialization_tests()
+    plot_matrix_norms()
