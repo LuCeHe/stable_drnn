@@ -42,7 +42,7 @@ h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 pandas_means = True
 show_per_tasknet = False
-make_latex = True
+make_latex = False
 missing_exps = False
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
@@ -64,8 +64,9 @@ metrics_oi = [
     # 'final_epochs'
 ]
 
-plot_only = ['net_name', 'n_params', 'comments', 'epochs', 'initializer', 'optimizer_name', 'steps_per_epoch',
-             'task_name', 'path', 'lr'] + metrics_oi
+plot_only = ['len rec_norms', 'rec_norms', 'net_name', 'task_name', 'n_params', 'comments', 'epochs', 'initializer',
+             'optimizer_name', 'steps_per_epoch',
+             'path', 'lr'] + metrics_oi
 columns_to_remove = [
     'heaviside', '_test', 'weight', 'sLSTM_factor', 'save_model', 'clipnorm', 'GPU', 'batch_size',
     'continue_training', 'embedding', 'lr_schedule', 'loss_name', 'seed', 'stack', 'stop_time',
@@ -80,6 +81,56 @@ df = experiments_to_pandas(
 )
 
 print(list(df.columns))
+
+# print(df.iloc[191]['rec_norms']['batch 0 layer 0'])
+
+
+# print(df.iloc[191]['rec_norms'].keys())
+# print(len(df.iloc[191]['rec_norms']['batch 0 layer 0']))
+# print(df.iloc[191]['rec_norms']['batch 0 layer 0'][0][0])
+# print(df.iloc[191]['rec_norms']['batch 0 layer 0'][-1][-1])
+
+
+def find_length(x):
+    if isinstance(x, dict):
+        l = len(x['batch 0 layer 0'])
+    elif isinstance(x, list):
+        l = len(x)
+    else:
+        l = None
+    return l
+
+
+def summary_lsc(x):
+    if isinstance(x, dict):
+        l = f"{round(x['batch 0 layer 0'][0][0], 2)}/{round(x['batch 0 layer 0'][-1][-1], 2)}"
+    elif isinstance(x, list):
+        l = f"{round(x[0], 2)}/{round(x[-1], 2)}"
+    else:
+        l = None
+    return l
+
+def reorganize(x):
+    if isinstance(x['LSC_norms'], list):
+        x = x['LSC_norms']
+    elif isinstance(x['LSC_norms'], str):
+        x = [float(i) for i in x['LSC_norms'][1:-1].split(', ')]
+    else:
+        x = x['rec_norms']
+
+    return x
+
+df['rec_norms']  = df.apply(reorganize, axis=1)
+
+
+print(df.shape)
+df['len rec_norms'] = df['rec_norms'].apply(find_length)
+df['rec_norms'] = df['rec_norms'].apply(summary_lsc)
+print(df.shape)
+
+# import sys
+# sys.exit()
+
 
 if 'n_params' in df.columns:
     df['n_params'] = df['n_params'].apply(lambda x: large_num_to_reasonable_string(x, 1))

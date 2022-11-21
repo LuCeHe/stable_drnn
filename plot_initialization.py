@@ -450,13 +450,15 @@ def plot_matrix_norms_2():
 
 
 if __name__ == '__main__':
-    plot_matrix_norms_2()
+    # plot_matrix_norms_2()
 
-    # batch_size = 1
-    # n = 1000
-    #
-    # # td = tf.random.normal((n, n))
-    # td = tf.random.uniform((n, n), minval=-np.sqrt(3), maxval=np.sqrt(3))
-    # tdt = tf.transpose(td)
-    # print(tf.reduce_mean(td), tf.math.reduce_variance(td))
-    # print(tf.reduce_mean(td@tdt), tf.math.reduce_variance(td@tdt))
+    batch_size = 1
+    n = 1000
+
+    # td = tf.random.normal((n, n))
+    td = tf.random.uniform((n, n), minval=-np.sqrt(3), maxval=np.sqrt(3))
+    tdt = tf.transpose(td)
+    print(tf.reduce_mean(td), tf.math.reduce_variance(td))
+    print(tf.reduce_mean(td@tdt), tf.math.reduce_variance(td@tdt))
+    print(tf.reduce_mean(td@tdt@td), tf.math.reduce_variance(td@tdt@td))
+    print(tf.reduce_mean(td@tdt@td@tdt), tf.math.reduce_variance(td@tdt@td@tdt))
