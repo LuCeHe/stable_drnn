@@ -59,9 +59,9 @@ def get_norms(tape, lower_states, upper_states, n_samples=-1, norm_pow=2):
     return norms
 
 
-def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, steps_per_epoch=2, epsilon=.01,
-              patience=50, depth_norm=True, encoder_norm=False, decoder_norm=True, learn=True, time_steps=None,
-              weights=None, save_weights_path=None):
+def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, steps_per_epoch=4, epsilon=.01,
+              patience=50, rec_norm=True, depth_norm=True, encoder_norm=False, decoder_norm=True, learn=True, time_steps=None,
+              weights=None, save_weights_path=None, lr = 1e-3):
     # FIXME: generalize this loop for any recurrent model
     gen_train = Task(**train_task_args)
 
@@ -76,7 +76,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
         stack = [model_args['n_neurons'] for _ in range(model_args['stack'])]
 
     # batch = [tf.convert_to_tensor(tf.cast(b, tf.float32), dtype=tf.float32) for b in batch[0]],
-    optimizer = tf.keras.optimizers.Adam(learning_rate=1e-3)
+    optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
     states = []
 
     losses = []
@@ -167,12 +167,13 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                     ctp1 = states_p1[i * n_states + ci]
                     ct = states[i * n_states + ci]
 
-                    norms = get_norms(tape=tape, lower_states=[ht, ct], upper_states=[htp1, ctp1], n_samples=n_samples,
-                                      norm_pow=norm_pow)
-                    rec_norms[f'batch {step} layer {i}'].append(norms.numpy())
-                    some_norms.append(tf.reduce_mean(norms))
-                    loss = well_loss(min_value=1, max_value=1, walls_type='relu', axis='all')(norms)
-                    mean_loss += loss
+                    if rec_norm:
+                        norms = get_norms(tape=tape, lower_states=[ht, ct], upper_states=[htp1, ctp1], n_samples=n_samples,
+                                          norm_pow=norm_pow)
+                        rec_norms[f'batch {step} layer {i}'].append(norms.numpy())
+                        some_norms.append(tf.reduce_mean(norms))
+                        loss = well_loss(min_value=1, max_value=1, walls_type='relu', axis='all')(norms)
+                        mean_loss += loss
 
                     if encoder_norm and i == 0:
                         norms = get_norms(tape=tape, lower_states=[bt[:, 0, :]], upper_states=[htp1, ctp1],

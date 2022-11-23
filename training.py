@@ -46,7 +46,7 @@ def config():
     # task and net
     # ps_mnist heidelberg s_mnist
     # wordptb sl_mnist
-    task_name = 'wordptb'
+    task_name = 'heidelberg'
 
     # test configuration
     epochs = 2
@@ -56,12 +56,12 @@ def config():
 
     # net
     # maLSNN cLSTM LSTM
-    net_name = 'maLSNN'
+    net_name = 'LSTM'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
     n_neurons = None
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task_name in language_tasks else False
-    comments = '32_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_normpow:1_test_randwlsc'  # 'nsLIFreadout_adaptsg_dropout:0.50' findLSC_test
+    comments = '32_embproj_nogradreset_dropout:.3_timerepeat:2_maxpoolshd_findLSC_normpow:-1'  # 'nsLIFreadout_adaptsg_dropout:0.50' findLSC_test
     # comments = ''
 
     # optimizer properties
@@ -145,6 +145,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
     if 'findLSC' in comments:
         print('Finding the LSC...')
         n_samples = str2val(comments, 'normsamples', int, default=-1)
+        lscrec = bool(str2val(comments, 'lscrec', int, default=1))
         lscdepth = bool(str2val(comments, 'lscdepth', int, default=0))
         lscout = bool(str2val(comments, 'lscout', int, default=0))
 
@@ -172,10 +173,15 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
 
         del gen_train
         print(json.dumps(new_model_args, indent=4, cls=NumpyEncoder))
+        lr = 1e-3
+        # print('almost!!', norm_pow, net_name, norm_pow == np.inf)
+        if net_name == 'LSTM' and norm_pow == np.inf:
+            lr = 1e-4
+            # print('nice', lr)
         weights, lsc_results = apply_LSC(
             train_task_args=new_task_args, model_args=new_model_args, norm_pow=norm_pow, n_samples=n_samples,
-            batch_size=new_batch_size, depth_norm=lscdepth, decoder_norm=lscout, save_weights_path=save_weights_path,
-            time_steps=time_steps
+            batch_size=new_batch_size, rec_norm=lscrec, depth_norm=lscdepth, decoder_norm=lscout, save_weights_path=save_weights_path,
+            time_steps=time_steps, lr=lr
         )
         results.update(lsc_results)
 

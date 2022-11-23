@@ -90,7 +90,7 @@ def compactify_metrics(metric='ppl'):
         mv = row[f'mean_v_{metric}']
         sv = row[f'std_v_{metric}']
 
-        return f"{str(mv)}\pm{str(sv)}/{str(mt)}\pm{str(st)}"
+        return f"${str(mv)}\pm{str(sv)}$/${str(mt)}\pm{str(st)}$"
 
     return cm
 
@@ -123,3 +123,38 @@ def bolden_best(metric='mean_t_ppl'):
         return value
 
     return bb
+
+
+def find_length(x):
+    if isinstance(x, dict):
+        l = len(x['batch 0 layer 0'])
+    elif isinstance(x, list):
+        l = len(x)
+    else:
+        l = None
+    return l
+
+
+def summary_lsc(x):
+    if isinstance(x, dict):
+        if 'batch 0 layer 0' in x.keys():
+            x = x['batch 1 layer 0']
+        else:
+            x = x['batch 0 layer 0']
+
+        l = f"{round(x[0][0], 2)}/{round(x[-1][-1], 2)}"
+    elif isinstance(x, list):
+        l = f"{round(x[0], 2)}/{round(x[-1], 2)}"
+    else:
+        l = None
+    return l
+
+def reorganize(x):
+    if isinstance(x['LSC_norms'], list):
+        x = x['LSC_norms']
+    elif isinstance(x['LSC_norms'], str):
+        x = [float(i) for i in x['LSC_norms'][1:-1].split(', ')]
+    else:
+        x = x['rec_norms']
+
+    return x

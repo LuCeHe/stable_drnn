@@ -15,8 +15,7 @@ from GenericTools.stay_organized.mpl_tools import load_plot_settings
 from GenericTools.stay_organized.pandardize import experiments_to_pandas
 from GenericTools.stay_organized.standardize_strings import shorten_losses
 from GenericTools.stay_organized.utils import str2val
-from alif_sg.tools.plot_tools import clean_weight_name, get_path, clean_nid, color_nid, bolden_best, compactify_metrics, \
-    choose_metric
+from alif_sg.tools.plot_tools import *
 from sg_design_lif.neural_models import maLSNN
 
 mpl, pd = load_plot_settings(mpl=mpl, pd=pd)
@@ -33,13 +32,14 @@ FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
 EXPERIMENTS = os.path.join(CDIR, 'experiments')
 GEXPERIMENTS = r'D:\work\alif_sg\good_experiments\2022-10-10--good_for_initial_tables'
-# GEXPERIMENTS = os.path.join(CDIR, 'good_experiments')
+GEXPERIMENTS = os.path.join(CDIR, 'good_experiments')
 
 expsid = 'als'  # effnet als
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 # CSVPATH = r'D:\work\alif_sg\good_experiments\2022-08-20--learned-LSC\summary.h5'
 # HSITORIESPATH = os.path.join(EXPERIMENTS, 'histories.json')
 
+plot_losses = False
 pandas_means = True
 show_per_tasknet = False
 make_latex = False
@@ -47,7 +47,6 @@ missing_exps = False
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
-plot_losses = False
 plot_weights = False
 plot_lrs = False
 
@@ -82,55 +81,33 @@ df = experiments_to_pandas(
 
 print(list(df.columns))
 
-# print(df.iloc[191]['rec_norms']['batch 0 layer 0'])
+if plot_losses:
+    tasks = df['task_name'].unique()
+    nets = df['net_name'].unique()
+    fig, axs = plt.subplots(len(tasks), len(nets), figsize=(len(nets) * 3, len(tasks) * 3))
+    for i, task in enumerate(tasks):
+        for j, net in enumerate(nets):
+            if not net == 'LIF':
+                print('-===-' * 30)
+                print(task, net)
+                idf = df[df['task_name'].str.contains(task) & df['net_name'].str.contains(net)]
+                # print(idf.to_string())
+                for _, row in idf.iterrows():
+                    c = 'r' if 'LSC' in row['comments'] else 'b'
+                    c = 'r' if 'normpow:-1' in row['comments'] else 'b'
+                    if isinstance(row['v_loss list'], list):
+                        # print(row['loss list'])
+                        print('epochs', len(row['v_loss list']))
+                        axs[i, j].plot(row['v_loss list'], color=c)
+                    else:
+                        print(row['v_loss list'], row['path'])
 
+                axs[i, j].set_title(f'{task} {net}')
+    plt.show()
 
-# print(df.iloc[191]['rec_norms'].keys())
-# print(len(df.iloc[191]['rec_norms']['batch 0 layer 0']))
-# print(df.iloc[191]['rec_norms']['batch 0 layer 0'][0][0])
-# print(df.iloc[191]['rec_norms']['batch 0 layer 0'][-1][-1])
-
-
-def find_length(x):
-    if isinstance(x, dict):
-        l = len(x['batch 0 layer 0'])
-    elif isinstance(x, list):
-        l = len(x)
-    else:
-        l = None
-    return l
-
-
-def summary_lsc(x):
-    if isinstance(x, dict):
-        l = f"{round(x['batch 0 layer 0'][0][0], 2)}/{round(x['batch 0 layer 0'][-1][-1], 2)}"
-    elif isinstance(x, list):
-        l = f"{round(x[0], 2)}/{round(x[-1], 2)}"
-    else:
-        l = None
-    return l
-
-def reorganize(x):
-    if isinstance(x['LSC_norms'], list):
-        x = x['LSC_norms']
-    elif isinstance(x['LSC_norms'], str):
-        x = [float(i) for i in x['LSC_norms'][1:-1].split(', ')]
-    else:
-        x = x['rec_norms']
-
-    return x
-
-df['rec_norms']  = df.apply(reorganize, axis=1)
-
-
-print(df.shape)
+df['rec_norms'] = df.apply(reorganize, axis=1)
 df['len rec_norms'] = df['rec_norms'].apply(find_length)
 df['rec_norms'] = df['rec_norms'].apply(summary_lsc)
-print(df.shape)
-
-# import sys
-# sys.exit()
-
 
 if 'n_params' in df.columns:
     df['n_params'] = df['n_params'].apply(lambda x: large_num_to_reasonable_string(x, 1))
@@ -165,7 +142,7 @@ df['v_mode_acc'] = df.apply(lambda row: np.nanmax(row['v_mode_acc list']), axis=
 
 df['t_mode_acc'] = df.apply(lambda row: row['t_mode_acc list'][row['v_mode_acc argmax']], axis=1)
 
-df = df[df['lr'].isna()]
+# df = df[df['lr'].isna()]
 
 if metric in df.keys():
     df = df.sort_values(by=metric)
@@ -214,7 +191,7 @@ if pandas_means:
 
     if make_latex:
 
-        net = 'ALIF'  # ALIF LSTM
+        net = 'LSTM'  # ALIF LSTM
 
         idf = mdf[mdf['net_name'].str.contains(net)]
         # print(mdf[mdf['net_name'].str.contains('ALIF')].shape, mdf[mdf['net_name'].str.contains('LSTM')].shape)
@@ -236,7 +213,7 @@ if pandas_means:
         idf = idf[idf.columns.drop(list(idf.filter(regex='acc')) + list(idf.filter(regex='ppl')))]
         idf = idf[idf.columns.drop(['counts', 'initializer', 'net_name'])]
 
-        idf['comments'] = idf['comments'].str.replace('32_embproj_nogradreset_dropout:.3_timerepeat:2_', '', regex=True)
+        idf['comments'] = idf['comments'].str.replace('34_embproj_nogradreset_dropout:.3_timerepeat:2_', '', regex=True)
         idf['comments'] = idf['comments'].str.replace('find', '', regex=True)
         idf['comments'] = idf['comments'].str.replace('normpow:-1', r'\\infty', regex=True)
         idf['comments'] = idf['comments'].str.replace('normpow:', '', regex=True)
@@ -253,8 +230,6 @@ if pandas_means:
         idf['comments'] = idf['comments'].replace(r'^\s*$', 'no LSC', regex=True)
         idf['comments'] = idf['comments'].replace(r'\\beta$', r'\\beta no LSC', regex=True)
         idf['comments'] = idf['comments'].replace(r'\\beta', r'$\\beta$', regex=True)
-        print('here!')
-        print(idf.to_string())
 
         conditions = np.unique(idf['comments'])
         tasks = ['sl-MNIST', 'SHD', 'PTB']
@@ -267,7 +242,6 @@ if pandas_means:
         ]
 
         idf['comments'] = pd.Categorical(idf['comments'], order_conditions)
-        print(idf.to_string())
 
         pdf = pd.pivot_table(idf, values='metric', index=['comments'], columns=['task_name'], aggfunc=np.sum)
         pdf = pdf.replace([0], '-')
@@ -275,13 +249,11 @@ if pandas_means:
         pdf = pdf[tasks]
 
         for task in tasks:
-            pdf[task + '\nval'] = pdf[task].str.split("/", n=1, expand=True)[0]
-            pdf[task + '\ntest'] = pdf[task].str.split("/", n=1, expand=True)[1]
+            pdf[task + ' val'] = pdf[task].str.split("/", n=1, expand=True)[0]
+            pdf[task + ' test'] = pdf[task].str.split("/", n=1, expand=True)[1]
             pdf.drop(columns=[task], inplace=True)
 
-        # pdf = pdf["Name"].str.split(" ", n=1, expand=True)
-
-        print(pdf.to_string())
+        # print(pdf.to_string())
 
         print(pdf.to_latex(index=True, escape=False))
 
@@ -452,27 +424,26 @@ if plot_weights:
     gauss_beta = False
     kwargs = dict(histtype='step', alpha=1., density=True, lw=1)
 
-    for normpow in [1, -1, 2]:
-        path = get_path(df, normpow, task_name, net_name, gauss_beta)
-        _, exp_identifiers = os.path.split(path)
-
-        model_path = os.path.join(path, 'trained_models', 'lsc', 'model_weights_lsc_before.h5')
-        if not os.path.exists(model_path):
-            shutil.rmtree(path)
-
-            # os.remove(path)
-            _ = unzip_good_exps(
-                GEXPERIMENTS, EXPERIMENTS,
-                exp_identifiers=[exp_identifiers], except_folders=[],
-                unzip_what=['model_', '.txt', '.json', '.csv'], except_files=['cout.txt']
-            )
-
     axs = None
-
     cols = 3 if net_name == 'LSTM' else 6
     n_bins = 50
 
     if create_pickles:
+        for normpow in [1, -1, 2]:
+            path = get_path(df, normpow, task_name, net_name, gauss_beta)
+            _, exp_identifiers = os.path.split(path)
+
+            model_path = os.path.join(path, 'trained_models', 'lsc', 'model_weights_lsc_before.h5')
+            if not os.path.exists(model_path):
+                shutil.rmtree(path)
+
+                # os.remove(path)
+                _ = unzip_good_exps(
+                    GEXPERIMENTS, EXPERIMENTS,
+                    exp_identifiers=[exp_identifiers], except_folders=[],
+                    unzip_what=['model_', '.txt', '.json', '.csv'], except_files=['cout.txt']
+                )
+
         import tensorflow as tf
 
         for norm in [1, 2, -1]:
@@ -593,8 +564,9 @@ if plot_weights:
         lstm_wns = ['encoder_0_0/lstm_cell/recurrent_kernel:0', 'encoder_1_0/lstm_cell_1/kernel:0']
         alif_wns = ['encoder_0_0/ma_lsnn/thr:0', 'encoder_0_0/ma_lsnn/beta:0']
 
+        assert len(lstm_wns) == len(alif_wns)
         fig, axs = plt.subplots(
-            1, len(lstm_wns + alif_wns), gridspec_kw={'wspace': .3, 'hspace': 0.8}, figsize=(8, 3)
+            2, len(lstm_wns), gridspec_kw={'wspace': .3, 'hspace': 0.8}, figsize=(7, 3)
         )
 
         norms = [None, 1, 2, -1]
@@ -619,23 +591,24 @@ if plot_weights:
 
                     bins = histogram[0]
                     counts = histogram[1]
-                    axs[i + len(lstm_wns)].hist(bins[:-1], bins, weights=counts, color=color, ec=color, **kwargs)
-                    axs[i + len(lstm_wns)].set_xlabel(clean_weight_name(wn))
+                    axs[1, i].hist(bins[:-1], bins, weights=counts, color=color, ec=color, **kwargs)
+                    axs[1, i].set_xlabel(clean_weight_name(wn))
 
                     highest = max(counts) / sum(counts) / (bins[1] - bins[0])
                     if highest > 100:
-                        axs[i + len(lstm_wns)].set_ylim([0, 40])
+                        axs[1, i].set_ylim([0, 40])
 
                 for i, wn in enumerate(lstm_wns):
                     histogram = lstm_dict[befaft][wn]
 
                     bins = histogram[0]
                     counts = histogram[1]
-                    axs[i].hist(bins[:-1], bins, weights=counts, color=color, ec=color, **kwargs)
-                    axs[i].set_xlabel(clean_weight_name(wn))
+                    axs[0, i].hist(bins[:-1], bins, weights=counts, color=color, ec=color, **kwargs)
+                    axs[0, i].set_xlabel(clean_weight_name(wn))
+        axs[0, 0].set_ylabel('Density', fontsize=12)
 
-        fig.text(0.70, .98, 'ALIF', ha='center', va='center', fontsize=16)
-        fig.text(0.29, .98, 'LSTM', ha='center', va='center', fontsize=16)
+        fig.text(0.05, 0.25, 'ALIF', ha='center', va='center', fontsize=16, rotation=90)
+        fig.text(0.05, 0.74, 'LSTM', ha='center', va='center', fontsize=16, rotation=90)
 
         for ax in axs.reshape(-1):
             ax.locator_params(axis='y', nbins=3)
@@ -677,36 +650,6 @@ if plot_norms_pretraining:
 
                         metric = [float(s) for s in row['LSC_' + moi][1:-1].split(', ')]
                         axs[i, j].plot(metric, color=colors[norms.index(normpow)], label=normpow)
-
-            axs[i, j].set_title(f'{n}: {t}')
-
-    axs[i, j].legend()
-    plt.show()
-
-if plot_losses:
-    moi = 'sparse_mode_accuracy'  # losses norms sparse_mode_accuracy perplexity
-    ref = 0 if metric == 'losses' else 1
-    fig, axs = plt.subplots(len(nets), len(tasks), figsize=(6, 2), gridspec_kw={'wspace': .05})
-
-    if len(nets) == 1:
-        axs = axs[None]
-
-    cmap = plt.cm.get_cmap('Paired')
-    norms = [0.1, 1, 2, 3, -1]
-    colors = cmap(np.arange(len(norms)) / len(norms))
-    for i, n in enumerate(nets):
-        for j, t in enumerate(tasks):
-            idf = df[(df['net_name'].eq(n)) & (df['task_name'].eq(t))]
-
-            for index, row in idf.iterrows():
-                if 'findLSC_' in row['comments']:
-                    normpow = str2val(row['comments'], 'normpow', float, default=1)
-                    color = colors[norms.index(normpow)]
-                else:
-                    color = 'red'
-                    normpow = '-'
-                metric = histories[row['d']]['val_' + moi]
-                axs[i, j].plot(metric, color=color, label=normpow)
 
             axs[i, j].set_title(f'{n}: {t}')
 
