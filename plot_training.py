@@ -39,8 +39,8 @@ h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 # CSVPATH = r'D:\work\alif_sg\good_experiments\2022-08-20--learned-LSC\summary.h5'
 # HSITORIESPATH = os.path.join(EXPERIMENTS, 'histories.json')
 
-plot_losses = True
-pandas_means = False
+plot_losses = False
+pandas_means = True
 show_per_tasknet = False
 make_latex = False
 missing_exps = False
@@ -56,12 +56,7 @@ task_name = 'ps_mnist'  # heidelberg wordptb sl_mnist all ps_mnist
 # val_sparse_mode_accuracy test_perplexity
 metric = 'v_ppl min'
 optimizer_name = 'SWAAdaBelief'  # SGD SWAAdaBelief
-metrics_oi = [
-    # 'val_sparse_mode_accuracy', 'val_perplexity', 'val_sparse_categorical_crossentropy',
-    #           'test_sparse_mode_accuracy', 'test_perplexity',
-    't_ppl min', 't_mode_acc max', 'v_ppl min', 'v_mode_acc max',
-    # 'final_epochs'
-]
+metrics_oi = ['t_ppl min', 't_mode_acc max', 'v_ppl min', 'v_mode_acc max', ]
 
 plot_only = ['len rec_norms', 'rec_norms', 'epochs', 'net_name', 'task_name', 'n_params', 'comments', 'initializer',
              'optimizer_name', 'steps_per_epoch',
@@ -80,6 +75,10 @@ df = experiments_to_pandas(
 )
 
 print(list(df.columns))
+
+# df = df[df['path'].str.contains('2022-11-23--')]
+df.loc[df['path'].str.contains('2022-11-23--'), 'comments'] += '_23'
+
 
 if plot_losses:
     tasks = df['task_name'].unique()
@@ -132,7 +131,6 @@ df.rename(columns=new_column_names, inplace=True)
 # # FIXME: 14 experiments got nans in the heidelberg task validation, plot them anyway?
 # print('v_mode_acc nans:', df['v_mode_acc argmax'].isna().sum())
 df = df[~df['v_mode_acc argmax'].isna()]
-
 
 df['epochs'] = df['v_ppl len'].astype(int)
 
