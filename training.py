@@ -60,7 +60,7 @@ def config():
     n_neurons = None
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task_name in language_tasks else False
-    comments = '32_embproj_nogradreset_dropout:.3_timerepeat:2_maxpoolshd_findLSC_normpow:-1_naswot:1'  # 'nsLIFreadout_adaptsg_dropout:0.50' findLSC_test
+    comments = '34_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_normpow:.2_normsamples:100'  # 'nsLIFreadout_adaptsg_dropout:0.50' findLSC_test
     # comments = ''
 
     # optimizer properties

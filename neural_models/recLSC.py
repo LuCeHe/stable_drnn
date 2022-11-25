@@ -2,9 +2,8 @@ import os, time
 import numpy as np
 import warnings
 import tensorflow as tf
-import tensorflow_probability as tfp
 
-from keras_tools.convenience_operations import sample_axis
+from GenericTools.keras_tools.convenience_operations import sample_axis
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['AUTOGRAPH_VERBOSITY'] = '1'
