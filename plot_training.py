@@ -39,8 +39,8 @@ h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 # CSVPATH = r'D:\work\alif_sg\good_experiments\2022-08-20--learned-LSC\summary.h5'
 # HSITORIESPATH = os.path.join(EXPERIMENTS, 'histories.json')
 
-plot_losses = False
-pandas_means = True
+plot_losses = True
+pandas_means = False
 show_per_tasknet = False
 make_latex = False
 missing_exps = False
@@ -63,7 +63,7 @@ metrics_oi = [
     # 'final_epochs'
 ]
 
-plot_only = ['len rec_norms', 'rec_norms', 'net_name', 'task_name', 'n_params', 'comments', 'epochs', 'initializer',
+plot_only = ['len rec_norms', 'rec_norms', 'epochs', 'net_name', 'task_name', 'n_params', 'comments', 'initializer',
              'optimizer_name', 'steps_per_epoch',
              'path', 'lr'] + metrics_oi
 columns_to_remove = [
@@ -132,6 +132,9 @@ df.rename(columns=new_column_names, inplace=True)
 # # FIXME: 14 experiments got nans in the heidelberg task validation, plot them anyway?
 # print('v_mode_acc nans:', df['v_mode_acc argmax'].isna().sum())
 df = df[~df['v_mode_acc argmax'].isna()]
+
+
+df['epochs'] = df['v_ppl len'].astype(int)
 
 df['v_ppl argmin'] = df['v_ppl argmin'].astype(int)
 df['v_mode_acc argmax'] = df['v_mode_acc argmax'].astype(int)

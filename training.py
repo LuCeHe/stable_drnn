@@ -36,7 +36,6 @@ ex = CustomExperiment('-als', base_dir=CDIR, seed=11)
 logger = logging.getLogger('alif_sg')
 
 
-
 @ex.config
 def config():
     # environment properties
@@ -56,7 +55,7 @@ def config():
 
     # net
     # maLSNN cLSTM LSTM
-    net_name = 'LSTM'
+    net_name = 'maLSNN'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
     n_neurons = None
 
@@ -142,82 +141,95 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
     history_path = other_dir + '/log.csv'
     print_every = 2  # int(final_epochs / 10) if not final_epochs < 10 else 1
 
-    if 'findLSC' in comments:
-        print('Finding the LSC...')
-        n_samples = str2val(comments, 'normsamples', int, default=-1)
-        lscrec = bool(str2val(comments, 'lscrec', int, default=1))
-        lscdepth = bool(str2val(comments, 'lscdepth', int, default=0))
-        lscout = bool(str2val(comments, 'lscout', int, default=0))
-        naswot = bool(str2val(comments, 'naswot', int, default=0))
+    relsc = 1
+    if 'relsc' in comments:
+        relsc = str2val(comments, 'relsc', int, default=2)
+        final_epochs = int(final_epochs / relsc)
+        if net_name == 'LSTM':
+            final_epochs = 100
+        else:
+            final_epochs = 25
 
-        # n_samples = 100
-        norm_pow = str2val(comments, 'normpow', float, default=2)
-        norm_pow = norm_pow if norm_pow > 0 else np.inf
-        new_model_args = copy.deepcopy(model_args)
-        new_comments = new_model_args['comments'] + '_reoldspike'
-        new_batch_size = batch_size
-        if 'ptb' in task_name:
-            new_batch_size = 2 if not 'lscdepth:1' in comments else 1
-            new_comments = str2val(new_comments, 'batchsize', replace=new_batch_size)
+    for _ in range(relsc):
+        if 'findLSC' in comments:
+            print('Finding the LSC...')
+            n_samples = str2val(comments, 'normsamples', int, default=-1)
+            lscrec = bool(str2val(comments, 'lscrec', int, default=1))
+            lscdepth = bool(str2val(comments, 'lscdepth', int, default=0))
+            lscout = bool(str2val(comments, 'lscout', int, default=0))
+            naswot = bool(str2val(comments, 'naswot', int, default=0))
 
-        if 'heidelberg' in task_name and 'maLSNN' in net_name and 'lscdepth:1_lscout:1' in comments:
-            new_batch_size = 128
-            new_comments = str2val(new_comments, 'batchsize', replace=new_batch_size)
+            # n_samples = 100
+            norm_pow = str2val(comments, 'normpow', float, default=2)
+            norm_pow = norm_pow if norm_pow > 0 else np.inf
+            new_model_args = copy.deepcopy(model_args)
+            new_comments = new_model_args['comments'] + '_reoldspike'
+            new_batch_size = batch_size
+            if 'ptb' in task_name:
+                new_batch_size = 2 if not 'lscdepth:1' in comments else 1
+                new_comments = str2val(new_comments, 'batchsize', replace=new_batch_size)
 
-        new_model_args['comments'] = new_comments
-        new_task_args = copy.deepcopy(train_task_args)
-        new_task_args['batch_size'] = new_batch_size
+            if 'heidelberg' in task_name and 'maLSNN' in net_name and 'lscdepth:1_lscout:1' in comments:
+                new_batch_size = 128
+                new_comments = str2val(new_comments, 'batchsize', replace=new_batch_size)
 
-        lscw_filepath = os.path.join(models_dir, 'lsc')
-        save_weights_path = lscw_filepath if 'savelscweights' in comments else None
-        time_steps = 2 if 'test' in comments else None
+            new_model_args['comments'] = new_comments
+            new_task_args = copy.deepcopy(train_task_args)
+            new_task_args['batch_size'] = new_batch_size
 
-        del gen_train
-        print(json.dumps(new_model_args, indent=4, cls=NumpyEncoder))
-        lr = 1e-3
-        # print('almost!!', norm_pow, net_name, norm_pow == np.inf)
-        if net_name == 'LSTM' and norm_pow == np.inf:
-            lr = 1e-4
-            # print('nice', lr)
-        weights, lsc_results = apply_LSC(
-            train_task_args=new_task_args, model_args=new_model_args, norm_pow=norm_pow, n_samples=n_samples,
-            batch_size=new_batch_size, rec_norm=lscrec, depth_norm=lscdepth, decoder_norm=lscout, save_weights_path=save_weights_path,
-            time_steps=time_steps, lr=lr, naswot=naswot
-        )
-        results.update(lsc_results)
+            lscw_filepath = os.path.join(models_dir, 'lsc')
+            save_weights_path = lscw_filepath if 'savelscweights' in comments else None
+            time_steps = 2 if 'test' in comments else None
 
-    gen_train = Task(**train_task_args)
-    gen_val = Task(timerepeat=timerepeat, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
-                   name=task_name, train_val_test='val', maxlen=maxlen, comments=comments)
-    gen_test = Task(timerepeat=timerepeat, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
-                    name=task_name, train_val_test='test', maxlen=maxlen, comments=comments)
+            del gen_train
+            print(json.dumps(new_model_args, indent=4, cls=NumpyEncoder))
+            lr = 1e-3
+            # print('almost!!', norm_pow, net_name, norm_pow == np.inf)
+            if net_name == 'LSTM' and norm_pow == np.inf:
+                lr = 1e-4
+                # print('nice', lr)
+            weights, lsc_results = apply_LSC(
+                train_task_args=new_task_args, model_args=new_model_args, norm_pow=norm_pow, n_samples=n_samples,
+                batch_size=new_batch_size, rec_norm=lscrec, depth_norm=lscdepth, decoder_norm=lscout,
+                save_weights_path=save_weights_path,
+                time_steps=time_steps, lr=lr, naswot=naswot
+            )
+            results.update(lsc_results)
 
-    checkpoint_filepath = os.path.join(models_dir, 'checkpoint')
-    callbacks = [
-        LearningRateLogger(),
-        TimeStopping(stop_time, 1),  # 22h=79200 s, 21h=75600 s, 20h=72000 s, 12h = 43200 s, 6h = 21600 s, 72h = 259200
-        tf.keras.callbacks.ModelCheckpoint(
-            filepath=checkpoint_filepath, save_weights_only=True, monitor='val_loss', mode='min', save_best_only=True
-        ),
-        MultipleValidationSets({'v': gen_val, 't': gen_test}, verbose=0),
-        tf.keras.callbacks.CSVLogger(history_path),
-    ]
+        gen_train = Task(**train_task_args)
+        gen_val = Task(timerepeat=timerepeat, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
+                       name=task_name, train_val_test='val', maxlen=maxlen, comments=comments)
+        gen_test = Task(timerepeat=timerepeat, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
+                        name=task_name, train_val_test='test', maxlen=maxlen, comments=comments)
 
-    if 'tenb' in comments:
-        val_data = gen_val.__getitem__()
-        callbacks.append(
-            ExtendedTensorBoard(validation_data=val_data, log_dir=other_dir, histogram_freq=print_every),
-        )
+        checkpoint_filepath = os.path.join(models_dir, 'checkpoint')
+        callbacks = [
+            LearningRateLogger(),
+            TimeStopping(stop_time, 1),
+            # 22h=79200 s, 21h=75600 s, 20h=72000 s, 12h = 43200 s, 6h = 21600 s, 72h = 259200
+            tf.keras.callbacks.ModelCheckpoint(
+                filepath=checkpoint_filepath, save_weights_only=True, monitor='val_loss', mode='min',
+                save_best_only=True
+            ),
+            MultipleValidationSets({'v': gen_val, 't': gen_test}, verbose=0),
+            tf.keras.callbacks.CSVLogger(history_path),
+        ]
 
-    train_model = build_model(**model_args)
-    train_model.summary()
+        if 'tenb' in comments:
+            val_data = gen_val.__getitem__()
+            callbacks.append(
+                ExtendedTensorBoard(validation_data=val_data, log_dir=other_dir, histogram_freq=print_every),
+            )
 
-    if 'findLSC' in comments:
-        train_model.set_weights(weights)
+        train_model = build_model(**model_args)
+        train_model.summary()
 
-    train_model.fit(gen_train, validation_data=gen_val,
-                    epochs=final_epochs, steps_per_epoch=steps_per_epoch,
-                    callbacks=callbacks)
+        if 'findLSC' in comments:
+            train_model.set_weights(weights)
+
+        train_model.fit(gen_train, validation_data=gen_val,
+                        epochs=final_epochs, steps_per_epoch=steps_per_epoch,
+                        callbacks=callbacks)
 
     actual_epochs = 0
     if final_epochs > 0:
