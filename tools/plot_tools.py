@@ -148,6 +148,19 @@ def summary_lsc(x):
     else:
         l = None
     return l
+def recnorms_list(x):
+    if isinstance(x, dict):
+        if 'batch 0 layer 0' in x.keys():
+            x = x['batch 1 layer 0']
+        else:
+            x = x['batch 0 layer 0']
+
+        l = [item for sublist in x for item in sublist]
+    elif isinstance(x, list):
+        l = x
+    else:
+        l = None
+    return l
 
 def reorganize(x):
     if isinstance(x['LSC_norms'], list):

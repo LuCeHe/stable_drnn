@@ -2,6 +2,7 @@ import os, time
 import numpy as np
 import warnings
 import tensorflow as tf
+import tensorflow_probability as tfp
 
 from GenericTools.keras_tools.convenience_operations import sample_axis
 
@@ -21,7 +22,7 @@ os.environ['AUTOGRAPH_VERBOSITY'] = '1'
 warnings.filterwarnings('ignore')
 
 
-def get_norms(tape, lower_states, upper_states, n_samples=-1, norm_pow=2, naswot=0):
+def get_norms(tape, lower_states, upper_states, n_samples=-1, norm_pow=2, naswot=0, comments=''):
     hss = []
     for hlm1 in lower_states:
         hs = [tape.batch_jacobian(hl, hlm1) for hl in upper_states]
@@ -34,7 +35,11 @@ def get_norms(tape, lower_states, upper_states, n_samples=-1, norm_pow=2, naswot
 
     del hss, hs
 
-    if n_samples < 1 and norm_pow in [1, 2, np.inf]:
+    if 'entrywise' in comments:
+        flat_td = tf.reshape(td, (td.shape[0], -1))
+        norms = tf.norm(flat_td, ord=norm_pow, axis=1)
+
+    elif n_samples < 1 and norm_pow in [1, 2, np.inf]:
         if norm_pow is np.inf:
             norms = tf.reduce_sum(tf.abs(td), axis=2)
             norms = tf.reduce_max(norms, axis=-1)
@@ -62,10 +67,18 @@ def get_norms(tape, lower_states, upper_states, n_samples=-1, norm_pow=2, naswot
     if not naswot == 0:
         batch_size = td.shape[0]
         t = tf.reshape(td, (batch_size, -1))
-        t = sample_axis(t, max_dim=batch_size)
-        std = tf.math.reduce_std(t)
-        t = t + tf.random.normal(t.shape) * std / 10
-        t = tf.tanh(t)
+
+        if not 'v2naswot' in comments:
+            t = sample_axis(t, max_dim=batch_size)
+            std = tf.math.reduce_std(t)
+            t = t + tf.random.normal(t.shape) * std / 10
+            t = tf.tanh(t)
+        else:
+            std = tf.math.reduce_std(t)
+            t = t + tf.random.normal(t.shape) * std / 10
+
+            t = tf.transpose(t, (1, 0))
+            t = tfp.stats.correlation(t)
 
         naswot_score = tf.abs(tf.linalg.slogdet(t)[1])
 
@@ -76,7 +89,7 @@ def get_norms(tape, lower_states, upper_states, n_samples=-1, norm_pow=2, naswot
             scale_factor = tf.stop_gradient(loss / naswot_loss)
             loss += scale_factor * naswot_loss
         elif naswot == -1:
-            scale_factor = 1 #tf.stop_gradient(1 / naswot_loss)
+            scale_factor = 1  # tf.stop_gradient(1 / naswot_loss)
             loss = scale_factor * naswot_loss
 
     return norms, loss, naswot_score
@@ -84,7 +97,8 @@ def get_norms(tape, lower_states, upper_states, n_samples=-1, norm_pow=2, naswot
 
 def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, steps_per_epoch=4, epsilon=.01,
               patience=50, rec_norm=True, depth_norm=True, encoder_norm=False, decoder_norm=True, learn=True,
-              time_steps=None, weights=None, save_weights_path=None, lr=1e-3, naswot=0):
+              time_steps=None, weights=None, save_weights_path=None, lr=1e-3, naswot=0,
+              comments=''):
     # FIXME: generalize this loop for any recurrent model
     gen_train = Task(**train_task_args)
 
@@ -193,7 +207,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                     if rec_norm:
                         norms, loss, naswot_score = get_norms(tape=tape, lower_states=[ht, ct],
                                                               upper_states=[htp1, ctp1],
-                                                              n_samples=n_samples, norm_pow=norm_pow, naswot=naswot)
+                                                              n_samples=n_samples, norm_pow=norm_pow, naswot=naswot,
+                                                              comments=comments)
                         rec_norms[f'batch {step} layer {i}'].append(norms.numpy())
                         some_norms.append(tf.reduce_mean(norms))
                         if not naswot_score is None:
@@ -203,7 +218,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                     if encoder_norm and i == 0:
                         norms, loss, naswot_score = get_norms(tape=tape, lower_states=[bt[:, 0, :]],
                                                               upper_states=[htp1, ctp1],
-                                                              n_samples=n_samples, norm_pow=norm_pow, naswot=naswot)
+                                                              n_samples=n_samples, norm_pow=norm_pow, naswot=naswot,
+                                                              comments=comments)
 
                         some_norms.append(tf.reduce_mean(norms))
                         mean_loss += loss
@@ -216,7 +232,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                             hlm1, clm1 = state_below
                             norms, loss, naswot_score = get_norms(tape=tape, lower_states=[hlm1, clm1],
                                                                   upper_states=[hl, cl],
-                                                                  n_samples=n_samples, norm_pow=norm_pow, naswot=naswot)
+                                                                  n_samples=n_samples, norm_pow=norm_pow, naswot=naswot,
+                                                                  comments=comments)
 
                             some_norms.append(tf.reduce_mean(norms))
                             mean_loss += loss
@@ -227,7 +244,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                     if decoder_norm and i == len(stack) - 1:
                         norms, loss, naswot_score = get_norms(tape=tape, lower_states=[htp1, ctp1],
                                                               upper_states=[outputs[0][:, 0, :]],
-                                                              n_samples=n_samples, norm_pow=norm_pow, naswot=naswot)
+                                                              n_samples=n_samples, norm_pow=norm_pow, naswot=naswot,
+                                                              comments=comments)
 
                         some_norms.append(tf.reduce_mean(norms))
                         mean_loss += loss

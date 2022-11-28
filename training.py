@@ -45,7 +45,7 @@ def config():
     # task and net
     # ps_mnist heidelberg s_mnist
     # wordptb sl_mnist
-    task_name = 'heidelberg'
+    task_name = 'wordptb'
 
     # test configuration
     epochs = 2
@@ -60,8 +60,8 @@ def config():
     n_neurons = None
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task_name in language_tasks else False
-    comments = '34_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_normpow:.2_normsamples:100'  # 'nsLIFreadout_adaptsg_dropout:0.50' findLSC_test
-    # comments = ''
+    comments = '34_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_naswot:1_v2naswot'  # 'nsLIFreadout_adaptsg_dropout:0.50' findLSC_test
+    comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_normpow:1.75_normsamples:100'
 
     # optimizer properties
     lr = None  # 7e-4 None
@@ -157,7 +157,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
             lscrec = bool(str2val(comments, 'lscrec', int, default=1))
             lscdepth = bool(str2val(comments, 'lscdepth', int, default=0))
             lscout = bool(str2val(comments, 'lscout', int, default=0))
-            naswot = bool(str2val(comments, 'naswot', int, default=0))
+            naswot = str2val(comments, 'naswot', int, default=0)
 
             # n_samples = 100
             norm_pow = str2val(comments, 'normpow', float, default=2)
@@ -166,7 +166,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
             new_comments = new_model_args['comments'] + '_reoldspike'
             new_batch_size = batch_size
             if 'ptb' in task_name:
-                new_batch_size = 2 if not 'lscdepth:1' in comments else 1
+                new_batch_size = 4 if not 'lscdepth:1' in comments else 1
                 new_comments = str2val(new_comments, 'batchsize', replace=new_batch_size)
 
             if 'heidelberg' in task_name and 'maLSNN' in net_name and 'lscdepth:1_lscout:1' in comments:
@@ -185,12 +185,13 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
             print(json.dumps(new_model_args, indent=4, cls=NumpyEncoder))
             lsclr = 1e-3
             if net_name == 'LSTM' and norm_pow == np.inf:
-                lsclr = 3.16e-3
+                lsclr = 1e-2
             weights, lsc_results = apply_LSC(
                 train_task_args=new_task_args, model_args=new_model_args, norm_pow=norm_pow, n_samples=n_samples,
                 batch_size=new_batch_size, rec_norm=lscrec, depth_norm=lscdepth, decoder_norm=lscout,
                 save_weights_path=save_weights_path,
-                time_steps=time_steps, lr=lsclr, naswot=naswot
+                time_steps=time_steps, lr=lsclr, naswot=naswot,
+                comments=comments
             )
             results.update(lsc_results)
 

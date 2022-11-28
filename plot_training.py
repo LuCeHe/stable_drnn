@@ -39,7 +39,7 @@ h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 # CSVPATH = r'D:\work\alif_sg\good_experiments\2022-08-20--learned-LSC\summary.h5'
 # HSITORIESPATH = os.path.join(EXPERIMENTS, 'histories.json')
 
-plot_losses = False
+plot_losses = True
 pandas_means = True
 show_per_tasknet = False
 make_latex = False
@@ -78,9 +78,16 @@ print(list(df.columns))
 
 # df = df[df['path'].str.contains('2022-11-23--')]
 df.loc[df['path'].str.contains('2022-11-23--'), 'comments'] += '_23'
+df.loc[df['path'].str.contains('2022-11-25--'), 'comments'] += '_26'
+df.loc[df['path'].str.contains('2022-11-26--'), 'comments'] += '_26'
 
+df['rec_norms'] = df.apply(reorganize, axis=1)
+df['len rec_norms'] = df['rec_norms'].apply(find_length)
+df['rec_norms list'] = df['rec_norms'].apply(recnorms_list)
+df['rec_norms'] = df['rec_norms'].apply(summary_lsc)
 
 if plot_losses:
+    plot_metric = 'rec_norms list'
     tasks = df['task_name'].unique()
     nets = df['net_name'].unique()
     fig, axs = plt.subplots(len(tasks), len(nets), figsize=(len(nets) * 3, len(tasks) * 3))
@@ -90,23 +97,19 @@ if plot_losses:
                 print('-===-' * 30)
                 print(task, net)
                 idf = df[df['task_name'].str.contains(task) & df['net_name'].str.contains(net)]
-                # print(idf.to_string())
+
                 for _, row in idf.iterrows():
                     c = 'r' if 'LSC' in row['comments'] else 'b'
-                    c = 'r' if 'normpow:-1' in row['comments'] else 'b'
-                    if isinstance(row['v_loss list'], list):
+                    c = 'r' if 'normpow:-1_26' in row['comments'] else 'b'
+                    if isinstance(row[plot_metric], list):
                         # print(row['loss list'])
-                        print('epochs', len(row['v_loss list']))
-                        axs[i, j].plot(row['v_loss list'], color=c)
+                        print('epochs', len(row[plot_metric]))
+                        axs[i, j].plot(row[plot_metric], color=c)
                     else:
-                        print(row['v_loss list'], row['path'])
+                        print(row[plot_metric], row['path'])
 
                 axs[i, j].set_title(f'{task} {net}')
     plt.show()
-
-df['rec_norms'] = df.apply(reorganize, axis=1)
-df['len rec_norms'] = df['rec_norms'].apply(find_length)
-df['rec_norms'] = df['rec_norms'].apply(summary_lsc)
 
 if 'n_params' in df.columns:
     df['n_params'] = df['n_params'].apply(lambda x: large_num_to_reasonable_string(x, 1))
