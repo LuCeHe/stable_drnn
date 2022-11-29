@@ -35,7 +35,14 @@ def get_norms(tape, lower_states, upper_states, n_samples=-1, norm_pow=2, naswot
 
     del hss, hs
 
-    if 'entrywise' in comments:
+    if 'supn' in comments:
+        # transpose td
+        tdt = tf.transpose(td, perm=[0, 2, 1])
+        tt = tf.einsum('bij,bjk->bik', td, tdt)
+        norms = tf.abs(tf.linalg.slogdet(tt)[1])
+        print('here!', tf.reduce_mean(norms))
+
+    elif 'entrywise' in comments:
         flat_td = tf.reshape(td, (td.shape[0], -1))
         norms = tf.norm(flat_td, ord=norm_pow, axis=1)
 
@@ -113,6 +120,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
         stack = [model_args['n_neurons'] for _ in range(model_args['stack'])]
 
     # batch = [tf.convert_to_tensor(tf.cast(b, tf.float32), dtype=tf.float32) for b in batch[0]],
+    # lr = lr if not 'supn' in comments else lr * 10
     optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
     states = []
 
