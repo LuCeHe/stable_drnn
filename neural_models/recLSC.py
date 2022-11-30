@@ -22,7 +22,7 @@ os.environ['AUTOGRAPH_VERBOSITY'] = '1'
 warnings.filterwarnings('ignore')
 
 
-def get_norms(tape, lower_states, upper_states, n_samples=-1, norm_pow=2, naswot=0, comments=''):
+def get_norms(tape, lower_states, upper_states, n_samples=-1, norm_pow=2, naswot=0, comments='', epsilon=1e-8):
     hss = []
     for hlm1 in lower_states:
         hs = [tape.batch_jacobian(hl, hlm1) for hl in upper_states]
@@ -39,7 +39,7 @@ def get_norms(tape, lower_states, upper_states, n_samples=-1, norm_pow=2, naswot
         # transpose td
         tdt = tf.transpose(td, perm=[0, 2, 1])
         tt = tf.einsum('bij,bjk->bik', td, tdt)
-        norms = tf.abs(tf.linalg.slogdet(tt)[1])
+        norms = tf.abs(tf.linalg.slogdet(tt+epsilon)[1])
         print('here!', tf.reduce_mean(norms))
 
     elif 'entrywise' in comments:
@@ -102,7 +102,7 @@ def get_norms(tape, lower_states, upper_states, n_samples=-1, norm_pow=2, naswot
     return norms, loss, naswot_score
 
 
-def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, steps_per_epoch=4, epsilon=.01,
+def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, steps_per_epoch=6, epsilon=.01,
               patience=50, rec_norm=True, depth_norm=True, encoder_norm=False, decoder_norm=True, learn=True,
               time_steps=None, weights=None, save_weights_path=None, lr=1e-3, naswot=0,
               comments=''):
@@ -260,10 +260,14 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
                     del htp1, ht, ctp1, ct
 
-            if learn:
-                grads = tape.gradient(mean_loss, model.trainable_weights)
-                optimizer.apply_gradients(zip(grads, model.trainable_weights))
-                del grads
+            try:
+                if learn:
+                    grads = tape.gradient(mean_loss, model.trainable_weights)
+                    optimizer.apply_gradients(zip(grads, model.trainable_weights))
+                    del grads
+
+            except Exception as e:
+                print(e)
 
             states = states_p1
 

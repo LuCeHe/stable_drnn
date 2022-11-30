@@ -45,7 +45,7 @@ def config():
     # task and net
     # ps_mnist heidelberg s_mnist
     # wordptb sl_mnist
-    task_name = 'wordptb'
+    task_name = 'sl_mnist'
 
     # test configuration
     epochs = 2
