@@ -39,7 +39,7 @@ h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 # CSVPATH = r'D:\work\alif_sg\good_experiments\2022-08-20--learned-LSC\summary.h5'
 # HSITORIESPATH = os.path.join(EXPERIMENTS, 'histories.json')
 
-plot_losses = True
+plot_losses = False
 pandas_means = True
 show_per_tasknet = False
 make_latex = False
@@ -80,6 +80,8 @@ print(list(df.columns))
 df.loc[df['path'].str.contains('2022-11-23--'), 'comments'] += '_23'
 df.loc[df['path'].str.contains('2022-11-25--'), 'comments'] += '_26'
 df.loc[df['path'].str.contains('2022-11-26--'), 'comments'] += '_26'
+df.loc[df['path'].str.contains('2022-11-28--'), 'comments'] += '_29'
+df.loc[df['path'].str.contains('2022-11-29--'), 'comments'] += '_29'
 
 df['rec_norms'] = df.apply(reorganize, axis=1)
 df['len rec_norms'] = df['rec_norms'].apply(find_length)
@@ -132,21 +134,21 @@ new_column_names = {c_name: shorten_losses(c_name) for c_name in df.columns}
 df.rename(columns=new_column_names, inplace=True)
 
 # # FIXME: 14 experiments got nans in the heidelberg task validation, plot them anyway?
-# print('v_mode_acc nans:', df['v_mode_acc argmax'].isna().sum())
-df = df[~df['v_mode_acc argmax'].isna()]
+print('v_mode_acc nans:', df['v_mode_acc len'].isna().sum())
+# df = df[~df['v_mode_acc argmax'].isna()]
+# df = df[~df['v_mode_acc len'].isna()]
 
-df['epochs'] = df['v_ppl len'].astype(int)
+# df['epochs'] = df['v_ppl len'].astype(int)
 
-df['v_ppl argmin'] = df['v_ppl argmin'].astype(int)
-df['v_mode_acc argmax'] = df['v_mode_acc argmax'].astype(int)
+# df['v_ppl argmin'] = df['v_ppl argmin'].astype(int)
+# df['v_mode_acc argmax'] = df['v_mode_acc argmax'].astype(int)
 
-df['v_ppl'] = df.apply(lambda row: np.nanmin(row['v_ppl list']), axis=1)
-df['t_ppl'] = df.apply(lambda row: row['t_ppl list'][row['v_ppl argmin']], axis=1)
-df['v_mode_acc'] = df.apply(lambda row: np.nanmax(row['v_mode_acc list']), axis=1)
+# df['v_ppl'] = df.apply(lambda row: np.nanmin(row['v_ppl list']), axis=1)
+# df['t_ppl'] = df.apply(lambda row: row['t_ppl list'][row['v_ppl argmin']], axis=1)
+# df['v_mode_acc'] = df.apply(lambda row: np.nanmax(row['v_mode_acc list']), axis=1)
 
-df['t_mode_acc'] = df.apply(lambda row: row['t_mode_acc list'][row['v_mode_acc argmax']], axis=1)
+# df['t_mode_acc'] = df.apply(lambda row: row['t_mode_acc list'][row['v_mode_acc argmax']], axis=1)
 
-# df = df[df['lr'].isna()]
 
 if metric in df.keys():
     df = df.sort_values(by=metric)

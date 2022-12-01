@@ -22,7 +22,8 @@ os.environ['AUTOGRAPH_VERBOSITY'] = '1'
 warnings.filterwarnings('ignore')
 
 
-def get_norms(tape, lower_states, upper_states, n_samples=-1, norm_pow=2, naswot=0, comments='', epsilon=1e-8):
+def get_norms(tape, lower_states, upper_states, n_samples=-1, norm_pow=2, naswot=0, comments='', epsilon=1e-8,
+              target_norm=1.):
     hss = []
     for hlm1 in lower_states:
         hs = [tape.batch_jacobian(hl, hlm1) for hl in upper_states]
@@ -40,7 +41,13 @@ def get_norms(tape, lower_states, upper_states, n_samples=-1, norm_pow=2, naswot
         tdt = tf.transpose(td, perm=[0, 2, 1])
         tt = tf.einsum('bij,bjk->bik', td, tdt)
         norms = tf.abs(tf.linalg.slogdet(tt+epsilon)[1])
-        print('here!', tf.reduce_mean(norms))
+
+    elif 'logradius' in comments:
+        norms = tf.math.log(tf.math.reduce_max(tf.abs(tf.linalg.eigvals(td)), axis=-1))
+        target_norm= 0
+
+    elif 'radius' in comments:
+        norms = tf.math.reduce_max(tf.abs(tf.linalg.eigvals(td)), axis=-1)
 
     elif 'entrywise' in comments:
         flat_td = tf.reshape(td, (td.shape[0], -1))
@@ -69,7 +76,7 @@ def get_norms(tape, lower_states, upper_states, n_samples=-1, norm_pow=2, naswot
         norms = e_norm / x_norm
         norms = tf.reduce_max(norms, axis=-1)
 
-    loss = well_loss(min_value=1, max_value=1, walls_type='relu', axis='all')(norms)
+    loss = well_loss(min_value=target_norm, max_value=target_norm, walls_type='relu', axis='all')(norms)
     naswot_score = None
     if not naswot == 0:
         batch_size = td.shape[0]
@@ -99,13 +106,17 @@ def get_norms(tape, lower_states, upper_states, n_samples=-1, norm_pow=2, naswot
             scale_factor = 1  # tf.stop_gradient(1 / naswot_loss)
             loss = scale_factor * naswot_loss
 
-    return norms, loss, naswot_score
+    return tf.abs(norms), loss, naswot_score
 
 
 def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, steps_per_epoch=6, epsilon=.01,
               patience=50, rec_norm=True, depth_norm=True, encoder_norm=False, decoder_norm=True, learn=True,
               time_steps=None, weights=None, save_weights_path=None, lr=1e-3, naswot=0,
               comments=''):
+    target_norm = 1.
+    if 'logradius' in comments:
+        target_norm = 0
+        epsilon = 1e-4
     # FIXME: generalize this loop for any recurrent model
     gen_train = Task(**train_task_args)
 
@@ -279,7 +290,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
             # print(some_norms)
             norms = tf.reduce_mean(some_norms)
 
-            if abs(norms.numpy() - 1) < epsilon:
+            if abs(norms.numpy() - target_norm) < epsilon:
                 epsilon_steps += 1
 
             if epsilon_steps > patience:
@@ -289,11 +300,13 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
             losses.append(mean_loss.numpy())
 
             pbar2.update(1)
+
+            prms = tf.reduce_mean([tf.reduce_mean(w) for w in model.trainable_weights]).numpy()
             pbar2.set_description(
                 f"Step {step}; "
-                f"Loss {str(round(mean_loss.numpy(), 3))}; "
-                f"mean params {str(round(tf.reduce_mean([tf.reduce_mean(w) for w in model.trainable_weights]).numpy(), 3))}; "
-                f"mean norms {str(round(norms.numpy(), 3))} "
+                f"Loss {str(round(mean_loss.numpy(), 4))}; "
+                f"mean params {str(round(prms, 4))}; "
+                f"mean norms {str(round(norms.numpy(), 4))} "
             )
             for n, w in zip(weight_names, model.get_weights()):
                 results[f'{n}_mean'].append(tf.reduce_mean(w).numpy())
