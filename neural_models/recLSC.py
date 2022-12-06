@@ -116,7 +116,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
     target_norm = 1.
     if 'logradius' in comments:
         target_norm = 0
-        epsilon = 1e-4
+        epsilon = 3.16e-4
     # FIXME: generalize this loop for any recurrent model
     gen_train = Task(**train_task_args)
 
@@ -154,6 +154,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
     # get initial values of model
     model = build_model(**model_args)
+    model.summary()
 
     if not save_weights_path is None:
         os.makedirs(save_weights_path, exist_ok=True)
@@ -182,7 +183,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
         batch = [tf.convert_to_tensor(tf.cast(b, tf.float32), dtype=tf.float32) for b in batch[0]],
 
         if 'gausslsc' in comments:
-            batch = [tf.convert_to_tensor(tf.cast(b, tf.float32), dtype=tf.float32) for b in batch[0]],
+            batch = [tf.random.normal(b.shape) for b in batch[0]],
         elif 'berlsc' in comments:
             batch = [tf.math.greater(tf.random.uniform(b.shape), .5) for b in batch[0]],
             batch = [tf.cast(b, dtype=tf.float32) for b in batch[0]],
@@ -210,6 +211,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                 model = build_model(**model_args)
                 model.set_weights(weights)
 
+                print('bt', bt)
+                print('wt', wt)
                 outputs = model([bt, wt, *states])
                 states_p1 = outputs[1:]
 

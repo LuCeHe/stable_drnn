@@ -32,16 +32,20 @@ FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
 EXPERIMENTS = os.path.join(CDIR, 'experiments')
 GEXPERIMENTS = r'D:\work\alif_sg\good_experiments\2022-10-10--good_for_initial_tables'
-GEXPERIMENTS = os.path.join(CDIR, 'good_experiments')
+GEXPERIMENTS = [
+    os.path.join(CDIR, 'good_experiments'),
+    os.path.join(CDIR, 'good_experiments', '2022-11-07--complete_set_of_exps'),
+]
 
 expsid = 'als'  # effnet als
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 # CSVPATH = r'D:\work\alif_sg\good_experiments\2022-08-20--learned-LSC\summary.h5'
 # HSITORIESPATH = os.path.join(EXPERIMENTS, 'histories.json')
 
+check_for_new = True
 plot_losses = False
 pandas_means = True
-show_per_tasknet = False
+show_per_tasknet = True
 make_latex = False
 missing_exps = False
 plot_lsc_vs_naive = False
@@ -74,6 +78,28 @@ df = experiments_to_pandas(
     exclude_files=['cout.txt']
 )
 
+if check_for_new:
+    new = []
+    old = [os.path.split(p)[1] for p in df['path'].values]
+
+    for gpath in GEXPERIMENTS:
+        new.extend([p.replace('.zip', '') for p in os.listdir(gpath) if 'zip' in p])
+    missing = [p for p in new if not p in old]
+    newh5path = os.path.join(EXPERIMENTS, f'missing_summary_{expsid}.h5')
+
+    if len(missing) > 0:
+        ndf = experiments_to_pandas(
+            h5path=newh5path, zips_folder=GEXPERIMENTS, unzips_folder=EXPERIMENTS, experiments_identifier=missing,
+            exclude_files=['cout.txt']
+        )
+        bigdf = pd.concat([df, ndf])
+        bigdf.to_hdf(h5path, key='df', mode='w')
+        df = bigdf
+
+    if os.path.exists(newh5path):
+        os.remove(newh5path)
+
+print(df.shape)
 print(list(df.columns))
 
 # df = df[df['path'].str.contains('2022-11-23--')]
@@ -90,6 +116,7 @@ df['rec_norms'] = df['rec_norms'].apply(summary_lsc)
 
 if plot_losses:
     plot_metric = 'rec_norms list'
+    plot_metric = 'val_perplexity list'
     tasks = df['task_name'].unique()
     nets = df['net_name'].unique()
     fig, axs = plt.subplots(len(tasks), len(nets), figsize=(len(nets) * 3, len(tasks) * 3))
@@ -102,7 +129,7 @@ if plot_losses:
 
                 for _, row in idf.iterrows():
                     c = 'r' if 'LSC' in row['comments'] else 'b'
-                    c = 'r' if 'normpow:-1_26' in row['comments'] else 'b'
+                    c = 'r' if '_logradius' in row['comments'] else 'b'
                     if isinstance(row[plot_metric], list):
                         # print(row['loss list'])
                         print('epochs', len(row[plot_metric]))
@@ -116,6 +143,9 @@ if plot_losses:
 if 'n_params' in df.columns:
     df['n_params'] = df['n_params'].apply(lambda x: large_num_to_reasonable_string(x, 1))
 
+df['comments'] = df['comments'].astype(str)
+df['net_name'] = df['net_name'].astype(str)
+df['task_name'] = df['task_name'].astype(str)
 df = df[~df['comments'].str.contains('test')]
 
 if 'net_name' in df.columns:
@@ -180,8 +210,8 @@ if pandas_means:
     mdf = mdf.sort_values(by='mean_' + metric)
     mdf['counts'] = counts['counts']
 
-    tasks = np.unique(mdf['task_name'])
-    nets = np.unique(mdf['net_name'])
+    tasks = sorted(np.unique(mdf['task_name']))
+    nets = sorted(np.unique(mdf['net_name']))
 
     mdf['comments'] = mdf['comments'].str.replace('__', '_', regex=True)
     print(mdf.to_string())

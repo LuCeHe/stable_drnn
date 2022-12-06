@@ -1,5 +1,4 @@
 import os, shutil, logging, json, copy
-
 import pandas as pd
 
 from GenericTools.keras_tools.silence_tensorflow import silence_tf
@@ -45,12 +44,12 @@ def config():
     # task and net
     # ps_mnist heidelberg s_mnist
     # wordptb sl_mnist
-    task_name = 'sl_mnist'
+    task_name = 'wordptb'
 
     # test configuration
     epochs = 2
     steps_per_epoch = 2
-    batch_size = None
+    batch_size = 2
     stack = None
 
     # net
@@ -61,7 +60,7 @@ def config():
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task_name in language_tasks else False
     comments = '34_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_naswot:1_v2naswot'  # 'nsLIFreadout_adaptsg_dropout:0.50' findLSC_test
-    comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_logradius'
+    comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_logradius_gausslsc'
 
     # optimizer properties
     lr = None  # 7e-4 None
@@ -79,6 +78,15 @@ def config():
 
     # 22h=79200 s, 21h=75600 s, 20h=72000 s, 12h = 43200 s, 6h = 21600 s, 72h = 259200
     stop_time = 21600
+
+
+def save_results(other_dir, results):
+    results_filename = os.path.join(other_dir, 'results.json')
+
+    string_result = json.dumps(results, indent=4, cls=NumpyEncoder)
+    print(string_result)
+    with open(results_filename, "w") as f:
+        f.write(string_result)
 
 
 @ex.capture
@@ -230,6 +238,8 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
         if 'findLSC' in comments:
             train_model.set_weights(weights)
 
+        results['n_params'] = train_model.count_params()
+        save_results(other_dir, results)
         train_model.fit(gen_train, validation_data=gen_val,
                         epochs=final_epochs, steps_per_epoch=steps_per_epoch,
                         callbacks=callbacks)
@@ -272,16 +282,9 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
     for k in evaluation.keys():
         results['valval_' + k] = evaluation[k]
 
-    results['n_params'] = train_model.count_params()
     results['full_comments'] = comments
     results['final_epochs'] = str(actual_epochs)
     results['final_steps_per_epoch'] = final_steps_per_epoch
 
-    results_filename = os.path.join(other_dir, 'results.json')
-
-    string_result = json.dumps(results, indent=4, cls=NumpyEncoder)
-    print(string_result)
-    with open(results_filename, "w") as f:
-        f.write(string_result)
-    # json.dump(results, open(results_filename, "w"))
+    save_results(other_dir, results)
     print('DONE')
