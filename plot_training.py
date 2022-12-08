@@ -147,6 +147,7 @@ df['comments'] = df['comments'].astype(str)
 df['net_name'] = df['net_name'].astype(str)
 df['task_name'] = df['task_name'].astype(str)
 df = df[~df['comments'].str.contains('test')]
+df = df[df['comments'].str.contains('normsamples:')]
 
 if 'net_name' in df.columns:
     df.loc[df['comments'].str.contains('noalif'), 'net_name'] = 'LIF'
