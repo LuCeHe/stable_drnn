@@ -75,29 +75,10 @@ columns_to_remove = []
 
 df = experiments_to_pandas(
     h5path=h5path, zips_folder=GEXPERIMENTS, unzips_folder=EXPERIMENTS, experiments_identifier=expsid,
-    exclude_files=['cout.txt']
+    exclude_files=['cout.txt'], check_for_new=check_for_new
 )
 
-if check_for_new:
-    new = []
-    old = [os.path.split(p)[1] for p in df['path'].values]
 
-    for gpath in GEXPERIMENTS:
-        new.extend([p.replace('.zip', '') for p in os.listdir(gpath) if 'zip' in p])
-    missing = [p for p in new if not p in old]
-    newh5path = os.path.join(EXPERIMENTS, f'missing_summary_{expsid}.h5')
-
-    if len(missing) > 0:
-        ndf = experiments_to_pandas(
-            h5path=newh5path, zips_folder=GEXPERIMENTS, unzips_folder=EXPERIMENTS, experiments_identifier=missing,
-            exclude_files=['cout.txt']
-        )
-        bigdf = pd.concat([df, ndf])
-        bigdf.to_hdf(h5path, key='df', mode='w')
-        df = bigdf
-
-    if os.path.exists(newh5path):
-        os.remove(newh5path)
 
 print(df.shape)
 print(list(df.columns))
