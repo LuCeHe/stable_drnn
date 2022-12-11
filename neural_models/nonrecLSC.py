@@ -30,7 +30,7 @@ def get_weights_statistics(results, weight_names, weights):
 
 
 def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_pow=2, fanin=False, forward_lsc=False,
-                      nlayerjump=None):
+                      nlayerjump=None, layer_min=None, layer_max=None):
     assert callable(build_model)
     if forward_lsc:
         learning_rate = .1
@@ -45,6 +45,8 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
 
     # get initial values of model
     model = build_model()
+    model.summary()
+
     weights = model.get_weights()
     weight_names = [weight.name for layer in model.layers for weight in layer.weights]
     results.update({f'{n}_mean': [] for n in weight_names})
@@ -80,15 +82,19 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
                         model.set_weights(weights)
 
                     lnames = [layer.name for layer in model.layers]
+                    print('\n\nei')
+                    print(lnames)
 
                     for _ in range(3):
-                        pairs = sorted(np.random.choice(len(lnames), 2, replace=False))
+                        pairs = sorted(np.random.choice(list(range(len(lnames)))[layer_min:layer_max], 2, replace=False))
                         input_shape = model.layers[pairs[0] + 1].input_shape[1:]
                         if not isinstance(input_shape, list):
                             break
 
                     if isinstance(nlayerjump, int):
                         pairs[1] = pairs[0] + nlayerjump
+
+                    print(pairs)
                     premodel, intermodel = split_model(model, pairs)
 
                     preinter = premodel(batch)
@@ -123,8 +129,8 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
                         reoup = tf.reshape(oup, [oup.shape[0], -1])
                         oup = sample_axis(reoup, max_dim=max_dim)
 
-                        norms = get_norms(tape, [inp], [oup], n_samples=n_samples, norm_pow=norm_pow)  # good
-                        # norms = get_norms(tape, [oup], [inp], n_samples=n_samples, norm_pow=norm_pow)  # bad
+                        # norms = get_norms(tape, [inp], [oup], n_samples=n_samples, norm_pow=norm_pow)  # good
+                        norms = get_norms(tape, [oup], [inp], n_samples=n_samples, norm_pow=norm_pow)  # bad
 
                         if not fanin:
                             factor = 1
