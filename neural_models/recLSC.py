@@ -43,7 +43,11 @@ def get_norms(tape, lower_states, upper_states, n_samples=-1, norm_pow=2, naswot
         norms = tf.abs(tf.linalg.slogdet(tt + epsilon)[1])
 
     elif 'logradius' in comments:
-        norms = tf.math.log(tf.math.reduce_max(tf.abs(tf.linalg.eigvals(td)), axis=-1))
+        if td.shape[-1] == td.shape[-2]:
+            r = tf.math.reduce_max(tf.abs(tf.linalg.eigvals(td)), axis=-1)
+        else:
+            r = tf.linalg.svd(td, compute_uv=False)[..., 0]/2
+        norms = tf.math.log(r)
         target_norm = 0
 
     elif 'radius' in comments:
