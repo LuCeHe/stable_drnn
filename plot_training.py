@@ -42,8 +42,9 @@ h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 # CSVPATH = r'D:\work\alif_sg\good_experiments\2022-08-20--learned-LSC\summary.h5'
 # HSITORIESPATH = os.path.join(EXPERIMENTS, 'histories.json')
 
-check_for_new = True
-plot_losses = True
+check_for_new = False
+plot_losses = False
+one_exp_curves = True
 pandas_means = False
 show_per_tasknet = False
 make_latex = False
@@ -77,8 +78,6 @@ df = experiments_to_pandas(
     h5path=h5path, zips_folder=GEXPERIMENTS, unzips_folder=EXPERIMENTS, experiments_identifier=expsid,
     exclude_files=['cout.txt'], check_for_new=check_for_new
 )
-
-
 
 print(df.shape)
 print(list(df.columns))
@@ -172,6 +171,54 @@ print(list(df.columns))
 # print(df['experiment'])
 # print(df['host'])
 print(df.to_string())
+
+if one_exp_curves:
+    for _ in range(6):
+        plt.close()
+        try:
+            print(df['path'].sample(1).values[0])
+            id = '2022-12-06--20-00-13--0826--als_'
+            id = '2022-12-06--19-55-03--9822--als_'
+            id = os.path.split(df['path'].sample(1).values[0])[1]
+            print(id)
+            res_path = os.path.join(EXPERIMENTS, id, 'other_outputs', 'results.json')
+            config_path = os.path.join(EXPERIMENTS, id, '1', 'config.json')
+
+            with open(res_path) as f:
+                res = json.load(f)
+            with open(config_path) as f:
+                con = json.load(f)
+
+            fig, axs = plt.subplots(2, 2)
+            fig.suptitle(con['comments'])
+
+            for k in res.keys():
+                if 'mean' in k:
+                    curve = np.array([float(x) for x in res[k][1:-1].split(',')])
+                    axs[0, 0].plot(curve)
+                    axs[0, 0].title.set_text('mean')
+
+                if 'var' in k:
+                    print(res[k])
+                    curve = np.array([float(x) for x in res[k][1:-1].split(',')])
+                    axs[0, 1].plot(curve)
+                    axs[0, 1].title.set_text('variance')
+
+                if 'LSC_losses' in k:
+                    curve = np.array([float(x) for x in res[k][1:-1].split(',')])
+                    axs[1, 0].plot(curve)
+                    axs[1, 0].title.set_text('lsc loss')
+
+                if 'LSC_norms' in k:
+                    curve = np.array([float(x) for x in res[k][1:-1].split(',')])
+                    axs[1, 1].plot(curve)
+                    axs[1, 1].title.set_text('lsc norm')
+
+        except Exception as e:
+            print(e)
+
+        plt.show()
+
 
 if pandas_means:
     # group_cols = ['net_name', 'task_name', 'initializer', 'comments', 'lr']
