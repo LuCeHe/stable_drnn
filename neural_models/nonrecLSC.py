@@ -30,12 +30,12 @@ def get_weights_statistics(results, weight_names, weights):
 
 
 def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_pow=2, fanin=False, forward_lsc=False,
-                      nlayerjump=None, layer_min=None, layer_max=None):
+                      nlayerjump=None, layer_min=None, layer_max=None, comments='', epsilon=.02, patience=20,):
     assert callable(build_model)
     if forward_lsc:
         learning_rate = .1
     else:
-        learning_rate = 1e1
+        learning_rate = 3.16e-3 #1e1
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
     all_norms = []
@@ -59,15 +59,24 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
     ma_loss, ma_norm, ma_factor = None, None, None
     show_loss, show_norm, show_avw, show_factor = None, None, None, None
     n_failures = 0
-
+    loss = None
+    target_norm = 1
     for epoch in range(generator.epochs):
         pbar = tqdm(total=generator.steps_per_epoch)
 
         generator.on_epoch_end()
         for step in range(generator.steps_per_epoch):
 
-            # if True:
-            try:
+            if not loss is None and loss < epsilon:
+                epsilon_steps += 1
+            else:
+                epsilon_steps = 0
+
+            if epsilon_steps > patience:
+                break
+
+            if True:
+            # try:
                 batch = generator.__getitem__(step)[0]
                 if isinstance(batch, list):
                     batch = [tf.convert_to_tensor(tf.cast(b, tf.float32), dtype=tf.float32) for b in batch]
@@ -82,8 +91,6 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
                         model.set_weights(weights)
 
                     lnames = [layer.name for layer in model.layers]
-                    print('\n\nei')
-                    print(lnames)
 
                     for _ in range(3):
                         pairs = sorted(np.random.choice(list(range(len(lnames)))[layer_min:layer_max], 2, replace=False))
@@ -94,7 +101,6 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
                     if isinstance(nlayerjump, int):
                         pairs[1] = pairs[0] + nlayerjump
 
-                    print(pairs)
                     premodel, intermodel = split_model(model, pairs)
 
                     preinter = premodel(batch)
@@ -125,18 +131,10 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
                         inp = shuffinp
                         oup = interout
 
-                        # inp = tf.reshape(inp, [inp.shape[0], -1])
                         reoup = tf.reshape(oup, [oup.shape[0], -1])
                         oup = sample_axis(reoup, max_dim=max_dim)
 
-                        # norms = get_norms(tape, [inp], [oup], n_samples=n_samples, norm_pow=norm_pow)  # good
-                        norms = get_norms(tape, [oup], [inp], n_samples=n_samples, norm_pow=norm_pow)  # bad
-
-                        if not fanin:
-                            factor = 1
-                        else:
-                            factor = max_dim / reoup.shape[-1]
-                        loss = tf.reduce_mean(tf.abs(norms - factor))
+                        norms, loss, naswot_score = get_norms(tape, [inp], [oup], n_samples=n_samples, norm_pow=norm_pow, comments=comments)
                     else:
                         varin = tf.math.reduce_variance(new_preinter)
                         varout = tf.math.reduce_variance(interout)
@@ -145,7 +143,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
 
                     av_weights = tf.reduce_mean([tf.reduce_mean(tf.cast(t, tf.float32)) for t in model.weights])
                     ma_loss = loss if ma_loss is None else ma_loss * 9 / 10 + loss / 10
-                    ma_factor = factor if ma_factor is None else ma_factor * 9 / 10 + factor / 10
+                    # ma_factor = factor if ma_factor is None else ma_factor * 9 / 10 + factor / 10
                     norm = tf.reduce_mean(norms)
                     ma_norm = norm if ma_norm is None else ma_norm * 9 / 10 + norm / 10
                     all_norms.append(norm.numpy())
@@ -161,24 +159,30 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
 
                 results = get_weights_statistics(results, weight_names, weights)
 
-                show_factor = str(np.array(ma_factor).round(3))
+                # show_factor = str(np.array(ma_factor).round(3))
                 show_loss = str(ma_loss.numpy().round(3))
                 show_norm = str(ma_norm.numpy().round(3))
                 show_avw = str(av_weights.numpy().round(3))
 
-            except Exception as e:
-                print(e)
-                n_failures += 1
+            # except Exception as e:
+            #     print(e)
+            #     n_failures += 1
 
             show_failure = str(np.array(n_failures / ((step + 1) + epoch * generator.steps_per_epoch)).round(3))
             pbar.update(1)
             pbar.set_description(
-                f"Pretrain epoch {epoch + 1} step {step + 1}, "
-                f"Loss {show_loss}, Norms {show_norm}, Factor {show_factor}, "
+                f"Pretrain e {epoch + 1} s {step + 1}, "
+                f"Loss {show_loss}, Norms {show_norm}, "
+                # f"Factor {show_factor}, "
                 f"Av. Weights {show_avw}, "
-                f"Failures {n_failures}, "
-                f"Fail rate {show_failure} "
+                # f"Failures {n_failures}, "
+                # f"Fail rate {show_failure}, "
+                f"ES {epsilon_steps}/{patience} "
+
             )
+
+        if epsilon_steps > patience:
+            break
 
     fail_rate = n_failures / generator.epochs / generator.steps_per_epoch
 

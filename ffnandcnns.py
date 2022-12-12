@@ -26,7 +26,7 @@ named_tuple = time.localtime()  # get struct_time
 time_string = time.strftime("%Y-%m-%d--%H-%M-%S--", named_tuple)
 random_string = ''.join([str(r) for r in np.random.choice(10, 4)])
 
-EXPERIMENT = os.path.join(EXPERIMENTS, time_string + random_string + '_lsc-cnns')
+EXPERIMENT = os.path.join(EXPERIMENTS, time_string + random_string + '_lsc-ffnandcnns')
 os.makedirs(EXPERIMENT, exist_ok=True)
 
 
@@ -37,16 +37,15 @@ def get_argparse():
     parser.add_argument("--batch_size", default=32, type=int, help="Batch size")
     parser.add_argument("--seed", default=0, type=int, help="Random seed")
     parser.add_argument("--epochs", default=1, type=int, help="Batch size")
-    parser.add_argument("--steps_per_epoch", default=3, type=int, help="Batch size")
+    parser.add_argument("--steps_per_epoch", default=-1, type=int, help="Batch size")
     parser.add_argument("--layers", default=3, type=int, help="Number of layers")
-    parser.add_argument("--resize", default=64, type=int, help="Resize images",
-                        choices=[224, 128, 64])
+    parser.add_argument("--resize", default=32, type=int, help="Resize images", choices=[224, 128, 64, 32])
     parser.add_argument("--lr", default=.001, type=float, help="Learning rate")
-    parser.add_argument("--comments", default='findLSC', type=str, help="String to activate extra behaviors")
-    parser.add_argument("--dataset", default='cifar100', type=str, help="Dataset to train on",
+    parser.add_argument("--comments", default='findLSC_radius', type=str, help="String to activate extra behaviors")
+    parser.add_argument("--dataset", default='cifar10', type=str, help="Dataset to train on",
                         choices=['cifar10', 'cifar100', 'mnist'])
-    parser.add_argument("--activation", default='relu', type=str, help="Activation",
-                        choices=['swish', 'relu'])
+    parser.add_argument("--net_type", default='ffn', type=str, help="Dataset to train on", choices=['ffn', 'cnn'])
+    parser.add_argument("--activation", default='relu', type=str, help="Activation", choices=['swish', 'relu'])
     parser.add_argument(
         "--initialization", default='glorot_normal', type=str, help="Activation to train on",
         choices=['he_normal', 'glorot_normal']
@@ -57,7 +56,7 @@ def get_argparse():
     return args
 
 
-def build_model(args, input_shape, classes):
+def build_cnn(args, input_shape, classes):
     img_input = tf.keras.layers.Input(shape=input_shape)
 
     # Build stem
@@ -94,6 +93,30 @@ def build_model(args, input_shape, classes):
     return model
 
 
+def build_ffn(args, input_shape, classes):
+    img_input = tf.keras.layers.Input(shape=input_shape)
+
+    # Build stem
+    x = img_input
+    x = tf.keras.layers.experimental.preprocessing.Rescaling(1. / 255.)(x)
+    x = tf.keras.layers.experimental.preprocessing.Normalization(mean=.5, variance=1 / 12)(x)
+
+    # 224, 224
+    x = tf.keras.layers.Flatten()(x)
+
+    for _ in range(args.layers):
+        x = tf.keras.layers.Dense(64, kernel_initializer=args.initialization)(x)
+        x = tf.keras.layers.Activation(args.activation)(x)
+
+    x = tf.keras.layers.Flatten()(x)
+    x = tf.keras.layers.Dense(2 * classes, kernel_initializer=args.initialization)(x)
+    x = tf.keras.layers.Activation(args.activation)(x)
+    x = tf.keras.layers.Dense(classes, kernel_initializer=args.initialization)(x)
+
+    model = tf.keras.models.Model(img_input, x)
+    return model
+
+
 def main(args):
     # set seed
     random.seed(args.seed)
@@ -104,25 +127,33 @@ def main(args):
 
     (x_train, y_train), (x_test, y_test) = getattr(tf.keras.datasets, args.dataset).load_data()
 
-    # make mnist grayscale -> rgb
-    x_train = x_train if x_train.shape[-1] == 3 else tf.image.resize(x_train[..., None], [32, 32]).numpy().repeat(3, -1)
-    x_test = x_test if x_test.shape[-1] == 3 else tf.image.resize(x_test[..., None], [32, 32]).numpy().repeat(3, -1)
+    if args.net_type == 'effnet':
+        # make mnist grayscale -> rgb
+        x_train = x_train if x_train.shape[-1] == 3 else tf.image.resize(x_train[..., None], [32, 32]).numpy().repeat(3,
+                                                                                                                      -1)
+        x_test = x_test if x_test.shape[-1] == 3 else tf.image.resize(x_test[..., None], [32, 32]).numpy().repeat(3, -1)
 
     x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=0.10, random_state=42)
 
     classes = np.max(y_train) + 1
     input_shape = x_train.shape[1:]
 
+    if args.net_type == 'cnn':
+        bm = lambda: build_cnn(args, input_shape, classes)
+    elif args.net_type == 'ffn':
+        bm = lambda: build_ffn(args, input_shape, classes)
+    else:
+        raise NotImplementedError
+
     results = {}
+
     if 'findLSC' in args.comments:
         gen_val = NumpyClassificationGenerator(
             x_train, y_train,
-            epochs=3, steps_per_epoch=args.steps_per_epoch,
-            batch_size=2,
+            epochs=10, steps_per_epoch=args.steps_per_epoch,
+            batch_size=64,
             output_type='[i]o'
         )
-
-        bm = lambda: build_model(args, input_shape, classes)
 
         max_dim = str2val(args.comments, 'maxdim', int, default=200000)
         fanin = str2val(args.comments, 'fanin', bool, default=False)
@@ -130,15 +161,15 @@ def main(args):
 
         weights, lsc_results = apply_LSC_no_time(
             bm, generator=gen_val, max_dim=max_dim, norm_pow=2, fanin=fanin, forward_lsc=flsc,
-            nlayerjump=2, layer_min=4,layer_max=None
+            nlayerjump=2, layer_min=4, layer_max=None, comments=args.comments
         )
 
-        model = build_model(args, input_shape, classes)
+        model = bm()
         model.set_weights(weights)
 
         results.update(lsc_results)
     else:
-        model = build_model(args, input_shape, classes)
+        model = bm()
     model.summary()
 
     # training

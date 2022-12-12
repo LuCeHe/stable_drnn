@@ -40,14 +40,18 @@ def get_norms(tape, lower_states, upper_states, n_samples=-1, norm_pow=2, naswot
         # transpose td
         tdt = tf.transpose(td, perm=[0, 2, 1])
         tt = tf.einsum('bij,bjk->bik', td, tdt)
-        norms = tf.abs(tf.linalg.slogdet(tt+epsilon)[1])
+        norms = tf.abs(tf.linalg.slogdet(tt + epsilon)[1])
 
     elif 'logradius' in comments:
         norms = tf.math.log(tf.math.reduce_max(tf.abs(tf.linalg.eigvals(td)), axis=-1))
-        target_norm= 0
+        target_norm = 0
 
     elif 'radius' in comments:
-        norms = tf.math.reduce_max(tf.abs(tf.linalg.eigvals(td)), axis=-1)
+        if td.shape[-1] == td.shape[-2]:
+            norms = tf.math.reduce_max(tf.abs(tf.linalg.eigvals(td)), axis=-1)
+        else:
+            print('non squared matrix! the radius wont be computed, and a scaled sv will be used')
+            norms = tf.linalg.svd(td, compute_uv=False)[..., 0]/2
 
     elif 'entrywise' in comments:
         flat_td = tf.reshape(td, (td.shape[0], -1))
@@ -295,6 +299,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
             if abs(norms.numpy() - target_norm) < epsilon:
                 epsilon_steps += 1
+            else:
+                epsilon_steps = 0
 
             if epsilon_steps > patience:
                 break
