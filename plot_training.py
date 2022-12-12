@@ -37,14 +37,14 @@ GEXPERIMENTS = [
     os.path.join(CDIR, 'good_experiments', '2022-11-07--complete_set_of_exps'),
 ]
 
-expsid = 'als'  # effnet als
+expsid = 'ffnandcnns'  # effnet als ffnandcnns
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 # CSVPATH = r'D:\work\alif_sg\good_experiments\2022-08-20--learned-LSC\summary.h5'
 # HSITORIESPATH = os.path.join(EXPERIMENTS, 'histories.json')
 
 check_for_new = False
 plot_losses = False
-one_exp_curves = True
+one_exp_curves = False
 pandas_means = False
 show_per_tasknet = False
 make_latex = False
@@ -73,12 +73,14 @@ columns_to_remove = [
     'resources', 'host', 'start_time', 'status', 'experiment', 'result',
 ]
 columns_to_remove = []
+columns_to_remove = [' list', '_var', '_mean']
 
 df = experiments_to_pandas(
     h5path=h5path, zips_folder=GEXPERIMENTS, unzips_folder=EXPERIMENTS, experiments_identifier=expsid,
     exclude_files=['cout.txt'], check_for_new=check_for_new
 )
 
+print(df.to_string())
 print(df.shape)
 print(list(df.columns))
 
@@ -89,10 +91,12 @@ df.loc[df['path'].str.contains('2022-11-26--'), 'comments'] += '_26'
 df.loc[df['path'].str.contains('2022-11-28--'), 'comments'] += '_29'
 df.loc[df['path'].str.contains('2022-11-29--'), 'comments'] += '_29'
 
-df['rec_norms'] = df.apply(reorganize, axis=1)
-df['len rec_norms'] = df['rec_norms'].apply(find_length)
-df['rec_norms list'] = df['rec_norms'].apply(recnorms_list)
-df['rec_norms'] = df['rec_norms'].apply(summary_lsc)
+
+if 'rec_norms' in df.columns:
+    df['rec_norms'] = df.apply(reorganize, axis=1)
+    df['len rec_norms'] = df['rec_norms'].apply(find_length)
+    df['rec_norms list'] = df['rec_norms'].apply(recnorms_list)
+    df['rec_norms'] = df['rec_norms'].apply(summary_lsc)
 
 if plot_losses:
     plot_metric = 'rec_norms list'
@@ -124,53 +128,59 @@ if 'n_params' in df.columns:
     df['n_params'] = df['n_params'].apply(lambda x: large_num_to_reasonable_string(x, 1))
 
 df['comments'] = df['comments'].astype(str)
-df['net_name'] = df['net_name'].astype(str)
-df['task_name'] = df['task_name'].astype(str)
+if 'net_name' in df.columns: df['net_name'] = df['net_name'].astype(str)
+if 'task_name' in df.columns: df['task_name'] = df['task_name'].astype(str)
 df = df[~df['comments'].str.contains('test')]
-df = df[df['comments'].str.contains('normsamples:')]
+# df = df[df['comments'].str.contains('normsamples:')]
 
 if 'net_name' in df.columns:
     df.loc[df['comments'].str.contains('noalif'), 'net_name'] = 'LIF'
     df.loc[df['net_name'].str.contains('maLSNN'), 'net_name'] = 'ALIF'
 
-df.loc[df['task_name'].str.contains('heidelberg'), 'task_name'] = 'SHD'
-df.loc[df['task_name'].str.contains('sl_mnist'), 'task_name'] = 'sl-MNIST'
-df.loc[df['task_name'].str.contains('wordptb'), 'task_name'] = 'PTB'
+if 'task_name' in df.columns:
+    df.loc[df['task_name'].str.contains('heidelberg'), 'task_name'] = 'SHD'
+    df.loc[df['task_name'].str.contains('sl_mnist'), 'task_name'] = 'sl-MNIST'
+    df.loc[df['task_name'].str.contains('wordptb'), 'task_name'] = 'PTB'
 
 for c_name in columns_to_remove:
+    print('here!', c_name)
     df = df[df.columns.drop(list(df.filter(regex=c_name)))]
 
 new_column_names = {c_name: shorten_losses(c_name) for c_name in df.columns}
 
 df.rename(columns=new_column_names, inplace=True)
 
-# # FIXME: 14 experiments got nans in the heidelberg task validation, plot them anyway?
-print('v_mode_acc nans:', df['v_mode_acc len'].isna().sum())
-# df = df[~df['v_mode_acc argmax'].isna()]
-# df = df[~df['v_mode_acc len'].isna()]
+if 'v_mode_acc len' in df.columns:
+    # # FIXME: 14 experiments got nans in the heidelberg task validation, plot them anyway?
+    print('v_mode_acc nans:', df['v_mode_acc len'].isna().sum())
+    # df = df[~df['v_mode_acc argmax'].isna()]
+    # df = df[~df['v_mode_acc len'].isna()]
 
-# df['epochs'] = df['v_ppl len'].astype(int)
+    # df['epochs'] = df['v_ppl len'].astype(int)
 
-# df['v_ppl argmin'] = df['v_ppl argmin'].astype(int)
-# df['v_mode_acc argmax'] = df['v_mode_acc argmax'].astype(int)
+    # df['v_ppl argmin'] = df['v_ppl argmin'].astype(int)
+    # df['v_mode_acc argmax'] = df['v_mode_acc argmax'].astype(int)
 
-# df['v_ppl'] = df.apply(lambda row: np.nanmin(row['v_ppl list']), axis=1)
-# df['t_ppl'] = df.apply(lambda row: row['t_ppl list'][row['v_ppl argmin']], axis=1)
-# df['v_mode_acc'] = df.apply(lambda row: np.nanmax(row['v_mode_acc list']), axis=1)
+    # df['v_ppl'] = df.apply(lambda row: np.nanmin(row['v_ppl list']), axis=1)
+    # df['t_ppl'] = df.apply(lambda row: row['t_ppl list'][row['v_ppl argmin']], axis=1)
+    # df['v_mode_acc'] = df.apply(lambda row: np.nanmax(row['v_mode_acc list']), axis=1)
 
-# df['t_mode_acc'] = df.apply(lambda row: row['t_mode_acc list'][row['v_mode_acc argmax']], axis=1)
+    # df['t_mode_acc'] = df.apply(lambda row: row['t_mode_acc list'][row['v_mode_acc argmax']], axis=1)
 
 
 if metric in df.keys():
     df = df.sort_values(by=metric)
 
-if not plot_only is None:
-    df = df[plot_only]
+try:
+    if not plot_only is None:
+        df = df[plot_only]
+except Exception as e:
+    print(e)
 
-print(list(df.columns))
 # print(df['experiment'])
 # print(df['host'])
-print(df.to_string())
+# print(df.to_string())
+print(list(df.columns))
 
 if one_exp_curves:
     for _ in range(6):

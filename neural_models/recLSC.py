@@ -38,16 +38,29 @@ def get_norms(tape, lower_states, upper_states, n_samples=-1, norm_pow=2, naswot
 
     if 'supn' in comments:
         # transpose td
+        # output = a[-1] * b[-1] / np.log(a[0] * b[0])
         tdt = tf.transpose(td, perm=[0, 2, 1])
         tt = tf.einsum('bij,bjk->bik', td, tdt)
-        norms = tf.abs(tf.linalg.slogdet(tt + epsilon)[1])
+        a = tf.linalg.svd(tt, compute_uv=False)
+        a_1 = tf.math.reduce_min(a, axis=-1)
+        a0 = tf.math.reduce_max(a, axis=-1)
+
+        tt = tf.einsum('bij,bjk->bik', tdt, td)
+        b = tf.linalg.svd(tt, compute_uv=False)
+        b_1 = tf.math.reduce_min(b, axis=-1)
+        b0 = tf.math.reduce_max(b, axis=-1)
+
+        norms = 1/(a0*b0)
+
+        # print(norms)
+        # target_norm = 0
 
     elif 'logradius' in comments:
         if td.shape[-1] == td.shape[-2]:
             r = tf.math.reduce_max(tf.abs(tf.linalg.eigvals(td)), axis=-1)
         else:
-            r = tf.linalg.svd(td, compute_uv=False)[..., 0]/2
-        norms = tf.math.log(r)
+            r = tf.math.reduce_max(tf.linalg.svd(td, compute_uv=False), axis=-1) / 2
+        norms = tf.math.log(r + epsilon)
         target_norm = 0
 
     elif 'radius' in comments:
@@ -55,7 +68,7 @@ def get_norms(tape, lower_states, upper_states, n_samples=-1, norm_pow=2, naswot
             norms = tf.math.reduce_max(tf.abs(tf.linalg.eigvals(td)), axis=-1)
         else:
             print('non squared matrix! the radius wont be computed, and a scaled sv will be used')
-            norms = tf.linalg.svd(td, compute_uv=False)[..., 0]/2
+            norms = tf.linalg.svd(td, compute_uv=False)[..., 0] / 2
 
     elif 'entrywise' in comments:
         flat_td = tf.reshape(td, (td.shape[0], -1))

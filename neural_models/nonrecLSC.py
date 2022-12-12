@@ -75,8 +75,8 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
             if epsilon_steps > patience:
                 break
 
-            if True:
-            # try:
+            # if True:
+            try:
                 batch = generator.__getitem__(step)[0]
                 if isinstance(batch, list):
                     batch = [tf.convert_to_tensor(tf.cast(b, tf.float32), dtype=tf.float32) for b in batch]
@@ -164,9 +164,9 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
                 show_norm = str(ma_norm.numpy().round(3))
                 show_avw = str(av_weights.numpy().round(3))
 
-            # except Exception as e:
-            #     print(e)
-            #     n_failures += 1
+            except Exception as e:
+                print(e)
+                n_failures += 1
 
             show_failure = str(np.array(n_failures / ((step + 1) + epoch * generator.steps_per_epoch)).round(3))
             pbar.update(1)

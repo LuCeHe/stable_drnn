@@ -38,8 +38,9 @@ def get_argparse():
     parser.add_argument("--steps_per_epoch", default=-1, type=int, help="Batch size")
     parser.add_argument("--layers", default=3, type=int, help="Number of layers")
     parser.add_argument("--resize", default=32, type=int, help="Resize images", choices=[224, 128, 64, 32])
+    parser.add_argument("--width", default=32, type=int, help="Layer width")
     parser.add_argument("--lr", default=.001, type=float, help="Learning rate")
-    parser.add_argument("--comments", default='findLSC_radius', type=str, help="String to activate extra behaviors")
+    parser.add_argument("--comments", default='findLSC_supn', type=str, help="String to activate extra behaviors")
     parser.add_argument("--dataset", default='cifar10', type=str, help="Dataset to train on",
                         choices=['cifar10', 'cifar100', 'mnist'])
     parser.add_argument("--net_type", default='ffn', type=str, help="Dataset to train on", choices=['ffn', 'cnn'])
@@ -67,7 +68,7 @@ def build_cnn(args, input_shape, classes):
 
     for _ in range(args.layers):
         x = tf.keras.layers.Conv2D(
-            32, 3,
+            args.width, 3,
             # strides=2,
             padding='valid',
             kernel_initializer=args.initialization)(x)
@@ -103,7 +104,7 @@ def build_ffn(args, input_shape, classes):
     x = tf.keras.layers.Flatten()(x)
 
     for _ in range(args.layers):
-        x = tf.keras.layers.Dense(64, kernel_initializer=args.initialization)(x)
+        x = tf.keras.layers.Dense(args.width, kernel_initializer=args.initialization)(x)
         x = tf.keras.layers.Activation(args.activation)(x)
 
     x = tf.keras.layers.Flatten()(x)
@@ -148,7 +149,7 @@ def main(args):
     if 'findLSC' in args.comments:
         gen_val = NumpyClassificationGenerator(
             x_train, y_train,
-            epochs=10, steps_per_epoch=args.steps_per_epoch,
+            epochs=20, steps_per_epoch=args.steps_per_epoch,
             batch_size=64,
             output_type='[i]o'
         )
