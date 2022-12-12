@@ -43,9 +43,9 @@ h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 # HSITORIESPATH = os.path.join(EXPERIMENTS, 'histories.json')
 
 check_for_new = True
-plot_losses = False
-pandas_means = True
-show_per_tasknet = True
+plot_losses = True
+pandas_means = False
+show_per_tasknet = False
 make_latex = False
 missing_exps = False
 plot_lsc_vs_naive = False
