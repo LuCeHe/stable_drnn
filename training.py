@@ -44,7 +44,7 @@ def config():
     # task and net
     # ps_mnist heidelberg s_mnist
     # wordptb sl_mnist
-    task_name = 'wordptb'
+    task_name = 'sl_mnist'
 
     # test configuration
     epochs = 2
@@ -53,14 +53,14 @@ def config():
     stack = None
 
     # net
-    # maLSNN cLSTM LSTM
-    net_name = 'maLSNN'
+    # maLSNN cLSTM LSTM maLSNNb
+    net_name = 'maLSNNb'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
     n_neurons = None
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task_name in language_tasks else False
     comments = '34_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_naswot:1_v2naswot'  # 'nsLIFreadout_adaptsg_dropout:0.50' findLSC_test
-    comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_logradius_gausslsc'
+    comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_findLSC_radius_supn'
 
     # optimizer properties
     lr = None  # 7e-4 None

@@ -36,26 +36,29 @@ def get_norms(tape, lower_states, upper_states, n_samples=-1, norm_pow=2, naswot
 
     del hss, hs
 
+    loss = 0
+
     if 'supn' in comments:
-        # transpose td
-        # output = a[-1] * b[-1] / np.log(a[0] * b[0])
-        tdt = tf.transpose(td, perm=[0, 2, 1])
-        tt = tf.einsum('bij,bjk->bik', td, tdt)
-        a = tf.linalg.svd(tt, compute_uv=False)
-        a_1 = tf.math.reduce_min(a, axis=-1)
-        a0 = tf.math.reduce_max(a, axis=-1)
 
-        tt = tf.einsum('bij,bjk->bik', tdt, td)
-        b = tf.linalg.svd(tt, compute_uv=False)
-        b_1 = tf.math.reduce_min(b, axis=-1)
-        b0 = tf.math.reduce_max(b, axis=-1)
+        if td.shape[-1] == td.shape[-2]:
+            # loss that encourages the matrix to be psd
+            z = tf.random.normal((25, td.shape[-1]))
+            zn = tf.norm(z, ord='euclidean', axis=-1)
+            z = z / tf.expand_dims(zn, axis=-1)
+            zT = tf.transpose(z)
+            # (25, 2d)(b, 2d, 2d)(2d, 25)
+            a = td @ zT
+            preloss = tf.einsum('bks,sk->bs', a, z)
+            loss += tf.reduce_mean(tf.nn.relu(-preloss))
 
-        norms = 1/(a0*b0)
+            eig = tf.linalg.eigvals(td)
+            r = tf.math.real(eig)
+            i = tf.math.imag(eig)
+            loss += well_loss(min_value=1., max_value=1., walls_type='relu', axis='all')(r)
+            loss += well_loss(min_value=0., max_value=0., walls_type='relu', axis='all')(i)
 
-        # print(norms)
-        # target_norm = 0
-
-    elif 'logradius' in comments:
+    norms = 0
+    if 'logradius' in comments:
         if td.shape[-1] == td.shape[-2]:
             r = tf.math.reduce_max(tf.abs(tf.linalg.eigvals(td)), axis=-1)
         else:
@@ -88,7 +91,8 @@ def get_norms(tape, lower_states, upper_states, n_samples=-1, norm_pow=2, naswot
 
         else:
             raise NotImplementedError
-    else:
+
+    elif n_samples > 0:
         x = tf.random.normal((td.shape[0], td.shape[-1], n_samples))
         x_norm = tf.norm(x, ord=norm_pow, axis=1)
         e = tf.einsum('bij,bjk->bik', td, x)
@@ -97,7 +101,7 @@ def get_norms(tape, lower_states, upper_states, n_samples=-1, norm_pow=2, naswot
         norms = e_norm / x_norm
         norms = tf.reduce_max(norms, axis=-1)
 
-    loss = well_loss(min_value=target_norm, max_value=target_norm, walls_type='relu', axis='all')(norms)
+    loss += well_loss(min_value=target_norm, max_value=target_norm, walls_type='relu', axis='all')(norms)
     naswot_score = None
     if not naswot == 0:
         batch_size = td.shape[0]
@@ -108,6 +112,7 @@ def get_norms(tape, lower_states, upper_states, n_samples=-1, norm_pow=2, naswot
             std = tf.math.reduce_std(t)
             t = t + tf.random.normal(t.shape) * std / 10
             t = tf.tanh(t)
+
         else:
             std = tf.math.reduce_std(t)
             t = t + tf.random.normal(t.shape) * std / 10
@@ -232,8 +237,6 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                 model = build_model(**model_args)
                 model.set_weights(weights)
 
-                print('bt', bt)
-                print('wt', wt)
                 outputs = model([bt, wt, *states])
                 states_p1 = outputs[1:]
 

@@ -37,15 +37,13 @@ GEXPERIMENTS = [
     os.path.join(CDIR, 'good_experiments', '2022-11-07--complete_set_of_exps'),
 ]
 
-expsid = 'ffnandcnns'  # effnet als ffnandcnns
+expsid = 'als'  # effnet als ffnandcnns
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
-# CSVPATH = r'D:\work\alif_sg\good_experiments\2022-08-20--learned-LSC\summary.h5'
-# HSITORIESPATH = os.path.join(EXPERIMENTS, 'histories.json')
 
 check_for_new = False
 plot_losses = False
 one_exp_curves = False
-pandas_means = False
+pandas_means = True
 show_per_tasknet = False
 make_latex = False
 missing_exps = False
@@ -80,7 +78,7 @@ df = experiments_to_pandas(
     exclude_files=['cout.txt'], check_for_new=check_for_new
 )
 
-print(df.to_string())
+# print(df.to_string())
 print(df.shape)
 print(list(df.columns))
 

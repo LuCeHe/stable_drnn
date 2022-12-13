@@ -11,7 +11,6 @@ GEXPERIMENTS = [
     os.path.join(CDIR, 'good_experiments'),
 ]
 
-
 expsid = 'ffnandcnns'  # effnet als ffnandcnns
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
@@ -22,6 +21,7 @@ df = experiments_to_pandas(
 print(df.shape)
 print(df['comments'])
 print(list(df.columns))
+# print(df.to_string())
 
 for _, row in df.iterrows():
 
@@ -31,14 +31,14 @@ for _, row in df.iterrows():
     for k in row.keys():
         try:
             if '_mean' in k:
-                print(row['comments'],row['path'], k)
-                print(row[k])
+                # print(row['comments'],row['path'], k)
+                # print(row[k])
                 curve = np.array([float(x) for x in row[k][1:-1].split(',')])
                 axs[0, 0].plot(curve)
                 axs[0, 0].title.set_text('mean')
 
             if '_var' in k:
-                print(row[k])
+                # print(row[k])
                 curve = np.array([float(x) for x in row[k][1:-1].split(',')])
                 axs[0, 1].plot(curve)
                 axs[0, 1].title.set_text('variance')
@@ -53,11 +53,9 @@ for _, row in df.iterrows():
                 axs[1, 1].plot(curve)
                 axs[1, 1].title.set_text('lsc norm')
 
-
             if 'sparse_categorical_accuracy list' == k:
                 axs[1, 2].plot(row[k])
                 axs[1, 2].title.set_text('acc')
-
 
             if 'val_sparse_categorical_accuracy list' == k:
                 axs[1, 2].plot(row[k], '--')
@@ -67,3 +65,8 @@ for _, row in df.iterrows():
             print(e)
 
     plt.show()
+
+
+plot_only = ['layers', 'comments', 'val_sparse_categorical_accuracy max', 'epoch max', 'hostname', ]
+df = df[plot_only]
+print(df.to_string())
