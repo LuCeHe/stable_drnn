@@ -34,7 +34,9 @@ def get_argparse():
     # Required parameters
     parser.add_argument("--batch_size", default=32, type=int, help="Batch size")
     parser.add_argument("--seed", default=0, type=int, help="Random seed")
-    parser.add_argument("--epochs", default=1, type=int, help="Batch size")
+    parser.add_argument("--epochs", default=1, type=int, help="Training Epochs")
+    parser.add_argument("--pretrain_epochs", default=20, type=int, help="Pretraining Epochs")
+
     parser.add_argument("--steps_per_epoch", default=-1, type=int, help="Batch size")
     parser.add_argument("--layers", default=30, type=int, help="Number of layers")
     parser.add_argument("--resize", default=32, type=int, help="Resize images", choices=[224, 128, 64, 32])
@@ -124,7 +126,7 @@ def plot_model_weights_dists(model, plot_dir, plot_tag):
     weights_names = [weight.name for layer in model.layers for weight in layer.weights]
 
     # plot histograms of all weights in the same plot, in different subplots
-    fig, axs = plt.subplots(int(len(weights) / 10) + 1,10,  figsize=(20, 5))
+    fig, axs = plt.subplots(int(len(weights) / 10) + 1, 10, figsize=(20, 5))
 
     for c, (n, w) in enumerate(zip(weights_names, weights)):
         i, j = c // 10, c % 10
@@ -173,7 +175,7 @@ def main(args):
 
         gen_val = NumpyClassificationGenerator(
             x_train, y_train,
-            epochs=20, steps_per_epoch=args.steps_per_epoch,
+            epochs=args.pretrain_epochs, steps_per_epoch=args.steps_per_epoch,
             batch_size=64,
             output_type='[i]o'
         )
