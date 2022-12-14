@@ -136,7 +136,6 @@ def plot_model_weights_dists(model, plot_dir, plot_tag):
     # figure title
     fig.suptitle(f'Weights distribution of {plot_tag} model')
     fig.savefig(os.path.join(plot_dir, f'histograms_{plot_tag}.png'))
-    # plt.show()
 
 
 def main(args):
