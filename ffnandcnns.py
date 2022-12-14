@@ -1,6 +1,6 @@
 import argparse, os, time, json, shutil, socket, random
 import numpy as np
-
+import matplotlib.pyplot as plt
 from GenericTools.keras_tools.silence_tensorflow import silence_tf
 
 silence_tf()
@@ -36,9 +36,9 @@ def get_argparse():
     parser.add_argument("--seed", default=0, type=int, help="Random seed")
     parser.add_argument("--epochs", default=1, type=int, help="Batch size")
     parser.add_argument("--steps_per_epoch", default=-1, type=int, help="Batch size")
-    parser.add_argument("--layers", default=3, type=int, help="Number of layers")
+    parser.add_argument("--layers", default=30, type=int, help="Number of layers")
     parser.add_argument("--resize", default=32, type=int, help="Resize images", choices=[224, 128, 64, 32])
-    parser.add_argument("--width", default=32, type=int, help="Layer width")
+    parser.add_argument("--width", default=128, type=int, help="Layer width")
     parser.add_argument("--lr", default=.001, type=float, help="Learning rate")
     parser.add_argument("--comments", default='findLSC_supn', type=str, help="String to activate extra behaviors")
     parser.add_argument("--dataset", default='cifar10', type=str, help="Dataset to train on",
@@ -116,6 +116,27 @@ def build_ffn(args, input_shape, classes):
     return model
 
 
+def plot_model_weights_dists(model, plot_dir, plot_tag):
+    # get model weights
+    weights = model.get_weights()
+
+    # weights names
+    weights_names = [weight.name for layer in model.layers for weight in layer.weights]
+
+    # plot histograms of all weights in the same plot, in different subplots
+    fig, axs = plt.subplots(int(len(weights) / 10) + 1,10,  figsize=(20, 5))
+
+    for c, (n, w) in enumerate(zip(weights_names, weights)):
+        i, j = c // 10, c % 10
+        axs[i, j].hist(w.flatten(), bins=100, label=n)
+        axs[i, j].set_title(n)
+
+    # figure title
+    fig.suptitle(f'Weights distribution of {plot_tag} model')
+    fig.savefig(os.path.join(plot_dir, f'histograms_{plot_tag}.png'))
+    # plt.show()
+
+
 def main(args):
     # set seed
     random.seed(args.seed)
@@ -147,6 +168,9 @@ def main(args):
     results = {}
 
     if 'findLSC' in args.comments:
+        model = bm()
+        plot_model_weights_dists(model, EXPERIMENT, plot_tag='before')
+
         gen_val = NumpyClassificationGenerator(
             x_train, y_train,
             epochs=20, steps_per_epoch=args.steps_per_epoch,
@@ -165,6 +189,7 @@ def main(args):
 
         model = bm()
         model.set_weights(weights)
+        plot_model_weights_dists(model, EXPERIMENT, plot_tag='after')
 
         results.update(lsc_results)
     else:

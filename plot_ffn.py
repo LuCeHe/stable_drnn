@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 
 from stay_organized.pandardize import experiments_to_pandas
@@ -18,11 +19,11 @@ df = experiments_to_pandas(
     h5path=h5path, zips_folder=GEXPERIMENTS, unzips_folder=EXPERIMENTS, experiments_identifier=expsid,
     exclude_files=['cout.txt'], check_for_new=False
 )
-print(df.shape)
-print(df['comments'])
-print(list(df.columns))
-# print(df.to_string())
 
+# select only rows with width 10
+df['time_elapsed'] = pd.to_timedelta(df['time_elapsed'], unit='s')
+
+df = df[df['width'] == 128]
 for _, row in df.iterrows():
 
     fig, axs = plt.subplots(2, 3)
@@ -61,12 +62,24 @@ for _, row in df.iterrows():
                 axs[1, 2].plot(row[k], '--')
                 axs[1, 2].title.set_text('acc')
 
+
+            if 'loss list' == k:
+                axs[0, 2].plot(row[k])
+                axs[0, 2].title.set_text('loss')
+
+            if 'val_loss list' == k:
+                axs[0, 2].plot(row[k], '--')
+                axs[0, 2].title.set_text('loss')
+
         except Exception as e:
             print(e)
 
     plt.show()
 
+columns_containing = ['_var']
 
-plot_only = ['layers', 'comments', 'val_sparse_categorical_accuracy max', 'epoch max', 'hostname', ]
+plot_only = ['width', 'layers', 'comments', 'val_sparse_categorical_accuracy max', 'sparse_categorical_accuracy max',
+             'loss min', 'val_loss min', 'epoch max', 'hostname', 'time_elapsed']
+
 df = df[plot_only]
 print(df.to_string())
