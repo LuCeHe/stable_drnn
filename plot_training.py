@@ -141,7 +141,6 @@ if 'task_name' in df.columns:
     df.loc[df['task_name'].str.contains('wordptb'), 'task_name'] = 'PTB'
 
 for c_name in columns_to_remove:
-    print('here!', c_name)
     df = df[df.columns.drop(list(df.filter(regex=c_name)))]
 
 new_column_names = {c_name: shorten_losses(c_name) for c_name in df.columns}

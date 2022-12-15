@@ -35,9 +35,9 @@ def get_argparse():
     parser.add_argument("--batch_size", default=32, type=int, help="Batch size")
     parser.add_argument("--seed", default=0, type=int, help="Random seed")
     parser.add_argument("--epochs", default=1, type=int, help="Training Epochs")
-    parser.add_argument("--pretrain_epochs", default=20, type=int, help="Pretraining Epochs")
+    parser.add_argument("--pretrain_epochs", default=3, type=int, help="Pretraining Epochs")  # 20
 
-    parser.add_argument("--steps_per_epoch", default=-1, type=int, help="Batch size")
+    parser.add_argument("--steps_per_epoch", default=2, type=int, help="Batch size")  # -1
     parser.add_argument("--layers", default=30, type=int, help="Number of layers")
     parser.add_argument("--resize", default=32, type=int, help="Resize images", choices=[224, 128, 64, 32])
     parser.add_argument("--width", default=128, type=int, help="Layer width")
@@ -126,7 +126,8 @@ def plot_model_weights_dists(model, plot_dir, plot_tag):
     weights_names = [weight.name for layer in model.layers for weight in layer.weights]
 
     # plot histograms of all weights in the same plot, in different subplots
-    fig, axs = plt.subplots(int(len(weights) / 10) + 1, 10, figsize=(20, 5))
+    fig, axs = plt.subplots(int(len(weights) / 10) + 1, 10, figsize=(20, 5),
+                            gridspec_kw={'hspace': 0.9, 'wspace': 0.3})
 
     for c, (n, w) in enumerate(zip(weights_names, weights)):
         i, j = c // 10, c % 10
@@ -171,6 +172,9 @@ def main(args):
     if 'findLSC' in args.comments:
         model = bm()
         plot_model_weights_dists(model, EXPERIMENT, plot_tag='before')
+
+        del model
+        tf.keras.backend.clear_session()
 
         gen_val = NumpyClassificationGenerator(
             x_train, y_train,

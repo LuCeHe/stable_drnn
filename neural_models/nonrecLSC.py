@@ -55,12 +55,13 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
     results = get_weights_statistics(results, weight_names, weights)
 
     del model
+    tf.keras.backend.clear_session()
+
 
     ma_loss, ma_norm, ma_factor = None, None, None
     show_loss, show_norm, show_avw, show_factor = None, None, None, None
     n_failures = 0
-    loss = None
-    target_norm = 1
+    loss, model = None, None
     for epoch in range(generator.epochs):
         pbar = tqdm(total=generator.steps_per_epoch)
 
@@ -85,6 +86,9 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
 
                 with tf.GradientTape(persistent=True, watch_accessed_variables=True) as tape:
                     tape.watch(batch)
+
+                    del model
+                    tf.keras.backend.clear_session()
 
                     model = build_model()
                     if not weights is None:
