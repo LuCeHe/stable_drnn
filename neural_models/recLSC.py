@@ -157,7 +157,7 @@ def get_norms(tape, lower_states, upper_states, n_samples=-1, norm_pow=2, naswot
     return tf.abs(norms), loss, naswot_score
 
 
-def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, steps_per_epoch=6, epsilon=.01,
+def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, steps_per_epoch=1, epsilon=.01,
               patience=50, rec_norm=True, depth_norm=True, encoder_norm=False, decoder_norm=True, learn=True,
               time_steps=None, weights=None, save_weights_path=None, lr=1e-3, naswot=0,
               comments=''):
