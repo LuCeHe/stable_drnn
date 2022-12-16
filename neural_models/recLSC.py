@@ -36,28 +36,54 @@ def get_norms(tape, lower_states, upper_states, n_samples=-1, norm_pow=2, naswot
 
     del hss, hs
 
+    norms = 0
     loss = 0
 
-    if 'supn' in comments:
+    if td.shape[-1] == td.shape[-2]:
+        std = td
+    else:
+        if tf.math.greater(td.shape[1], td.shape[2]):
+            sample_ax = 1
+            max_dim = td.shape[2]
+        else:
+            sample_ax = 2
+            max_dim = td.shape[1]
 
-        if td.shape[-1] == td.shape[-2]:
-            # loss that encourages the matrix to be psd
-            z = tf.random.normal((25, td.shape[-1]))
-            zn = tf.norm(z, ord='euclidean', axis=-1)
-            z = z / tf.expand_dims(zn, axis=-1)
-            zT = tf.transpose(z)
-            # (25, 2d)(b, 2d, 2d)(2d, 25)
-            a = td @ zT
-            preloss = tf.einsum('bks,sk->bs', a, z)
-            loss += tf.reduce_mean(tf.nn.relu(-preloss))
+        std = sample_axis(td, max_dim=max_dim, axis=sample_ax)
 
-            eig = tf.linalg.eigvals(td)
-            r = tf.math.real(eig)
-            i = tf.math.imag(eig)
-            loss += well_loss(min_value=1., max_value=1., walls_type='relu', axis='all')(r)
-            loss += well_loss(min_value=0., max_value=0., walls_type='relu', axis='all')(i)
+    if 'supnpsd' in comments:
+        # loss that encourages the matrix to be psd
+        z = tf.random.normal((25, std.shape[-1]))
+        zn = tf.norm(z, ord='euclidean', axis=-1)
+        z = z / tf.expand_dims(zn, axis=-1)
+        zT = tf.transpose(z)
+        # (25, 2d)(b, 2d, 2d)(2d, 25)
+        a = std @ zT
+        preloss = tf.einsum('bks,sk->bs', a, z)
+        loss += tf.reduce_mean(tf.nn.relu(-preloss))
 
-    norms = 0
+        eig = tf.linalg.eigvals(std)
+        norms = tf.reduce_sum(tf.math.log(tf.abs(eig) + epsilon), axis=-1) - 1
+        loss += well_loss(min_value=1., max_value=1., walls_type='relu', axis='all')(norms)
+
+    if 'supsubnpsd' in comments:
+        # loss that encourages the matrix to be psd
+        z = tf.random.normal((25, std.shape[-1]))
+        zn = tf.norm(z, ord='euclidean', axis=-1)
+        z = z / tf.expand_dims(zn, axis=-1)
+        zT = tf.transpose(z)
+        # (25, 2d)(b, 2d, 2d)(2d, 25)
+        a = std @ zT
+        preloss = tf.einsum('bks,sk->bs', a, z)
+        loss += tf.reduce_mean(tf.nn.relu(-preloss))
+
+        eig = tf.linalg.eigvals(std)
+        r = tf.math.real(eig)
+        i = tf.math.imag(eig)
+        norms = r + i
+        loss += well_loss(min_value=1., max_value=1., walls_type='relu', axis='all')(r)
+        loss += well_loss(min_value=0., max_value=0., walls_type='relu', axis='all')(i)
+
     if 'logradius' in comments:
         if td.shape[-1] == td.shape[-2]:
             r = tf.math.reduce_max(tf.abs(tf.linalg.eigvals(td)), axis=-1)
@@ -67,11 +93,7 @@ def get_norms(tape, lower_states, upper_states, n_samples=-1, norm_pow=2, naswot
         target_norm = 0
 
     elif 'radius' in comments:
-        if td.shape[-1] == td.shape[-2]:
-            norms = tf.math.reduce_max(tf.abs(tf.linalg.eigvals(td)), axis=-1)
-        else:
-            print('non squared matrix! the radius wont be computed, and a scaled sv will be used')
-            norms = tf.linalg.svd(td, compute_uv=False)[..., 0] / 2
+        norms = tf.math.reduce_max(tf.abs(tf.linalg.eigvals(std)), axis=-1)
 
     elif 'entrywise' in comments:
         flat_td = tf.reshape(td, (td.shape[0], -1))
@@ -210,14 +232,17 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
         if 'gausslsc' in comments:
             batch = [tf.random.normal(b.shape) for b in batch[0]],
+
         elif 'berlsc' in comments:
             batch = [tf.math.greater(tf.random.uniform(b.shape), .5) for b in batch[0]],
             batch = [tf.cast(b, dtype=tf.float32) for b in batch[0]],
+
         elif 'shufflelsc' in comments:
             shapes = [b.shape for b in batch[0]]
             flatbatch = [tf.reshape(b, [-1, 2]) for b in batch[0]],
             shuffled = [tf.random.shuffle(b) for b in flatbatch[0]],
             batch = [tf.reshape(b, s) for s, b in zip(shapes, shuffled[0])],
+
         elif 'randwlsc' in comments:
             shapes = [b.shape for b in batch[0]]
             batch = [tf.constant(np.random.choice(gen_train.vocab_size, size=s)) for s in shapes],
@@ -229,7 +254,9 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
             bt = batch[0][0][:, t, :][:, None]
             wt = batch[0][1][:, t][:, None]
 
+            tf.keras.backend.clear_session()
             del model, tape
+
             with tf.GradientTape(persistent=True, watch_accessed_variables=True) as tape:
                 tape.watch(wt)
                 tape.watch(bt)
@@ -433,5 +460,19 @@ def test_slogdet():
     print(t.shape, shuffinp.shape)
 
 
+def test_subsample_larger_axis():
+    batch_size = 7
+    t = tf.random.normal((batch_size, 12, 13))
+    if tf.math.greater(t.shape[1], t.shape[2]):
+        sample_ax = 1
+        max_dim = t.shape[2]
+    else:
+        sample_ax = 2
+        max_dim = t.shape[1]
+
+    shuffinp = sample_axis(t, max_dim=max_dim, axis=sample_ax)
+    print(shuffinp.shape)
+
+
 if __name__ == '__main__':
-    test_slogdet()
+    test_subsample_larger_axis()

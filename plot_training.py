@@ -40,11 +40,11 @@ GEXPERIMENTS = [
 expsid = 'als'  # effnet als ffnandcnns
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
-check_for_new = False
+check_for_new = True
 plot_losses = False
 one_exp_curves = False
 pandas_means = True
-show_per_tasknet = False
+show_per_tasknet = True
 make_latex = False
 missing_exps = False
 plot_lsc_vs_naive = False
@@ -130,6 +130,7 @@ if 'net_name' in df.columns: df['net_name'] = df['net_name'].astype(str)
 if 'task_name' in df.columns: df['task_name'] = df['task_name'].astype(str)
 df = df[~df['comments'].str.contains('test')]
 # df = df[df['comments'].str.contains('normsamples:')]
+# df = df[df['path'].str.contains('2022-12-14')]
 
 if 'net_name' in df.columns:
     df.loc[df['comments'].str.contains('noalif'), 'net_name'] = 'LIF'
@@ -176,7 +177,7 @@ except Exception as e:
 
 # print(df['experiment'])
 # print(df['host'])
-# print(df.to_string())
+print(df.to_string())
 print(list(df.columns))
 
 if one_exp_curves:

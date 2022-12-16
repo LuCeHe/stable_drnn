@@ -14,7 +14,7 @@ GEXPERIMENTS = [
 ]
 
 plot_norms_evol = False
-plot_norms_evol_1 = True
+plot_norms_evol_1 = False
 expsid = 'ffnandcnns'  # effnet als ffnandcnns
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
@@ -26,9 +26,12 @@ df = experiments_to_pandas(
 # select only rows with width 10
 df['time_elapsed'] = pd.to_timedelta(df['time_elapsed'], unit='s')
 
+df = df[df['width'] == 128]
+df = df[df['layers'] == 30]
+
+df = df[df['path'].str.contains('2022-12-15')]
+
 if plot_norms_evol:
-    df = df[df['width'] == 128]
-    df = df[df['layers'] == 30]
 
     for _, row in df.iterrows():
 
@@ -146,12 +149,37 @@ if plot_norms_evol_1:
 
 columns_containing = ['_var']
 
-plot_only = ['width', 'layers', 'comments', 'val_sparse_categorical_accuracy max', 'sparse_categorical_accuracy max',
+plot_only = ['seed','width', 'layers', 'comments', 'val_sparse_categorical_accuracy max', 'sparse_categorical_accuracy max',
              'loss min', 'val_loss min', 'epoch max', 'time_elapsed', 'hostname']
 
+
+# print(df['path'][0])
 df = df[plot_only]
 
 new_column_names = {c_name: shorten_losses(c_name) for c_name in df.columns}
 df.rename(columns=new_column_names, inplace=True)
 
 print(df.to_string())
+
+
+metric = 'val_loss min'
+metrics_oi = ['loss min', 'acc max', 'val_loss min', 'val_acc max', ]
+group_cols = ['comments']
+counts = df.groupby(group_cols).size().reset_index(name='counts')
+
+metrics_oi = [shorten_losses(m) for m in metrics_oi]
+mdf = df.groupby(
+    group_cols, as_index=False
+).agg({m: ['mean', 'std'] for m in metrics_oi})
+
+for m in metrics_oi:
+    mdf['mean_{}'.format(m)] = mdf[m]['mean']
+    mdf['std_{}'.format(m)] = mdf[m]['std']
+    mdf = mdf.drop([m], axis=1)
+mdf = mdf.droplevel(level=1, axis=1)
+
+mdf['counts'] = counts['counts']
+mdf = mdf.sort_values(by='mean_' + metric)
+
+
+print(mdf.to_string())
