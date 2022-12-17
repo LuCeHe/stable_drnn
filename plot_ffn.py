@@ -29,7 +29,7 @@ df['time_elapsed'] = pd.to_timedelta(df['time_elapsed'], unit='s')
 df = df[df['width'] == 128]
 df = df[df['layers'] == 30]
 
-df = df[df['path'].str.contains('2022-12-15')]
+# df = df[df['path'].str.contains('2022-12-15')]
 
 if plot_norms_evol:
 
@@ -149,9 +149,9 @@ if plot_norms_evol_1:
 
 columns_containing = ['_var']
 
-plot_only = ['seed','width', 'layers', 'comments', 'val_sparse_categorical_accuracy max', 'sparse_categorical_accuracy max',
+plot_only = ['seed', 'lr', 'width', 'layers', 'comments', 'val_sparse_categorical_accuracy max',
+             'sparse_categorical_accuracy max',
              'loss min', 'val_loss min', 'epoch max', 'time_elapsed', 'hostname']
-
 
 # print(df['path'][0])
 df = df[plot_only]
@@ -161,10 +161,9 @@ df.rename(columns=new_column_names, inplace=True)
 
 print(df.to_string())
 
-
 metric = 'val_loss min'
-metrics_oi = ['loss min', 'acc max', 'val_loss min', 'val_acc max', ]
-group_cols = ['comments']
+metrics_oi = ['loss min', 'acc max', 'val_loss min', 'val_acc max']
+group_cols = ['lr', 'comments']
 counts = df.groupby(group_cols).size().reset_index(name='counts')
 
 metrics_oi = [shorten_losses(m) for m in metrics_oi]
@@ -180,6 +179,5 @@ mdf = mdf.droplevel(level=1, axis=1)
 
 mdf['counts'] = counts['counts']
 mdf = mdf.sort_values(by='mean_' + metric)
-
 
 print(mdf.to_string())
