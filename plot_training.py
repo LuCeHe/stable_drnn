@@ -34,19 +34,19 @@ EXPERIMENTS = os.path.join(CDIR, 'experiments')
 GEXPERIMENTS = r'D:\work\alif_sg\good_experiments\2022-10-10--good_for_initial_tables'
 GEXPERIMENTS = [
     os.path.join(CDIR, 'good_experiments'),
-    os.path.join(CDIR, 'good_experiments', '2022-11-07--complete_set_of_exps'),
+    # os.path.join(CDIR, 'good_experiments', '2022-11-07--complete_set_of_exps'),
 ]
 
 expsid = 'als'  # effnet als ffnandcnns
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
-check_for_new = True
+check_for_new = False
 plot_losses = False
 one_exp_curves = False
-pandas_means = True
-show_per_tasknet = True
+pandas_means = False
+show_per_tasknet = False
 make_latex = False
-missing_exps = False
+missing_exps = True
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -390,61 +390,19 @@ if missing_exps:
     seed = 0
     n_seeds = 4
     seeds = [l + seed for l in range(n_seeds)]
-    incomplete_comments = '34_embproj_nogradreset_dropout:.3_timerepeat:2_'
+    incomplete_comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_'
 
     experiments = []
-    experiment = {
-        # 'task_name': ['heidelberg', 'ps_mnist', 's_mnist', 'ss_mnist', 'sps_mnist', 'sl_mnist'],
-        'task_name': ['heidelberg', 'sl_mnist'],
-        'net_name': ['maLSNN', 'LSTM'], 'seed': seeds,
-        'comments': [
-            incomplete_comments,
-            incomplete_comments + f'findLSC_normpow:1',
-            incomplete_comments + f'findLSC_normpow:-1',
-            incomplete_comments + f'findLSC_normpow:2',
-            incomplete_comments + f'findLSC_normpow:2_shufflelsc',
-            incomplete_comments + f'findLSC_normpow:2_berlsc',
-            incomplete_comments + f'findLSC_normpow:2_gausslsc',
-        ],
-    }
-    experiments.append(experiment)
-
-    experiment = {
-        # 'task_name': ['heidelberg', 'ps_mnist', 's_mnist', 'ss_mnist', 'sps_mnist', 'sl_mnist'],
-        'task_name': ['wordptb'],
-        'net_name': ['maLSNN', 'LSTM'], 'seed': seeds,
-        'comments': [
-            incomplete_comments,
-            incomplete_comments + f'findLSC_normpow:1',
-            incomplete_comments + f'findLSC_normpow:-1',
-            incomplete_comments + f'findLSC_normpow:2',
-            incomplete_comments + f'findLSC_normpow:2_shufflelsc',
-            incomplete_comments + f'findLSC_normpow:2_randwlsc',
-        ],
-    }
-    experiments.append(experiment)
-
-    experiment = {
-        # 'task_name': ['heidelberg', 'ps_mnist', 's_mnist', 'ss_mnist', 'sps_mnist', 'sl_mnist'],
-        'task_name': ['heidelberg', 'sl_mnist', 'wordptb'],
-        'net_name': ['maLSNN', 'LSTM'], 'seed': seeds,
-        'comments': [
-            incomplete_comments + f'findLSC_normpow:2_lscdepth:1_lscout:0',
-            incomplete_comments + f'findLSC_normpow:2_lscdepth:1_lscout:1',
-        ],
-    }
-    experiments.append(experiment)
 
     experiment = {
         'task_name': ['heidelberg', 'wordptb', 'sl_mnist'],
-        'net_name': ['maLSNN'], 'seed': seeds,
+        'net_name': ['maLSNN', 'maLSNNb', 'LSTM'], 'seed': seeds,
         'comments': [
-            incomplete_comments + f'_gaussbeta',
-            incomplete_comments + f'findLSC_normpow:2_gaussbeta',
-            incomplete_comments + f'findLSC_normpow:2_gaussbeta_berlsc',
-            incomplete_comments + f'findLSC_normpow:2_gaussbeta_gausslsc',
-            incomplete_comments + f'findLSC_normpow:2_gaussbeta_shufflelsc',
-            incomplete_comments + f'findLSC_normpow:2_gaussbeta_randwlsc',
+            incomplete_comments,
+            incomplete_comments + f'findLSC',
+            incomplete_comments + f'findLSC_supsubnpsd',
+            incomplete_comments + f'findLSC_supnpsd',
+            incomplete_comments + f'findLSC_radius',
         ],
     }
     experiments.append(experiment)

@@ -66,7 +66,7 @@ def get_norms(tape, lower_states, upper_states, n_samples=-1, norm_pow=2, naswot
         norms = tf.reduce_sum(tf.math.log(tf.abs(eig) + epsilon), axis=-1) + 1
         # loss += well_loss(min_value=1., max_value=1., walls_type='relu', axis='all')(norms)
 
-    if 'supsubnpsd' in comments:
+    elif 'supsubnpsd' in comments:
         # loss that encourages the matrix to be psd
         z = tf.random.normal((25, std.shape[-1]))
         zn = tf.norm(z, ord='euclidean', axis=-1)
@@ -84,7 +84,7 @@ def get_norms(tape, lower_states, upper_states, n_samples=-1, norm_pow=2, naswot
         # loss += well_loss(min_value=1., max_value=1., walls_type='relu', axis='all')(r)
         loss += well_loss(min_value=0., max_value=0., walls_type='relu', axis='all')(i)
 
-    if 'logradius' in comments:
+    elif 'logradius' in comments:
         if td.shape[-1] == td.shape[-2]:
             r = tf.math.reduce_max(tf.abs(tf.linalg.eigvals(td)), axis=-1)
         else:
