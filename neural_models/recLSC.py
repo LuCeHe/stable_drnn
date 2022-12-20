@@ -68,7 +68,8 @@ def get_norms(tape, lower_states, upper_states, n_samples=-1, norm_pow=2, naswot
 
     elif 'supsubnpsd' in comments:
         # loss that encourages the matrix to be psd
-        z = tf.random.normal((25, std.shape[-1]))
+        n_s = 2
+        z = tf.random.normal((n_s, std.shape[-1]))
         zn = tf.norm(z, ord='euclidean', axis=-1)
         z = z / tf.expand_dims(zn, axis=-1)
         zT = tf.transpose(z)
