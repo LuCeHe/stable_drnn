@@ -22,7 +22,7 @@ GEXPERIMENTS = [
 
 plot_norms_evol = False
 plot_norms_evol_1 = False
-lrs_plot = True
+lrs_plot = False
 
 print(2, time.time() - start)
 start = time.time()
@@ -33,7 +33,7 @@ h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 df = experiments_to_pandas(
     h5path=h5path, zips_folder=GEXPERIMENTS, unzips_folder=EXPERIMENTS, experiments_identifier=expsid,
-    exclude_files=['cout.txt'], check_for_new=False
+    exclude_files=['cout.txt'], check_for_new=True
 )
 
 print(list(df.columns))
@@ -172,7 +172,7 @@ df.rename(columns=new_column_names, inplace=True)
 df = df.rename(columns={'test_loss': 'test_loss min', 'test_acc': 'test_acc max'})
 
 plot_only = [
-    'seed', 'lr', 'width', 'layers', 'comments', 'val_acc max',
+    'pretrain_epochs', 'steps_per_epoch', 'seed', 'lr', 'width', 'layers', 'comments', 'val_acc max',
     'acc max', 'test_loss min', 'test_acc max',
     'loss min', 'val_loss min', 'epoch max', 'time_elapsed', 'hostname', 'path'
 ]

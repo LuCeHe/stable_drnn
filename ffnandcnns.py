@@ -36,7 +36,6 @@ def get_argparse():
     parser.add_argument("--seed", default=0, type=int, help="Random seed")
     parser.add_argument("--epochs", default=1, type=int, help="Training Epochs")
     parser.add_argument("--pretrain_epochs", default=3, type=int, help="Pretraining Epochs")  # 20
-
     parser.add_argument("--steps_per_epoch", default=2, type=int, help="Batch size")  # -1
     parser.add_argument("--layers", default=30, type=int, help="Number of layers")
     parser.add_argument("--resize", default=32, type=int, help="Resize images", choices=[224, 128, 64, 32])
@@ -46,7 +45,7 @@ def get_argparse():
     parser.add_argument("--dataset", default='cifar10', type=str, help="Dataset to train on",
                         choices=['cifar10', 'cifar100', 'mnist'])
     parser.add_argument("--net_type", default='ffn', type=str, help="Dataset to train on", choices=['ffn', 'cnn'])
-    parser.add_argument("--activation", default='relu', type=str, help="Activation", choices=['swish', 'relu'])
+    parser.add_argument("--activation", default='sin', type=str, help="Activation", choices=['swish', 'relu', 'sin'])
     parser.add_argument(
         "--initialization", default='glorot_normal', type=str, help="Activation to train on",
         choices=['he_normal', 'glorot_normal']
@@ -140,15 +139,22 @@ def plot_model_weights_dists(model, plot_dir, plot_tag):
 
 
 def main(args):
+
+    results = {}
+    results.update(vars(args))
+
     if 'heinit' in args.comments:
         args.initialization = 'he_normal'
+
+    if args.activation == 'sin':
+        args.activation = tf.math.sin
 
     # set seed
     random.seed(args.seed)
     np.random.seed(args.seed)
     tf.random.set_seed(args.seed)
 
-    print(json.dumps(vars(args), indent=4, cls=NumpyEncoder))
+    print(json.dumps(results, indent=4, cls=NumpyEncoder))
 
     (x_train, y_train), (x_test, y_test) = getattr(tf.keras.datasets, args.dataset).load_data()
 
@@ -170,7 +176,6 @@ def main(args):
     else:
         raise NotImplementedError
 
-    results = {}
 
     if 'findLSC' in args.comments:
         model = bm()
@@ -237,7 +242,6 @@ def main(args):
         history_jsonable = {k: np.array(v).astype(float).tolist() for k, v in history_dict.items()}
         json.dump(history_jsonable, open(json_filename, "w"))
 
-    results.update(vars(args))
 
     return results
 
