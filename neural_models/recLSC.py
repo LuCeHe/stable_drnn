@@ -22,21 +22,27 @@ os.environ['AUTOGRAPH_VERBOSITY'] = '1'
 warnings.filterwarnings('ignore')
 
 
-def get_norms(tape, lower_states, upper_states, n_samples=-1, norm_pow=2, naswot=0, comments='', epsilon=1e-8,
-              target_norm=1.):
-    hss = []
-    for hlm1 in lower_states:
-        hs = [tape.batch_jacobian(hl, hlm1) for hl in upper_states]
-        hss.append(tf.concat(hs, axis=1))
+def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, norm_pow=2, naswot=0, comments='',
+              epsilon=1e-8, target_norm=1., test=False):
+    if tape is None and lower_states is None and upper_states is None and test == False:
+        raise ValueError('No input data given!')
 
-    if len(hss) > 1:
-        td = tf.concat(hss, axis=2)
+    if not test:
+        hss = []
+        for hlm1 in lower_states:
+            hs = [tape.batch_jacobian(hl, hlm1) for hl in upper_states]
+            hss.append(tf.concat(hs, axis=1))
+
+        if len(hss) > 1:
+            td = tf.concat(hss, axis=2)
+        else:
+            td = hss[0]
+
+        del hss, hs
     else:
-        td = hss[0]
+        td = tape
 
-    del hss, hs
-
-    norms = 0
+    norms = None
     loss = 0
 
     if td.shape[-1] == td.shape[-2]:
@@ -51,20 +57,21 @@ def get_norms(tape, lower_states, upper_states, n_samples=-1, norm_pow=2, naswot
 
         std = sample_axis(td, max_dim=max_dim, axis=sample_ax)
 
+    # print(std.shape, td.shape)
+
     if 'supnpsd' in comments:
         # loss that encourages the matrix to be psd
         z = tf.random.normal((25, std.shape[-1]))
         zn = tf.norm(z, ord='euclidean', axis=-1)
         z = z / tf.expand_dims(zn, axis=-1)
         zT = tf.transpose(z)
-        # (25, 2d)(b, 2d, 2d)(2d, 25)
+
         a = std @ zT
         preloss = tf.einsum('bks,sk->bs', a, z)
         loss += tf.reduce_mean(tf.nn.relu(-preloss))
 
         eig = tf.linalg.eigvals(std)
         norms = tf.reduce_sum(tf.math.log(tf.abs(eig) + epsilon), axis=-1) + 1
-        # loss += well_loss(min_value=1., max_value=1., walls_type='relu', axis='all')(norms)
 
     elif 'supsubnpsd' in comments:
         # loss that encourages the matrix to be psd
@@ -73,7 +80,7 @@ def get_norms(tape, lower_states, upper_states, n_samples=-1, norm_pow=2, naswot
         zn = tf.norm(z, ord='euclidean', axis=-1)
         z = z / tf.expand_dims(zn, axis=-1)
         zT = tf.transpose(z)
-        # (25, 2d)(b, 2d, 2d)(2d, 25)
+
         a = std @ zT
         preloss = tf.einsum('bks,sk->bs', a, z)
         loss += tf.reduce_mean(tf.nn.relu(-preloss))
@@ -82,7 +89,6 @@ def get_norms(tape, lower_states, upper_states, n_samples=-1, norm_pow=2, naswot
         r = tf.math.real(eig)
         i = tf.math.imag(eig)
         norms = r + i
-        # loss += well_loss(min_value=1., max_value=1., walls_type='relu', axis='all')(r)
         loss += well_loss(min_value=0., max_value=0., walls_type='relu', axis='all')(i)
 
     elif 'logradius' in comments:
@@ -90,8 +96,7 @@ def get_norms(tape, lower_states, upper_states, n_samples=-1, norm_pow=2, naswot
             r = tf.math.reduce_max(tf.abs(tf.linalg.eigvals(td)), axis=-1)
         else:
             r = tf.math.reduce_max(tf.linalg.svd(td, compute_uv=False), axis=-1) / 2
-        norms = tf.math.log(r + epsilon)
-        target_norm = 0
+        norms = tf.math.log(r + epsilon) + 1
 
     elif 'radius' in comments:
         norms = tf.math.reduce_max(tf.abs(tf.linalg.eigvals(std)), axis=-1)
@@ -163,9 +168,6 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
               time_steps=None, weights=None, save_weights_path=None, lr=1e-3, naswot=0,
               comments=''):
     target_norm = 1.
-    if 'logradius' in comments:
-        target_norm = 0
-        epsilon = 3.16e-4
     # FIXME: generalize this loop for any recurrent model
     gen_train = Task(**train_task_args)
 
@@ -252,81 +254,83 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
         pbar2 = tqdm(total=ts, position=0)
 
         for t in range(ts):
-            bt = batch[0][0][:, t, :][:, None]
-            wt = batch[0][1][:, t][:, None]
 
-            tf.keras.backend.clear_session()
-            del model, tape
+            try:
+                bt = batch[0][0][:, t, :][:, None]
+                wt = batch[0][1][:, t][:, None]
 
-            with tf.GradientTape(persistent=True, watch_accessed_variables=True) as tape:
-                tape.watch(wt)
-                tape.watch(bt)
-                tape.watch(states)
-                model = build_model(**model_args)
-                model.set_weights(weights)
+                tf.keras.backend.clear_session()
+                del model, tape
 
-                outputs = model([bt, wt, *states])
-                states_p1 = outputs[1:]
+                with tf.GradientTape(persistent=True, watch_accessed_variables=True) as tape:
+                    tape.watch(wt)
+                    tape.watch(bt)
+                    tape.watch(states)
+                    model = build_model(**model_args)
+                    model.set_weights(weights)
 
-                mean_loss = 0
-                some_norms = []
-                state_below = None
-                for i, _ in enumerate(stack):
+                    outputs = model([bt, wt, *states])
+                    states_p1 = outputs[1:]
 
-                    htp1 = states_p1[i * n_states + hi]
-                    ht = states[i * n_states + hi]
-                    ctp1 = states_p1[i * n_states + ci]
-                    ct = states[i * n_states + ci]
+                    mean_loss = 0
+                    some_norms = []
+                    state_below = None
+                    for i, _ in enumerate(stack):
 
-                    if rec_norm:
-                        norms, loss, naswot_score = get_norms(tape=tape, lower_states=[ht, ct],
-                                                              upper_states=[htp1, ctp1],
-                                                              n_samples=n_samples, norm_pow=norm_pow, naswot=naswot,
-                                                              comments=comments)
-                        rec_norms[f'batch {step} layer {i}'].append(norms.numpy())
-                        some_norms.append(tf.reduce_mean(norms))
-                        if not naswot_score is None:
-                            all_naswot.append(tf.reduce_mean(naswot_score))
-                        mean_loss += loss
+                        htp1 = states_p1[i * n_states + hi]
+                        ht = states[i * n_states + hi]
+                        ctp1 = states_p1[i * n_states + ci]
+                        ct = states[i * n_states + ci]
 
-                    if encoder_norm and i == 0:
-                        norms, loss, naswot_score = get_norms(tape=tape, lower_states=[bt[:, 0, :]],
-                                                              upper_states=[htp1, ctp1],
-                                                              n_samples=n_samples, norm_pow=norm_pow, naswot=naswot,
-                                                              comments=comments)
+                        if rec_norm:
+                            norms, loss, naswot_score = get_norms(tape=tape, lower_states=[ht, ct],
+                                                                  upper_states=[htp1, ctp1],
+                                                                  n_samples=n_samples, norm_pow=norm_pow, naswot=naswot,
+                                                                  comments=comments)
+                            rec_norms[f'batch {step} layer {i}'].append(norms.numpy())
+                            some_norms.append(tf.reduce_mean(norms))
+                            if not naswot_score is None:
+                                all_naswot.append(tf.reduce_mean(naswot_score))
+                            mean_loss += loss
 
-                        some_norms.append(tf.reduce_mean(norms))
-                        mean_loss += loss
-
-                    if depth_norm:
-
-                        hl = htp1
-                        cl = ctp1
-                        if not state_below is None:
-                            hlm1, clm1 = state_below
-                            norms, loss, naswot_score = get_norms(tape=tape, lower_states=[hlm1, clm1],
-                                                                  upper_states=[hl, cl],
+                        if encoder_norm and i == 0:
+                            norms, loss, naswot_score = get_norms(tape=tape, lower_states=[bt[:, 0, :]],
+                                                                  upper_states=[htp1, ctp1],
                                                                   n_samples=n_samples, norm_pow=norm_pow, naswot=naswot,
                                                                   comments=comments)
 
                             some_norms.append(tf.reduce_mean(norms))
                             mean_loss += loss
 
-                        state_below = (hl, cl)
-                        del hl, cl
+                        if depth_norm:
 
-                    if decoder_norm and i == len(stack) - 1:
-                        norms, loss, naswot_score = get_norms(tape=tape, lower_states=[htp1, ctp1],
-                                                              upper_states=[outputs[0][:, 0, :]],
-                                                              n_samples=n_samples, norm_pow=norm_pow, naswot=naswot,
-                                                              comments=comments)
+                            hl = htp1
+                            cl = ctp1
+                            if not state_below is None:
+                                hlm1, clm1 = state_below
+                                norms, loss, naswot_score = get_norms(tape=tape, lower_states=[hlm1, clm1],
+                                                                      upper_states=[hl, cl],
+                                                                      n_samples=n_samples, norm_pow=norm_pow,
+                                                                      naswot=naswot,
+                                                                      comments=comments)
 
-                        some_norms.append(tf.reduce_mean(norms))
-                        mean_loss += loss
+                                some_norms.append(tf.reduce_mean(norms))
+                                mean_loss += loss
 
-                    del htp1, ht, ctp1, ct
+                            state_below = (hl, cl)
+                            del hl, cl
 
-            try:
+                        if decoder_norm and i == len(stack) - 1:
+                            norms, loss, naswot_score = get_norms(tape=tape, lower_states=[htp1, ctp1],
+                                                                  upper_states=[outputs[0][:, 0, :]],
+                                                                  n_samples=n_samples, norm_pow=norm_pow, naswot=naswot,
+                                                                  comments=comments)
+
+                            some_norms.append(tf.reduce_mean(norms))
+                            mean_loss += loss
+
+                        del htp1, ht, ctp1, ct
+
                 if learn:
                     grads = tape.gradient(mean_loss, model.trainable_weights)
                     optimizer.apply_gradients(zip(grads, model.trainable_weights))
@@ -475,5 +479,14 @@ def test_subsample_larger_axis():
     print(shuffinp.shape)
 
 
+def test_subsampled_larger_axis():
+    batch_size = 7
+    comments = '_supsubnpsd'
+    tape = tf.random.normal((batch_size, 12, 13))
+    get_norms(tape, lower_states=[], upper_states=[], n_samples=-1, norm_pow=2, naswot=0, comments=comments,
+              epsilon=1e-8,
+              target_norm=1., test=True)
+
+
 if __name__ == '__main__':
-    test_subsample_larger_axis()
+    test_subsampled_larger_axis()

@@ -16,13 +16,15 @@ FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
 EXPERIMENTS = os.path.join(CDIR, 'experiments')
 GEXPERIMENTS = [
-    os.path.join(CDIR, 'good_experiments'),
-    r'D:\work\alif_sg\good_experiments\2022-11-23--unclear_rnn_good_ffn'
+    os.path.join(CDIR, 'good_experiments', '2022-12-16--ffn'),
+    # r'D:\work\alif_sg\good_experiments\2022-11-23--unclear_rnn_good_ffn'
 ]
 
 plot_norms_evol = False
 plot_norms_evol_1 = False
 lrs_plot = False
+remove_incomplete = True
+plot_losses = False
 
 print(2, time.time() - start)
 start = time.time()
@@ -33,7 +35,7 @@ h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 df = experiments_to_pandas(
     h5path=h5path, zips_folder=GEXPERIMENTS, unzips_folder=EXPERIMENTS, experiments_identifier=expsid,
-    exclude_files=['cout.txt'], check_for_new=True
+    exclude_files=['cout.txt'], exclude_columns=['_mean list', '_var list'], check_for_new=False
 )
 
 print(list(df.columns))
@@ -47,8 +49,10 @@ df['time_elapsed'] = pd.to_timedelta(df['time_elapsed'], unit='s')
 
 df = df[df['width'] == 128]
 df = df[df['layers'] == 30]
-# df = df[df['comments'].str.contains('findLSC_supn')]
 df = df[~df['comments'].str.contains('findLSC_radius_supn')]
+# df = df[df['comments'].str.contains('heinit') | df['comments'].str.contains('findLSC_supnpsd2')]
+# df = df[~df['activation'].str.contains('sin')]
+
 
 if plot_norms_evol:
     for _, row in df.iterrows():
@@ -172,11 +176,13 @@ df.rename(columns=new_column_names, inplace=True)
 df = df.rename(columns={'test_loss': 'test_loss min', 'test_acc': 'test_acc max'})
 
 plot_only = [
-    'pretrain_epochs', 'steps_per_epoch', 'seed', 'lr', 'width', 'layers', 'comments', 'val_acc max',
-    'acc max', 'test_loss min', 'test_acc max',
+    'convergence', 'activation', 'pretrain_epochs', 'steps_per_epoch', 'seed', 'lr', 'width', 'layers', 'comments',
+    'val_acc max',
+    'acc max', 'test_loss min', 'test_acc max', 'LSC_norms initial', 'LSC_norms final',
     'loss min', 'val_loss min', 'epoch max', 'time_elapsed', 'hostname', 'path'
 ]
 
+odf = df
 df = df[plot_only]
 
 print(df.columns)
@@ -187,9 +193,11 @@ metrics_oi = [
     # 'loss min',
     'val_loss min', 'test_loss min',
     # 'acc max',
-    'val_acc max', 'test_acc max']
+    'val_acc max', 'test_acc max',
+    'LSC_norms initial', 'LSC_norms final',
+]
 
-group_cols = ['lr', 'comments']
+group_cols = ['lr', 'comments', 'activation']
 counts = df.groupby(group_cols).size().reset_index(name='counts')
 
 metrics_oi = [shorten_losses(m) for m in metrics_oi]
@@ -211,11 +219,15 @@ print(mdf.to_string())
 # sort mdf by lr
 mdf = mdf.sort_values(by='lr')
 
+colors = {'findLSC_radius': [0.43365406, 0.83304796, 0.58958684], '': [0.24995383, 0.49626022, 0.35960801],
+          'findLSC': [0.74880857, 0.9167003, 0.50021289], 'findLSC_supnpsd2': [0.69663182, 0.25710645, 0.19346206],
+          'findLSC_supsubnpsd': [0.2225346, 0.06820208, 0.9836983], 'heinit': [0.96937357, 0.28256986, 0.26486611]}
+
 if lrs_plot:
-    fig, axs = plt.subplots(1, 1, figsize=(6, 3))
     comments = mdf['comments'].unique()
-    # assign a color to each comment
-    colors = {c: np.random.rand(3, ) for c in comments}
+    activations = sorted(mdf['activation'].unique())
+
+    fig, axs = plt.subplots(1, len(activations), figsize=(6, 3))
 
 
     def clean_comments(c):
@@ -233,33 +245,52 @@ if lrs_plot:
         return c
 
 
-    colors = {'findLSC_radius': [0.43365406, 0.83304796, 0.58958684], '': [0.24995383, 0.49626022, 0.35960801],
-              'findLSC': [0.74880857, 0.9167003, 0.50021289], 'findLSC_supnpsd2': [0.69663182, 0.25710645, 0.19346206],
-              'findLSC_supsubnpsd': [0.2225346, 0.06820208, 0.9836983], 'heinit': [0.96937357, 0.28256986, 0.26486611]}
-
-    # clean_names = {'findLSC_radius': [0.43365406, 0.83304796, 0.58958684], '': 'Glorot',
-    #           'findLSC': [0.74880857, 0.9167003, 0.50021289], 'findLSC_supnpsd2': [0.69663182, 0.25710645, 0.19346206],
-    #           'findLSC_supsubnpsd': [0.2225346, 0.06820208, 0.9836983], 'heinit': 'He'}
-
-    for c in comments:
-        idf = mdf[mdf['comments'] == c]
-        ys = idf['mean_' + metric].values
-        yerrs = idf['std_' + metric].values
-        xs = idf['lr'].values
-        axs.plot(xs, ys, color=colors[c], label=clean_comments(c))
-        axs.fill_between(xs, ys - yerrs / 2, ys + yerrs / 2, alpha=0.5, color=colors[c])
+    for i, a in enumerate(activations):
+        adf = mdf[mdf['activation'] == a]
+        axs[i].set_title(a)
+        for c in comments:
+            idf = adf[adf['comments'] == c]
+            ys = idf['mean_' + metric].values
+            yerrs = idf['std_' + metric].values
+            xs = idf['lr'].values
+            axs[i].plot(xs, ys, color=colors[c], label=clean_comments(c))
+            axs[i].fill_between(xs, ys - yerrs / 2, ys + yerrs / 2, alpha=0.5, color=colors[c])
 
     # x axis log scale
-    plt.xscale('log')
     plt.xlabel('Learning rate')
-    plt.ylabel('Accuracy')
+    axs[0].set_ylabel('Accuracy')
     plt.legend()
 
-    # for ax in axs.reshape(-1):
-    for pos in ['right', 'left', 'bottom', 'top']:
-        axs.spines[pos].set_visible(False)
-    axs.locator_params(axis='y', nbins=5)
+    for ax in axs.reshape(-1):
+        for pos in ['right', 'left', 'bottom', 'top']:
+            ax.spines[pos].set_visible(False)
+        ax.locator_params(axis='y', nbins=5)
+        ax.set_xscale('log')
 
     plt.show()
     plot_filename = f'experiments/ffn_relu.pdf'
     fig.savefig(plot_filename, bbox_inches='tight')
+
+if plot_losses:
+    df = odf
+    activations = sorted(df['activation'].unique())
+
+    fig, axs = plt.subplots(1, len(activations), figsize=(6, 3))
+    metric = 'val_acc list' # 'val_acc list' 'loss list'
+    # print([c for c in df.columns if 'list' in c])
+
+    for i, a in enumerate(activations):
+        adf = df[df['activation'] == a]
+        axs[i].set_title(a)
+
+        for _, row in adf.iterrows():
+            c = row['comments']
+            axs[i].plot(row[metric], color=colors[c])
+
+    plt.legend()
+    plt.show()
+
+print('Maximal time elapsed is: {}'.format(df['time_elapsed'].max()))
+
+if remove_incomplete:
+    df = df[df['epoch max'] == df['epoch max'].max()]

@@ -30,12 +30,12 @@ def get_weights_statistics(results, weight_names, weights):
 
 
 def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_pow=2, fanin=False, forward_lsc=False,
-                      nlayerjump=None, layer_min=None, layer_max=None, comments='', epsilon=.02, patience=20,):
+                      nlayerjump=None, layer_min=None, layer_max=None, comments='', epsilon=.06, patience=20, ):
     assert callable(build_model)
     if forward_lsc:
         learning_rate = .1
     else:
-        learning_rate = 3.16e-3 #1e1
+        learning_rate = 3.16e-3  # 1e1
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
     all_norms = []
@@ -57,8 +57,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
     del model
     tf.keras.backend.clear_session()
 
-
-    ma_loss, ma_norm, ma_factor = None, None, None
+    ma_loss, ma_norm, ma_factor = None, 0, None
     show_loss, show_norm, show_avw, show_factor = None, None, None, None
     n_failures = 0
     loss, model = None, None
@@ -68,7 +67,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
         generator.on_epoch_end()
         for step in range(generator.steps_per_epoch):
 
-            if not loss is None and loss < epsilon:
+            if not loss is None and abs(ma_norm - 1.) < epsilon:
                 epsilon_steps += 1
             else:
                 epsilon_steps = 0
@@ -97,7 +96,8 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
                     lnames = [layer.name for layer in model.layers]
 
                     for _ in range(3):
-                        pairs = sorted(np.random.choice(list(range(len(lnames)))[layer_min:layer_max], 2, replace=False))
+                        pairs = sorted(
+                            np.random.choice(list(range(len(lnames)))[layer_min:layer_max], 2, replace=False))
                         input_shape = model.layers[pairs[0] + 1].input_shape[1:]
                         if not isinstance(input_shape, list):
                             break
@@ -138,7 +138,8 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
                         reoup = tf.reshape(oup, [oup.shape[0], -1])
                         oup = sample_axis(reoup, max_dim=max_dim)
 
-                        norms, loss, naswot_score = get_norms(tape, [inp], [oup], n_samples=n_samples, norm_pow=norm_pow, comments=comments)
+                        norms, loss, naswot_score = get_norms(tape, [inp], [oup], n_samples=n_samples,
+                                                              norm_pow=norm_pow, comments=comments)
                     else:
                         varin = tf.math.reduce_variance(new_preinter)
                         varout = tf.math.reduce_variance(interout)
