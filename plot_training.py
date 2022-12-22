@@ -378,40 +378,10 @@ if plot_lrs:
 
     plt.show()
 
-if missing_exps:
-    # columns of interest
-    coi = ['seed', 'task_name', 'net_name', 'comments']
-    import pandas as pd
-
-    sdf = pd.read_hdf(h5path, 'df')
-
-    sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
-
-    seed = 0
-    n_seeds = 4
-    seeds = [l + seed for l in range(n_seeds)]
-    incomplete_comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_'
-
-    experiments = []
-
-    experiment = {
-        'task_name': ['heidelberg', 'wordptb', 'sl_mnist'],
-        'net_name': ['maLSNN', 'maLSNNb', 'LSTM'], 'seed': seeds,
-        'comments': [
-            incomplete_comments,
-            incomplete_comments + f'findLSC',
-            incomplete_comments + f'findLSC_supsubnpsd',
-            incomplete_comments + f'findLSC_supnpsd',
-            incomplete_comments + f'findLSC_radius',
-        ],
-    }
-    experiments.append(experiment)
-
-    ds = dict2iter(experiments)
-    print(ds[0])
+def complete_missing_exps(sdf, exps, coi):
 
     data = {k: [] for k in coi}
-    for d in ds:
+    for d in exps:
         for k in data.keys():
             insertion = d[k]
             data[k].append(insertion)
@@ -444,6 +414,40 @@ if missing_exps:
         experiments.append(experiment)
 
     print(experiments)
+
+
+if missing_exps:
+    # columns of interest
+    coi = ['seed', 'task_name', 'net_name', 'comments']
+    import pandas as pd
+
+    sdf = pd.read_hdf(h5path, 'df')
+
+    sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
+
+    seed = 0
+    n_seeds = 4
+    seeds = [l + seed for l in range(n_seeds)]
+    incomplete_comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_'
+
+    experiments = []
+
+    experiment = {
+        'task_name': ['heidelberg', 'wordptb', 'sl_mnist'],
+        'net_name': ['maLSNN', 'maLSNNb', 'LSTM'], 'seed': seeds,
+        'comments': [
+            incomplete_comments,
+            incomplete_comments + f'findLSC',
+            incomplete_comments + f'findLSC_supsubnpsd',
+            incomplete_comments + f'findLSC_supnpsd',
+            incomplete_comments + f'findLSC_radius',
+        ],
+    }
+    experiments.append(experiment)
+
+    ds = dict2iter(experiments)
+    print(ds[0])
+    complete_missing_exps(sdf, ds, coi)
 
 if plot_weights:
     create_pickles = False

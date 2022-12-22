@@ -1,5 +1,8 @@
 import time
 
+from alif_sg.plot_training import complete_missing_exps
+from stay_organized.submit_jobs import dict2iter
+
 print(1)
 # measure time
 start = time.time()
@@ -23,8 +26,9 @@ GEXPERIMENTS = [
 plot_norms_evol = False
 plot_norms_evol_1 = False
 lrs_plot = False
-remove_incomplete = True
+remove_incomplete = False
 plot_losses = False
+missing_exps = True
 
 print(2, time.time() - start)
 start = time.time()
@@ -49,7 +53,7 @@ df['time_elapsed'] = pd.to_timedelta(df['time_elapsed'], unit='s')
 
 df = df[df['width'] == 128]
 df = df[df['layers'] == 30]
-df = df[~df['comments'].str.contains('findLSC_radius_supn')]
+# df = df[~df['comments'].str.contains('findLSC_radius_supn')]
 # df = df[df['comments'].str.contains('heinit') | df['comments'].str.contains('findLSC_supnpsd2')]
 # df = df[~df['activation'].str.contains('sin')]
 
@@ -176,10 +180,9 @@ df.rename(columns=new_column_names, inplace=True)
 df = df.rename(columns={'test_loss': 'test_loss min', 'test_acc': 'test_acc max'})
 
 plot_only = [
-    'convergence', 'activation', 'pretrain_epochs', 'steps_per_epoch', 'seed', 'lr', 'width', 'layers', 'comments',
-    'val_acc max',
-    'acc max', 'test_loss min', 'test_acc max', 'LSC_norms initial', 'LSC_norms final',
-    'loss min', 'val_loss min', 'epoch max', 'time_elapsed', 'hostname', 'path'
+    'activation', 'pretrain_epochs', 'steps_per_epoch', 'seed', 'lr', 'width', 'layers', 'comments',
+    'val_acc max', 'acc max', 'test_loss min', 'test_acc max', 'LSC_norms initial', 'LSC_norms final',
+    'loss min', 'val_loss min', 'epoch max', 'time_elapsed', 'hostname', 'path', 'dataset', 'epochs',
 ]
 
 odf = df
@@ -276,7 +279,7 @@ if plot_losses:
     activations = sorted(df['activation'].unique())
 
     fig, axs = plt.subplots(1, len(activations), figsize=(6, 3))
-    metric = 'val_acc list' # 'val_acc list' 'loss list'
+    metric = 'val_acc list'  # 'val_acc list' 'loss list'
     # print([c for c in df.columns if 'list' in c])
 
     for i, a in enumerate(activations):
@@ -293,4 +296,78 @@ if plot_losses:
 print('Maximal time elapsed is: {}'.format(df['time_elapsed'].max()))
 
 if remove_incomplete:
-    df = df[df['epoch max'] == df['epoch max'].max()]
+    import shutil
+
+    # df = odf
+    ids = [
+        # 'findLSC_radius_supn'
+    ]
+    rdfs = []
+    for c in ids:
+        rdf = df[df['comments'].str.contains(c)]
+        rdfs.append(rdf)
+
+    # from LSC_norms final column, select those that are epsilon away from 1
+    epsilon = 0.06
+    rdf = df[abs(df['LSC_norms final'] - 1) > epsilon]
+    # print(rdf.to_string())
+    # print(rdf.shape, odf.shape)
+
+    # rdfs.append(rdf)
+
+    # remove one seed from those that have more than 4 seeds
+    brdf = mdf[mdf['counts'] > 4]
+    # print(rdf.to_string())
+
+    for _, row in brdf.iterrows():
+        # print('-' * 80)
+        srdf = df[
+            (df['lr'] == row['lr'])
+            & (df['comments'] == row['comments'])
+            & (df['activation'] == row['activation'])]
+
+        # no duplicates
+        gsrdf = srdf.drop_duplicates(subset=['seed'])
+
+        # remainder
+        rdf = srdf[~srdf.apply(tuple, 1).isin(gsrdf.apply(tuple, 1))]
+        rdfs.append(rdf)
+
+    for rdf in rdfs:
+        print(rdf['comments'])
+        paths = rdf['path'].values
+        for p in paths:
+            print('Removing {}'.format(p))
+            exps_path = p
+            gexp_path = os.path.join(GEXPERIMENTS[0], os.path.split(p)[1] + '.zip')
+            print(exps_path)
+            print(gexp_path)
+            print(os.path.exists(exps_path), os.path.exists(gexp_path))
+            if os.path.exists(exps_path):
+                shutil.rmtree(exps_path)
+            if os.path.exists(gexp_path):
+                os.remove(gexp_path)
+
+if missing_exps:
+    # columns of interest
+    coi = ['seed', 'activation', 'lr', 'comments', 'dataset', 'epochs', 'steps_per_epoch']
+    import pandas as pd
+
+    sdf = df
+
+    sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
+
+    experiments = []
+    experiment = {
+        'comments': [
+            '', 'findLSC', 'findLSC_supsubnpsd', 'findLSC_supnpsd2', 'findLSC_radius', 'heinit',
+        ],
+        'activation': ['sin', 'relu'], 'dataset': ['cifar10'],
+        'layers': [30], 'width': [128], 'lr': [1e-3, 3.16e-4, 1e-4, 3.16e-5, 1e-5],
+        'epochs': [50], 'steps_per_epoch': [-1], 'pretrain_epochs': [30], 'seed': list(range(4)),
+    }
+    experiments.append(experiment)
+
+    ds = dict2iter(experiments)
+    print(ds[0])
+    complete_missing_exps(sdf, ds, coi)

@@ -35,13 +35,13 @@ def get_argparse():
     parser.add_argument("--batch_size", default=32, type=int, help="Batch size")
     parser.add_argument("--seed", default=0, type=int, help="Random seed")
     parser.add_argument("--epochs", default=1, type=int, help="Training Epochs")
-    parser.add_argument("--pretrain_epochs", default=3, type=int, help="Pretraining Epochs")  # 20
+    parser.add_argument("--pretrain_epochs", default=30, type=int, help="Pretraining Epochs")  # 20
     parser.add_argument("--steps_per_epoch", default=2, type=int, help="Batch size")  # -1
     parser.add_argument("--layers", default=30, type=int, help="Number of layers")
     parser.add_argument("--resize", default=32, type=int, help="Resize images", choices=[224, 128, 64, 32])
     parser.add_argument("--width", default=128, type=int, help="Layer width")
     parser.add_argument("--lr", default=.001, type=float, help="Learning rate")
-    parser.add_argument("--comments", default='findLSC_supnpsd', type=str, help="String to activate extra behaviors")
+    parser.add_argument("--comments", default='', type=str, help="String to activate extra behaviors")
     parser.add_argument("--dataset", default='cifar10', type=str, help="Dataset to train on",
                         choices=['cifar10', 'cifar100', 'mnist'])
     parser.add_argument("--net_type", default='ffn', type=str, help="Dataset to train on", choices=['ffn', 'cnn'])
