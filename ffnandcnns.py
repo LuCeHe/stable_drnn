@@ -35,7 +35,7 @@ def get_argparse():
     parser.add_argument("--batch_size", default=32, type=int, help="Batch size")
     parser.add_argument("--seed", default=0, type=int, help="Random seed")
     parser.add_argument("--epochs", default=1, type=int, help="Training Epochs")
-    parser.add_argument("--pretrain_epochs", default=30, type=int, help="Pretraining Epochs")  # 20
+    parser.add_argument("--pretrain_epochs", default=40, type=int, help="Pretraining Epochs")  # 20
     parser.add_argument("--steps_per_epoch", default=2, type=int, help="Batch size")  # -1
     parser.add_argument("--layers", default=30, type=int, help="Number of layers")
     parser.add_argument("--resize", default=32, type=int, help="Resize images", choices=[224, 128, 64, 32])

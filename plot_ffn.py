@@ -1,6 +1,5 @@
 import time
 
-from alif_sg.plot_training import complete_missing_exps
 from stay_organized.submit_jobs import dict2iter
 
 print(1)
@@ -12,7 +11,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from stay_organized.pandardize import experiments_to_pandas
+from stay_organized.pandardize import experiments_to_pandas, complete_missing_exps
 from stay_organized.standardize_strings import shorten_losses
 
 FILENAME = os.path.realpath(__file__)
@@ -26,9 +25,10 @@ GEXPERIMENTS = [
 plot_norms_evol = False
 plot_norms_evol_1 = False
 lrs_plot = False
-remove_incomplete = False
 plot_losses = False
 missing_exps = True
+remove_incomplete = False
+truely_remove = False
 
 print(2, time.time() - start)
 start = time.time()
@@ -39,7 +39,7 @@ h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 df = experiments_to_pandas(
     h5path=h5path, zips_folder=GEXPERIMENTS, unzips_folder=EXPERIMENTS, experiments_identifier=expsid,
-    exclude_files=['cout.txt'], exclude_columns=['_mean list', '_var list'], check_for_new=False
+    exclude_files=['cout.txt'], exclude_columns=['_mean list', '_var list'], check_for_new=True
 )
 
 print(list(df.columns))
@@ -53,6 +53,7 @@ df['time_elapsed'] = pd.to_timedelta(df['time_elapsed'], unit='s')
 
 df = df[df['width'] == 128]
 df = df[df['layers'] == 30]
+# df = df[df['dataset'] == 'cifar100']
 # df = df[~df['comments'].str.contains('findLSC_radius_supn')]
 # df = df[df['comments'].str.contains('heinit') | df['comments'].str.contains('findLSC_supnpsd2')]
 # df = df[~df['activation'].str.contains('sin')]
@@ -200,7 +201,7 @@ metrics_oi = [
     'LSC_norms initial', 'LSC_norms final',
 ]
 
-group_cols = ['lr', 'comments', 'activation']
+group_cols = ['lr', 'comments', 'activation', 'dataset']
 counts = df.groupby(group_cols).size().reset_index(name='counts')
 
 metrics_oi = [shorten_losses(m) for m in metrics_oi]
@@ -227,10 +228,26 @@ colors = {'findLSC_radius': [0.43365406, 0.83304796, 0.58958684], '': [0.2499538
           'findLSC_supsubnpsd': [0.2225346, 0.06820208, 0.9836983], 'heinit': [0.96937357, 0.28256986, 0.26486611]}
 
 if lrs_plot:
+    from matplotlib.lines import Line2D
+
     comments = mdf['comments'].unique()
     activations = sorted(mdf['activation'].unique())
+    datasets = sorted(mdf['dataset'].unique())
+    comments = sorted(mdf['comments'].unique())
+    comments = ['', 'heinit', 'findLSC', 'findLSC_radius', 'findLSC_supnpsd2', 'findLSC_supsubnpsd']
 
-    fig, axs = plt.subplots(1, len(activations), figsize=(6, 3))
+    print(comments)
+
+    #figsize=(4, 2)
+    fig, axs = plt.subplots(
+        len(datasets), len(activations), figsize=(5, 3), sharey='row',
+                            gridspec_kw={'wspace': .1, 'hspace': .1},
+    )
+
+    if len(datasets) == 1:
+        axs = np.array([axs])
+    if len(activations) == 1:
+        axs = np.array([axs]).T
 
 
     def clean_comments(c):
@@ -248,21 +265,38 @@ if lrs_plot:
         return c
 
 
-    for i, a in enumerate(activations):
-        adf = mdf[mdf['activation'] == a]
-        axs[i].set_title(a)
-        for c in comments:
-            idf = adf[adf['comments'] == c]
-            ys = idf['mean_' + metric].values
-            yerrs = idf['std_' + metric].values
-            xs = idf['lr'].values
-            axs[i].plot(xs, ys, color=colors[c], label=clean_comments(c))
-            axs[i].fill_between(xs, ys - yerrs / 2, ys + yerrs / 2, alpha=0.5, color=colors[c])
+    for i, dataset in enumerate(datasets):
+        ddf = mdf[mdf['dataset'] == dataset]
+        for j, a in enumerate(activations):
+            adf = ddf[ddf['activation'] == a]
+            axs[0, j].set_title(a, weight='bold')
+            for c in comments:
+                idf = adf[adf['comments'] == c]
+                ys = idf['mean_' + metric].values
+                yerrs = idf['std_' + metric].values
+                xs = idf['lr'].values
+                axs[i, j].plot(xs, ys, color=colors[c], label=clean_comments(c))
+                axs[i, j].fill_between(xs, ys - yerrs / 2, ys + yerrs / 2, alpha=0.5, color=colors[c])
 
-    # x axis log scale
-    plt.xlabel('Learning rate')
-    axs[0].set_ylabel('Accuracy')
-    plt.legend()
+            if not i == len(datasets) - 1:
+                axs[i, j].tick_params(axis='x', which='both', bottom=False, top=False, labelbottom=False)
+
+            if not j == 0:
+                axs[i, j].tick_params(axis='y', which='both', left=False, right=False, labelleft=False)
+
+                # x axis log scale
+    axs[-1, -1].set_xlabel('Learning rate')
+    axs[0, 0].set_ylabel('Accuracy')
+
+    legend_elements = [Line2D([0], [0], color=colors[n], lw=4, label=clean_comments(n))
+                       for n in comments]
+    plt.legend(ncol=3, handles=legend_elements, loc='lower center', bbox_to_anchor=(-.1, -1.))
+
+    # add a vertical text to the plot, to indicate the dataset, one for each row
+    for i, dataset in enumerate(datasets):
+        fig.text(-0.03, 0.7-i*.45, dataset, va='center', rotation='vertical', weight='bold')
+
+    # plt.legend()
 
     for ax in axs.reshape(-1):
         for pos in ['right', 'left', 'bottom', 'top']:
@@ -308,12 +342,12 @@ if remove_incomplete:
         rdfs.append(rdf)
 
     # from LSC_norms final column, select those that are epsilon away from 1
-    epsilon = 0.06
+    epsilon = 0.09
     rdf = df[abs(df['LSC_norms final'] - 1) > epsilon]
-    # print(rdf.to_string())
-    # print(rdf.shape, odf.shape)
+    print(rdf.to_string())
+    print(rdf.shape, odf.shape)
 
-    # rdfs.append(rdf)
+    rdfs.append(rdf)
 
     # remove one seed from those that have more than 4 seeds
     brdf = mdf[mdf['counts'] > 4]
@@ -333,20 +367,21 @@ if remove_incomplete:
         rdf = srdf[~srdf.apply(tuple, 1).isin(gsrdf.apply(tuple, 1))]
         rdfs.append(rdf)
 
-    for rdf in rdfs:
-        print(rdf['comments'])
-        paths = rdf['path'].values
-        for p in paths:
-            print('Removing {}'.format(p))
-            exps_path = p
-            gexp_path = os.path.join(GEXPERIMENTS[0], os.path.split(p)[1] + '.zip')
-            print(exps_path)
-            print(gexp_path)
-            print(os.path.exists(exps_path), os.path.exists(gexp_path))
-            if os.path.exists(exps_path):
-                shutil.rmtree(exps_path)
-            if os.path.exists(gexp_path):
-                os.remove(gexp_path)
+    if truely_remove:
+        for rdf in rdfs:
+            print(rdf['comments'])
+            paths = rdf['path'].values
+            for p in paths:
+                print('Removing {}'.format(p))
+                exps_path = p
+                gexp_path = os.path.join(GEXPERIMENTS[0], os.path.split(p)[1] + '.zip')
+                print(exps_path)
+                print(gexp_path)
+                print(os.path.exists(exps_path), os.path.exists(gexp_path))
+                if os.path.exists(exps_path):
+                    shutil.rmtree(exps_path)
+                if os.path.exists(gexp_path):
+                    os.remove(gexp_path)
 
 if missing_exps:
     # columns of interest
@@ -362,7 +397,7 @@ if missing_exps:
         'comments': [
             '', 'findLSC', 'findLSC_supsubnpsd', 'findLSC_supnpsd2', 'findLSC_radius', 'heinit',
         ],
-        'activation': ['sin', 'relu'], 'dataset': ['cifar10'],
+        'activation': ['sin', 'relu'], 'dataset': ['cifar10', 'cifar100'],
         'layers': [30], 'width': [128], 'lr': [1e-3, 3.16e-4, 1e-4, 3.16e-5, 1e-5],
         'epochs': [50], 'steps_per_epoch': [-1], 'pretrain_epochs': [30], 'seed': list(range(4)),
     }
