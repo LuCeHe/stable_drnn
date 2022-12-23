@@ -53,16 +53,22 @@ plot_norms_pretraining = False
 plot_weights = False
 plot_lrs = False
 
+remove_incomplete = False
+truely_remove = False
+
 task_name = 'ps_mnist'  # heidelberg wordptb sl_mnist all ps_mnist
 
 # sparse_mode_accuracy sparse_categorical_crossentropy bpc sparse_mode_accuracy_test_10
 # val_sparse_mode_accuracy test_perplexity
-metric = 'v_ppl min'
+metric = 'v_ppl'  # 'v_ppl min'
 optimizer_name = 'SWAAdaBelief'  # SGD SWAAdaBelief
-metrics_oi = ['t_ppl min', 't_mode_acc max', 'v_ppl min', 'v_mode_acc max', ]
+metrics_oi = [
+    # 't_ppl min', 't_mode_acc max', 'v_ppl min', 'v_mode_acc max',
+    't_ppl', 't_mode_acc', 'v_ppl', 'v_mode_acc',
+    'LSC_norms initial', 'LSC_norms final'
+]
 
-plot_only = ['len rec_norms', 'rec_norms', 'epochs', 'net_name', 'task_name', 'n_params', 'comments', 'initializer',
-             'optimizer_name', 'steps_per_epoch',
+plot_only = ['epochs', 'net_name', 'task_name', 'n_params', 'comments',
              'path', 'lr'] + metrics_oi
 columns_to_remove = [
     'heaviside', '_test', 'weight', 'sLSTM_factor', 'save_model', 'clipnorm', 'GPU', 'batch_size',
@@ -78,29 +84,31 @@ df = experiments_to_pandas(
     exclude_files=['cout.txt'], check_for_new=check_for_new
 )
 
-# print(df.to_string())
-print(df.shape)
-print(list(df.columns))
-
-# df = df[df['path'].str.contains('2022-11-23--')]
-df.loc[df['path'].str.contains('2022-11-23--'), 'comments'] += '_23'
-df.loc[df['path'].str.contains('2022-11-25--'), 'comments'] += '_26'
-df.loc[df['path'].str.contains('2022-11-26--'), 'comments'] += '_26'
-df.loc[df['path'].str.contains('2022-11-28--'), 'comments'] += '_29'
-df.loc[df['path'].str.contains('2022-11-29--'), 'comments'] += '_29'
-
-
-if 'rec_norms' in df.columns:
-    df['rec_norms'] = df.apply(reorganize, axis=1)
-    df['len rec_norms'] = df['rec_norms'].apply(find_length)
-    df['rec_norms list'] = df['rec_norms'].apply(recnorms_list)
-    df['rec_norms'] = df['rec_norms'].apply(summary_lsc)
+# if 'rec_norms' in df.columns:
+#     df['rec_norms'] = df.apply(reorganize, axis=1)
+#     df['len rec_norms'] = df['rec_norms'].apply(find_length)
+#     df['rec_norms list'] = df['rec_norms'].apply(recnorms_list)
+#     df['rec_norms'] = df['rec_norms'].apply(summary_lsc)
 
 if plot_losses:
+    df['comments'] = df['comments'].str.replace('36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_', '')
+
+    colors = {
+        'findLSC_radius': [0.43365406, 0.83304796, 0.58958684], '': [0.24995383, 0.49626022, 0.35960801],
+        'findLSC': [0.74880857, 0.9167003, 0.50021289],
+        'findLSC_supnpsd2': [0.69663182, 0.25710645, 0.19346206],
+        'findLSC_supnpsd': [0.69663182, 0.25710645, 0.19346206],
+        'findLSC_supsubnpsd': [0.2225346, 0.06820208, 0.9836983], 'heinit': [0.96937357, 0.28256986, 0.26486611]}
+
     plot_metric = 'rec_norms list'
     plot_metric = 'val_perplexity list'
+    plot_metric = 'val_sparse_categorical_accuracy list'
+    plot_metric = 'LSC_norms list'
     tasks = df['task_name'].unique()
     nets = df['net_name'].unique()
+    comments = df['comments'].unique()
+    print(comments)
+
     fig, axs = plt.subplots(len(tasks), len(nets), figsize=(len(nets) * 3, len(tasks) * 3))
     for i, task in enumerate(tasks):
         for j, net in enumerate(nets):
@@ -110,16 +118,21 @@ if plot_losses:
                 idf = df[df['task_name'].str.contains(task) & df['net_name'].str.contains(net)]
 
                 for _, row in idf.iterrows():
+                    n = row['comments']
                     c = 'r' if 'LSC' in row['comments'] else 'b'
-                    c = 'r' if '_logradius' in row['comments'] else 'b'
+                    c = 'r' if 'supsub' in row['comments'] else 'b'
                     if isinstance(row[plot_metric], list):
                         # print(row['loss list'])
                         print('epochs', len(row[plot_metric]))
-                        axs[i, j].plot(row[plot_metric], color=c)
+                        axs[i, j].plot(row[plot_metric], color=colors[n], label=n)
                     else:
                         print(row[plot_metric], row['path'])
 
                 axs[i, j].set_title(f'{task} {net}')
+
+    legend_elements = [Line2D([0], [0], color=colors[n], lw=4, label=n) for n in comments]
+    plt.legend(ncol=3, handles=legend_elements, loc='lower center')  # , bbox_to_anchor=(-.1, -1.))
+
     plt.show()
 
 if 'n_params' in df.columns:
@@ -129,11 +142,10 @@ df['comments'] = df['comments'].astype(str)
 if 'net_name' in df.columns: df['net_name'] = df['net_name'].astype(str)
 if 'task_name' in df.columns: df['task_name'] = df['task_name'].astype(str)
 df = df[~df['comments'].str.contains('test')]
-# df = df[df['comments'].str.contains('normsamples:')]
-# df = df[df['path'].str.contains('2022-12-14')]
 
 if 'net_name' in df.columns:
     df.loc[df['comments'].str.contains('noalif'), 'net_name'] = 'LIF'
+    df.loc[df['net_name'].str.contains('maLSNNb'), 'net_name'] = 'ALIFb'
     df.loc[df['net_name'].str.contains('maLSNN'), 'net_name'] = 'ALIF'
 
 if 'task_name' in df.columns:
@@ -141,44 +153,30 @@ if 'task_name' in df.columns:
     df.loc[df['task_name'].str.contains('sl_mnist'), 'task_name'] = 'sl-MNIST'
     df.loc[df['task_name'].str.contains('wordptb'), 'task_name'] = 'PTB'
 
-for c_name in columns_to_remove:
-    df = df[df.columns.drop(list(df.filter(regex=c_name)))]
-
 new_column_names = {c_name: shorten_losses(c_name) for c_name in df.columns}
-
 df.rename(columns=new_column_names, inplace=True)
 
 if 'v_mode_acc len' in df.columns:
     # # FIXME: 14 experiments got nans in the heidelberg task validation, plot them anyway?
     print('v_mode_acc nans:', df['v_mode_acc len'].isna().sum())
-    # df = df[~df['v_mode_acc argmax'].isna()]
-    # df = df[~df['v_mode_acc len'].isna()]
+    df['v_ppl argmin'] = df['v_ppl argmin'].astype(int)
+    df['v_mode_acc argmax'] = df['v_mode_acc argmax'].astype(int)
 
-    # df['epochs'] = df['v_ppl len'].astype(int)
+    df['v_ppl'] = df.apply(lambda row: np.nanmin(row['v_ppl list']), axis=1)
+    df['t_ppl'] = df.apply(lambda row: row['t_ppl list'][row['v_ppl argmin']], axis=1)
+    df['v_mode_acc'] = df.apply(lambda row: np.nanmax(row['v_mode_acc list']), axis=1)
+    df['t_mode_acc'] = df.apply(lambda row: row['t_mode_acc list'][row['v_mode_acc argmax']], axis=1)
 
-    # df['v_ppl argmin'] = df['v_ppl argmin'].astype(int)
-    # df['v_mode_acc argmax'] = df['v_mode_acc argmax'].astype(int)
-
-    # df['v_ppl'] = df.apply(lambda row: np.nanmin(row['v_ppl list']), axis=1)
-    # df['t_ppl'] = df.apply(lambda row: row['t_ppl list'][row['v_ppl argmin']], axis=1)
-    # df['v_mode_acc'] = df.apply(lambda row: np.nanmax(row['v_mode_acc list']), axis=1)
-
-    # df['t_mode_acc'] = df.apply(lambda row: row['t_mode_acc list'][row['v_mode_acc argmax']], axis=1)
-
+for c_name in columns_to_remove:
+    df = df[df.columns.drop(list(df.filter(regex=c_name)))]
 
 if metric in df.keys():
     df = df.sort_values(by=metric)
 
-try:
-    if not plot_only is None:
-        df = df[plot_only]
-except Exception as e:
-    print(e)
+if not plot_only is None:
+    plotdf = df[plot_only]
 
-# print(df['experiment'])
-# print(df['host'])
-print(df.to_string())
-print(list(df.columns))
+    print(plotdf.to_string())
 
 if one_exp_curves:
     for _ in range(6):
@@ -227,10 +225,9 @@ if one_exp_curves:
 
         plt.show()
 
-
 if pandas_means:
     # group_cols = ['net_name', 'task_name', 'initializer', 'comments', 'lr']
-    group_cols = ['net_name', 'task_name', 'initializer', 'comments']
+    group_cols = ['net_name', 'task_name', 'comments']
     counts = df.groupby(group_cols).size().reset_index(name='counts')
 
     metrics_oi = [shorten_losses(m) for m in metrics_oi]
@@ -254,13 +251,15 @@ if pandas_means:
     print(mdf.to_string())
 
     if show_per_tasknet:
+        xdf = mdf
+        xdf['comments'] = xdf['comments'].str.replace('36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_', '')
         for task in tasks:
             for net in nets:
-                if not net == 'LIF':
-                    print('-===-' * 30)
-                    print(task, net)
-                    idf = mdf[mdf['task_name'].str.contains(task) & mdf['net_name'].str.contains(net)]
-                    print(idf.to_string())
+                print('-===-' * 30)
+                print(task, net)
+
+                idf = xdf[xdf['task_name'].eq(task) & xdf['net_name'].eq(net)]
+                print(idf.to_string())
 
     if make_latex:
 
@@ -378,8 +377,6 @@ if plot_lrs:
 
     plt.show()
 
-
-
 if missing_exps:
     # columns of interest
     coi = ['seed', 'task_name', 'net_name', 'comments']
@@ -398,12 +395,13 @@ if missing_exps:
 
     experiment = {
         'task_name': ['heidelberg', 'wordptb', 'sl_mnist'],
-        'net_name': ['maLSNN', 'maLSNNb', 'LSTM'], 'seed': seeds,
+        # 'net_name': ['maLSNN', 'maLSNNb', 'LSTM'], 'seed': seeds,
+        'net_name': ['LSTM'], 'seed': seeds,
         'comments': [
             incomplete_comments,
             incomplete_comments + f'findLSC',
             incomplete_comments + f'findLSC_supsubnpsd',
-            incomplete_comments + f'findLSC_supnpsd',
+            incomplete_comments + f'findLSC_supnpsd2',
             incomplete_comments + f'findLSC_radius',
         ],
     }
@@ -799,3 +797,35 @@ if plot_dampenings_and_betas:
     fig.savefig(pathplot, bbox_inches='tight')
 
     plt.show()
+
+
+if remove_incomplete:
+    import shutil
+
+    # df = odf
+
+    rdfs = []
+    # from LSC_norms final column, select those that are epsilon away from 1
+    epsilon = 0.09
+    rdf = plotdf[abs(plotdf['LSC_norms final'] - 1) > epsilon]
+    print(rdf.to_string())
+    print(rdf.shape, df.shape)
+
+    rdfs.append(rdf)
+
+    if truely_remove:
+        for rdf in rdfs:
+            print(rdf['comments'])
+            paths = rdf['path'].values
+            for p in paths:
+                print('Removing {}'.format(p))
+                exps_path = p
+                gexp_path = os.path.join(GEXPERIMENTS[0], os.path.split(p)[1] + '.zip')
+                print(exps_path)
+                print(gexp_path)
+                print(os.path.exists(exps_path), os.path.exists(gexp_path))
+                if os.path.exists(exps_path):
+                    shutil.rmtree(exps_path)
+                if os.path.exists(gexp_path):
+                    os.remove(gexp_path)
+

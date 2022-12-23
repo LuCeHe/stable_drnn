@@ -44,7 +44,7 @@ def config():
     # task and net
     # ps_mnist heidelberg s_mnist
     # wordptb sl_mnist
-    task_name = 'heidelberg'
+    task_name = 'wordptb'
 
     # test configuration
     epochs = 2
@@ -60,7 +60,7 @@ def config():
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task_name in language_tasks else False
     comments = '34_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_naswot:1_v2naswot'  # 'nsLIFreadout_adaptsg_dropout:0.50' findLSC_test
-    comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_findLSC_supsubnpsd'
+    comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_findLSC'
 
     # optimizer properties
     lr = None  # 7e-4 None
@@ -191,9 +191,12 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
 
             del gen_train
             print(json.dumps(new_model_args, indent=4, cls=NumpyEncoder))
-            lsclr = 3.16e-3
-            if net_name == 'LSTM' and norm_pow == np.inf:
-                lsclr = 1e-2
+            # lsclr = 3.16e-3
+            lsclr = 3.16e-4
+            if 'supsubnpsd' in comments:
+                lsclr *= 10
+            # if net_name == 'LSTM' and norm_pow == np.inf:
+            #     lsclr = 1e-2
 
             weights, lsc_results = apply_LSC(
                 train_task_args=new_task_args, model_args=new_model_args, norm_pow=norm_pow, n_samples=n_samples,

@@ -23,7 +23,7 @@ warnings.filterwarnings('ignore')
 
 
 def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, norm_pow=2, naswot=0, comments='',
-              epsilon=1e-8, target_norm=1., test=False):
+              log_epsilon=1e-8, target_norm=1., test=False):
     if tape is None and lower_states is None and upper_states is None and test == False:
         raise ValueError('No input data given!')
 
@@ -70,8 +70,9 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
         preloss = tf.einsum('bks,sk->bs', a, z)
         loss += tf.reduce_mean(tf.nn.relu(-preloss))
 
-        eig = tf.linalg.eigvals(std)
-        norms = tf.reduce_sum(tf.math.log(tf.abs(eig) + epsilon), axis=-1) + 1
+        # norms = tf.linalg.logdet(std) + 1
+        norms = tf.reduce_sum(tf.math.log(log_epsilon + tf.abs(tf.linalg.eigvals(std))), axis=-1) + 1
+
 
     elif 'supsubnpsd' in comments:
         # loss that encourages the matrix to be psd
@@ -96,7 +97,7 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
             r = tf.math.reduce_max(tf.abs(tf.linalg.eigvals(td)), axis=-1)
         else:
             r = tf.math.reduce_max(tf.linalg.svd(td, compute_uv=False), axis=-1) / 2
-        norms = tf.math.log(r + epsilon) + 1
+        norms = tf.math.log(r + log_epsilon) + 1
 
     elif 'radius' in comments:
         norms = tf.math.reduce_max(tf.abs(tf.linalg.eigvals(std)), axis=-1)
@@ -163,8 +164,8 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
     return tf.abs(norms), loss, naswot_score
 
 
-def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, steps_per_epoch=1, epsilon=.01,
-              patience=50, rec_norm=True, depth_norm=True, encoder_norm=False, decoder_norm=True, learn=True,
+def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, steps_per_epoch=2, es_epsilon=.06,
+              patience=10, rec_norm=True, depth_norm=True, encoder_norm=False, decoder_norm=True, learn=True,
               time_steps=None, weights=None, save_weights_path=None, lr=1e-3, naswot=0,
               comments=''):
     target_norm = 1.
@@ -190,6 +191,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
     all_norms = []
     all_naswot = []
     rec_norms = {}
+
+    li, pi, mi = None, None, None
 
     # the else is valid for the LSTM
     hi, ci = (1, 2) if 'LSNN' in net_name else (0, 1)
@@ -349,7 +352,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
             # print(some_norms)
             norms = tf.reduce_mean(some_norms)
 
-            if abs(norms.numpy() - target_norm) < epsilon:
+            if abs(norms.numpy() - target_norm) < es_epsilon:
                 epsilon_steps += 1
             else:
                 epsilon_steps = 0
@@ -363,11 +366,16 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
             pbar2.update(1)
 
             prms = tf.reduce_mean([tf.reduce_mean(w) for w in model.trainable_weights]).numpy()
+            if li is None:
+                li = str(round(mean_loss.numpy(), 4))
+                pi = str(round(prms, 4))
+                ni = str(round(norms.numpy(), 4))
+
             pbar2.set_description(
                 f"Step {step}; "
-                f"Loss {str(round(mean_loss.numpy(), 4))}; "
-                f"mean params {str(round(prms, 4))}; "
-                f"mean norms {str(round(norms.numpy(), 4))} "
+                f"Loss {str(round(mean_loss.numpy(), 4))}/{li}; "
+                f"mean params {str(round(prms, 4))}/{pi}; "
+                f"mean norms {str(round(norms.numpy(), 4))}/{ni} "
             )
             for n, w in zip(weight_names, model.get_weights()):
                 results[f'{n}_mean'].append(tf.reduce_mean(w).numpy())

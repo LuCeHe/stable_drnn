@@ -137,7 +137,7 @@ def find_length(x):
 
 def summary_lsc(x):
     if isinstance(x, dict):
-        if 'batch 0 layer 0' in x.keys():
+        if 'batch 1 layer 0' in x.keys():
             x = x['batch 1 layer 0']
         else:
             x = x['batch 0 layer 0']
@@ -150,7 +150,7 @@ def summary_lsc(x):
     return l
 def recnorms_list(x):
     if isinstance(x, dict):
-        if 'batch 0 layer 0' in x.keys():
+        if 'batch 1 layer 0' in x.keys():
             x = x['batch 1 layer 0']
         else:
             x = x['batch 0 layer 0']
