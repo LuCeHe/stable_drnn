@@ -31,20 +31,21 @@ from GenericTools.stay_organized.unzip import unzip_good_exps
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
 EXPERIMENTS = os.path.join(CDIR, 'experiments')
-GEXPERIMENTS = r'D:\work\alif_sg\good_experiments\2022-10-10--good_for_initial_tables'
+EXPERIMENTS = r'D:\work\alif_sg\experiments'
 GEXPERIMENTS = [
     os.path.join(CDIR, 'good_experiments'),
     # os.path.join(CDIR, 'good_experiments', '2022-11-07--complete_set_of_exps'),
 ]
+GEXPERIMENTS = [r'D:\work\alif_sg\good_experiments\2022-12-16--rnn-large-results']
 
 expsid = 'als'  # effnet als ffnandcnns
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
-check_for_new = True
+check_for_new = False
 plot_losses = False
 one_exp_curves = False
-pandas_means = True
-show_per_tasknet = True
+pandas_means = False
+show_per_tasknet = False
 make_latex = False
 missing_exps = True
 plot_lsc_vs_naive = False
@@ -55,6 +56,7 @@ plot_lrs = False
 
 remove_incomplete = False
 truely_remove = False
+remove_saved_model = False
 
 task_name = 'ps_mnist'  # heidelberg wordptb sl_mnist all ps_mnist
 
@@ -159,13 +161,17 @@ df.rename(columns=new_column_names, inplace=True)
 if 'v_mode_acc len' in df.columns:
     # # FIXME: 14 experiments got nans in the heidelberg task validation, plot them anyway?
     print('v_mode_acc nans:', df['v_mode_acc len'].isna().sum())
-    df['v_ppl argmin'] = df['v_ppl argmin'].astype(int)
-    df['v_mode_acc argmax'] = df['v_mode_acc argmax'].astype(int)
+    # df['v_ppl argmin'] = df['v_ppl argmin'].astype(int)
+    # df['v_mode_acc argmax'] = df['v_mode_acc argmax'].astype(int)
 
-    df['v_ppl'] = df.apply(lambda row: np.nanmin(row['v_ppl list']), axis=1)
-    df['t_ppl'] = df.apply(lambda row: row['t_ppl list'][row['v_ppl argmin']], axis=1)
-    df['v_mode_acc'] = df.apply(lambda row: np.nanmax(row['v_mode_acc list']), axis=1)
-    df['t_mode_acc'] = df.apply(lambda row: row['t_mode_acc list'][row['v_mode_acc argmax']], axis=1)
+    df['v_ppl'] = df['v_ppl min']
+    # df['t_ppl'] = df.apply(lambda row: row['t_ppl list'][row['v_ppl argmin']], axis=1)
+    df['v_mode_acc'] = df['v_mode_acc max']
+    # df['t_mode_acc'] = df.apply(lambda row: row['t_mode_acc list'][row['v_mode_acc argmax']], axis=1)
+
+    # FIXME: following is incorrect, correct it as soon as you get rid of the NaNs
+    df['t_ppl'] = df['t_ppl min']
+    df['t_mode_acc'] = df['t_mode_acc max']
 
 for c_name in columns_to_remove:
     df = df[df.columns.drop(list(df.filter(regex=c_name)))]
@@ -395,8 +401,8 @@ if missing_exps:
 
     experiment = {
         'task_name': ['heidelberg', 'wordptb', 'sl_mnist'],
-        # 'net_name': ['maLSNN', 'maLSNNb', 'LSTM'], 'seed': seeds,
-        'net_name': ['LSTM'], 'seed': seeds,
+        'net_name': ['maLSNN', 'maLSNNb'], 'seed': seeds,
+        # 'net_name': ['LSTM'], 'seed': seeds,
         'comments': [
             incomplete_comments,
             incomplete_comments + f'findLSC',
@@ -798,7 +804,6 @@ if plot_dampenings_and_betas:
 
     plt.show()
 
-
 if remove_incomplete:
     import shutil
 
@@ -812,6 +817,12 @@ if remove_incomplete:
     print(rdf.shape, df.shape)
 
     rdfs.append(rdf)
+
+
+    rdf= plotdf[plotdf['v_ppl'].isna()]
+    print(rdf.to_string())
+    rdfs.append(rdf)
+
 
     if truely_remove:
         for rdf in rdfs:
@@ -829,3 +840,33 @@ if remove_incomplete:
                 if os.path.exists(gexp_path):
                     os.remove(gexp_path)
 
+if remove_saved_model:
+    from zipfile import ZipFile
+
+    ds = [d for d in os.listdir(GEXPERIMENTS[0]) if expsid in d and 'zip' in d]
+    n2clean = 0
+    for d in tqdm(ds):
+        print('-' * 80)
+        print(d)
+        path = os.path.join(GEXPERIMENTS[0], d)
+        with ZipFile(path, 'r') as zf:
+            # print(zf.namelist())
+            n = [n for n in zf.namelist() if 'checkpoint' in n]
+            if len(n) > 0:
+                n2clean += 1
+                # zin = ZipFile('archive.zip', 'r')
+                zout = ZipFile(path.replace('als', 'als_new'), 'w')
+                for item in zf.infolist():
+                    buffer = zf.read(item.filename)
+                    if ('checkpoint' not in item.filename):
+                        zout.writestr(item, buffer)
+                zout.close()
+                # zin.close()
+                # dst = os.path.join(DESTDRL, d.replace('.zip', '').replace('kiwanoDRL', ''))
+                # if not os.path.exists(dst):
+                #     os.makedirs(dst)
+                #     import shutil
+                #
+                #     shutil.copy(path, os.path.join(dst, d))
+
+    print('There are {} models to clean'.format(n2clean))
