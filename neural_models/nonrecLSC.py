@@ -30,7 +30,8 @@ def get_weights_statistics(results, weight_names, weights):
 
 
 def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_pow=2, fanin=False, forward_lsc=False,
-                      nlayerjump=None, layer_min=None, layer_max=None, comments='', epsilon=.06, patience=20, ):
+                      nlayerjump=None, layer_min=None, layer_max=None, comments='', epsilon=.06, patience=20,
+                      subsample_axis=False):
     assert callable(build_model)
     if forward_lsc:
         learning_rate = .1
@@ -94,7 +95,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
                         model.set_weights(weights)
 
                     lnames = [layer.name for layer in model.layers]
-
+                    # print(lnames)
                     for _ in range(3):
                         pairs = sorted(
                             np.random.choice(list(range(len(lnames)))[layer_min:layer_max], 2, replace=False))
@@ -102,49 +103,66 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
                         if not isinstance(input_shape, list):
                             break
 
-                    if isinstance(nlayerjump, int):
-                        pairs[1] = pairs[0] + nlayerjump
-
-                    premodel, intermodel = split_model(model, pairs)
-
-                    preinter = premodel(batch)
-
-                    tape.watch(preinter)
-
-                    if not forward_lsc:
-                        # flatten and deflatten to make sure the flat version is in the gradient graph
-                        # preinter_shape = preinter.shape
-                        flat_inp = tf.reshape(preinter, [preinter.shape[0], -1])
-
-                        # sample and desample to make sure that the sample is in the graph,
-                        # so the derivative will be taken correctly
-                        shuffinp, reminder, indices = sample_axis(flat_inp, max_dim=max_dim, return_deshuffling=True)
-                        defhuffledinp = desample_axis(shuffinp, reminder, indices)
-
-                        assert tf.math.reduce_all(tf.equal(defhuffledinp, flat_inp))
-
-                        new_preinter = tf.reshape(defhuffledinp, preinter.shape)
-
-                        assert tf.math.reduce_all(tf.equal(new_preinter, preinter))
+                    if 'alllays' in comments:
+                        init_pairs = list(range(len(lnames)))
+                        # print('init_pairs', init_pairs)
                     else:
-                        new_preinter = preinter
+                        init_pairs = [pairs[0]]
 
-                    interout = intermodel(new_preinter)
+                    loss = 0
+                    for ip in init_pairs:
+                        # print(ip,len(init_pairs))
+                        if isinstance(nlayerjump, int):
+                            pairs[1] = ip + nlayerjump
 
-                    if not forward_lsc:
-                        inp = shuffinp
-                        oup = interout
+                        premodel, intermodel = split_model(model, pairs)
 
-                        reoup = tf.reshape(oup, [oup.shape[0], -1])
-                        oup = sample_axis(reoup, max_dim=max_dim)
+                        preinter = premodel(batch)
 
-                        norms, loss, naswot_score = get_norms(tape, [inp], [oup], n_samples=n_samples,
-                                                              norm_pow=norm_pow, comments=comments)
-                    else:
-                        varin = tf.math.reduce_variance(new_preinter)
-                        varout = tf.math.reduce_variance(interout)
-                        loss = tf.reduce_mean(tf.abs(varin - varout))
-                        norms = varout / varin
+                        tape.watch(preinter)
+
+                        if subsample_axis:
+                            if not forward_lsc:
+                                # flatten and deflatten to make sure the flat version is in the gradient graph
+                                # preinter_shape = preinter.shape
+                                flat_inp = tf.reshape(preinter, [preinter.shape[0], -1])
+
+                                # sample and desample to make sure that the sample is in the graph,
+                                # so the derivative will be taken correctly
+                                shuffinp, reminder, indices = sample_axis(flat_inp, max_dim=max_dim,
+                                                                          return_deshuffling=True)
+                                defhuffledinp = desample_axis(shuffinp, reminder, indices)
+
+                                assert tf.math.reduce_all(tf.equal(defhuffledinp, flat_inp))
+
+                                new_preinter = tf.reshape(defhuffledinp, preinter.shape)
+
+                                assert tf.math.reduce_all(tf.equal(new_preinter, preinter))
+                            else:
+                                new_preinter = preinter
+                        else:
+                            new_preinter = preinter
+
+                        interout = intermodel(new_preinter)
+
+                        if not forward_lsc:
+                            if subsample_axis:
+                                inp = shuffinp
+                            else:
+                                inp = preinter
+                            oup = interout
+
+                            reoup = tf.reshape(oup, [oup.shape[0], -1])
+                            oup = sample_axis(reoup, max_dim=max_dim)
+
+                            norms, iloss, naswot_score = get_norms(tape, [inp], [oup], n_samples=n_samples,
+                                                                   norm_pow=norm_pow, comments=comments)
+                        else:
+                            varin = tf.math.reduce_variance(new_preinter)
+                            varout = tf.math.reduce_variance(interout)
+                            iloss = tf.reduce_mean(tf.abs(varin - varout))
+                            norms = varout / varin
+                        loss += iloss
 
                     av_weights = tf.reduce_mean([tf.reduce_mean(tf.cast(t, tf.float32)) for t in model.weights])
                     ma_loss = loss if ma_loss is None else ma_loss * 9 / 10 + loss / 10
@@ -181,7 +199,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
                 # f"Factor {show_factor}, "
                 f"Av. Weights {show_avw}, "
                 # f"Failures {n_failures}, "
-                # f"Fail rate {show_failure}, "
+                f"Fail rate {show_failure}, "
                 f"ES {epsilon_steps}/{patience} "
 
             )

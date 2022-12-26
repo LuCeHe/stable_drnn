@@ -1,6 +1,6 @@
 import time
 
-from stay_organized.submit_jobs import dict2iter
+from GenericTools.stay_organized.submit_jobs import dict2iter
 
 print(1)
 # measure time
@@ -11,15 +11,17 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from stay_organized.pandardize import experiments_to_pandas, complete_missing_exps
-from stay_organized.standardize_strings import shorten_losses
+from GenericTools.stay_organized.pandardize import experiments_to_pandas, complete_missing_exps
+from GenericTools.stay_organized.standardize_strings import shorten_losses
 
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
 EXPERIMENTS = os.path.join(CDIR, 'experiments')
+EXPERIMENTS = r'D:\work\alif_sg\experiments'
 GEXPERIMENTS = [
-    os.path.join(CDIR, 'good_experiments', '2022-12-16--ffn'),
-    # r'D:\work\alif_sg\good_experiments\2022-11-23--unclear_rnn_good_ffn'
+    # os.path.join(CDIR, 'good_experiments', '2022-12-16--ffn'),
+    # os.path.join(CDIR, 'good_experiments'),
+    r'D:\work\alif_sg\good_experiments\2022-12-16--ffn'
 ]
 
 plot_norms_evol = False
@@ -43,7 +45,6 @@ df = experiments_to_pandas(
 )
 
 print(list(df.columns))
-
 print(3, time.time() - start)
 
 start = time.time()
@@ -193,6 +194,9 @@ print(df.columns)
 df = df.sort_values(by=metric)
 print(df.to_string())
 
+# import sys
+# sys.exit()
+
 metrics_oi = [
     # 'loss min',
     'val_loss min', 'test_loss min',
@@ -238,10 +242,10 @@ if lrs_plot:
 
     print(comments)
 
-    #figsize=(4, 2)
+    # figsize=(4, 2)
     fig, axs = plt.subplots(
         len(datasets), len(activations), figsize=(5, 3), sharey='row',
-                            gridspec_kw={'wspace': .1, 'hspace': .1},
+        gridspec_kw={'wspace': .1, 'hspace': .1},
     )
 
     if len(datasets) == 1:
@@ -294,7 +298,7 @@ if lrs_plot:
 
     # add a vertical text to the plot, to indicate the dataset, one for each row
     for i, dataset in enumerate(datasets):
-        fig.text(-0.03, 0.7-i*.45, dataset, va='center', rotation='vertical', weight='bold')
+        fig.text(-0.03, 0.7 - i * .45, dataset, va='center', rotation='vertical', weight='bold')
 
     # plt.legend()
 
@@ -310,10 +314,13 @@ if lrs_plot:
 
 if plot_losses:
     df = odf
+    df = df[df['dataset'] == 'cifar100']
+    df = df[df['comments'].str.contains('supsubnpsd')]
+
     activations = sorted(df['activation'].unique())
 
     fig, axs = plt.subplots(1, len(activations), figsize=(6, 3))
-    metric = 'val_acc list'  # 'val_acc list' 'loss list'
+    metric = 'LSC_norms list'  # 'val_acc list' 'loss list' LSC_norms
     # print([c for c in df.columns if 'list' in c])
 
     for i, a in enumerate(activations):
@@ -347,7 +354,7 @@ if remove_incomplete:
     print(rdf.to_string())
     print(rdf.shape, odf.shape)
 
-    rdfs.append(rdf)
+    # rdfs.append(rdf)
 
     # remove one seed from those that have more than 4 seeds
     brdf = mdf[mdf['counts'] > 4]
@@ -365,7 +372,11 @@ if remove_incomplete:
 
         # remainder
         rdf = srdf[~srdf.apply(tuple, 1).isin(gsrdf.apply(tuple, 1))]
-        rdfs.append(rdf)
+        # rdfs.append(rdf)
+
+    rdf= df[df['val_loss min'].isna()]
+    print(rdf.to_string())
+    rdfs.append(rdf)
 
     if truely_remove:
         for rdf in rdfs:

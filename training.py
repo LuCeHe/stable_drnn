@@ -192,9 +192,9 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
             del gen_train
             print(json.dumps(new_model_args, indent=4, cls=NumpyEncoder))
             # lsclr = 3.16e-3
-            lsclr = 3.16e-4
-            if 'supsubnpsd' in comments:
-                lsclr *= 10
+            lsclr = 3.16e-2
+            # if 'supsubnpsd' in comments:
+            #     lsclr *= 10
             # if net_name == 'LSTM' and norm_pow == np.inf:
             #     lsclr = 1e-2
 

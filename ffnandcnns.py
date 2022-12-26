@@ -41,11 +41,12 @@ def get_argparse():
     parser.add_argument("--resize", default=32, type=int, help="Resize images", choices=[224, 128, 64, 32])
     parser.add_argument("--width", default=128, type=int, help="Layer width")
     parser.add_argument("--lr", default=.001, type=float, help="Learning rate")
-    parser.add_argument("--comments", default='', type=str, help="String to activate extra behaviors")
-    parser.add_argument("--dataset", default='cifar10', type=str, help="Dataset to train on",
+    parser.add_argument("--comments", default='findLSC', type=str, help="String to activate extra behaviors")
+    parser.add_argument("--dataset", default='cifar10', type=str,
                         choices=['cifar10', 'cifar100', 'mnist'])
-    parser.add_argument("--net_type", default='ffn', type=str, help="Dataset to train on", choices=['ffn', 'cnn'])
-    parser.add_argument("--activation", default='sin', type=str, help="Activation", choices=['swish', 'relu', 'sin'])
+    parser.add_argument("--net_type", default='ffn', type=str, choices=['ffn', 'cnn'])
+    parser.add_argument("--activation", default='sin', type=str, help="Activation",
+                        choices=['swish', 'relu', 'sin', 'cos'])
     parser.add_argument(
         "--initialization", default='glorot_normal', type=str, help="Activation to train on",
         choices=['he_normal', 'glorot_normal']
@@ -139,7 +140,6 @@ def plot_model_weights_dists(model, plot_dir, plot_tag):
 
 
 def main(args):
-
     results = {}
     results.update(vars(args))
 
@@ -148,6 +148,9 @@ def main(args):
 
     if args.activation == 'sin':
         args.activation = tf.math.sin
+
+    if args.activation == 'cos':
+        args.activation = tf.math.cos
 
     # set seed
     random.seed(args.seed)
@@ -175,7 +178,6 @@ def main(args):
         bm = lambda: build_ffn(args, input_shape, classes)
     else:
         raise NotImplementedError
-
 
     if 'findLSC' in args.comments:
         model = bm()
@@ -241,7 +243,6 @@ def main(args):
         json_filename = os.path.join(EXPERIMENT, 'history.json')
         history_jsonable = {k: np.array(v).astype(float).tolist() for k, v in history_dict.items()}
         json.dump(history_jsonable, open(json_filename, "w"))
-
 
     return results
 

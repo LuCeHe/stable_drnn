@@ -68,7 +68,7 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
 
         a = std @ zT
         preloss = tf.einsum('bks,sk->bs', a, z)
-        loss += tf.reduce_mean(tf.nn.relu(-preloss))
+        loss += tf.reduce_mean(tf.nn.relu(-preloss))/3
 
         # norms = tf.linalg.logdet(std) + 1
         norms = tf.reduce_sum(tf.math.log(log_epsilon + tf.abs(tf.linalg.eigvals(std))), axis=-1) + 1
@@ -84,13 +84,13 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
 
         a = std @ zT
         preloss = tf.einsum('bks,sk->bs', a, z)
-        loss += tf.reduce_mean(tf.nn.relu(-preloss))
+        loss += tf.reduce_mean(tf.nn.relu(-preloss))/3
 
         eig = tf.linalg.eigvals(std)
         r = tf.math.real(eig)
         i = tf.math.imag(eig)
         norms = r + i
-        loss += well_loss(min_value=0., max_value=0., walls_type='relu', axis='all')(i)
+        loss += well_loss(min_value=0., max_value=0., walls_type='relu', axis='all')(i)/3
 
     elif 'logradius' in comments:
         if td.shape[-1] == td.shape[-2]:
@@ -339,47 +339,51 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                     optimizer.apply_gradients(zip(grads, model.trainable_weights))
                     del grads
 
+
+                states = states_p1
+
+                if not np.isnan(mean_loss.numpy()):
+                    del weights
+                    weights = model.get_weights()
+
+                tf.keras.backend.clear_session()
+                tf.keras.backend.clear_session()
+                tf.keras.backend.clear_session()
+                # print(some_norms)
+                norms = tf.reduce_mean(some_norms)
+
+                if abs(norms.numpy() - target_norm) < es_epsilon:
+                    epsilon_steps += 1
+                else:
+                    epsilon_steps = 0
+
+                if epsilon_steps > patience:
+                    break
+
+                all_norms.append(norms.numpy())
+                losses.append(mean_loss.numpy())
+
+                pbar2.update(1)
+
+                prms = tf.reduce_mean([tf.reduce_mean(w) for w in model.trainable_weights]).numpy()
+                if li is None:
+                    li = str(round(mean_loss.numpy(), 4))
+                    pi = str(round(prms, 4))
+                    ni = str(round(norms.numpy(), 4))
+
+                pbar2.set_description(
+                    f"Step {step}; "
+                    f"Loss {str(round(mean_loss.numpy(), 4))}/{li}; "
+                    f"mean params {str(round(prms, 4))}/{pi}; "
+                    f"mean norms {str(round(norms.numpy(), 4))}/{ni} "
+                )
+                for n, w in zip(weight_names, model.get_weights()):
+                    results[f'{n}_mean'].append(tf.reduce_mean(w).numpy())
+                    results[f'{n}_var'].append(tf.math.reduce_variance(w).numpy())
+
             except Exception as e:
                 print(e)
 
-            states = states_p1
-
-            if not np.isnan(mean_loss.numpy()):
-                del weights
-                weights = model.get_weights()
-
-            tf.keras.backend.clear_session()
-            # print(some_norms)
-            norms = tf.reduce_mean(some_norms)
-
-            if abs(norms.numpy() - target_norm) < es_epsilon:
-                epsilon_steps += 1
-            else:
-                epsilon_steps = 0
-
-            if epsilon_steps > patience:
-                break
-
-            all_norms.append(norms.numpy())
-            losses.append(mean_loss.numpy())
-
-            pbar2.update(1)
-
-            prms = tf.reduce_mean([tf.reduce_mean(w) for w in model.trainable_weights]).numpy()
-            if li is None:
-                li = str(round(mean_loss.numpy(), 4))
-                pi = str(round(prms, 4))
-                ni = str(round(norms.numpy(), 4))
-
-            pbar2.set_description(
-                f"Step {step}; "
-                f"Loss {str(round(mean_loss.numpy(), 4))}/{li}; "
-                f"mean params {str(round(prms, 4))}/{pi}; "
-                f"mean norms {str(round(norms.numpy(), 4))}/{ni} "
-            )
-            for n, w in zip(weight_names, model.get_weights()):
-                results[f'{n}_mean'].append(tf.reduce_mean(w).numpy())
-                results[f'{n}_var'].append(tf.math.reduce_variance(w).numpy())
 
         del batch
 

@@ -40,11 +40,11 @@ GEXPERIMENTS = [
 expsid = 'als'  # effnet als ffnandcnns
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
-check_for_new = False
+check_for_new = True
 plot_losses = False
 one_exp_curves = False
-pandas_means = False
-show_per_tasknet = False
+pandas_means = True
+show_per_tasknet = True
 make_latex = False
 missing_exps = True
 plot_lsc_vs_naive = False
