@@ -16,7 +16,7 @@ from GenericTools.stay_organized.standardize_strings import shorten_losses
 
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
-EXPERIMENTS = os.path.join(CDIR, 'experiments')
+# EXPERIMENTS = os.path.join(CDIR, 'experiments')
 EXPERIMENTS = r'D:\work\alif_sg\experiments'
 GEXPERIMENTS = [
     # os.path.join(CDIR, 'good_experiments', '2022-12-16--ffn'),
@@ -28,14 +28,14 @@ plot_norms_evol = False
 plot_norms_evol_1 = False
 lrs_plot = False
 plot_losses = False
-missing_exps = True
+missing_exps = False
 remove_incomplete = False
 truely_remove = False
 
 print(2, time.time() - start)
 start = time.time()
 
-metric = 'val_acc max'  # 'val_acc max'   'val_loss min'
+metric = 'val_acc M'  # 'val_acc max'   'val_loss min'
 expsid = 'ffnandcnns'  # effnet als ffnandcnns
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
@@ -179,12 +179,16 @@ columns_containing = ['_var']
 
 new_column_names = {c_name: shorten_losses(c_name) for c_name in df.columns}
 df.rename(columns=new_column_names, inplace=True)
-df = df.rename(columns={'test_loss': 'test_loss min', 'test_acc': 'test_acc max'})
+df = df.rename(columns={'test_loss': 'test_loss m', 'test_acc': 'test_acc M'})
 
 plot_only = [
-    'activation', 'pretrain_epochs', 'steps_per_epoch', 'seed', 'lr', 'width', 'layers', 'comments',
-    'val_acc max', 'acc max', 'test_loss min', 'test_acc max', 'LSC_norms initial', 'LSC_norms final',
-    'loss min', 'val_loss min', 'epoch max', 'time_elapsed', 'hostname', 'path', 'dataset', 'epochs',
+    'act', 'pre_eps', 'eps', 'dataset',
+    # 'spe', 'width', 'depth',
+    'seed', 'lr', 'comments',
+    'val_acc M', 'val_loss m', 'test_acc M', 'test_loss m',
+    # 'acc max','loss min',
+    'LSC_norms i', 'LSC_norms f',
+     'ep M', 'time_elapsed', 'hostname', 'path',
 ]
 
 odf = df
@@ -199,13 +203,13 @@ print(df.to_string())
 
 metrics_oi = [
     # 'loss min',
-    'val_loss min', 'test_loss min',
+    'val_loss m', 'test_loss m',
     # 'acc max',
-    'val_acc max', 'test_acc max',
-    'LSC_norms initial', 'LSC_norms final',
+    'val_acc M', 'test_acc M',
+    'LSC_norms i', 'LSC_norms f',
 ]
 
-group_cols = ['lr', 'comments', 'activation', 'dataset']
+group_cols = ['lr', 'comments', 'act', 'dataset']
 counts = df.groupby(group_cols).size().reset_index(name='counts')
 
 metrics_oi = [shorten_losses(m) for m in metrics_oi]
@@ -235,7 +239,7 @@ if lrs_plot:
     from matplotlib.lines import Line2D
 
     comments = mdf['comments'].unique()
-    activations = sorted(mdf['activation'].unique())
+    activations = sorted(mdf['act'].unique())
     datasets = sorted(mdf['dataset'].unique())
     comments = sorted(mdf['comments'].unique())
     comments = ['', 'heinit', 'findLSC', 'findLSC_radius', 'findLSC_supnpsd2', 'findLSC_supsubnpsd']
@@ -272,7 +276,7 @@ if lrs_plot:
     for i, dataset in enumerate(datasets):
         ddf = mdf[mdf['dataset'] == dataset]
         for j, a in enumerate(activations):
-            adf = ddf[ddf['activation'] == a]
+            adf = ddf[ddf['act'] == a]
             axs[0, j].set_title(a, weight='bold')
             for c in comments:
                 idf = adf[adf['comments'] == c]
@@ -280,7 +284,7 @@ if lrs_plot:
                 yerrs = idf['std_' + metric].values
                 xs = idf['lr'].values
                 axs[i, j].plot(xs, ys, color=colors[c], label=clean_comments(c))
-                axs[i, j].fill_between(xs, ys - yerrs / 2, ys + yerrs / 2, alpha=0.5, color=colors[c])
+                # axs[i, j].fill_between(xs, ys - yerrs / 2, ys + yerrs / 2, alpha=0.5, color=colors[c])
 
             if not i == len(datasets) - 1:
                 axs[i, j].tick_params(axis='x', which='both', bottom=False, top=False, labelbottom=False)
@@ -314,8 +318,8 @@ if lrs_plot:
 
 if plot_losses:
     df = odf
-    df = df[df['dataset'] == 'cifar100']
-    df = df[df['comments'].str.contains('supsubnpsd')]
+    # df = df[df['dataset'] == 'cifar100']
+    # df = df[df['comments'].str.contains('supsubnpsd')]
 
     activations = sorted(df['activation'].unique())
 
@@ -350,7 +354,7 @@ if remove_incomplete:
 
     # from LSC_norms final column, select those that are epsilon away from 1
     epsilon = 0.09
-    rdf = df[abs(df['LSC_norms final'] - 1) > epsilon]
+    rdf = df[abs(df['LSC_norms f'] - 1) > epsilon]
     print(rdf.to_string())
     print(rdf.shape, odf.shape)
 
@@ -408,7 +412,7 @@ if missing_exps:
         'comments': [
             '', 'findLSC', 'findLSC_supsubnpsd', 'findLSC_supnpsd2', 'findLSC_radius', 'heinit',
         ],
-        'activation': ['sin', 'relu'], 'dataset': ['cifar10', 'cifar100'],
+        'activation': ['sin', 'relu', 'cos'], 'dataset': ['cifar10', 'cifar100'],
         'layers': [30], 'width': [128], 'lr': [1e-3, 3.16e-4, 1e-4, 3.16e-5, 1e-5],
         'epochs': [50], 'steps_per_epoch': [-1], 'pretrain_epochs': [30], 'seed': list(range(4)),
     }
