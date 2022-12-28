@@ -1,5 +1,6 @@
 import tensorflow as tf
 import numpy as np
+from tensorflow_addons.optimizers import AdamW
 from tqdm import tqdm
 
 from GenericTools.keras_tools.convenience_operations import sample_axis, desample_axis
@@ -37,7 +38,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
         learning_rate = .1
     else:
         learning_rate = 3.16e-3  # 1e1
-    optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+    optimizer = AdamW(learning_rate=learning_rate, weight_decay=1e-4)
 
     all_norms = []
     all_losses = []

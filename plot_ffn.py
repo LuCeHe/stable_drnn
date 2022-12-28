@@ -28,7 +28,7 @@ plot_norms_evol = False
 plot_norms_evol_1 = False
 lrs_plot = False
 plot_losses = False
-missing_exps = False
+missing_exps = True
 remove_incomplete = False
 truely_remove = False
 
@@ -177,6 +177,7 @@ if plot_norms_evol_1:
 
 columns_containing = ['_var']
 
+odf = df.copy()
 new_column_names = {c_name: shorten_losses(c_name) for c_name in df.columns}
 df.rename(columns=new_column_names, inplace=True)
 df = df.rename(columns={'test_loss': 'test_loss m', 'test_acc': 'test_acc M'})
@@ -188,13 +189,12 @@ plot_only = [
     'val_acc M', 'val_loss m', 'test_acc M', 'test_loss m',
     # 'acc max','loss min',
     'LSC_norms i', 'LSC_norms f',
-     'ep M', 'time_elapsed', 'hostname', 'path',
+    'ep M', 'time_elapsed', 'hostname', 'path',
 ]
 
-odf = df
 df = df[plot_only]
 
-print(df.columns)
+# print(df.columns)
 df = df.sort_values(by=metric)
 print(df.to_string())
 
@@ -378,7 +378,7 @@ if remove_incomplete:
         rdf = srdf[~srdf.apply(tuple, 1).isin(gsrdf.apply(tuple, 1))]
         # rdfs.append(rdf)
 
-    rdf= df[df['val_loss min'].isna()]
+    rdf = df[df['val_loss min'].isna()]
     print(rdf.to_string())
     rdfs.append(rdf)
 
@@ -403,7 +403,9 @@ if missing_exps:
     coi = ['seed', 'activation', 'lr', 'comments', 'dataset', 'epochs', 'steps_per_epoch']
     import pandas as pd
 
-    sdf = df
+    sdf = odf
+    sdf = sdf.dropna(subset=['val_loss min'])
+    sdf = sdf.dropna(subset=['test_sparse_categorical_accuracy'])
 
     sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
 
@@ -419,5 +421,5 @@ if missing_exps:
     experiments.append(experiment)
 
     ds = dict2iter(experiments)
-    print(ds[0])
+
     complete_missing_exps(sdf, ds, coi)
