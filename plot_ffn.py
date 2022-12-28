@@ -28,7 +28,7 @@ plot_norms_evol = False
 plot_norms_evol_1 = False
 lrs_plot = False
 plot_losses = False
-missing_exps = True
+missing_exps = False
 remove_incomplete = False
 truely_remove = False
 
@@ -378,7 +378,11 @@ if remove_incomplete:
         rdf = srdf[~srdf.apply(tuple, 1).isin(gsrdf.apply(tuple, 1))]
         # rdfs.append(rdf)
 
-    rdf = df[df['val_loss min'].isna()]
+    rdf = df[df['val_loss m'].isna()]
+    print(rdf.to_string())
+    rdfs.append(rdf)
+
+    rdf = df[df['test_acc M'].isna()]
     print(rdf.to_string())
     rdfs.append(rdf)
 
