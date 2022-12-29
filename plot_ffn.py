@@ -42,7 +42,7 @@ h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 df = experiments_to_pandas(
     h5path=h5path, zips_folder=GEXPERIMENTS, unzips_folder=EXPERIMENTS, experiments_identifier=expsid,
-    exclude_files=['cout.txt'], exclude_columns=['_mean list', '_var list'], check_for_new=True
+    exclude_files=['cout.txt'], exclude_columns=['_mean ', '_var ', ' list'], check_for_new=True
 )
 
 print(list(df.columns))
@@ -52,11 +52,6 @@ start = time.time()
 
 # select only rows with width 10
 df['time_elapsed'] = pd.to_timedelta(df['time_elapsed'], unit='s')
-
-df = df[df['width'] == 128]
-df = df[df['layers'] == 30]
-
-
 
 if plot_norms_evol:
     for _, row in df.iterrows():
@@ -191,24 +186,10 @@ plot_only = [
 ]
 
 df = df[plot_only]
-
-# print(df.columns)
 df = df.sort_values(by=metric)
-
-# for
 print(df.to_string())
 
-# import sys
-# sys.exit()
-
-metrics_oi = [
-    # 'loss min',
-    'val_loss m', 'test_loss m',
-    # 'acc max',
-    'val_acc M', 'test_acc M',
-    'LSC_norms i', 'LSC_norms f',
-]
-
+metrics_oi = ['val_acc M', 'test_acc M', 'val_loss m', 'test_loss m', 'LSC_norms i', 'LSC_norms f']
 group_cols = ['lr', 'comments', 'act', 'dataset']
 counts = df.groupby(group_cols).size().reset_index(name='counts')
 
@@ -324,7 +305,8 @@ if remove_incomplete:
 
     # df = odf
     ids = [
-        # 'findLSC_radius_supn'
+        'findLSC_supn',
+        'findLSC_logradius'
     ]
     rdfs = []
     for c in ids:
@@ -333,11 +315,12 @@ if remove_incomplete:
 
     # from LSC_norms final column, select those that are epsilon away from 1
     epsilon = 0.09
+    epsilon = 2.
     rdf = df[abs(df['LSC_norms f'] - 1) > epsilon]
     print(rdf.to_string())
     print(rdf.shape, odf.shape)
 
-    # rdfs.append(rdf)
+    rdfs.append(rdf)
 
     # remove one seed from those that have more than 4 seeds
     brdf = mdf[mdf['counts'] > 4]
@@ -348,27 +331,30 @@ if remove_incomplete:
         srdf = df[
             (df['lr'] == row['lr'])
             & (df['comments'] == row['comments'])
-            & (df['activation'] == row['activation'])]
+            & (df['act'] == row['act'])
+            & (df['dataset'] == row['dataset'])
+        ]
 
         # no duplicates
         gsrdf = srdf.drop_duplicates(subset=['seed'])
 
         # remainder
         rdf = srdf[~srdf.apply(tuple, 1).isin(gsrdf.apply(tuple, 1))]
-        # rdfs.append(rdf)
+        rdfs.append(rdf)
 
-    rdf = df[df['val_loss m'].isna()]
-    print(rdf.to_string())
+
+    rdf = odf[odf['width'] < 128]
     rdfs.append(rdf)
 
-    rdf = df[df['test_acc M'].isna()]
-    print(rdf.to_string())
+    print(rdf.shape)
+    rdf = odf[odf['layers'] < 30]
     rdfs.append(rdf)
 
-    rdf = df[df['LSC_norms f'].isna()]
-    rdf = rdf[~rdf['comments'].eq('')]
-    rdf = rdf[~rdf['comments'].eq('heinit')]
-    print(rdf.to_string())
+    print(rdf.shape)
+    rdf = df[df['eps'] < 50]
+    rdfs.append(rdf)
+
+    print(rdf.shape)
 
     if truely_remove:
         for rdf in rdfs:
@@ -392,16 +378,6 @@ if missing_exps:
     import pandas as pd
 
     sdf = odf
-
-    # sdf = sdf.dropna(subset=['val_loss min'])
-    # sdf = sdf.dropna(subset=['test_sparse_categorical_accuracy'])
-    # remove from sdf those rows that have values of 'LSC_norms f' larger than 2
-    # sdf = sdf[sdf['LSC_norms final'] < 2 | sdf['LSC_norms final'].isna()]
-    sdf = sdf[sdf['LSC_norms final'] < 2]
-    sdf2 = sdf[sdf['comments'].eq('') | sdf['comments'].eq('heinit')]
-    print(sdf2.to_string(), sdf.to_string())
-    sdf = pd.concat([sdf, sdf2], ignore_index=True)
-
     sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
     # print(sdf.to_string())
 
