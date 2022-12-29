@@ -69,7 +69,7 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
 
         a = std @ zT
         preloss = tf.einsum('bks,sk->bs', a, z)
-        loss += tf.reduce_mean(tf.nn.relu(-preloss))/3
+        loss += tf.reduce_mean(tf.nn.relu(-preloss)) / 3
 
         # norms = tf.linalg.logdet(std) + 1
         norms = tf.reduce_sum(tf.math.log(log_epsilon + tf.abs(tf.linalg.eigvals(std))), axis=-1) + 1
@@ -85,13 +85,13 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
 
         a = std @ zT
         preloss = tf.einsum('bks,sk->bs', a, z)
-        loss += tf.reduce_mean(tf.nn.relu(-preloss))/3
+        loss += tf.reduce_mean(tf.nn.relu(-preloss)) / 3
 
         eig = tf.linalg.eigvals(std)
         r = tf.math.real(eig)
         i = tf.math.imag(eig)
         norms = r + i
-        loss += well_loss(min_value=0., max_value=0., walls_type='relu', axis='all')(i)/3
+        loss += well_loss(min_value=0., max_value=0., walls_type='relu', axis='all')(i) / 3
 
     elif 'logradius' in comments:
         if td.shape[-1] == td.shape[-2]:
@@ -231,7 +231,12 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
     model, tape = None, None
 
+    time_start = time.perf_counter()
+    time_over = False
     for step in range(steps_per_epoch):
+        if time_over:
+            break
+
         for i, _ in enumerate(stack):
             rec_norms[f'batch {step} layer {i}'] = []
 
@@ -342,7 +347,6 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                     optimizer.apply_gradients(zip(grads, model.trainable_weights))
                     del grads
 
-
                 states = states_p1
 
                 if not np.isnan(mean_loss.numpy()):
@@ -352,7 +356,11 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                 tf.keras.backend.clear_session()
                 tf.keras.backend.clear_session()
                 tf.keras.backend.clear_session()
-                # print(some_norms)
+
+                if time.perf_counter() - time_start > 60 * 60 * 15:
+                    time_over = True
+                    break
+
                 norms = tf.reduce_mean(some_norms)
 
                 if abs(norms.numpy() - target_norm) < es_epsilon:
@@ -386,7 +394,6 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
             except Exception as e:
                 print(e)
-
 
         del batch
 

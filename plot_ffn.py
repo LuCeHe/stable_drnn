@@ -55,10 +55,7 @@ df['time_elapsed'] = pd.to_timedelta(df['time_elapsed'], unit='s')
 
 df = df[df['width'] == 128]
 df = df[df['layers'] == 30]
-# df = df[df['dataset'] == 'cifar100']
-# df = df[~df['comments'].str.contains('findLSC_radius_supn')]
-# df = df[df['comments'].str.contains('heinit') | df['comments'].str.contains('findLSC_supnpsd2')]
-# df = df[~df['activation'].str.contains('sin')]
+
 
 
 if plot_norms_evol:
@@ -197,6 +194,8 @@ df = df[plot_only]
 
 # print(df.columns)
 df = df.sort_values(by=metric)
+
+# for
 print(df.to_string())
 
 # import sys
@@ -229,11 +228,10 @@ mdf = mdf.sort_values(by='mean_' + metric)
 
 print(mdf.to_string())
 
-# sort mdf by lr
-mdf = mdf.sort_values(by='lr')
-
 if lrs_plot:
     from matplotlib.lines import Line2D
+
+    mdf = mdf.sort_values(by='lr')
 
     comments = mdf['comments'].unique()
     activations = sorted(mdf['act'].unique())
@@ -314,7 +312,7 @@ if plot_losses:
 
         for _, row in adf.iterrows():
             c = row['comments']
-            axs[i].plot(row[metric], color=colors[c])
+            axs[i].plot(row[metric], color=lsc_colors[c])
 
     plt.legend()
     plt.show()
@@ -367,6 +365,11 @@ if remove_incomplete:
     print(rdf.to_string())
     rdfs.append(rdf)
 
+    rdf = df[df['LSC_norms f'].isna()]
+    rdf = rdf[~rdf['comments'].eq('')]
+    rdf = rdf[~rdf['comments'].eq('heinit')]
+    print(rdf.to_string())
+
     if truely_remove:
         for rdf in rdfs:
             print(rdf['comments'])
@@ -389,10 +392,18 @@ if missing_exps:
     import pandas as pd
 
     sdf = odf
-    sdf = sdf.dropna(subset=['val_loss min'])
-    sdf = sdf.dropna(subset=['test_sparse_categorical_accuracy'])
+
+    # sdf = sdf.dropna(subset=['val_loss min'])
+    # sdf = sdf.dropna(subset=['test_sparse_categorical_accuracy'])
+    # remove from sdf those rows that have values of 'LSC_norms f' larger than 2
+    # sdf = sdf[sdf['LSC_norms final'] < 2 | sdf['LSC_norms final'].isna()]
+    sdf = sdf[sdf['LSC_norms final'] < 2]
+    sdf2 = sdf[sdf['comments'].eq('') | sdf['comments'].eq('heinit')]
+    print(sdf2.to_string(), sdf.to_string())
+    sdf = pd.concat([sdf, sdf2], ignore_index=True)
 
     sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
+    # print(sdf.to_string())
 
     experiments = []
     experiment = {

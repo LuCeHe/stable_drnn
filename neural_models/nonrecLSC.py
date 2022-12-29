@@ -1,4 +1,5 @@
 import tensorflow as tf
+import time
 import numpy as np
 from tensorflow_addons.optimizers import AdamW
 from tqdm import tqdm
@@ -61,11 +62,20 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
     show_loss, show_norm, show_avw, show_factor = None, None, None, None
     n_failures = 0
     loss, model = None, None
+
+    time_start = time.perf_counter()
+    time_over = False
     for epoch in range(generator.epochs):
         pbar = tqdm(total=generator.steps_per_epoch)
+        if time_over:
+            break
 
         generator.on_epoch_end()
         for step in range(generator.steps_per_epoch):
+
+            if time.perf_counter() - time_start > 60 * 60 * 10:
+                time_over = True
+                break
 
             if not loss is None and abs(ma_norm - 1.) < epsilon:
                 epsilon_steps += 1
