@@ -54,19 +54,19 @@ def get_path(df, normpow, task_name, net_name, gauss_beta):
 
 def color_nid(norm_id):
     # list of tab20 colors
-    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22',
+              '#17becf']
     # colors =[]
     if norm_id is None:
-        return '#1f77b4' #'#097B2A'
+        return '#1f77b4'  # '#097B2A'
     elif norm_id == 1:
-        return '#ff7f0e' #'#40DE6E'
+        return '#ff7f0e'  # '#40DE6E'
     elif norm_id == 2:
-        return '#2ca02c' #'#B94D0C'
+        return '#2ca02c'  # '#B94D0C'
     elif norm_id == -1:
-        return '#9467bd' #'#0C58B9'
+        return '#9467bd'  # '#0C58B9'
     else:
         raise ValueError('norm_id not in [None, 1, 2, -1]')
-
 
 
 def clean_nid(norm_id):
@@ -83,7 +83,6 @@ def clean_nid(norm_id):
 
 
 def compactify_metrics(metric='ppl'):
-
     def cm(row):
         mt = row[f'mean_t_{metric}']
         st = row[f'std_t_{metric}']
@@ -148,6 +147,8 @@ def summary_lsc(x):
     else:
         l = None
     return l
+
+
 def recnorms_list(x):
     if isinstance(x, dict):
         if 'batch 1 layer 0' in x.keys():
@@ -162,6 +163,7 @@ def recnorms_list(x):
         l = None
     return l
 
+
 def reorganize(x):
     if isinstance(x['LSC_norms'], list):
         x = x['LSC_norms']
@@ -171,3 +173,23 @@ def reorganize(x):
         x = x['rec_norms']
 
     return x
+
+
+lsc_colors = {'findLSC_radius': [0.43365406, 0.83304796, 0.58958684], '': [0.24995383, 0.49626022, 0.35960801],
+              'findLSC': [0.74880857, 0.9167003, 0.50021289], 'findLSC_supnpsd2': [0.69663182, 0.25710645, 0.19346206],
+              'findLSC_supsubnpsd': [0.2225346, 0.06820208, 0.9836983], 'heinit': [0.96937357, 0.28256986, 0.26486611]}
+
+
+def lsc_clean_comments(c):
+    if c == 'findLSC':
+        return 'sub ($L_2$)'
+    if 'radius' in c:
+        return r'sub ($\rho$)'
+    if c == '':
+        return 'Glorot'
+    if c == 'heinit':
+        return 'He'
+    c = c.replace('findLSC_', '')
+    c = c.replace('npsd', '')
+    c = c.replace('2', '')
+    return c

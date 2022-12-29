@@ -34,10 +34,8 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
                       nlayerjump=None, layer_min=None, layer_max=None, comments='', epsilon=.06, patience=20,
                       subsample_axis=False):
     assert callable(build_model)
-    if forward_lsc:
-        learning_rate = .1
-    else:
-        learning_rate = 3.16e-3  # 1e1
+
+    learning_rate = 3.16e-3  # 1e1
     optimizer = AdamW(learning_rate=learning_rate, weight_decay=1e-4)
 
     all_norms = []

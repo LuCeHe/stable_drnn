@@ -36,16 +36,23 @@ GEXPERIMENTS = [
     os.path.join(CDIR, 'good_experiments'),
     # os.path.join(CDIR, 'good_experiments', '2022-11-07--complete_set_of_exps'),
 ]
-GEXPERIMENTS = [r'D:\work\alif_sg\good_experiments\2022-12-16--rnn-large-results']
+GEXPERIMENTS = [
+    r'D:\work\alif_sg\good_experiments\2022-12-16--rnn-large-results',
+    r'D:\work\alif_sg\good_experiments\2022-12-21--rnn',
+]
+
+colors = {'findLSC_radius': [0.43365406, 0.83304796, 0.58958684], '': [0.24995383, 0.49626022, 0.35960801],
+          'findLSC': [0.74880857, 0.9167003, 0.50021289], 'findLSC_supnpsd2': [0.69663182, 0.25710645, 0.19346206],
+          'findLSC_supsubnpsd': [0.2225346, 0.06820208, 0.9836983], 'heinit': [0.96937357, 0.28256986, 0.26486611]}
 
 expsid = 'als'  # effnet als ffnandcnns
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 check_for_new = False
-plot_losses = False
+plot_losses = True
 one_exp_curves = False
-pandas_means = False
-show_per_tasknet = False
+pandas_means = True
+show_per_tasknet = True
 make_latex = False
 missing_exps = True
 plot_lsc_vs_naive = False
@@ -67,10 +74,10 @@ optimizer_name = 'SWAAdaBelief'  # SGD SWAAdaBelief
 metrics_oi = [
     # 't_ppl min', 't_mode_acc max', 'v_ppl min', 'v_mode_acc max',
     't_ppl', 't_mode_acc', 'v_ppl', 'v_mode_acc',
-    'LSC_norms initial', 'LSC_norms final'
+    'LSC_norms i', 'LSC_norms f'
 ]
 
-plot_only = ['epochs', 'net_name', 'task_name', 'n_params', 'comments',
+plot_only = ['eps', 'net_name', 'task_name', 'n_params', 'stack','comments',
              'path', 'lr'] + metrics_oi
 columns_to_remove = [
     'heaviside', '_test', 'weight', 'sLSTM_factor', 'save_model', 'clipnorm', 'GPU', 'batch_size',
@@ -79,12 +86,17 @@ columns_to_remove = [
     'resources', 'host', 'start_time', 'status', 'experiment', 'result',
 ]
 columns_to_remove = []
-columns_to_remove = [' list', '_var', '_mean']
+columns_to_remove = [' list', '_var', '_mean', 'sparse_categorical_crossentropy', 'bpc', 'loss',
+                     'sparse_categorical_accuracy', 'LSC_losses', 'rec_norms']
+force_keep_column = ['LSC_norms list']
 
 df = experiments_to_pandas(
     h5path=h5path, zips_folder=GEXPERIMENTS, unzips_folder=EXPERIMENTS, experiments_identifier=expsid,
-    exclude_files=['cout.txt'], check_for_new=check_for_new
+    exclude_files=['cout.txt'], check_for_new=check_for_new,
+    exclude_columns=columns_to_remove, force_keep_column=force_keep_column
 )
+
+df['stack'] = df['stack'].fillna(2)
 
 # if 'rec_norms' in df.columns:
 #     df['rec_norms'] = df.apply(reorganize, axis=1)
@@ -94,13 +106,6 @@ df = experiments_to_pandas(
 
 if plot_losses:
     df['comments'] = df['comments'].str.replace('36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_', '')
-
-    colors = {
-        'findLSC_radius': [0.43365406, 0.83304796, 0.58958684], '': [0.24995383, 0.49626022, 0.35960801],
-        'findLSC': [0.74880857, 0.9167003, 0.50021289],
-        'findLSC_supnpsd2': [0.69663182, 0.25710645, 0.19346206],
-        'findLSC_supnpsd': [0.69663182, 0.25710645, 0.19346206],
-        'findLSC_supsubnpsd': [0.2225346, 0.06820208, 0.9836983], 'heinit': [0.96937357, 0.28256986, 0.26486611]}
 
     plot_metric = 'rec_norms list'
     plot_metric = 'val_perplexity list'
@@ -121,8 +126,8 @@ if plot_losses:
 
                 for _, row in idf.iterrows():
                     n = row['comments']
-                    c = 'r' if 'LSC' in row['comments'] else 'b'
-                    c = 'r' if 'supsub' in row['comments'] else 'b'
+                    # c = 'r' if 'LSC' in row['comments'] else 'b'
+                    # c = 'r' if 'supsub' in row['comments'] else 'b'
                     if isinstance(row[plot_metric], list):
                         # print(row['loss list'])
                         print('epochs', len(row[plot_metric]))
@@ -164,14 +169,14 @@ if 'v_mode_acc len' in df.columns:
     # df['v_ppl argmin'] = df['v_ppl argmin'].astype(int)
     # df['v_mode_acc argmax'] = df['v_mode_acc argmax'].astype(int)
 
-    df['v_ppl'] = df['v_ppl min']
+    df['v_ppl'] = df['v_ppl m']
     # df['t_ppl'] = df.apply(lambda row: row['t_ppl list'][row['v_ppl argmin']], axis=1)
-    df['v_mode_acc'] = df['v_mode_acc max']
+    df['v_mode_acc'] = df['v_mode_acc M']
     # df['t_mode_acc'] = df.apply(lambda row: row['t_mode_acc list'][row['v_mode_acc argmax']], axis=1)
 
     # FIXME: following is incorrect, correct it as soon as you get rid of the NaNs
-    df['t_ppl'] = df['t_ppl min']
-    df['t_mode_acc'] = df['t_mode_acc max']
+    df['t_ppl'] = df['t_ppl m']
+    df['t_mode_acc'] = df['t_mode_acc M']
 
 for c_name in columns_to_remove:
     df = df[df.columns.drop(list(df.filter(regex=c_name)))]
@@ -233,7 +238,7 @@ if one_exp_curves:
 
 if pandas_means:
     # group_cols = ['net_name', 'task_name', 'initializer', 'comments', 'lr']
-    group_cols = ['net_name', 'task_name', 'comments']
+    group_cols = ['net_name', 'task_name', 'comments', 'stack']
     counts = df.groupby(group_cols).size().reset_index(name='counts')
 
     metrics_oi = [shorten_losses(m) for m in metrics_oi]
@@ -252,6 +257,7 @@ if pandas_means:
 
     tasks = sorted(np.unique(mdf['task_name']))
     nets = sorted(np.unique(mdf['net_name']))
+    stacks = sorted(np.unique(mdf['stack']))
 
     mdf['comments'] = mdf['comments'].str.replace('__', '_', regex=True)
     print(mdf.to_string())
@@ -259,13 +265,18 @@ if pandas_means:
     if show_per_tasknet:
         xdf = mdf
         xdf['comments'] = xdf['comments'].str.replace('36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_', '')
-        for task in tasks:
-            for net in nets:
-                print('-===-' * 30)
-                print(task, net)
+        for stack in stacks:
+            for task in tasks:
+                for net in nets:
+                    print('-===-' * 30)
+                    print(task, net, stack)
 
-                idf = xdf[xdf['task_name'].eq(task) & xdf['net_name'].eq(net)]
-                print(idf.to_string())
+                    idf = xdf[
+                        xdf['task_name'].eq(task)
+                        & xdf['net_name'].eq(net)
+                        & xdf['stack'].eq(stack)
+                    ]
+                    print(idf.to_string())
 
     if make_latex:
 
@@ -818,11 +829,9 @@ if remove_incomplete:
 
     rdfs.append(rdf)
 
-
-    rdf= plotdf[plotdf['v_ppl'].isna()]
+    rdf = plotdf[plotdf['v_ppl'].isna()]
     print(rdf.to_string())
     rdfs.append(rdf)
-
 
     if truely_remove:
         for rdf in rdfs:

@@ -1,6 +1,7 @@
 import time
 
 from GenericTools.stay_organized.submit_jobs import dict2iter
+from alif_sg.tools.plot_tools import lsc_colors, lsc_clean_comments
 
 print(1)
 # measure time
@@ -28,7 +29,7 @@ plot_norms_evol = False
 plot_norms_evol_1 = False
 lrs_plot = False
 plot_losses = False
-missing_exps = False
+missing_exps = True
 remove_incomplete = False
 truely_remove = False
 
@@ -231,10 +232,6 @@ print(mdf.to_string())
 # sort mdf by lr
 mdf = mdf.sort_values(by='lr')
 
-colors = {'findLSC_radius': [0.43365406, 0.83304796, 0.58958684], '': [0.24995383, 0.49626022, 0.35960801],
-          'findLSC': [0.74880857, 0.9167003, 0.50021289], 'findLSC_supnpsd2': [0.69663182, 0.25710645, 0.19346206],
-          'findLSC_supsubnpsd': [0.2225346, 0.06820208, 0.9836983], 'heinit': [0.96937357, 0.28256986, 0.26486611]}
-
 if lrs_plot:
     from matplotlib.lines import Line2D
 
@@ -257,22 +254,6 @@ if lrs_plot:
     if len(activations) == 1:
         axs = np.array([axs]).T
 
-
-    def clean_comments(c):
-        if c == 'findLSC':
-            return 'sub ($L_2$)'
-        if 'radius' in c:
-            return r'sub ($\rho$)'
-        if c == '':
-            return 'Glorot'
-        if c == 'heinit':
-            return 'He'
-        c = c.replace('findLSC_', '')
-        c = c.replace('npsd', '')
-        c = c.replace('2', '')
-        return c
-
-
     for i, dataset in enumerate(datasets):
         ddf = mdf[mdf['dataset'] == dataset]
         for j, a in enumerate(activations):
@@ -283,8 +264,8 @@ if lrs_plot:
                 ys = idf['mean_' + metric].values
                 yerrs = idf['std_' + metric].values
                 xs = idf['lr'].values
-                axs[i, j].plot(xs, ys, color=colors[c], label=clean_comments(c))
-                # axs[i, j].fill_between(xs, ys - yerrs / 2, ys + yerrs / 2, alpha=0.5, color=colors[c])
+                axs[i, j].plot(xs, ys, color=lsc_colors[c], label=lsc_clean_comments(c))
+                axs[i, j].fill_between(xs, ys - yerrs / 2, ys + yerrs / 2, alpha=0.5, color=lsc_colors[c])
 
             if not i == len(datasets) - 1:
                 axs[i, j].tick_params(axis='x', which='both', bottom=False, top=False, labelbottom=False)
@@ -296,7 +277,7 @@ if lrs_plot:
     axs[-1, -1].set_xlabel('Learning rate')
     axs[0, 0].set_ylabel('Accuracy')
 
-    legend_elements = [Line2D([0], [0], color=colors[n], lw=4, label=clean_comments(n))
+    legend_elements = [Line2D([0], [0], color=lsc_colors[n], lw=4, label=lsc_clean_comments(n))
                        for n in comments]
     plt.legend(ncol=3, handles=legend_elements, loc='lower center', bbox_to_anchor=(-.1, -1.))
 

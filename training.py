@@ -192,12 +192,13 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
             del gen_train
             print(json.dumps(new_model_args, indent=4, cls=NumpyEncoder))
             # lsclr = 3.16e-3
-            lsclr = 3.16e-2
+            lsclr = 1e-3
             # if 'supsubnpsd' in comments:
             #     lsclr *= 10
             # if net_name == 'LSTM' and norm_pow == np.inf:
             #     lsclr = 1e-2
 
+            results['lsclr'] = lsclr
             weights, lsc_results = apply_LSC(
                 train_task_args=new_task_args, model_args=new_model_args, norm_pow=norm_pow, n_samples=n_samples,
                 batch_size=new_batch_size, rec_norm=lscrec, depth_norm=lscdepth, decoder_norm=lscout,

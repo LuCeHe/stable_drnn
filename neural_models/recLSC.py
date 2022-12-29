@@ -3,6 +3,7 @@ import numpy as np
 import warnings
 import tensorflow as tf
 import tensorflow_probability as tfp
+from tensorflow_addons.optimizers import AdamW
 
 from GenericTools.keras_tools.convenience_operations import sample_axis
 
@@ -184,7 +185,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
     # batch = [tf.convert_to_tensor(tf.cast(b, tf.float32), dtype=tf.float32) for b in batch[0]],
     # lr = lr if not 'supn' in comments else lr * 10
-    optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
+    optimizer = AdamW(learning_rate=lr, weight_decay=1e-4)
+
     states = []
 
     losses = []
@@ -263,7 +265,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                 wt = batch[0][1][:, t][:, None]
 
                 tf.keras.backend.clear_session()
-                del model, tape
+                model, tape = None, None
+                tf.keras.backend.clear_session()
 
                 with tf.GradientTape(persistent=True, watch_accessed_variables=True) as tape:
                     tape.watch(wt)
