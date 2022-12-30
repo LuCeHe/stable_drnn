@@ -33,23 +33,17 @@ CDIR = os.path.dirname(FILENAME)
 EXPERIMENTS = os.path.join(CDIR, 'experiments')
 EXPERIMENTS = r'D:\work\alif_sg\experiments'
 GEXPERIMENTS = [
-    os.path.join(CDIR, 'good_experiments'),
+    # os.path.join(CDIR, 'good_experiments'),
     # os.path.join(CDIR, 'good_experiments', '2022-11-07--complete_set_of_exps'),
-]
-GEXPERIMENTS = [
-    r'D:\work\alif_sg\good_experiments\2022-12-16--rnn-large-results',
+    # r'D:\work\alif_sg\experiments',
     r'D:\work\alif_sg\good_experiments\2022-12-21--rnn',
 ]
-
-colors = {'findLSC_radius': [0.43365406, 0.83304796, 0.58958684], '': [0.24995383, 0.49626022, 0.35960801],
-          'findLSC': [0.74880857, 0.9167003, 0.50021289], 'findLSC_supnpsd2': [0.69663182, 0.25710645, 0.19346206],
-          'findLSC_supsubnpsd': [0.2225346, 0.06820208, 0.9836983], 'heinit': [0.96937357, 0.28256986, 0.26486611]}
 
 expsid = 'als'  # effnet als ffnandcnns
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 check_for_new = False
-plot_losses = True
+plot_losses = False
 one_exp_curves = False
 pandas_means = True
 show_per_tasknet = True
@@ -77,7 +71,7 @@ metrics_oi = [
     'LSC_norms i', 'LSC_norms f'
 ]
 
-plot_only = ['eps', 'net_name', 'task_name', 'n_params', 'stack','comments',
+plot_only = ['eps', 'net_name', 'task_name', 'n_params', 'stack', 'comments',
              'path', 'lr'] + metrics_oi
 columns_to_remove = [
     'heaviside', '_test', 'weight', 'sLSTM_factor', 'save_model', 'clipnorm', 'GPU', 'batch_size',
@@ -87,7 +81,7 @@ columns_to_remove = [
 ]
 columns_to_remove = []
 columns_to_remove = [' list', '_var', '_mean', 'sparse_categorical_crossentropy', 'bpc', 'loss',
-                     'sparse_categorical_accuracy', 'LSC_losses', 'rec_norms']
+                     'sparse_categorical_accuracy', 'LSC_losses', 'rec_norms', 'fail_trace']
 force_keep_column = ['LSC_norms list']
 
 df = experiments_to_pandas(
@@ -96,7 +90,9 @@ df = experiments_to_pandas(
     exclude_columns=columns_to_remove, force_keep_column=force_keep_column
 )
 
-df['stack'] = df['stack'].fillna(2)
+df['stack'] = df['stack'].fillna(-1).astype(int)
+df = df.replace(-1, 'None')
+df['stack'] = df['stack'].astype(str)
 
 # if 'rec_norms' in df.columns:
 #     df['rec_norms'] = df.apply(reorganize, axis=1)
@@ -131,13 +127,13 @@ if plot_losses:
                     if isinstance(row[plot_metric], list):
                         # print(row['loss list'])
                         print('epochs', len(row[plot_metric]))
-                        axs[i, j].plot(row[plot_metric], color=colors[n], label=n)
+                        axs[i, j].plot(row[plot_metric], color=lsc_colors[n], label=n)
                     else:
                         print(row[plot_metric], row['path'])
 
                 axs[i, j].set_title(f'{task} {net}')
 
-    legend_elements = [Line2D([0], [0], color=colors[n], lw=4, label=n) for n in comments]
+    legend_elements = [Line2D([0], [0], color=lsc_colors[n], lw=4, label=n) for n in comments]
     plt.legend(ncol=3, handles=legend_elements, loc='lower center')  # , bbox_to_anchor=(-.1, -1.))
 
     plt.show()
@@ -275,7 +271,7 @@ if pandas_means:
                         xdf['task_name'].eq(task)
                         & xdf['net_name'].eq(net)
                         & xdf['stack'].eq(stack)
-                    ]
+                        ]
                     print(idf.to_string())
 
     if make_latex:
@@ -396,31 +392,53 @@ if plot_lrs:
 
 if missing_exps:
     # columns of interest
-    coi = ['seed', 'task_name', 'net_name', 'comments']
+    coi = ['seed', 'task_name', 'net_name', 'comments', 'stack']
+    incomplete_comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_'
+
     import pandas as pd
 
-    sdf = pd.read_hdf(h5path, 'df')
+    # sdf = pd.read_hdf(h5path, 'df')
+    sdf = df.copy()
+
+    sdf.loc[df['task_name'].str.contains('SHD'), 'task_name'] = 'heidelberg'
+    sdf.loc[df['task_name'].str.contains('sl-MNIST'), 'task_name'] = 'sl_mnist'
+    sdf.loc[df['task_name'].str.contains('PTB'), 'task_name'] = 'wordptb'
+
+    sdf.loc[df['net_name'].str.contains('ALIFb'), 'net_name'] = 'maLSNNb'
+    sdf.loc[df['net_name'].str.contains('ALIF'), 'net_name'] = 'maLSNN'
+
+    sdf = sdf[~sdf['net_name'].eq('LSTM')]
 
     sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
+
+    print('here?!')
+    print(sdf.to_string())
 
     seed = 0
     n_seeds = 4
     seeds = [l + seed for l in range(n_seeds)]
-    incomplete_comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_'
+    all_comments = [
+        incomplete_comments,
+        incomplete_comments + f'findLSC',
+        incomplete_comments + f'findLSC_supsubnpsd',
+        incomplete_comments + f'findLSC_supnpsd2',
+        incomplete_comments + f'findLSC_radius',
+    ]
 
     experiments = []
 
+    nets = ['maLSNN', 'maLSNNb']
+    # nets = ['LSTM']
     experiment = {
-        'task_name': ['heidelberg', 'wordptb', 'sl_mnist'],
-        'net_name': ['maLSNN', 'maLSNNb'], 'seed': seeds,
-        # 'net_name': ['LSTM'], 'seed': seeds,
-        'comments': [
-            incomplete_comments,
-            incomplete_comments + f'findLSC',
-            incomplete_comments + f'findLSC_supsubnpsd',
-            incomplete_comments + f'findLSC_supnpsd2',
-            incomplete_comments + f'findLSC_radius',
-        ],
+        'task_name': ['heidelberg', 'sl_mnist'],
+        'net_name': nets, 'seed': seeds, 'stack': ['1', 'None'],
+        'comments': all_comments,
+    }
+    experiments.append(experiment)
+    experiment = {
+        'task_name': ['wordptb'],
+        'net_name': nets, 'seed': seeds, 'stack': ['None'],
+        'comments': all_comments,
     }
     experiments.append(experiment)
 
@@ -566,11 +584,8 @@ if plot_weights:
         fig.legend(ncol=5, handles=legend_elements, loc='lower center', bbox_to_anchor=(0.5, -.2), fontsize=12)
 
         plt.suptitle(f"{net_name} weights with LSC pretraining on {task_name}", y=1.01, fontsize=16)
-
         plot_filename = f'experiments/weights_{net_name}_{task_name}_gb{gauss_beta}.pdf'
-
         fig.savefig(plot_filename, bbox_inches='tight')
-
         plt.show()
 
     if plot_2:
@@ -818,19 +833,20 @@ if plot_dampenings_and_betas:
 if remove_incomplete:
     import shutil
 
-    # df = odf
-
     rdfs = []
     # from LSC_norms final column, select those that are epsilon away from 1
     epsilon = 0.09
-    rdf = plotdf[abs(plotdf['LSC_norms final'] - 1) > epsilon]
+    epsilon = 0.3
+    rdf = plotdf[abs(plotdf['LSC_norms f'] - 1) > epsilon]
+    print('here')
     print(rdf.to_string())
+    print(rdf.shape)
     print(rdf.shape, df.shape)
 
     rdfs.append(rdf)
 
     rdf = plotdf[plotdf['v_ppl'].isna()]
-    print(rdf.to_string())
+    print(rdf.shape)
     rdfs.append(rdf)
 
     if truely_remove:
