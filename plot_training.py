@@ -411,9 +411,6 @@ if missing_exps:
 
     sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
 
-    print('here?!')
-    print(sdf.to_string())
-
     seed = 0
     n_seeds = 4
     seeds = [l + seed for l in range(n_seeds)]
