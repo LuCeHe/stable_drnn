@@ -17,26 +17,26 @@ from GenericTools.stay_organized.standardize_strings import shorten_losses
 
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
-# EXPERIMENTS = os.path.join(CDIR, 'experiments')
-EXPERIMENTS = r'D:\work\alif_sg\experiments'
+EXPERIMENTS = os.path.join(CDIR, 'experiments')
+# EXPERIMENTS = r'D:\work\alif_sg\experiments'
 GEXPERIMENTS = [
     # os.path.join(CDIR, 'good_experiments', '2022-12-16--ffn'),
-    # os.path.join(CDIR, 'good_experiments'),
-    r'D:\work\alif_sg\good_experiments\2022-12-16--ffn'
+    os.path.join(CDIR, 'good_experiments'),
+    # r'D:\work\alif_sg\good_experiments\2022-12-16--ffn'
 ]
 
 plot_norms_evol = False
 plot_norms_evol_1 = False
-lrs_plot = False
+lrs_plot = True
 plot_losses = False
-missing_exps = True
+missing_exps = False
 remove_incomplete = False
 truely_remove = False
 
 print(2, time.time() - start)
 start = time.time()
 
-metric = 'val_acc M'  # 'val_acc max'   'val_loss min'
+metric = 'val_acc M'  # 'val_acc M'   'val_loss min'
 expsid = 'ffnandcnns'  # effnet als ffnandcnns
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
@@ -218,6 +218,7 @@ if lrs_plot:
     activations = sorted(mdf['act'].unique())
     datasets = sorted(mdf['dataset'].unique())
     comments = sorted(mdf['comments'].unique())
+    activations = ['relu', 'sin', 'cos']
     comments = ['', 'heinit', 'findLSC', 'findLSC_radius', 'findLSC_supnpsd2', 'findLSC_supsubnpsd']
 
     print(comments)
@@ -225,8 +226,10 @@ if lrs_plot:
     # figsize=(4, 2)
     fig, axs = plt.subplots(
         len(datasets), len(activations), figsize=(5, 3), sharey='row',
-        gridspec_kw={'wspace': .1, 'hspace': .1},
+        gridspec_kw={'wspace': .3, 'hspace': .1},
     )
+    fontsize = 12
+    linewidth=1
 
     if len(datasets) == 1:
         axs = np.array([axs])
@@ -237,13 +240,14 @@ if lrs_plot:
         ddf = mdf[mdf['dataset'] == dataset]
         for j, a in enumerate(activations):
             adf = ddf[ddf['act'] == a]
-            axs[0, j].set_title(a, weight='bold')
+            title = a if not 'relu' in a else 'ReLU'
+            axs[0, j].set_title(title, weight='bold', fontsize=fontsize)
             for c in comments:
                 idf = adf[adf['comments'] == c]
                 ys = idf['mean_' + metric].values
                 yerrs = idf['std_' + metric].values
                 xs = idf['lr'].values
-                axs[i, j].plot(xs, ys, color=lsc_colors[c], label=lsc_clean_comments(c))
+                axs[i, j].plot(xs, ys, color=lsc_colors[c], label=lsc_clean_comments(c), linewidth=linewidth)
                 axs[i, j].fill_between(xs, ys - yerrs / 2, ys + yerrs / 2, alpha=0.5, color=lsc_colors[c])
 
             if not i == len(datasets) - 1:
@@ -253,12 +257,12 @@ if lrs_plot:
                 axs[i, j].tick_params(axis='y', which='both', left=False, right=False, labelleft=False)
 
                 # x axis log scale
-    axs[-1, -1].set_xlabel('Learning rate')
-    axs[0, 0].set_ylabel('Accuracy')
+    axs[-1, -1].set_xlabel('Learning rate', fontsize=fontsize)
+    axs[0, 0].set_ylabel('Accuracy', fontsize=fontsize)
 
     legend_elements = [Line2D([0], [0], color=lsc_colors[n], lw=4, label=lsc_clean_comments(n))
                        for n in comments]
-    plt.legend(ncol=3, handles=legend_elements, loc='lower center', bbox_to_anchor=(-.1, -1.))
+    plt.legend(ncol=3, handles=legend_elements, loc='lower center', bbox_to_anchor=(-.7, -1.))
 
     # add a vertical text to the plot, to indicate the dataset, one for each row
     for i, dataset in enumerate(datasets):
