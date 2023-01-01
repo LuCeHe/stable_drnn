@@ -42,7 +42,7 @@ GEXPERIMENTS = [
 expsid = 'als'  # effnet als ffnandcnns
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
-check_for_new = False
+check_for_new = True
 plot_losses = False
 one_exp_curves = False
 pandas_means = True
@@ -80,7 +80,7 @@ columns_to_remove = [
     'resources', 'host', 'start_time', 'status', 'experiment', 'result',
 ]
 columns_to_remove = []
-columns_to_remove = [' list', '_var', '_mean', 'sparse_categorical_crossentropy', 'bpc', 'loss',
+columns_to_remove = ['_var', '_mean', 'sparse_categorical_crossentropy', 'bpc', 'loss',
                      'sparse_categorical_accuracy', 'LSC_losses', 'rec_norms', 'fail_trace']
 force_keep_column = ['LSC_norms list']
 
@@ -111,7 +111,8 @@ if plot_losses:
     nets = df['net_name'].unique()
     comments = df['comments'].unique()
     print(comments)
-
+    print(tasks)
+    print(nets)
     fig, axs = plt.subplots(len(tasks), len(nets), figsize=(len(nets) * 3, len(tasks) * 3))
     for i, task in enumerate(tasks):
         for j, net in enumerate(nets):
@@ -144,7 +145,6 @@ if 'n_params' in df.columns:
 df['comments'] = df['comments'].astype(str)
 if 'net_name' in df.columns: df['net_name'] = df['net_name'].astype(str)
 if 'task_name' in df.columns: df['task_name'] = df['task_name'].astype(str)
-df = df[~df['comments'].str.contains('test')]
 
 if 'net_name' in df.columns:
     df.loc[df['comments'].str.contains('noalif'), 'net_name'] = 'LIF'
@@ -161,18 +161,20 @@ df.rename(columns=new_column_names, inplace=True)
 
 if 'v_mode_acc len' in df.columns:
     # # FIXME: 14 experiments got nans in the heidelberg task validation, plot them anyway?
+    print(list(df.columns))
     print('v_mode_acc nans:', df['v_mode_acc len'].isna().sum())
-    # df['v_ppl argmin'] = df['v_ppl argmin'].astype(int)
-    # df['v_mode_acc argmax'] = df['v_mode_acc argmax'].astype(int)
+    print('t_ppl nans:', df['t_ppl list'].isna().sum())
+    df['v_ppl argm'] = df['v_ppl argm'].astype(int)
+    df['v_mode_acc argM'] = df['v_mode_acc argM'].astype(int)
 
     df['v_ppl'] = df['v_ppl m']
-    # df['t_ppl'] = df.apply(lambda row: row['t_ppl list'][row['v_ppl argmin']], axis=1)
+    df['t_ppl'] = df.apply(lambda row: row['t_ppl list'][row['v_ppl argm']], axis=1)
     df['v_mode_acc'] = df['v_mode_acc M']
-    # df['t_mode_acc'] = df.apply(lambda row: row['t_mode_acc list'][row['v_mode_acc argmax']], axis=1)
-
+    df['t_mode_acc'] = df.apply(lambda row: row['t_mode_acc list'][row['v_mode_acc argM']], axis=1)
+    #
     # FIXME: following is incorrect, correct it as soon as you get rid of the NaNs
-    df['t_ppl'] = df['t_ppl m']
-    df['t_mode_acc'] = df['t_mode_acc M']
+    # df['t_ppl'] = df['t_ppl m']
+    # df['t_mode_acc'] = df['t_mode_acc M']
 
 for c_name in columns_to_remove:
     df = df[df.columns.drop(list(df.filter(regex=c_name)))]
@@ -234,7 +236,7 @@ if one_exp_curves:
 
 if pandas_means:
     # group_cols = ['net_name', 'task_name', 'initializer', 'comments', 'lr']
-    group_cols = ['net_name', 'task_name', 'comments', 'stack']
+    group_cols = ['net_name', 'task_name', 'comments', 'stack', 'lr i']
     counts = df.groupby(group_cols).size().reset_index(name='counts')
 
     metrics_oi = [shorten_losses(m) for m in metrics_oi]
@@ -247,9 +249,9 @@ if pandas_means:
         mdf['std_{}'.format(m)] = mdf[m]['std']
         mdf = mdf.drop([m], axis=1)
     mdf = mdf.droplevel(level=1, axis=1)
+    mdf['counts'] = counts['counts']
 
     mdf = mdf.sort_values(by='mean_' + metric)
-    mdf['counts'] = counts['counts']
 
     tasks = sorted(np.unique(mdf['task_name']))
     nets = sorted(np.unique(mdf['net_name']))
@@ -392,7 +394,7 @@ if plot_lrs:
 
 if missing_exps:
     # columns of interest
-    coi = ['seed', 'task_name', 'net_name', 'comments', 'stack']
+    coi = ['seed', 'task_name', 'net_name', 'comments', 'stack', 'lr']
     incomplete_comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_'
 
     import pandas as pd
@@ -407,7 +409,8 @@ if missing_exps:
     sdf.loc[df['net_name'].str.contains('ALIFb'), 'net_name'] = 'maLSNNb'
     sdf.loc[df['net_name'].str.contains('ALIF'), 'net_name'] = 'maLSNN'
 
-    sdf = sdf[~sdf['net_name'].eq('LSTM')]
+    sdf['lr'] = sdf['lr i']
+    sdf = sdf[sdf['net_name'].eq('LSTM')]
 
     sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
 
@@ -421,21 +424,20 @@ if missing_exps:
         incomplete_comments + f'findLSC_supnpsd2',
         incomplete_comments + f'findLSC_radius',
     ]
-
     experiments = []
 
     nets = ['maLSNN', 'maLSNNb']
-    # nets = ['LSTM']
+    nets = ['LSTM']
     experiment = {
         'task_name': ['heidelberg', 'sl_mnist'],
         'net_name': nets, 'seed': seeds, 'stack': ['1', 'None'],
-        'comments': all_comments,
+        'comments': all_comments, 'lr': [1e-2, 3.16e-3, 1e-3],
     }
     experiments.append(experiment)
     experiment = {
         'task_name': ['wordptb'],
         'net_name': nets, 'seed': seeds, 'stack': ['None'],
-        'comments': all_comments,
+        'comments': all_comments, 'lr': [1e-2, 3.16e-3, 1e-3],
     }
     experiments.append(experiment)
 
@@ -833,16 +835,12 @@ if remove_incomplete:
     rdfs = []
     # from LSC_norms final column, select those that are epsilon away from 1
     epsilon = 0.09
-    epsilon = 0.3
+    epsilon = 0.2
     rdf = plotdf[abs(plotdf['LSC_norms f'] - 1) > epsilon]
-    print('here')
-    print(rdf.to_string())
-    print(rdf.shape)
     print(rdf.shape, df.shape)
-
     rdfs.append(rdf)
 
-    rdf = plotdf[plotdf['v_ppl'].isna()]
+    rdf = plotdf[plotdf['task_name'].eq('PTB')]
     print(rdf.shape)
     rdfs.append(rdf)
 

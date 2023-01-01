@@ -60,9 +60,10 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
 
     # print(std.shape, td.shape)
 
+    n_s = 4
     if 'supnpsd' in comments:
         # loss that encourages the matrix to be psd
-        z = tf.random.normal((25, std.shape[-1]))
+        z = tf.random.normal((n_s, std.shape[-1]))
         zn = tf.norm(z, ord='euclidean', axis=-1)
         z = z / tf.expand_dims(zn, axis=-1)
         zT = tf.transpose(z)
@@ -77,7 +78,6 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
 
     elif 'supsubnpsd' in comments:
         # loss that encourages the matrix to be psd
-        n_s = 2
         z = tf.random.normal((n_s, std.shape[-1]))
         zn = tf.norm(z, ord='euclidean', axis=-1)
         z = z / tf.expand_dims(zn, axis=-1)
@@ -90,7 +90,7 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
         eig = tf.linalg.eigvals(std)
         r = tf.math.real(eig)
         i = tf.math.imag(eig)
-        norms = r + i
+        norms = r
         loss += well_loss(min_value=0., max_value=0., walls_type='relu', axis='all')(i) / 3
 
     elif 'logradius' in comments:
