@@ -36,7 +36,6 @@ from tensorflow.python.lib.io import file_io
 from tensorflow.python.util.tf_export import keras_export
 import tensorflow as tf
 
-
 BASE_WEIGHTS_PATH = 'https://storage.googleapis.com/keras-applications/'
 
 WEIGHTS_HASHES = {
@@ -308,6 +307,8 @@ def EfficientNet(
 
     bn_axis = 3 if backend.image_data_format() == 'channels_last' else 1
 
+    print(dropout_rate, drop_connect_rate)
+
     def round_filters(filters, divisor=depth_divisor):
         """Round number of filters based on depth multiplier."""
         filters *= width_coefficient
@@ -374,6 +375,7 @@ def EfficientNet(
                 kernel_initializer=kernel_initializer,
                 bias_initializer=bias_initializer,
                 name='block{}{}_'.format(i + 1, chr(j + 97)),
+                comments = comments,
                 **args)
             b += 1
 
@@ -444,6 +446,7 @@ def block(
         bias_initializer='default',
         batch_normalization=True,
         name='',
+        comments = '',
         filters_in=32,
         filters_out=16,
         kernel_size=3,
@@ -470,6 +473,7 @@ def block(
         output tensor for the block.
     """
     bn_axis = 3 if backend.image_data_format() == 'channels_last' else 1
+
 
     # Expansion phase
     filters = filters_in * expand_ratio
@@ -571,7 +575,6 @@ def EfficientNetB0(include_top=False,
         1.0,
         1.0,
         224,
-        0.2,
         model_name='efficientnetb0',
         comments=comments,
         kernel_initializer=kernel_initializer,
@@ -766,5 +769,3 @@ def EfficientNetB7(include_top=True,
         classes=classes,
         classifier_activation=classifier_activation,
         **kwargs)
-
-
