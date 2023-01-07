@@ -31,12 +31,12 @@ from GenericTools.stay_organized.unzip import unzip_good_exps
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
 EXPERIMENTS = os.path.join(CDIR, 'experiments')
-EXPERIMENTS = r'D:\work\alif_sg\experiments'
+# EXPERIMENTS = r'D:\work\alif_sg\experiments'
 GEXPERIMENTS = [
-    # os.path.join(CDIR, 'good_experiments'),
+    os.path.join(CDIR, 'good_experiments'),
     # os.path.join(CDIR, 'good_experiments', '2022-11-07--complete_set_of_exps'),
     # r'D:\work\alif_sg\experiments',
-    r'D:\work\alif_sg\good_experiments\2022-12-21--rnn',
+    # r'D:\work\alif_sg\good_experiments\2022-12-21--rnn',
 ]
 
 expsid = 'als'  # effnet als ffnandcnns
@@ -53,6 +53,7 @@ plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
 plot_weights = False
+plot_init_lrs = False
 plot_lrs = False
 
 remove_incomplete = False
@@ -235,8 +236,9 @@ if one_exp_curves:
         plt.show()
 
 if pandas_means:
-    # group_cols = ['net_name', 'task_name', 'initializer', 'comments', 'lr']
-    group_cols = ['net_name', 'task_name', 'comments', 'stack', 'lr i']
+    group_cols = ['net_name', 'task_name', 'comments', 'stack', 'lr']
+    df['lr'] = df['lr i']
+    # group_cols = ['net_name', 'task_name', 'comments', 'stack', 'lr i']
     counts = df.groupby(group_cols).size().reset_index(name='counts')
 
     metrics_oi = [shorten_losses(m) for m in metrics_oi]
@@ -344,14 +346,15 @@ if pandas_means:
 
         print(pdf.to_latex(index=True, escape=False))
 
-if plot_lrs:
+if plot_init_lrs:
     idf = mdf
-    idf = idf.dropna(subset=['lr'])
+
+    # idf = idf.dropna(subset=['lr'])
     print(idf.to_string())
 
     tasks = ['sl-MNIST', 'SHD', 'PTB']
     lrs = np.unique(idf['lr'])
-    nets = ['LSTM', 'ALIF']
+    nets = ['LSTM', 'ALIF', 'ALIFb']
 
     fig, axs = plt.subplots(1, len(tasks), gridspec_kw={'wspace': .2, 'hspace': 0.8}, figsize=(14, 3))
     colors = lambda net_name: '#FF5733' if net_name == 'ALIF' else '#1E55A9'
@@ -359,16 +362,16 @@ if plot_lrs:
         for net in nets:
             iidf = idf[idf['task_name'].eq(task) & idf['net_name'].eq(net)]
             iidf = iidf.sort_values(by='lr')
-
-            vppls = iidf['mean_v_ppl min'].values
+            print(iidf.columns)
+            vppls = iidf[f'mean_{metric}'].values
             lrs = iidf['lr'].values
-            stds = iidf['std_v_ppl min'].values
+            stds = iidf[f'std_{metric}'].values
             axs[i].plot(lrs, vppls, color=colors(net))
             axs[i].fill_between(lrs, vppls - stds / 2, vppls + stds / 2, alpha=0.5, color=colors(net))
             axs[i].set_xscale('log')
 
-            iidf = iidf.sort_values(by='mean_v_ppl min')
-            print(f"{net} on {task} got best vPPL {iidf['mean_v_ppl min'].values[0]} for {iidf['lr'].values[0]}")
+            iidf = iidf.sort_values(by=f'mean_{metric}')
+            print(f"{net} on {task} got best vPPL {iidf[f'mean_{metric}'].values[0]} for {iidf['lr'].values[0]}")
 
         axs[i].set_title(task)
         axs[i].set_xticks([1e-2, 1e-3, 1e-4, 1e-5])
@@ -386,6 +389,61 @@ if plot_lrs:
     ]
 
     plt.legend(handles=legend_elements, loc='center', bbox_to_anchor=(-2.15, .5))
+
+    plot_filename = f'experiments/lrs.pdf'
+    fig.savefig(plot_filename, bbox_inches='tight')
+
+    plt.show()
+
+if plot_lrs:
+    stack = 'None'  # 1 None
+
+    idf = mdf.copy()
+    idf = idf[idf['stack'].eq(stack)]
+
+    idf['comments'] = idf['comments'].str.replace('36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_', '')
+
+    tasks = idf['task_name'].unique()
+    nets = idf['net_name'].unique()
+    comments = idf['comments'].unique()
+
+    # tasks = ['sl-MNIST', 'SHD', 'PTB']
+    lrs = np.unique(idf['lr'])
+    idf = idf.sort_values(by='lr')
+
+    # nets = ['LSTM', 'ALIF', 'ALIFb']
+
+    fig, axs = plt.subplots(len(nets), len(tasks), gridspec_kw={'wspace': .2, 'hspace': 0.8}, figsize=(14, 3))
+    colors = lambda net_name: '#FF5733' if net_name == 'ALIF' else '#1E55A9'
+    for j, task in enumerate(tasks):
+        for i, net in enumerate(nets):
+            iidf = idf[idf['task_name'].eq(task) & idf['net_name'].eq(net)]
+            iidf = iidf.sort_values(by='lr')
+
+            for c in comments:
+                cdf = iidf[iidf['comments'].eq(c)]
+                print('-==*-' * 20)
+                print(cdf.to_string())
+                means, stds, lrs = cdf[f'mean_{metric}'].values, cdf[f'std_{metric}'].values, cdf['lr'].values
+                axs[i, j].plot(lrs, means, color=lsc_colors[c], label=c)
+                axs[i, j].fill_between(lrs, means - stds / 2, means + stds / 2, alpha=0.5, color=lsc_colors[c])
+            axs[i, j].set_xscale('log')
+
+            iidf = iidf.sort_values(by=f'mean_{metric}')
+            print(f"{net} on {task} got best vPPL {iidf[f'mean_{metric}'].values[0]} for {iidf['lr'].values[0]}")
+
+        axs[0, j].set_title(task)
+        # axs[i,0].set_xticks([1e-2, 1e-3, 1e-4, 1e-5])
+        # axs[i,0].locator_params(axis='y', nbins=5)
+    axs[0, 0].set_ylabel('Validation Perplexity')
+    axs[-1, -1].set_xlabel('Learning Rate')
+
+    for ax in axs.reshape(-1):
+        for pos in ['right', 'left', 'bottom', 'top']:
+            ax.spines[pos].set_visible(False)
+
+    legend_elements = [Line2D([0], [0], color=lsc_colors[n], lw=4, label=n) for n in comments]
+    plt.legend(ncol=3, handles=legend_elements, loc='lower center')  # , bbox_to_anchor=(-.1, -1.))
 
     plot_filename = f'experiments/lrs.pdf'
     fig.savefig(plot_filename, bbox_inches='tight')
@@ -421,16 +479,23 @@ if missing_exps:
         incomplete_comments,
         incomplete_comments + f'findLSC',
         incomplete_comments + f'findLSC_supsubnpsd',
-        incomplete_comments + f'findLSC_supnpsd2',
+        # incomplete_comments + f'findLSC_supnpsd2',
         incomplete_comments + f'findLSC_radius',
     ]
     experiments = []
 
     nets = ['maLSNN', 'maLSNNb']
     nets = ['LSTM']
+    nets = ['LSTM', 'maLSNN', 'maLSNNb']
     experiment = {
         'task_name': ['heidelberg', 'sl_mnist'],
         'net_name': nets, 'seed': seeds, 'stack': ['1', 'None'],
+        'comments': all_comments, 'lr': [1e-2, 3.16e-3, 1e-3],
+    }
+    experiments.append(experiment)
+    experiment = {
+        'task_name': ['heidelberg'],
+        'net_name': ['maLSNN', 'LSTM'], 'seed': seeds, 'stack': ['7'],
         'comments': all_comments, 'lr': [1e-2, 3.16e-3, 1e-3],
     }
     experiments.append(experiment)
@@ -838,11 +903,40 @@ if remove_incomplete:
     epsilon = 0.2
     rdf = plotdf[abs(plotdf['LSC_norms f'] - 1) > epsilon]
     print(rdf.shape, df.shape)
-    rdfs.append(rdf)
+    # rdfs.append(rdf)
 
     rdf = plotdf[plotdf['task_name'].eq('PTB')]
     print(rdf.shape)
     rdfs.append(rdf)
+
+    rdf = plotdf[plotdf['task_name'].eq('SHD')]
+    print(rdf.shape)
+    rdfs.append(rdf)
+
+    rdf = plotdf[plotdf['comments'].str.contains('supnpsd2')]
+    print(rdf.shape)
+    rdfs.append(rdf)
+
+    # remove repeated
+    # remove one seed from those that have more than 4 seeds
+    brdf = mdf[mdf['counts'] > 4]
+
+    for _, row in brdf.iterrows():
+        srdf = df[
+            (df['lr'] == row['lr'])
+            & (df['comments'].str.contains(row['comments']))
+            & (df['stack'] == row['stack'])
+            & (df['task_name'] == row['task_name'])
+            & (df['net_name'] == row['net_name'])
+            ].copy()
+
+        # no duplicates
+        gsrdf = srdf.drop_duplicates(subset=['seed'])
+
+        # remainder
+        rdf = srdf[~srdf.apply(tuple, 1).isin(gsrdf.apply(tuple, 1))]
+        print(rdf.shape)
+        rdfs.append(rdf)
 
     if truely_remove:
         for rdf in rdfs:

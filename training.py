@@ -54,7 +54,7 @@ def config():
 
     # net
     # maLSNN cLSTM LSTM maLSNNb
-    net_name = 'LSTM'
+    net_name = 'maLSNN'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
     n_neurons = None
 
@@ -191,15 +191,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
 
             del gen_train
             print(json.dumps(new_model_args, indent=4, cls=NumpyEncoder))
-            # lsclr = 3.16e-3
-            if not 'wordptb' in task_name:
-                lsclr = 2e-3
-            else:
-                lsclr = 1e-4
-            # if 'supsubnpsd' in comments:
-            #     lsclr *= 10
-            # if net_name == 'LSTM' and norm_pow == np.inf:
-            #     lsclr = 1e-2
+            lsclr = 1e-4
 
             results['lsclr'] = lsclr
             weights, lsc_results = apply_LSC(

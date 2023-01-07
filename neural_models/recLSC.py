@@ -60,7 +60,7 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
 
     # print(std.shape, td.shape)
 
-    n_s = 4
+    n_s = 2
     if 'supnpsd' in comments:
         # loss that encourages the matrix to be psd
         z = tf.random.normal((n_s, std.shape[-1]))
@@ -70,7 +70,7 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
 
         a = std @ zT
         preloss = tf.einsum('bks,sk->bs', a, z)
-        loss += tf.reduce_mean(tf.nn.relu(-preloss)) / 3
+        loss += tf.reduce_mean(tf.nn.relu(-preloss)) / 4
 
         # norms = tf.linalg.logdet(std) + 1
         norms = tf.reduce_sum(tf.math.log(log_epsilon + tf.abs(tf.linalg.eigvals(std))), axis=-1) + 1
@@ -85,13 +85,13 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
 
         a = std @ zT
         preloss = tf.einsum('bks,sk->bs', a, z)
-        loss += tf.reduce_mean(tf.nn.relu(-preloss)) / 3
+        loss += tf.reduce_mean(tf.nn.relu(-preloss)) / 4
 
         eig = tf.linalg.eigvals(std)
         r = tf.math.real(eig)
         i = tf.math.imag(eig)
         norms = r
-        loss += well_loss(min_value=0., max_value=0., walls_type='relu', axis='all')(i) / 3
+        loss += well_loss(min_value=0., max_value=0., walls_type='relu', axis='all')(i) / 4
 
     elif 'logradius' in comments:
         if td.shape[-1] == td.shape[-2]:
