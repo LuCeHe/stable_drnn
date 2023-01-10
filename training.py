@@ -44,10 +44,10 @@ def config():
     # task and net
     # ps_mnist heidelberg s_mnist
     # wordptb sl_mnist
-    task_name = 'wordptb'
+    task_name = 'sl_mnist'
 
     # test configuration
-    epochs = 2
+    epochs = 0
     steps_per_epoch = 2
     batch_size = 2
     stack = None
@@ -60,7 +60,7 @@ def config():
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task_name in language_tasks else False
     comments = '34_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_naswot:1_v2naswot'  # 'nsLIFreadout_adaptsg_dropout:0.50' findLSC_test
-    comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_findLSC_supsubnpsd_test'
+    comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_findLSC_supsubnpsd_test_pretrained'
 
     # optimizer properties
     lr = None  # 7e-4 None
@@ -141,7 +141,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
         embedding=embedding, optimizer_name=optimizer_name, lr_schedule=lr_schedule,
         weight_decay=weight_decay, clipnorm=clipnorm, initializer=initializer, comments=comments,
         in_len=gen_train.in_len, n_in=gen_train.in_dim, out_len=gen_train.out_len,
-        n_out=gen_train.out_dim, final_epochs=gen_train.epochs,
+        n_out=gen_train.out_dim, final_epochs=gen_train.epochs, seed=seed,
     )
 
     results = {}
@@ -197,8 +197,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
             weights, lsc_results = apply_LSC(
                 train_task_args=new_task_args, model_args=new_model_args, norm_pow=norm_pow, n_samples=n_samples,
                 batch_size=new_batch_size, rec_norm=lscrec, depth_norm=lscdepth, decoder_norm=lscout,
-                save_weights_path=save_weights_path, time_steps=time_steps, lr=lsclr, naswot=naswot,
-                comments=comments
+                save_weights_path=save_weights_path, time_steps=time_steps, lr=lsclr, naswot=naswot
             )
             results.update(lsc_results)
 

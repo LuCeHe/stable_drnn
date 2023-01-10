@@ -4,8 +4,14 @@ import warnings
 import tensorflow as tf
 import tensorflow_probability as tfp
 from tensorflow_addons.optimizers import AdamW
+from GenericTools.keras_tools.esoteric_optimizers.AdamW import AdamW as AdamW2
+
 
 from GenericTools.keras_tools.convenience_operations import sample_axis
+from GenericTools.keras_tools.esoteric_layers import AddLossLayer, AddMetricsLayer
+from GenericTools.keras_tools.esoteric_layers.rate_voltage_reg import RateVoltageRegularization
+from GenericTools.keras_tools.learning_rate_schedules import DummyConstantSchedule
+from sg_design_lif.neural_models import maLSNN
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['AUTOGRAPH_VERBOSITY'] = '1'
@@ -21,6 +27,11 @@ from sg_design_lif.neural_models.full_model import build_model
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['AUTOGRAPH_VERBOSITY'] = '1'
 warnings.filterwarnings('ignore')
+
+FILENAME = os.path.realpath(__file__)
+CDIR = os.path.dirname(FILENAME)
+EXPERIMENTS = os.path.abspath(os.path.join(CDIR, '..', 'experiments'))
+os.makedirs(EXPERIMENTS, exist_ok=True)
 
 
 def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, norm_pow=2, naswot=0, comments='',
@@ -165,10 +176,30 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
     return tf.abs(norms), loss, naswot_score
 
 
+def get_lsctype(comments):
+    if 'supnpsd' in comments:
+        lsctype = 'supnpsd'
+
+    elif 'supsubnpsd' in comments:
+        lsctype = 'supsubnpsd'
+
+    elif 'logradius' in comments:
+        lsctype = 'logradius'
+
+    elif 'radius' in comments:
+        lsctype = 'radius'
+
+    elif 'entrywise' in comments:
+        lsctype = 'entrywise'
+
+    else:
+        lsctype = 'other'
+    return lsctype
+
+
 def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, steps_per_epoch=2, es_epsilon=.08,
               patience=10, rec_norm=True, depth_norm=True, encoder_norm=False, decoder_norm=True, learn=True,
-              time_steps=None, weights=None, save_weights_path=None, lr=1e-3, naswot=0,
-              comments=''):
+              time_steps=None, weights=None, save_weights_path=None, lr=1e-3, naswot=0):
     target_norm = 1.
     # FIXME: generalize this loop for any recurrent model
     gen_train = Task(**train_task_args)
@@ -178,11 +209,14 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
     stack = model_args['stack']
     net_name = model_args['net_name']
+    task_name = model_args['task_name']
     if isinstance(model_args['stack'], str):
         stack = [int(s) for s in model_args['stack'].split(':')]
     elif isinstance(model_args['stack'], int):
         stack = [model_args['n_neurons'] for _ in range(model_args['stack'])]
 
+    s = model_args["seed"]
+    lsct = get_lsctype(comments)
     optimizer = AdamW(learning_rate=lr, weight_decay=1e-4)
 
     states = []
@@ -221,13 +255,25 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
         weights_path = os.path.join(save_weights_path, 'model_weights_lsc_before.h5')
         model.save_weights(weights_path)
 
+    path_pretrained = os.path.join(EXPERIMENTS, f'pretrained_s{s}_{net_name}_{lsct}_{task_name}.h5')
+    if 'pretrained' in comments:
+        if os.path.exists(path_pretrained):
+            # fixme: load the pretrained weights
+            print('loading pretrained lsc weights')
+            # model.load_weights(path_pretrained)
+            model = tf.keras.models.load_model(
+                path_pretrained,
+                custom_objects={
+                    'maLSNN': maLSNN, 'RateVoltageRegularization': RateVoltageRegularization,
+                    'AddLossLayer': AddLossLayer, 'AddMetricsLayer': AddMetricsLayer,
+                    'SparseCategoricalCrossentropy': tf.keras.losses.SparseCategoricalCrossentropy,
+                    'AdamW': AdamW2, 'DummyConstantSchedule': DummyConstantSchedule
+
+                }
+            )
+
     if weights is None:
         weights = model.get_weights()
-
-
-    if 'pretrained' in comments:
-        # fixme: load the pretrained weights
-        model.set_weights(weights)
 
     weight_names = [weight.name for layer in model.layers for weight in layer.weights]
     results.update({f'{n}_mean': [tf.reduce_mean(w).numpy()] for n, w in zip(weight_names, weights)})
@@ -421,9 +467,9 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
         weights_path = os.path.join(save_weights_path, 'model_weights_lsc_after.h5')
         model.save_weights(weights_path)
 
-
     if 'pretrained' in comments:
-        model.save_weights('./checkpoints/my_checkpoint')
+        if not os.path.exists(path_pretrained):
+            model.save(path_pretrained)
 
     del model, tape
 
@@ -432,9 +478,6 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
     # print(rec_norms)
     tf.keras.backend.clear_session()
-
-
-
 
     return weights, results
 
