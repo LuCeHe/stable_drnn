@@ -223,6 +223,12 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
     if weights is None:
         weights = model.get_weights()
+
+
+    if 'pretrained' in comments:
+        # fixme: load the pretrained weights
+        model.set_weights(weights)
+
     weight_names = [weight.name for layer in model.layers for weight in layer.weights]
     results.update({f'{n}_mean': [tf.reduce_mean(w).numpy()] for n, w in zip(weight_names, weights)})
     results.update({f'{n}_var': [tf.math.reduce_variance(w).numpy()] for n, w in zip(weight_names, weights)})
@@ -415,6 +421,10 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
         weights_path = os.path.join(save_weights_path, 'model_weights_lsc_after.h5')
         model.save_weights(weights_path)
 
+
+    if 'pretrained' in comments:
+        model.save_weights('./checkpoints/my_checkpoint')
+
     del model, tape
 
     # results.update(LSC_losses=str(losses), LSC_norms=str(all_norms))
@@ -422,6 +432,10 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
     # print(rec_norms)
     tf.keras.backend.clear_session()
+
+
+
+
     return weights, results
 
 
