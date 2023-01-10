@@ -31,12 +31,12 @@ from GenericTools.stay_organized.unzip import unzip_good_exps
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
 EXPERIMENTS = os.path.join(CDIR, 'experiments')
-# EXPERIMENTS = r'D:\work\alif_sg\experiments'
+EXPERIMENTS = r'D:\work\alif_sg\experiments'
 GEXPERIMENTS = [
-    os.path.join(CDIR, 'good_experiments'),
+    # os.path.join(CDIR, 'good_experiments'),
     # os.path.join(CDIR, 'good_experiments', '2022-11-07--complete_set_of_exps'),
     # r'D:\work\alif_sg\experiments',
-    # r'D:\work\alif_sg\good_experiments\2022-12-21--rnn',
+    r'D:\work\alif_sg\good_experiments\2022-12-21--rnn',
 ]
 
 expsid = 'als'  # effnet als ffnandcnns
@@ -48,13 +48,13 @@ one_exp_curves = False
 pandas_means = True
 show_per_tasknet = True
 make_latex = False
-missing_exps = True
+missing_exps = False
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
 plot_weights = False
 plot_init_lrs = False
-plot_lrs = False
+plot_lrs = True
 
 remove_incomplete = False
 truely_remove = False
@@ -94,6 +94,7 @@ df = experiments_to_pandas(
 df['stack'] = df['stack'].fillna(-1).astype(int)
 df = df.replace(-1, 'None')
 df['stack'] = df['stack'].astype(str)
+df['batch_size'] = df['batch_size'].astype(str)
 
 # if 'rec_norms' in df.columns:
 #     df['rec_norms'] = df.apply(reorganize, axis=1)
@@ -396,7 +397,7 @@ if plot_init_lrs:
     plt.show()
 
 if plot_lrs:
-    stack = 'None'  # 1 None
+    stack = '1'  # 1 None
 
     idf = mdf.copy()
     idf = idf[idf['stack'].eq(stack)]
@@ -414,6 +415,11 @@ if plot_lrs:
     # nets = ['LSTM', 'ALIF', 'ALIFb']
 
     fig, axs = plt.subplots(len(nets), len(tasks), gridspec_kw={'wspace': .2, 'hspace': 0.8}, figsize=(14, 3))
+    if len(nets) == 1:
+        axs = np.array([axs])
+    if len(tasks) == 1:
+        axs = np.array([axs]).T
+
     colors = lambda net_name: '#FF5733' if net_name == 'ALIF' else '#1E55A9'
     for j, task in enumerate(tasks):
         for i, net in enumerate(nets):
@@ -452,7 +458,7 @@ if plot_lrs:
 
 if missing_exps:
     # columns of interest
-    coi = ['seed', 'task_name', 'net_name', 'comments', 'stack', 'lr']
+    coi = ['seed', 'task_name', 'net_name', 'comments', 'stack', 'lr', 'batch_size']
     incomplete_comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_'
 
     import pandas as pd
@@ -489,19 +495,19 @@ if missing_exps:
     nets = ['LSTM', 'maLSNN', 'maLSNNb']
     experiment = {
         'task_name': ['heidelberg', 'sl_mnist'],
-        'net_name': nets, 'seed': seeds, 'stack': ['1', 'None'],
+        'net_name': nets, 'seed': seeds, 'stack': ['1', 'None'], 'batch_size': ['None'],
         'comments': all_comments, 'lr': [1e-2, 3.16e-3, 1e-3],
     }
     experiments.append(experiment)
     experiment = {
         'task_name': ['heidelberg'],
-        'net_name': ['maLSNN', 'LSTM'], 'seed': seeds, 'stack': ['7'],
+        'net_name': ['maLSNN', 'LSTM'], 'seed': seeds, 'stack': ['7'], 'batch_size': ['50'],
         'comments': all_comments, 'lr': [1e-2, 3.16e-3, 1e-3],
     }
     experiments.append(experiment)
     experiment = {
         'task_name': ['wordptb'],
-        'net_name': nets, 'seed': seeds, 'stack': ['None'],
+        'net_name': nets, 'seed': seeds, 'stack': ['None'], 'batch_size': ['None'],
         'comments': all_comments, 'lr': [1e-2, 3.16e-3, 1e-3],
     }
     experiments.append(experiment)

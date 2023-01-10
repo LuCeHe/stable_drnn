@@ -183,8 +183,6 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
     elif isinstance(model_args['stack'], int):
         stack = [model_args['n_neurons'] for _ in range(model_args['stack'])]
 
-    # batch = [tf.convert_to_tensor(tf.cast(b, tf.float32), dtype=tf.float32) for b in batch[0]],
-    # lr = lr if not 'supn' in comments else lr * 10
     optimizer = AdamW(learning_rate=lr, weight_decay=1e-4)
 
     states = []
@@ -384,7 +382,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
                 pbar2.set_description(
                     f"Step {step}; "
-                    f"Loss {str(round(mean_loss.numpy(), 4))}/{li}; "
+                    f"loss {str(round(mean_loss.numpy(), 4))}/{li}; "
                     f"mean params {str(round(prms, 4))}/{pi}; "
                     f"mean norms {str(round(norms.numpy(), 4))}/{ni} "
                 )
@@ -418,6 +416,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
         model.save_weights(weights_path)
 
     del model, tape
+
     # results.update(LSC_losses=str(losses), LSC_norms=str(all_norms))
     results.update(LSC_losses=str(losses), LSC_norms=str(all_norms), rec_norms=rec_norms, all_naswot=str(all_naswot))
 

@@ -191,14 +191,13 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
 
             del gen_train
             print(json.dumps(new_model_args, indent=4, cls=NumpyEncoder))
-            lsclr = 1e-4 if not net_name == 'LSTM' else 1e-3
+            lsclr = 3.14e-4 if not net_name == 'LSTM' else 1e-3
 
             results['lsclr'] = lsclr
             weights, lsc_results = apply_LSC(
                 train_task_args=new_task_args, model_args=new_model_args, norm_pow=norm_pow, n_samples=n_samples,
                 batch_size=new_batch_size, rec_norm=lscrec, depth_norm=lscdepth, decoder_norm=lscout,
-                save_weights_path=save_weights_path,
-                time_steps=time_steps, lr=lsclr, naswot=naswot,
+                save_weights_path=save_weights_path, time_steps=time_steps, lr=lsclr, naswot=naswot,
                 comments=comments
             )
             results.update(lsc_results)
