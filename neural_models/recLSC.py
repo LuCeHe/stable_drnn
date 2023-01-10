@@ -60,7 +60,7 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
 
     # print(std.shape, td.shape)
 
-    n_s = 2
+    n_s = 4
     if 'supnpsd' in comments:
         # loss that encourages the matrix to be psd
         z = tf.random.normal((n_s, std.shape[-1]))
@@ -165,7 +165,7 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
     return tf.abs(norms), loss, naswot_score
 
 
-def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, steps_per_epoch=2, es_epsilon=.06,
+def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, steps_per_epoch=2, es_epsilon=.08,
               patience=10, rec_norm=True, depth_norm=True, encoder_norm=False, decoder_norm=True, learn=True,
               time_steps=None, weights=None, save_weights_path=None, lr=1e-3, naswot=0,
               comments=''):

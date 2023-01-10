@@ -174,7 +174,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
             new_comments = new_model_args['comments'] + '_reoldspike'
             new_batch_size = batch_size
             if 'ptb' in task_name:
-                new_batch_size = 4 if not 'lscdepth:1' in comments else 1
+                new_batch_size = 4
                 new_comments = str2val(new_comments, 'batchsize', replace=new_batch_size)
 
             if 'heidelberg' in task_name and 'maLSNN' in net_name and 'lscdepth:1_lscout:1' in comments:
@@ -191,7 +191,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
 
             del gen_train
             print(json.dumps(new_model_args, indent=4, cls=NumpyEncoder))
-            lsclr = 1e-4
+            lsclr = 1e-4 if not net_name == 'LSTM' else 1e-3
 
             results['lsclr'] = lsclr
             weights, lsc_results = apply_LSC(
