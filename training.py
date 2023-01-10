@@ -179,6 +179,9 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
 
             if 'heidelberg' in task_name and 'maLSNN' in net_name and 'lscdepth:1_lscout:1' in comments:
                 new_batch_size = 128
+                if stack == 7:
+                    new_batch_size = 50
+
                 new_comments = str2val(new_comments, 'batchsize', replace=new_batch_size)
 
             new_model_args['comments'] = new_comments
