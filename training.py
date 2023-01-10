@@ -220,6 +220,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
             ),
             MultipleValidationSets({'v': gen_val, 't': gen_test}, verbose=0),
             tf.keras.callbacks.CSVLogger(history_path),
+            tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=10, restore_best_weights=True)
         ]
 
         if 'tenb' in comments:
