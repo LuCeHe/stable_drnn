@@ -11,50 +11,54 @@ FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
 GEXPERIMENTS = os.path.join(CDIR, 'good_experiments')
 
-
 ds = [d for d in os.listdir(GEXPERIMENTS)]
 
 print(ds)
 
+errors = 0
 for d in tqdm(ds):
     dpath = os.path.join(GEXPERIMENTS, d)
+    try:
+        model = tf.keras.models.load_model(
+            dpath,
+            custom_objects={
+                'maLSNN': maLSNN, 'maLSNNb': maLSNNb, 'RateVoltageRegularization': RateVoltageRegularization,
+                'AddLossLayer': AddLossLayer, 'AddMetricsLayer': AddMetricsLayer,
+                'SparseCategoricalCrossentropy': tf.keras.losses.SparseCategoricalCrossentropy,
+                'AdamW': AdamW2, 'DummyConstantSchedule': DummyConstantSchedule,
+                'SymbolAndPositionEmbedding': SymbolAndPositionEmbedding,
+            }
+        )
 
-    model = tf.keras.models.load_model(
-        dpath,
-        custom_objects={
-            'maLSNN': maLSNN, 'maLSNNb': maLSNNb, 'RateVoltageRegularization': RateVoltageRegularization,
-            'AddLossLayer': AddLossLayer, 'AddMetricsLayer': AddMetricsLayer,
-            'SparseCategoricalCrossentropy': tf.keras.losses.SparseCategoricalCrossentropy,
-            'AdamW': AdamW2, 'DummyConstantSchedule': DummyConstantSchedule,
-            'SymbolAndPositionEmbedding': SymbolAndPositionEmbedding,
-
-
-        }
-    )
-
-    if 'wordptb' in d:
-        stack = '1300c300'
-    else:
-        weights = model.get_weights()
-        if 'maLSNN' in d:
-            if len(weights) == 9:
-                stack = '1'
-            elif len(weights) == 51:
-                stack = '7'
-            elif len(weights) == 16:
-                stack = '2'
-            else:
-                print('Unknown stack')
+        if 'wordptb' in d:
+            stack = '1300c300'
         else:
-
-            if len(weights) == 5:
-                stack = '1'
-            elif len(weights) == 23:
-                stack = '7'
-            elif len(weights) == 8:
-                stack = '2'
+            weights = model.get_weights()
+            if 'maLSNN' in d:
+                if len(weights) == 9:
+                    stack = '1'
+                elif len(weights) == 51:
+                    stack = '7'
+                elif len(weights) == 16:
+                    stack = '2'
+                else:
+                    print('Unknown stack')
             else:
-                print('Unknown stack')
 
-    path_pretrained = dpath.replace('.h5', f'_stack{stack}.h5')
-    model.save(path_pretrained)
+                if len(weights) == 5:
+                    stack = '1'
+                elif len(weights) == 23:
+                    stack = '7'
+                elif len(weights) == 8:
+                    stack = '2'
+                else:
+                    print('Unknown stack')
+
+        path_pretrained = dpath.replace('.h5', f'_stack{stack}.h5')
+        model.save(path_pretrained)
+    except Exception as e:
+        print(f'Error in {d}')
+        print(e)
+        errors += 1
+
+print(f'Errors: {errors}/{len(ds)}')
