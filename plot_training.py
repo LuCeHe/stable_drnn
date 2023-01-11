@@ -31,12 +31,12 @@ from GenericTools.stay_organized.unzip import unzip_good_exps
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
 EXPERIMENTS = os.path.join(CDIR, 'experiments')
-EXPERIMENTS = r'D:\work\alif_sg\experiments'
+# EXPERIMENTS = r'D:\work\alif_sg\experiments'
 GEXPERIMENTS = [
-    # os.path.join(CDIR, 'good_experiments'),
+    os.path.join(CDIR, 'good_experiments'),
     # os.path.join(CDIR, 'good_experiments', '2022-11-07--complete_set_of_exps'),
     # r'D:\work\alif_sg\experiments',
-    r'D:\work\alif_sg\good_experiments\2022-12-21--rnn',
+    # r'D:\work\alif_sg\good_experiments\2022-12-21--rnn',
 ]
 
 expsid = 'als'  # effnet als ffnandcnns
@@ -45,10 +45,10 @@ h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 check_for_new = True
 plot_losses = False
 one_exp_curves = False
-pandas_means = True
-show_per_tasknet = True
+pandas_means = False
+show_per_tasknet = False
 make_latex = False
-missing_exps = False
+missing_exps = True
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -56,11 +56,12 @@ plot_weights = False
 plot_init_lrs = False
 plot_lrs = False
 
-remove_incomplete = True
+remove_incomplete = False
 truely_remove = False
 remove_saved_model = False
 
 task_name = 'ps_mnist'  # heidelberg wordptb sl_mnist all ps_mnist
+incomplete_comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_pretrained_'
 
 # sparse_mode_accuracy sparse_categorical_crossentropy bpc sparse_mode_accuracy_test_10
 # val_sparse_mode_accuracy test_perplexity
@@ -273,6 +274,9 @@ if pandas_means:
                         ]
                     print(idf.to_string())
 
+    print('-===-' * 30)
+    print(mdf[mdf['counts'] > 4].to_string())
+
     if make_latex:
 
         net = 'LSTM'  # ALIF LSTM
@@ -453,7 +457,6 @@ if plot_lrs:
 if missing_exps:
     # columns of interest
     coi = ['seed', 'task_name', 'net_name', 'comments', 'stack', 'lr', 'batch_size']
-    incomplete_comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_'
 
     import pandas as pd
 
@@ -468,7 +471,6 @@ if missing_exps:
     sdf.loc[df['net_name'].str.contains('ALIF'), 'net_name'] = 'maLSNN'
 
     sdf['lr'] = sdf['lr i']
-    sdf = sdf[sdf['net_name'].eq('LSTM')]
 
     sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
 
@@ -487,6 +489,20 @@ if missing_exps:
     nets = ['maLSNN', 'maLSNNb']
     nets = ['LSTM']
     nets = ['LSTM', 'maLSNN', 'maLSNNb']
+
+    # select only the experiments belonging to a specific network
+    found = sdf['net_name'].apply(lambda x: any(x == n for n in nets))
+    sdf = sdf[found]
+
+    # add the string _pretrained to if not present in the comments column
+    sdf['comments'] = sdf['comments'].apply(lambda x: x.replace('lscdepth:1', 'lscdepth:1_pretrained') if 'pretrained' not in x else x)
+
+    # print(sdf.to_string())
+    # import sys
+    # sys.exit()
+
+
+
     experiment = {
         'task_name': ['heidelberg', 'sl_mnist'],
         'net_name': nets, 'seed': seeds, 'stack': ['1', 'None'], 'batch_size': ['None'],
@@ -495,7 +511,7 @@ if missing_exps:
     experiments.append(experiment)
     experiment = {
         'task_name': ['heidelberg'],
-        'net_name': ['maLSNN', 'LSTM'], 'seed': seeds, 'stack': ['7'], 'batch_size': ['50'],
+        'net_name': ['maLSNN', 'LSTM'], 'seed': seeds, 'stack': ['7'], 'batch_size': ['None'],
         'comments': all_comments, 'lr': [1e-2, 3.16e-3, 1e-3],
     }
     experiments.append(experiment)
@@ -909,6 +925,8 @@ if remove_incomplete:
     # print(rdf.shape)
     # rdfs.append(rdf)
 
+    print('-=***=-' * 10)
+    print('Epochs=0')
     rdf = plotdf[plotdf['eps'].eq(0)]
     print(rdf.shape)
     rdfs.append(rdf)
@@ -925,24 +943,28 @@ if remove_incomplete:
     # remove one seed from those that have more than 4 seeds
     brdf = mdf[mdf['counts'] > 4]
 
+    print('-=***=-' * 10)
+    print('Count>4')
     for _, row in brdf.iterrows():
+        print('-' * 10)
+        print(row['comments'])
         srdf = df[
             (df['lr'] == row['lr'])
-            & (df['comments'].str.contains(row['comments']))
+            & (df['comments'].eq(incomplete_comments + row['comments']))
             & (df['stack'] == row['stack'])
             & (df['task_name'] == row['task_name'])
             & (df['net_name'] == row['net_name'])
             ].copy()
 
         # print(srdf.columns)
-        print(srdf[['batch_size','path']].to_string())
+        print(srdf[['comments', 'lr', 'task_name', 'net_name', 'stack']].to_string())
         # no duplicates
         gsrdf = srdf.drop_duplicates(subset=['seed'])
 
         # remainder
         rdf = srdf[~srdf.apply(tuple, 1).isin(gsrdf.apply(tuple, 1))]
         # print(rdf.shape)
-        # rdfs.append(rdf)
+        rdfs.append(rdf)
 
     if truely_remove:
         for rdf in rdfs:

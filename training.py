@@ -49,7 +49,7 @@ def config():
     # test configuration
     epochs = 2
     steps_per_epoch = 2
-    batch_size = 2
+    batch_size = None
     stack = None
 
     # net
