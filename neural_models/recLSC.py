@@ -6,9 +6,8 @@ import tensorflow_probability as tfp
 from tensorflow_addons.optimizers import AdamW
 from GenericTools.keras_tools.esoteric_optimizers.AdamW import AdamW as AdamW2
 
-
 from GenericTools.keras_tools.convenience_operations import sample_axis
-from GenericTools.keras_tools.esoteric_layers import AddLossLayer, AddMetricsLayer
+from GenericTools.keras_tools.esoteric_layers import AddLossLayer, AddMetricsLayer, SymbolAndPositionEmbedding
 from GenericTools.keras_tools.esoteric_layers.rate_voltage_reg import RateVoltageRegularization
 from GenericTools.keras_tools.learning_rate_schedules import DummyConstantSchedule
 from sg_design_lif.neural_models import maLSNN, maLSNNb
@@ -257,7 +256,6 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
         weights_path = os.path.join(save_weights_path, 'model_weights_lsc_before.h5')
         model.save_weights(weights_path)
 
-
     path_pretrained = os.path.join(
         EXPERIMENTS, f"pretrained_s{s}_{net_name}_{lsct}_{task_name}_stack{str(ostack).replace(':', 'c')}.h5")
     if 'pretrained' in comments:
@@ -270,7 +268,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                     'maLSNN': maLSNN, 'maLSNNb': maLSNNb, 'RateVoltageRegularization': RateVoltageRegularization,
                     'AddLossLayer': AddLossLayer, 'AddMetricsLayer': AddMetricsLayer,
                     'SparseCategoricalCrossentropy': tf.keras.losses.SparseCategoricalCrossentropy,
-                    'AdamW': AdamW2, 'DummyConstantSchedule': DummyConstantSchedule
+                    'AdamW': AdamW2, 'DummyConstantSchedule': DummyConstantSchedule,
+                    'SymbolAndPositionEmbedding': SymbolAndPositionEmbedding,
 
                 }
             )

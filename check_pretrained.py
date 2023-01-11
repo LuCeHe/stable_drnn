@@ -2,7 +2,7 @@ import os
 import tensorflow as tf
 from tqdm import tqdm
 from GenericTools.keras_tools.esoteric_optimizers.AdamW import AdamW as AdamW2
-from GenericTools.keras_tools.esoteric_layers import AddLossLayer, AddMetricsLayer
+from GenericTools.keras_tools.esoteric_layers import AddLossLayer, AddMetricsLayer, SymbolAndPositionEmbedding
 from GenericTools.keras_tools.esoteric_layers.rate_voltage_reg import RateVoltageRegularization
 from GenericTools.keras_tools.learning_rate_schedules import DummyConstantSchedule
 from sg_design_lif.neural_models import maLSNN, maLSNNb
@@ -25,7 +25,9 @@ for d in tqdm(ds):
             'maLSNN': maLSNN, 'maLSNNb': maLSNNb, 'RateVoltageRegularization': RateVoltageRegularization,
             'AddLossLayer': AddLossLayer, 'AddMetricsLayer': AddMetricsLayer,
             'SparseCategoricalCrossentropy': tf.keras.losses.SparseCategoricalCrossentropy,
-            'AdamW': AdamW2, 'DummyConstantSchedule': DummyConstantSchedule
+            'AdamW': AdamW2, 'DummyConstantSchedule': DummyConstantSchedule,
+            'SymbolAndPositionEmbedding': SymbolAndPositionEmbedding,
+
 
         }
     )
