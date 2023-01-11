@@ -11,7 +11,7 @@ from GenericTools.keras_tools.convenience_operations import sample_axis
 from GenericTools.keras_tools.esoteric_layers import AddLossLayer, AddMetricsLayer
 from GenericTools.keras_tools.esoteric_layers.rate_voltage_reg import RateVoltageRegularization
 from GenericTools.keras_tools.learning_rate_schedules import DummyConstantSchedule
-from sg_design_lif.neural_models import maLSNN
+from sg_design_lif.neural_models import maLSNN, maLSNNb
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['AUTOGRAPH_VERBOSITY'] = '1'
@@ -30,7 +30,7 @@ warnings.filterwarnings('ignore')
 
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
-EXPERIMENTS = os.path.abspath(os.path.join(CDIR, '..', 'experiments'))
+EXPERIMENTS = os.path.abspath(os.path.join(CDIR, '..', 'good_experiments'))
 os.makedirs(EXPERIMENTS, exist_ok=True)
 
 
@@ -207,13 +207,15 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
     comments = model_args['comments']
     model_args['initial_state'] = ''
 
-    stack = model_args['stack']
+    ostack = model_args['stack']
     net_name = model_args['net_name']
     task_name = model_args['task_name']
     if isinstance(model_args['stack'], str):
         stack = [int(s) for s in model_args['stack'].split(':')]
     elif isinstance(model_args['stack'], int):
         stack = [model_args['n_neurons'] for _ in range(model_args['stack'])]
+    else:
+        stack = ostack
 
     s = model_args["seed"]
     lsct = get_lsctype(comments)
@@ -242,7 +244,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
     # get initial values of model
     model = build_model(**model_args)
-    model.summary()
+    # model.summary()
 
     if not save_weights_path is None:
         os.makedirs(save_weights_path, exist_ok=True)
@@ -255,16 +257,18 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
         weights_path = os.path.join(save_weights_path, 'model_weights_lsc_before.h5')
         model.save_weights(weights_path)
 
-    path_pretrained = os.path.join(EXPERIMENTS, f'pretrained_s{s}_{net_name}_{lsct}_{task_name}.h5')
+    print('here stack', ostack)
+    path_pretrained = os.path.join(
+        EXPERIMENTS, f'pretrained_s{s}_{net_name}_{lsct}_{task_name}_stack{ostack}.h5')
     if 'pretrained' in comments:
         if os.path.exists(path_pretrained):
             # fixme: load the pretrained weights
-            print('loading pretrained lsc weights')
+            print('Loading pretrained lsc weights')
             # model.load_weights(path_pretrained)
             model = tf.keras.models.load_model(
                 path_pretrained,
                 custom_objects={
-                    'maLSNN': maLSNN, 'RateVoltageRegularization': RateVoltageRegularization,
+                    'maLSNN': maLSNN, 'maLSNNb': maLSNNb, 'RateVoltageRegularization': RateVoltageRegularization,
                     'AddLossLayer': AddLossLayer, 'AddMetricsLayer': AddMetricsLayer,
                     'SparseCategoricalCrossentropy': tf.keras.losses.SparseCategoricalCrossentropy,
                     'AdamW': AdamW2, 'DummyConstantSchedule': DummyConstantSchedule
@@ -275,6 +279,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
     if weights is None:
         weights = model.get_weights()
 
+    print('Len weights:', len(weights))
     weight_names = [weight.name for layer in model.layers for weight in layer.weights]
     results.update({f'{n}_mean': [tf.reduce_mean(w).numpy()] for n, w in zip(weight_names, weights)})
     results.update({f'{n}_var': [tf.math.reduce_variance(w).numpy()] for n, w in zip(weight_names, weights)})
@@ -467,7 +472,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
         weights_path = os.path.join(save_weights_path, 'model_weights_lsc_after.h5')
         model.save_weights(weights_path)
 
-    if 'pretrained' in comments:
+    if 'pretrained' in comments and not model is None:
         if not os.path.exists(path_pretrained):
             model.save(path_pretrained)
 

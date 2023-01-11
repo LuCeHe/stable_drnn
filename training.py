@@ -44,10 +44,10 @@ def config():
     # task and net
     # ps_mnist heidelberg s_mnist
     # wordptb sl_mnist
-    task_name = 'sl_mnist'
+    task_name = 'wordptb'
 
     # test configuration
-    epochs = 0
+    epochs = 2
     steps_per_epoch = 2
     batch_size = 2
     stack = None
@@ -84,7 +84,7 @@ def save_results(other_dir, results):
     results_filename = os.path.join(other_dir, 'results.json')
 
     string_result = json.dumps(results, indent=4, cls=NumpyEncoder)
-    print(string_result)
+    # print(string_result)
     with open(results_filename, "w") as f:
         f.write(string_result)
 
@@ -131,9 +131,6 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
         initializer = get_initializer(initializer_name=initializer)
 
     comments = comments if task_name in language_tasks else comments.replace('embproj', 'simplereadout')
-    # task_name, net_name, n_neurons, tau, lr, stack,
-    # loss_name, embedding, optimizer_name, tau_adaptation, lr_schedule, weight_decay, clipnorm,
-    # initializer, comments, in_len, n_in, out_len, n_out, final_epochs,
     initial_state = None
     model_args = dict(
         task_name=task_name, net_name=net_name, n_neurons=n_neurons,
@@ -177,7 +174,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
                 new_batch_size = 4
                 new_comments = str2val(new_comments, 'batchsize', replace=new_batch_size)
 
-            if 'heidelberg' in task_name and 'maLSNN' in net_name and 'lscdepth:1_lscout:1' in comments:
+            if 'heidelberg' in task_name and 'maLSNN' in net_name:
                 new_batch_size = 100
                 if stack == 7:
                     new_batch_size = 50
@@ -194,7 +191,8 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
 
             del gen_train
             print(json.dumps(new_model_args, indent=4, cls=NumpyEncoder))
-            lsclr = 3.14e-4 if not net_name == 'LSTM' else 1e-3
+            # lsclr = 3.14e-4 if not net_name == 'LSTM' else 3.14e-3
+            lsclr = 3.14e-3
 
             results['lsclr'] = lsclr
             weights, lsc_results = apply_LSC(
@@ -251,21 +249,29 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
         actual_epochs = history_df['epoch'].iloc[-1] + 1
         history_dict = {k: history_df[k].tolist() for k in history_df.columns.tolist()}
 
-        plot_filename = os.path.join(images_dir, 'history.png')
-        plot_history(histories=history_dict, plot_filename=plot_filename, epochs=final_epochs)
+        # plot_filename = os.path.join(images_dir, 'history.png')
+        # plot_history(histories=history_dict, plot_filename=plot_filename, epochs=final_epochs)
         json_filename = os.path.join(other_dir, 'history.json')
         history_jsonable = {k: np.array(v).astype(float).tolist() for k, v in history_dict.items()}
         json.dump(history_jsonable, open(json_filename, "w"))
 
         # plot only validation curves
-        history_dict = {k: history_df[k].tolist() if 'val' in k else [] for k in history_df.columns.tolist()}
-        plot_filename = os.path.join(images_dir, 'history_val.png')
-        plot_history(histories=history_dict, plot_filename=plot_filename, epochs=final_epochs)
+        history_keys = history_df.columns.tolist()
+        lengh_keys = 6
+        no_vals_keys = [k for k in history_keys if not k.startswith('val_')]
+        all_chunks = [no_vals_keys[x:x + lengh_keys] for x in range(0, len(no_vals_keys), lengh_keys)]
+        for i, subkeys in enumerate(all_chunks):
+            history_dict = {k: history_df[k].tolist() for k in subkeys}
+            history_dict.update(
+                {'val_' + k: history_df['val_' + k].tolist() for k in subkeys if 'val_' + k in history_keys}
+            )
+            plot_filename = os.path.join(images_dir, f'history_{i}.png')
+            plot_history(histories=history_dict, plot_filename=plot_filename, epochs=final_epochs)
 
         removable_checkpoints = sorted([d for d in os.listdir(models_dir) if 'checkpoint' in d])
         for d in removable_checkpoints: os.remove(os.path.join(models_dir, d))
 
-        results['convergence'] = convergence_estimation(history_dict['val_loss'])
+        # results['convergence'] = convergence_estimation(history_dict['val_loss'])
 
     print('Fitting done!')
 

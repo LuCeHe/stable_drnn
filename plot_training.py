@@ -54,9 +54,9 @@ plot_dampenings_and_betas = False
 plot_norms_pretraining = False
 plot_weights = False
 plot_init_lrs = False
-plot_lrs = True
+plot_lrs = False
 
-remove_incomplete = False
+remove_incomplete = True
 truely_remove = False
 remove_saved_model = False
 
@@ -95,12 +95,6 @@ df['stack'] = df['stack'].fillna(-1).astype(int)
 df = df.replace(-1, 'None')
 df['stack'] = df['stack'].astype(str)
 df['batch_size'] = df['batch_size'].astype(str)
-
-# if 'rec_norms' in df.columns:
-#     df['rec_norms'] = df.apply(reorganize, axis=1)
-#     df['len rec_norms'] = df['rec_norms'].apply(find_length)
-#     df['rec_norms list'] = df['rec_norms'].apply(recnorms_list)
-#     df['rec_norms'] = df['rec_norms'].apply(summary_lsc)
 
 if plot_losses:
     df['comments'] = df['comments'].str.replace('36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_', '')
@@ -166,17 +160,17 @@ if 'v_mode_acc len' in df.columns:
     print(list(df.columns))
     print('v_mode_acc nans:', df['v_mode_acc len'].isna().sum())
     print('t_ppl nans:', df['t_ppl list'].isna().sum())
-    df['v_ppl argm'] = df['v_ppl argm'].astype(int)
-    df['v_mode_acc argM'] = df['v_mode_acc argM'].astype(int)
+    # df['v_ppl argm'] = df['v_ppl argm'].astype(int)
+    # df['v_mode_acc argM'] = df['v_mode_acc argM'].astype(int)
 
     df['v_ppl'] = df['v_ppl m']
-    df['t_ppl'] = df.apply(lambda row: row['t_ppl list'][row['v_ppl argm']], axis=1)
+    # df['t_ppl'] = df.apply(lambda row: row['t_ppl list'][row['v_ppl argm']], axis=1)
     df['v_mode_acc'] = df['v_mode_acc M']
-    df['t_mode_acc'] = df.apply(lambda row: row['t_mode_acc list'][row['v_mode_acc argM']], axis=1)
+    # df['t_mode_acc'] = df.apply(lambda row: row['t_mode_acc list'][row['v_mode_acc argM']], axis=1)
     #
     # FIXME: following is incorrect, correct it as soon as you get rid of the NaNs
-    # df['t_ppl'] = df['t_ppl m']
-    # df['t_mode_acc'] = df['t_mode_acc M']
+    df['t_ppl'] = df['t_ppl m']
+    df['t_mode_acc'] = df['t_mode_acc M']
 
 for c_name in columns_to_remove:
     df = df[df.columns.drop(list(df.filter(regex=c_name)))]
@@ -397,7 +391,7 @@ if plot_init_lrs:
     plt.show()
 
 if plot_lrs:
-    stack = '1'  # 1 None
+    stack = 'None'  # 1 None
 
     idf = mdf.copy()
     idf = idf[idf['stack'].eq(stack)]
@@ -908,20 +902,24 @@ if remove_incomplete:
     epsilon = 0.09
     epsilon = 0.2
     rdf = plotdf[abs(plotdf['LSC_norms f'] - 1) > epsilon]
-    print(rdf.shape, df.shape)
+    # print(rdf.shape, df.shape)
     # rdfs.append(rdf)
 
     rdf = plotdf[plotdf['task_name'].eq('PTB')]
+    # print(rdf.shape)
+    # rdfs.append(rdf)
+
+    rdf = plotdf[plotdf['eps'].eq(0)]
     print(rdf.shape)
     rdfs.append(rdf)
 
     rdf = plotdf[plotdf['task_name'].eq('SHD')]
-    print(rdf.shape)
-    rdfs.append(rdf)
+    # print(rdf.shape)
+    # rdfs.append(rdf)
 
     rdf = plotdf[plotdf['comments'].str.contains('supnpsd2')]
-    print(rdf.shape)
-    rdfs.append(rdf)
+    # print(rdf.shape)
+    # rdfs.append(rdf)
 
     # remove repeated
     # remove one seed from those that have more than 4 seeds
@@ -936,13 +934,15 @@ if remove_incomplete:
             & (df['net_name'] == row['net_name'])
             ].copy()
 
+        # print(srdf.columns)
+        print(srdf[['batch_size','path']].to_string())
         # no duplicates
         gsrdf = srdf.drop_duplicates(subset=['seed'])
 
         # remainder
         rdf = srdf[~srdf.apply(tuple, 1).isin(gsrdf.apply(tuple, 1))]
-        print(rdf.shape)
-        rdfs.append(rdf)
+        # print(rdf.shape)
+        # rdfs.append(rdf)
 
     if truely_remove:
         for rdf in rdfs:
