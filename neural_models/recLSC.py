@@ -257,12 +257,11 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
         weights_path = os.path.join(save_weights_path, 'model_weights_lsc_before.h5')
         model.save_weights(weights_path)
 
-    print('here stack', ostack)
+
     path_pretrained = os.path.join(
-        EXPERIMENTS, f'pretrained_s{s}_{net_name}_{lsct}_{task_name}_stack{ostack}.h5')
+        EXPERIMENTS, f"pretrained_s{s}_{net_name}_{lsct}_{task_name}_stack{str(ostack).replace(':', 'c')}.h5")
     if 'pretrained' in comments:
         if os.path.exists(path_pretrained):
-            # fixme: load the pretrained weights
             print('Loading pretrained lsc weights')
             # model.load_weights(path_pretrained)
             model = tf.keras.models.load_model(
@@ -279,7 +278,6 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
     if weights is None:
         weights = model.get_weights()
 
-    print('Len weights:', len(weights))
     weight_names = [weight.name for layer in model.layers for weight in layer.weights]
     results.update({f'{n}_mean': [tf.reduce_mean(w).numpy()] for n, w in zip(weight_names, weights)})
     results.update({f'{n}_var': [tf.math.reduce_variance(w).numpy()] for n, w in zip(weight_names, weights)})

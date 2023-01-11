@@ -1,5 +1,6 @@
 import os
 import tensorflow as tf
+from tqdm import tqdm
 from GenericTools.keras_tools.esoteric_optimizers.AdamW import AdamW as AdamW2
 from GenericTools.keras_tools.esoteric_layers import AddLossLayer, AddMetricsLayer
 from GenericTools.keras_tools.esoteric_layers.rate_voltage_reg import RateVoltageRegularization
@@ -15,7 +16,7 @@ ds = [d for d in os.listdir(GEXPERIMENTS)]
 
 print(ds)
 
-for d in ds:
+for d in tqdm(ds):
     dpath = os.path.join(GEXPERIMENTS, d)
 
     model = tf.keras.models.load_model(
@@ -28,10 +29,30 @@ for d in ds:
 
         }
     )
-    model.summary()
+
     if 'wordptb' in d:
-        stack = '1300:300'
-        print('wordptb')
-        model.predict(tf.random.uniform((1, 1, 1, 1), dtype=tf.float32))
+        stack = '1300c300'
     else:
         weights = model.get_weights()
+        if 'maLSNN' in d:
+            if len(weights) == 9:
+                stack = '1'
+            elif len(weights) == 51:
+                stack = '7'
+            elif len(weights) == 16:
+                stack = '2'
+            else:
+                print('Unknown stack')
+        else:
+
+            if len(weights) == 5:
+                stack = '1'
+            elif len(weights) == 23:
+                stack = '7'
+            elif len(weights) == 8:
+                stack = '2'
+            else:
+                print('Unknown stack')
+
+    path_pretrained = dpath.replace('.h5', f'_stack{stack}.h5')
+    model.save(path_pretrained)
