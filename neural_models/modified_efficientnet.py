@@ -322,22 +322,15 @@ def EfficientNet(
         """Round number of repeats based on depth multiplier."""
         return int(math.ceil(depth_coefficient * repeats))
 
-    # if tf.__version__ =='2.10.0':
-    #     rescaling = layers.Rescaling(1. / 255.)
-    # else:
-    rescaling = tf.keras.layers.experimental.preprocessing.Rescaling(1. / 255.)
-
     # Build stem
     x = img_input
-    x = rescaling(x)
-    x = tf.keras.layers.experimental.preprocessing.Normalization(axis=bn_axis)(x)
-
-    # if 'higherres' in comments:
-    x = tf.keras.layers.experimental.preprocessing.Resizing(224, 224, interpolation="bilinear")(x)
-
-    x = layers.ZeroPadding2D(
-        padding=imagenet_utils.correct_pad(x, 3),
-        name='stem_conv_pad')(x)
+    if 'preprocessinput' in comments:
+        x = tf.keras.layers.experimental.preprocessing.Rescaling(1. / 255.)(x)
+        x = tf.keras.layers.experimental.preprocessing.Normalization(axis=bn_axis)(x)
+        x = tf.keras.layers.experimental.preprocessing.Resizing(224, 224, interpolation="bilinear")(x)
+        x = layers.ZeroPadding2D(
+            padding=imagenet_utils.correct_pad(x, 3),
+            name='stem_conv_pad')(x)
 
     x = layers.Conv2D(
         round_filters(32),
@@ -375,7 +368,7 @@ def EfficientNet(
                 kernel_initializer=kernel_initializer,
                 bias_initializer=bias_initializer,
                 name='block{}{}_'.format(i + 1, chr(j + 97)),
-                comments = comments,
+                comments=comments,
                 **args)
             b += 1
 
@@ -446,7 +439,7 @@ def block(
         bias_initializer='default',
         batch_normalization=True,
         name='',
-        comments = '',
+        comments='',
         filters_in=32,
         filters_out=16,
         kernel_size=3,
@@ -473,7 +466,6 @@ def block(
         output tensor for the block.
     """
     bn_axis = 3 if backend.image_data_format() == 'channels_last' else 1
-
 
     # Expansion phase
     filters = filters_in * expand_ratio
@@ -598,12 +590,12 @@ def EfficientNetB1(include_top=True,
                    pooling=None,
                    classes=1000,
                    classifier_activation='softmax',
+                   comments='',
                    **kwargs):
     return EfficientNet(
         1.0,
         1.1,
         240,
-        0.2,
         model_name='efficientnetb1',
         include_top=include_top,
         weights=weights,
@@ -611,6 +603,7 @@ def EfficientNetB1(include_top=True,
         input_shape=input_shape,
         pooling=pooling,
         classes=classes,
+        comments=comments,
         classifier_activation=classifier_activation,
         **kwargs)
 
@@ -624,12 +617,12 @@ def EfficientNetB2(include_top=True,
                    pooling=None,
                    classes=1000,
                    classifier_activation='softmax',
+                   comments='',
                    **kwargs):
     return EfficientNet(
         1.1,
         1.2,
         260,
-        0.3,
         model_name='efficientnetb2',
         include_top=include_top,
         weights=weights,
@@ -637,6 +630,7 @@ def EfficientNetB2(include_top=True,
         input_shape=input_shape,
         pooling=pooling,
         classes=classes,
+        comments=comments,
         classifier_activation=classifier_activation,
         **kwargs)
 
