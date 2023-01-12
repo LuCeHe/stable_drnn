@@ -46,10 +46,10 @@ def get_argparse():
     parser.add_argument("--steps_per_epoch", default=3, type=int, help="Batch size")
     parser.add_argument("--lr", default=.001, type=float, help="Learning rate")
     parser.add_argument("--batch_normalization", default=1, type=int, help="Batch normalization")
-    parser.add_argument("--comments", default='', type=str, help="String to activate extra behaviors")
+    parser.add_argument("--comments", default='findLSC_deslice', type=str, help="String to activate extra behaviors")
     parser.add_argument("--dataset", default='cifar100', type=str, help="Dataset to train on",
                         choices=['cifar10', 'cifar100', 'mnist'])
-    parser.add_argument("--activation", default='swish.1', type=str, help="Activation",
+    parser.add_argument("--activation", default='swish', type=str, help="Activation",
                         choices=['swish', 'relu', 'gudermanlu', 'swish.1', 'gudermanlu.1'])
     parser.add_argument(
         "--initialization", default='default', type=str, help="Activation to train on",
@@ -91,6 +91,8 @@ def build_model(args, input_shape, classes, effnet=None):
 
 
 def main(args):
+    args.comments = args.comments + '_preprocessinput'
+
     # set seed
     random.seed(args.seed)
     np.random.seed(args.seed)
@@ -132,7 +134,7 @@ def main(args):
         flsc = str2val(args.comments, 'flsc', bool, default=False)
 
         weights, lsc_results = apply_LSC_no_time(
-            bm, generator=gen_val, max_dim=max_dim, norm_pow=2, fanin=fanin, forward_lsc=flsc
+            bm, generator=gen_val, max_dim=max_dim, norm_pow=2, fanin=fanin, forward_lsc=flsc, comments=args.comments
         )
         effnet = bm()
         effnet.set_weights(weights)

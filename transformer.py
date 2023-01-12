@@ -99,7 +99,9 @@ def main(args, experiment_dir):
         flsc = str2val(args.comments, 'flsc', bool, default=False)
 
         weights, lsc_results = apply_LSC_no_time(
-            bm, generator=gen_lsc, max_dim=max_dim, norm_pow=2, fanin=fanin, forward_lsc=flsc, nlayerjump=2
+            bm, generator=gen_lsc, max_dim=max_dim, norm_pow=2, fanin=fanin, forward_lsc=flsc, nlayerjump=None,
+            skip_in_layers=['input', ],
+            skip_out_layers=[],
         )
 
         del gen_lsc
@@ -174,7 +176,7 @@ def main(args, experiment_dir):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--comments", default='', type=str, help="String to activate extra behaviors")
+    parser.add_argument("--comments", default='findLSC_deslice', type=str, help="String to activate extra behaviors")
     parser.add_argument("--activation", default='swish', type=str, help="Network non-linearity")
     parser.add_argument("--seed", default=0, type=int, help="Random seed")
     parser.add_argument("--epochs", default=3, type=int, help="Epochs")
@@ -184,20 +186,14 @@ if __name__ == "__main__":
     parser.add_argument("--results_dir", default=EXPERIMENTS, type=str, help="Experiments Folder")
     args = parser.parse_args()
 
-
     EXPERIMENT = os.path.join(args.results_dir, time_string + random_string + '_lsc-transformer')
     os.makedirs(EXPERIMENT, exist_ok=True)
-
-
-
 
     string_result = json.dumps(vars(args), indent=4, cls=NumpyEncoder)
     print(string_result)
     path = os.path.join(EXPERIMENT, 'results.txt')
     with open(path, "w") as f:
         f.write(string_result)
-
-
 
     time_start = time.perf_counter()
     results = main(args, EXPERIMENT)

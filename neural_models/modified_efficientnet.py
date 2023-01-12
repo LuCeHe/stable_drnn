@@ -307,8 +307,6 @@ def EfficientNet(
 
     bn_axis = 3 if backend.image_data_format() == 'channels_last' else 1
 
-    print(dropout_rate, drop_connect_rate)
-
     def round_filters(filters, divisor=depth_divisor):
         """Round number of filters based on depth multiplier."""
         filters *= width_coefficient

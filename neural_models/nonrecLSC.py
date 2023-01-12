@@ -31,9 +31,9 @@ def get_weights_statistics(results, weight_names, weights):
     return results
 
 
-def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_pow=2, fanin=False, forward_lsc=False,
+def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_pow=2, fanin=False, forward_lsc=False,
                       nlayerjump=None, layer_min=None, layer_max=None, comments='', epsilon=.06, patience=20,
-                      subsample_axis=False):
+                      subsample_axis=False, skip_in_layers=[], skip_out_layers=[]):
     assert callable(build_model)
 
     learning_rate = 3.16e-3  # 1e1
@@ -55,6 +55,10 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
 
     results = get_weights_statistics(results, weight_names, weights)
 
+    lnames = [layer.name for layer in model.layers]
+    inlnames = [i for i, l in enumerate(lnames) if not any([s in l for s in skip_in_layers])][:-1]
+    outlnames = [i for i, l in enumerate(lnames) if not any([s in l for s in skip_out_layers])]
+
     del model
     tf.keras.backend.clear_session()
 
@@ -65,6 +69,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
 
     time_start = time.perf_counter()
     time_over = False
+
     for epoch in range(generator.epochs):
         pbar = tqdm(total=generator.steps_per_epoch)
         if time_over:
@@ -85,8 +90,8 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
             if epsilon_steps > patience:
                 break
 
-            # if True:
-            try:
+            if True:
+                # try:
                 batch = generator.__getitem__(step)[0]
                 if isinstance(batch, list):
                     batch = [tf.convert_to_tensor(tf.cast(b, tf.float32), dtype=tf.float32) for b in batch]
@@ -103,11 +108,12 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
                     if not weights is None:
                         model.set_weights(weights)
 
-                    lnames = [layer.name for layer in model.layers]
                     # print(lnames)
                     for _ in range(3):
-                        pairs = sorted(
-                            np.random.choice(list(range(len(lnames)))[layer_min:layer_max], 2, replace=False))
+                        inp_l = np.random.choice(inlnames)
+                        outlist = [i for i in outlnames if i > inp_l]
+                        out_l = np.random.choice(outlist)
+                        pairs = [inp_l, out_l]
                         input_shape = model.layers[pairs[0] + 1].input_shape[1:]
                         if not isinstance(input_shape, list):
                             break
@@ -124,42 +130,95 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
                         if isinstance(nlayerjump, int):
                             pairs[1] = ip + nlayerjump
 
+                        print('\n\n')
+                        print(pairs, len(lnames))
+                        print(lnames[pairs[0]], lnames[pairs[1]])
                         premodel, intermodel = split_model(model, pairs)
 
                         preinter = premodel(batch)
 
                         tape.watch(preinter)
 
-                        if subsample_axis:
-                            if not forward_lsc:
-                                # flatten and deflatten to make sure the flat version is in the gradient graph
-                                # preinter_shape = preinter.shape
-                                flat_inp = tf.reshape(preinter, [preinter.shape[0], -1])
+                        if subsample_axis and not forward_lsc:
+                            # flatten and deflatten to make sure the flat version is in the gradient graph
+                            # preinter_shape = preinter.shape
+                            flat_inp = tf.reshape(preinter, [preinter.shape[0], -1])
 
-                                # sample and desample to make sure that the sample is in the graph,
-                                # so the derivative will be taken correctly
-                                shuffinp, reminder, indices = sample_axis(flat_inp, max_dim=max_dim,
-                                                                          return_deshuffling=True)
-                                defhuffledinp = desample_axis(shuffinp, reminder, indices)
+                            # sample and desample to make sure that the sample is in the graph,
+                            # so the derivative will be taken correctly
+                            shuffinp, reminder, indices = sample_axis(flat_inp, max_dim=max_dim,
+                                                                      return_deshuffling=True)
+                            defhuffledinp = desample_axis(shuffinp, reminder, indices)
 
-                                assert tf.math.reduce_all(tf.equal(defhuffledinp, flat_inp))
+                            assert tf.math.reduce_all(tf.equal(defhuffledinp, flat_inp))
 
-                                new_preinter = tf.reshape(defhuffledinp, preinter.shape)
+                            new_preinter = tf.reshape(defhuffledinp, preinter.shape)
 
-                                assert tf.math.reduce_all(tf.equal(new_preinter, preinter))
-                            else:
-                                new_preinter = preinter
+                            assert tf.math.reduce_all(tf.equal(new_preinter, preinter))
+
+                        elif 'deslice' in comments:
+                            shape = preinter.shape
+                            ones = np.array(shape) == 1
+                            deslice_axis = list(range(len(shape)))
+                            deslice_axis = [a for a, b in zip(deslice_axis, ones) if b == False and not a == 0]
+
+                            np.random.shuffle(deslice_axis)
+                            deslice_axis = deslice_axis[:-1]
+
+                            st = preinter
+                            reminders = []
+                            deshuffles = []
+                            for axis in deslice_axis:
+                                st, remainder, deshuffle_indices = sample_axis(st, max_dim=1, return_deshuffling=True,
+                                                                               axis=axis)
+                                reminders.append(remainder)
+                                deshuffles.append(deshuffle_indices)
+
+                            slice = st
+
+                            st = slice
+                            for j, _ in enumerate(deslice_axis):
+                                i = -j - 1
+                                st = desample_axis(st, reminders[i], deshuffles[i], axis=deslice_axis[i])
+
+                            new_preinter = st
+
                         else:
                             new_preinter = preinter
 
                         interout = intermodel(new_preinter)
 
                         if not forward_lsc:
+                            oup = interout
+
                             if subsample_axis:
                                 inp = shuffinp
+
+                            elif 'deslice' in comments:
+                                inp = slice
+
+                                shape = interout.shape
+                                ones = np.array(shape) == 1
+                                deslice_axis = list(range(len(shape)))
+                                deslice_axis = [a for a, b in zip(deslice_axis, ones) if b == False and not a == 0]
+
+                                np.random.shuffle(deslice_axis)
+                                deslice_axis = deslice_axis[:-1]
+
+                                st = interout
+                                reminders = []
+                                deshuffles = []
+                                for axis in deslice_axis:
+                                    st, remainder, deshuffle_indices = sample_axis(st, max_dim=1,
+                                                                                   return_deshuffling=True,
+                                                                                   axis=axis)
+                                    reminders.append(remainder)
+                                    deshuffles.append(deshuffle_indices)
+
+                                oup = st
+
                             else:
                                 inp = preinter
-                            oup = interout
 
                             reoup = tf.reshape(oup, [oup.shape[0], -1])
                             oup = sample_axis(reoup, max_dim=max_dim)
@@ -196,9 +255,9 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=100, norm_
                 show_norm = str(ma_norm.numpy().round(3))
                 show_avw = str(av_weights.numpy().round(3))
 
-            except Exception as e:
-                print(e)
-                n_failures += 1
+            # except Exception as e:
+            #     print(e)
+            #     n_failures += 1
 
             show_failure = str(np.array(n_failures / ((step + 1) + epoch * generator.steps_per_epoch)).round(3))
             pbar.update(1)
