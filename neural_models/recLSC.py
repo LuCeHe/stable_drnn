@@ -10,6 +10,7 @@ from GenericTools.keras_tools.convenience_operations import sample_axis
 from GenericTools.keras_tools.esoteric_layers import AddLossLayer, AddMetricsLayer, SymbolAndPositionEmbedding
 from GenericTools.keras_tools.esoteric_layers.rate_voltage_reg import RateVoltageRegularization
 from GenericTools.keras_tools.learning_rate_schedules import DummyConstantSchedule
+from GenericTools.stay_organized.utils import str2val
 from sg_design_lif.neural_models import maLSNN, maLSNNb
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -199,11 +200,13 @@ def get_lsctype(comments):
 def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, steps_per_epoch=2, es_epsilon=.08,
               patience=10, rec_norm=True, depth_norm=True, encoder_norm=False, decoder_norm=True, learn=True,
               time_steps=None, weights=None, save_weights_path=None, lr=1e-3, naswot=0):
-    target_norm = 1.
+
     # FIXME: generalize this loop for any recurrent model
     gen_train = Task(**train_task_args)
 
     comments = model_args['comments']
+    target_norm = str2val(comments, 'targetnorm', float, default=1)
+
     model_args['initial_state'] = ''
 
     ostack = model_args['stack']
@@ -256,8 +259,12 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
         weights_path = os.path.join(save_weights_path, 'model_weights_lsc_before.h5')
         model.save_weights(weights_path)
 
+    c = ''
+    if 'targetnorm' in comments:
+        c += f'_tn{str(target_norm).replace(".", "p")}'
+
     path_pretrained = os.path.join(
-        EXPERIMENTS, f"pretrained_s{s}_{net_name}_{lsct}_{task_name}_stack{str(ostack).replace(':', 'c')}.h5")
+        EXPERIMENTS, f"pretrained_s{s}_{net_name}_{lsct}_{task_name}_stack{str(ostack).replace(':', 'c')}{c}.h5")
     if 'pretrained' in comments:
         if os.path.exists(path_pretrained):
             print('Loading pretrained lsc weights')
@@ -349,7 +356,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                             norms, loss, naswot_score = get_norms(tape=tape, lower_states=[ht, ct],
                                                                   upper_states=[htp1, ctp1],
                                                                   n_samples=n_samples, norm_pow=norm_pow, naswot=naswot,
-                                                                  comments=comments)
+                                                                  comments=comments, target_norm=target_norm)
                             rec_norms[f'batch {step} layer {i}'].append(norms.numpy())
                             some_norms.append(tf.reduce_mean(norms))
                             if not naswot_score is None:
@@ -360,7 +367,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                             norms, loss, naswot_score = get_norms(tape=tape, lower_states=[bt[:, 0, :]],
                                                                   upper_states=[htp1, ctp1],
                                                                   n_samples=n_samples, norm_pow=norm_pow, naswot=naswot,
-                                                                  comments=comments)
+                                                                  comments=comments, target_norm=target_norm)
 
                             some_norms.append(tf.reduce_mean(norms))
                             mean_loss += loss
@@ -375,7 +382,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                                                                       upper_states=[hl, cl],
                                                                       n_samples=n_samples, norm_pow=norm_pow,
                                                                       naswot=naswot,
-                                                                      comments=comments)
+                                                                      comments=comments, target_norm=target_norm)
 
                                 some_norms.append(tf.reduce_mean(norms))
                                 mean_loss += loss
@@ -387,7 +394,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                             norms, loss, naswot_score = get_norms(tape=tape, lower_states=[htp1, ctp1],
                                                                   upper_states=[outputs[0][:, 0, :]],
                                                                   n_samples=n_samples, norm_pow=norm_pow, naswot=naswot,
-                                                                  comments=comments)
+                                                                  comments=comments, target_norm=target_norm)
 
                             some_norms.append(tf.reduce_mean(norms))
                             mean_loss += loss

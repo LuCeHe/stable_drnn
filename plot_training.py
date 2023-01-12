@@ -31,12 +31,12 @@ from GenericTools.stay_organized.unzip import unzip_good_exps
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
 EXPERIMENTS = os.path.join(CDIR, 'experiments')
-# EXPERIMENTS = r'D:\work\alif_sg\experiments'
+EXPERIMENTS = r'D:\work\alif_sg\experiments'
 GEXPERIMENTS = [
-    os.path.join(CDIR, 'good_experiments'),
+    # os.path.join(CDIR, 'good_experiments'),
     # os.path.join(CDIR, 'good_experiments', '2022-11-07--complete_set_of_exps'),
     # r'D:\work\alif_sg\experiments',
-    # r'D:\work\alif_sg\good_experiments\2022-12-21--rnn',
+    r'D:\work\alif_sg\good_experiments\2022-12-21--rnn',
 ]
 
 expsid = 'als'  # effnet als ffnandcnns
@@ -45,8 +45,8 @@ h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 check_for_new = True
 plot_losses = False
 one_exp_curves = False
-pandas_means = False
-show_per_tasknet = False
+pandas_means = True
+show_per_tasknet = True
 make_latex = False
 missing_exps = True
 plot_lsc_vs_naive = False
@@ -73,8 +73,7 @@ metrics_oi = [
     'LSC_norms i', 'LSC_norms f'
 ]
 
-plot_only = ['eps', 'net_name', 'task_name', 'n_params', 'stack', 'comments',
-             'path', 'lr'] + metrics_oi
+plot_only = ['eps', 'net_name', 'task_name', 'n_params', 'stack', 'comments', 'path', 'lr'] + metrics_oi
 columns_to_remove = [
     'heaviside', '_test', 'weight', 'sLSTM_factor', 'save_model', 'clipnorm', 'GPU', 'batch_size',
     'continue_training', 'embedding', 'lr_schedule', 'loss_name', 'seed', 'stack', 'stop_time',
@@ -155,6 +154,9 @@ if 'task_name' in df.columns:
 
 new_column_names = {c_name: shorten_losses(c_name) for c_name in df.columns}
 df.rename(columns=new_column_names, inplace=True)
+
+df = df[~df['eps'].eq(0)]
+
 
 if 'v_mode_acc len' in df.columns:
     # # FIXME: 14 experiments got nans in the heidelberg task validation, plot them anyway?
@@ -483,6 +485,7 @@ if missing_exps:
         incomplete_comments + f'findLSC_supsubnpsd',
         # incomplete_comments + f'findLSC_supnpsd2',
         incomplete_comments + f'findLSC_radius',
+        incomplete_comments + f'findLSC_radius_targetnorm:.5',
     ]
     experiments = []
 
@@ -495,13 +498,12 @@ if missing_exps:
     sdf = sdf[found]
 
     # add the string _pretrained to if not present in the comments column
-    sdf['comments'] = sdf['comments'].apply(lambda x: x.replace('lscdepth:1', 'lscdepth:1_pretrained') if 'pretrained' not in x else x)
+    sdf['comments'] = sdf['comments'].apply(
+        lambda x: x.replace('lscdepth:1', 'lscdepth:1_pretrained') if 'pretrained' not in x else x)
 
     # print(sdf.to_string())
     # import sys
     # sys.exit()
-
-
 
     experiment = {
         'task_name': ['heidelberg', 'sl_mnist'],
