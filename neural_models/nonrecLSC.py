@@ -174,9 +174,20 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
                                 reminders.append(remainder)
                                 deshuffles.append(deshuffle_indices)
 
+                            # squeeze
+                            oshape = st.shape
+                            unsq_idx = [i for i, s in enumerate(oshape) if s == 1]
+                            st = tf.squeeze(st)
+
                             slice = st
 
-                            st = slice
+                            # unsqueeze
+                            rt = slice
+                            for i in unsq_idx:
+                                rt = tf.expand_dims(rt, i)
+
+                            st = rt
+
                             for j, _ in enumerate(deslice_axis):
                                 i = -j - 1
                                 st = desample_axis(st, reminders[i], deshuffles[i], axis=deslice_axis[i])
@@ -214,8 +225,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
                                                                                    axis=axis)
                                     reminders.append(remainder)
                                     deshuffles.append(deshuffle_indices)
-
-                                oup = st
+                                oup = tf.squeeze(st)
 
                             else:
                                 inp = preinter

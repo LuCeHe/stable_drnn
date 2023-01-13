@@ -39,6 +39,8 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
     if tape is None and lower_states is None and upper_states is None and test == False:
         raise ValueError('No input data given!')
 
+    upper_states = [tf.squeeze(hl) for hl in upper_states]
+    # lower_states = [tf.squeeze(hl) for hl in lower_states]
     if not test:
         hss = []
         for hlm1 in lower_states:
@@ -200,7 +202,6 @@ def get_lsctype(comments):
 def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, steps_per_epoch=2, es_epsilon=.08,
               patience=10, rec_norm=True, depth_norm=True, encoder_norm=False, decoder_norm=True, learn=True,
               time_steps=None, weights=None, save_weights_path=None, lr=1e-3, naswot=0):
-
     # FIXME: generalize this loop for any recurrent model
     gen_train = Task(**train_task_args)
 
