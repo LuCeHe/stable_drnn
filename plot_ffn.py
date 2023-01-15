@@ -21,15 +21,16 @@ EXPERIMENTS = os.path.join(CDIR, 'experiments')
 # EXPERIMENTS = r'D:\work\alif_sg\experiments'
 GEXPERIMENTS = [
     # os.path.join(CDIR, 'good_experiments', '2022-12-16--ffn'),
-    os.path.join(CDIR, 'good_experiments'),
+    # os.path.join(CDIR, 'good_experiments'),
     # r'D:\work\alif_sg\good_experiments\2022-12-16--ffn'
+    r'D:\work\alif_sg\good_experiments\2023-01-01--effnet',
 ]
 
 plot_norms_evol = False
 plot_norms_evol_1 = False
-lrs_plot = True
+lrs_plot = False
 plot_losses = False
-missing_exps = False
+missing_exps = True
 remove_incomplete = False
 truely_remove = False
 
@@ -37,7 +38,7 @@ print(2, time.time() - start)
 start = time.time()
 
 metric = 'val_acc M'  # 'val_acc M'   'val_loss min'
-expsid = 'ffnandcnns'  # effnet als ffnandcnns
+expsid = 'effnet'  # effnet als ffnandcnns
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 df = experiments_to_pandas(
@@ -175,15 +176,24 @@ new_column_names = {c_name: shorten_losses(c_name) for c_name in df.columns}
 df.rename(columns=new_column_names, inplace=True)
 df = df.rename(columns={'test_loss': 'test_loss m', 'test_acc': 'test_acc M'})
 
-plot_only = [
-    'act', 'pre_eps', 'eps', 'dataset',
-    # 'spe', 'width', 'depth',
-    'seed', 'lr', 'comments',
-    'val_acc M', 'val_loss m', 'test_acc M', 'test_loss m',
-    # 'acc max','loss min',
-    'LSC_norms i', 'LSC_norms f',
-    'ep M', 'time_elapsed', 'hostname', 'path',
-]
+if 'ffnandcnns' in expsid:
+    plot_only = [
+        'act', 'pre_eps', 'eps', 'dataset',
+        # 'spe', 'width', 'depth',
+        'seed', 'lr', 'comments',
+        'val_acc M', 'val_loss m', 'test_acc M', 'test_loss m',
+        # 'acc max','loss min',
+        'LSC_norms i', 'LSC_norms f',
+        'ep M', 'time_elapsed', 'hostname', 'path',
+    ]
+elif 'effnet' in expsid:
+    plot_only = [
+        'act', 'eps', 'dataset',
+        'seed', 'lr', 'comments',
+        'val_acc M', 'val_loss m', 'test_acc M', 'test_loss m',
+        'LSC_norms i', 'LSC_norms f',
+        'ep M', 'time_elapsed', 'hostname', 'path',
+    ]
 
 df = df[plot_only]
 df = df.sort_values(by=metric)
@@ -216,10 +226,17 @@ if lrs_plot:
 
     comments = mdf['comments'].unique()
     activations = sorted(mdf['act'].unique())
+    if 'ffnandcnns' in expsid:
+        activations = ['relu', 'sin', 'cos']
+    elif 'effnet' in expsid:
+        # remove string from column comments in the df
+        mdf['comments'] = mdf['comments'].str.replace('deslice_', '')
+        mdf['comments'] = mdf['comments'].str.replace('_preprocessinput', '')
+
     datasets = sorted(mdf['dataset'].unique())
     comments = sorted(mdf['comments'].unique())
-    activations = ['relu', 'sin', 'cos']
-    comments = ['', 'heinit', 'findLSC', 'findLSC_radius', 'findLSC_supnpsd2', 'findLSC_supsubnpsd']
+
+    # comments = ['', 'heinit', 'findLSC', 'findLSC_radius', 'findLSC_supnpsd2', 'findLSC_supsubnpsd']
 
     print(comments)
 
@@ -229,7 +246,7 @@ if lrs_plot:
         gridspec_kw={'wspace': .3, 'hspace': .1},
     )
     fontsize = 12
-    linewidth=1
+    linewidth = 1
 
     if len(datasets) == 1:
         axs = np.array([axs])
@@ -337,7 +354,7 @@ if remove_incomplete:
             & (df['comments'] == row['comments'])
             & (df['act'] == row['act'])
             & (df['dataset'] == row['dataset'])
-        ]
+            ]
 
         # no duplicates
         gsrdf = srdf.drop_duplicates(subset=['seed'])
@@ -345,7 +362,6 @@ if remove_incomplete:
         # remainder
         rdf = srdf[~srdf.apply(tuple, 1).isin(gsrdf.apply(tuple, 1))]
         rdfs.append(rdf)
-
 
     rdf = odf[odf['width'] < 128]
     rdfs.append(rdf)
@@ -378,24 +394,43 @@ if remove_incomplete:
 
 if missing_exps:
     # columns of interest
-    coi = ['seed', 'activation', 'lr', 'comments', 'dataset', 'epochs', 'steps_per_epoch']
-    import pandas as pd
 
-    sdf = odf
-    sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
     # print(sdf.to_string())
-
     experiments = []
-    experiment = {
-        'comments': [
-            '', 'findLSC', 'findLSC_supsubnpsd', 'findLSC_supnpsd2', 'findLSC_radius', 'heinit',
-        ],
-        'activation': ['sin', 'relu', 'cos'], 'dataset': ['cifar10', 'cifar100'],
-        'layers': [30], 'width': [128], 'lr': [1e-3, 3.16e-4, 1e-4, 3.16e-5, 1e-5],
-        'epochs': [50], 'steps_per_epoch': [-1], 'pretrain_epochs': [30], 'seed': list(range(4)),
-    }
-    experiments.append(experiment)
+    if 'ffnandcnns' in expsid:
+        coi = ['seed', 'activation', 'lr', 'comments', 'dataset', 'epochs', 'steps_per_epoch']
+
+        experiment = {
+            'comments': [
+                '', 'findLSC', 'findLSC_supsubnpsd', 'findLSC_supnpsd2', 'findLSC_radius', 'heinit',
+            ],
+            'activation': ['sin', 'relu', 'cos'], 'dataset': ['cifar10', 'cifar100'],
+            'layers': [30], 'width': [128], 'lr': [1e-3, 3.16e-4, 1e-4, 3.16e-5, 1e-5],
+            'epochs': [50], 'steps_per_epoch': [-1], 'pretrain_epochs': [30], 'seed': list(range(4)),
+        }
+        experiments.append(experiment)
+
+    elif 'effnet' in expsid:
+        coi = ['seed', 'activation', 'lr', 'comments', 'epochs', 'steps_per_epoch']
+
+        incomplete_comments = 'deslice_'
+        all_comments = [
+            incomplete_comments,
+            incomplete_comments + f'findLSC',
+            incomplete_comments + f'findLSC_supsubnpsd',
+            incomplete_comments + f'findLSC_radius',
+        ]
+
+        all_comments = [c + '_preprocessinput' for c in all_comments]
+
+        experiment = {
+            'seed': list(range(4)), 'comments': all_comments, 'epochs': [100], 'steps_per_epoch': [-1],
+            'lr': [1e-3, 3.16e-4, 1e-4, 3.16e-5, 1e-5], 'activation': ['swish', 'relu'],
+        }
+        experiments.append(experiment)
 
     ds = dict2iter(experiments)
+    sdf = odf
+    sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
 
     complete_missing_exps(sdf, ds, coi)
