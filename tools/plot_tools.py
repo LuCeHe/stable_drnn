@@ -175,21 +175,27 @@ def reorganize(x):
     return x
 
 
-lsc_colors = {'findLSC_radius': [0.43365406, 0.83304796, 0.58958684], '': [0.24995383, 0.49626022, 0.35960801],
+lsc_colors = {
+    'findLSC_radius': [0.43365406, 0.83304796, 0.58958684],
+    'findLSC_radius_targetnorm:.5': [0.43365406, 0.43304796, 0.58958684],
+    '': [0.24995383, 0.49626022, 0.35960801],
               'findLSC': [0.74880857, 0.9167003, 0.50021289], 'findLSC_supnpsd2': [0.69663182, 0.25710645, 0.19346206],
-              'findLSC_supsubnpsd': [0.2225346, 0.06820208, 0.9836983], 'heinit': [0.96937357, 0.28256986, 0.26486611]}
+              'findLSC_supsubnpsd': [0.2225346, 0.06820208, 0.9836983], 'heinit': [0.96937357, 0.28256986, 0.26486611]
+}
 
 
 def lsc_clean_comments(c):
     if c == 'findLSC':
         return 'sub ($L_2$)'
-    if 'radius' in c:
+    c = c.replace('findLSC_', '')
+    if '_radius' == c:
         return r'sub ($\rho$)'
+    if '_radius_targetnorm:.5' == c:
+        return r'sub ($\rho$), 1/2'
     if c == '':
         return 'Glorot'
     if c == 'heinit':
         return 'He'
-    c = c.replace('findLSC_', '')
     c = c.replace('npsd', '')
     c = c.replace('2', '')
     return c

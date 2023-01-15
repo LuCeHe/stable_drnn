@@ -48,13 +48,13 @@ one_exp_curves = False
 pandas_means = True
 show_per_tasknet = True
 make_latex = False
-missing_exps = True
+missing_exps = False
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
 plot_weights = False
 plot_init_lrs = False
-plot_lrs = False
+plot_lrs = True
 
 remove_incomplete = False
 truely_remove = False
@@ -95,6 +95,7 @@ df['stack'] = df['stack'].fillna(-1).astype(int)
 df = df.replace(-1, 'None')
 df['stack'] = df['stack'].astype(str)
 df['batch_size'] = df['batch_size'].astype(str)
+df['comments'] = df['comments'].str.replace('_pretrained', '')
 
 if plot_losses:
     df['comments'] = df['comments'].str.replace('36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_', '')
@@ -397,7 +398,7 @@ if plot_init_lrs:
     plt.show()
 
 if plot_lrs:
-    stack = 'None'  # 1 None
+    stack = '7'  # 1 None 7
 
     idf = mdf.copy()
     idf = idf[idf['stack'].eq(stack)]
@@ -436,7 +437,9 @@ if plot_lrs:
             axs[i, j].set_xscale('log')
 
             iidf = iidf.sort_values(by=f'mean_{metric}')
-            print(f"{net} on {task} got best vPPL {iidf[f'mean_{metric}'].values[0]} for {iidf['lr'].values[0]}")
+
+            if not iidf.shape[0] == 0:
+                print(f"{net} on {task} got best vPPL {iidf[f'mean_{metric}'].values[0]} for {iidf['lr'].values[0]}")
 
         axs[0, j].set_title(task)
         # axs[i,0].set_xticks([1e-2, 1e-3, 1e-4, 1e-5])
