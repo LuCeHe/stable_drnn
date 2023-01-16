@@ -29,8 +29,8 @@ GEXPERIMENTS = [
 plot_norms_evol = False
 plot_norms_evol_1 = False
 lrs_plot = False
-plot_losses = False
-missing_exps = True
+plot_losses = True
+missing_exps = False
 remove_incomplete = False
 truely_remove = False
 
@@ -40,10 +40,12 @@ start = time.time()
 metric = 'val_acc M'  # 'val_acc M'   'val_loss min'
 expsid = 'effnet'  # effnet als ffnandcnns
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
+force_keep_column = ['LSC_norms list']
 
 df = experiments_to_pandas(
     h5path=h5path, zips_folder=GEXPERIMENTS, unzips_folder=EXPERIMENTS, experiments_identifier=expsid,
-    exclude_files=['cout.txt'], exclude_columns=['_mean ', '_var ', ' list'], check_for_new=True
+    exclude_files=['cout.txt'], exclude_columns=['_mean ', '_var ', ' list'], check_for_new=True,
+    force_keep_column=force_keep_column
 )
 
 print(list(df.columns))
@@ -198,6 +200,7 @@ elif 'effnet' in expsid:
 df = df[plot_only]
 df = df.sort_values(by=metric)
 print(df.to_string())
+df['comments'] = df['comments'].str.replace('_preprocessinput', '')
 
 metrics_oi = ['val_acc M', 'test_acc M', 'val_loss m', 'test_loss m', 'LSC_norms i', 'LSC_norms f']
 group_cols = ['lr', 'comments', 'act', 'dataset']
@@ -231,7 +234,7 @@ if lrs_plot:
     elif 'effnet' in expsid:
         # remove string from column comments in the df
         mdf['comments'] = mdf['comments'].str.replace('deslice_', '')
-        mdf['comments'] = mdf['comments'].str.replace('_preprocessinput', '')
+        # mdf['comments'] = mdf['comments'].str.replace('_preprocessinput', '')
 
     datasets = sorted(mdf['dataset'].unique())
     comments = sorted(mdf['comments'].unique())
@@ -305,7 +308,7 @@ if plot_losses:
     activations = sorted(df['activation'].unique())
 
     fig, axs = plt.subplots(1, len(activations), figsize=(6, 3))
-    metric = 'LSC_norms list'  # 'val_acc list' 'loss list' LSC_norms
+    metric = 'val_acc list'  # 'val_acc list' 'loss list' LSC_norms
     # print([c for c in df.columns if 'list' in c])
 
     for i, a in enumerate(activations):

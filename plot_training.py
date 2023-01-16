@@ -398,7 +398,7 @@ if plot_init_lrs:
     plt.show()
 
 if plot_lrs:
-    stack = '7'  # 1 None 7
+    stack = 'None'  # 1 None 7
 
     idf = mdf.copy()
     idf = idf[idf['stack'].eq(stack)]
