@@ -78,7 +78,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
         generator.on_epoch_end()
         for step in range(generator.steps_per_epoch):
 
-            if time.perf_counter() - time_start > 60 * 60 * 10:
+            if time.perf_counter() - time_start > 60 * 60 * 12:
                 time_over = True
                 break
 
