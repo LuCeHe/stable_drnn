@@ -62,8 +62,8 @@ def main(args, experiment_dir):
     if 'DESKTOP-4MV34QG' in socket.gethostname():
         DATA_LIMIT = 200000
         BATCH_SIZE = 2
-        D_MODEL = 10
-        ATTENTION_HEAD_COUNT = 2
+        D_MODEL = 512
+        ATTENTION_HEAD_COUNT = 8
         # comments += 'test'
 
     GLOBAL_BATCH_SIZE = (args.batch_size * 1)
@@ -95,13 +95,11 @@ def main(args, experiment_dir):
         )
 
         max_dim = str2val(args.comments, 'maxdim', int, default=64)
-        fanin = str2val(args.comments, 'fanin', bool, default=False)
-        flsc = str2val(args.comments, 'flsc', bool, default=False)
 
         weights, lsc_results = apply_LSC_no_time(
-            bm, generator=gen_lsc, max_dim=max_dim, norm_pow=2, fanin=fanin, forward_lsc=flsc, nlayerjump=None,
-            skip_in_layers=['input', ],
-            skip_out_layers=[],
+            bm, generator=gen_lsc, max_dim=max_dim, norm_pow=2, nlayerjump=None,
+            skip_in_layers=['input', ], skip_out_layers=[],
+            net_name='trasnf', task_name='ende', seed=args.seed, activation=args.activation
         )
 
         del gen_lsc

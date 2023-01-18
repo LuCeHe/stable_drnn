@@ -31,6 +31,9 @@ class Transformer(object):
         self.decoder_embedding_layer = Embeddinglayer(target_vocab_size, d_model)
         self.decoder_embedding_dropout = tf.keras.layers.Dropout(dropout_prob)
 
+        self.decoder_embedding_layer.embedding.build(None)
+        self.emb_matrix = tf.transpose(self.decoder_embedding_layer.embedding.embeddings)
+
         self.encoder_layers = [
             EncoderLayer(
                 attention_head_count,
@@ -53,7 +56,7 @@ class Transformer(object):
             ) for _ in range(decoder_count)
         ]
 
-        self.linear = tf.keras.layers.Dense(target_vocab_size)
+        # self.linear = tf.keras.layers.Dense(target_vocab_size)
 
     def __call__(self, inputs):
         source, target, inputs_padding_mask, look_ahead_mask, target_padding_mask = inputs
@@ -72,7 +75,8 @@ class Transformer(object):
             decoder_tensor, _, _ = self.decoder_layers[i](decoder_tensor, encoder_tensor, look_ahead_mask,
                                                           target_padding_mask)
 
-        return self.linear(decoder_tensor)
+        output = decoder_tensor@self.emb_matrix
+        return output
 
 
 class EncoderLayer(object):
@@ -180,13 +184,13 @@ class MultiHeadAttention(tf.keras.layers.Layer):
 
         self.d_h = d_model // attention_head_count
 
-        self.w_query = tf.keras.layers.Dense(d_model)
-        self.w_key = tf.keras.layers.Dense(d_model)
-        self.w_value = tf.keras.layers.Dense(d_model)
+        self.w_query = tf.keras.layers.Dense(d_model, use_bias=False)
+        self.w_key = tf.keras.layers.Dense(d_model, use_bias=False)
+        self.w_value = tf.keras.layers.Dense(d_model, use_bias=False)
 
         self.scaled_dot_product = ScaledDotProductAttention(self.d_h)
 
-        self.ff = tf.keras.layers.Dense(d_model)
+        self.ff = tf.keras.layers.Dense(d_model, use_bias=False)
 
     def call(self, inputs):
         query, key, value, mask = inputs
