@@ -270,17 +270,20 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
         if os.path.exists(path_pretrained):
             print('Loading pretrained lsc weights')
             # model.load_weights(path_pretrained)
-            model = tf.keras.models.load_model(
-                path_pretrained,
-                custom_objects={
-                    'maLSNN': maLSNN, 'maLSNNb': maLSNNb, 'RateVoltageRegularization': RateVoltageRegularization,
-                    'AddLossLayer': AddLossLayer, 'AddMetricsLayer': AddMetricsLayer,
-                    'SparseCategoricalCrossentropy': tf.keras.losses.SparseCategoricalCrossentropy,
-                    'AdamW': AdamW2, 'DummyConstantSchedule': DummyConstantSchedule,
-                    'SymbolAndPositionEmbedding': SymbolAndPositionEmbedding,
+            try:
+                model = tf.keras.models.load_model(
+                    path_pretrained,
+                    custom_objects={
+                        'maLSNN': maLSNN, 'maLSNNb': maLSNNb, 'RateVoltageRegularization': RateVoltageRegularization,
+                        'AddLossLayer': AddLossLayer, 'AddMetricsLayer': AddMetricsLayer,
+                        'SparseCategoricalCrossentropy': tf.keras.losses.SparseCategoricalCrossentropy,
+                        'AdamW': AdamW2, 'DummyConstantSchedule': DummyConstantSchedule,
+                        'SymbolAndPositionEmbedding': SymbolAndPositionEmbedding,
 
-                }
-            )
+                    }
+                )
+            except Exception as e:
+                print(e)
 
     if weights is None:
         weights = model.get_weights()
@@ -338,7 +341,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                     tape.watch(bt)
                     tape.watch(states)
                     model = build_model(**model_args)
-                    model.set_weights(weights)
+                    if not any([np.isnan(w.mean()) for w in weights]):
+                        model.set_weights(weights)
 
                     outputs = model([bt, wt, *states])
                     states_p1 = outputs[1:]
@@ -395,9 +399,9 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                             norms, loss, naswot_score = get_norms(tape=tape, lower_states=[htp1, ctp1],
                                                                   upper_states=[outputs[0][:, 0, :]],
                                                                   n_samples=n_samples, norm_pow=norm_pow, naswot=naswot,
-                                                                  comments=comments, target_norm=target_norm)
+                                                                  comments=comments, target_norm=1.)
 
-                            some_norms.append(tf.reduce_mean(norms))
+                            # some_norms.append(tf.reduce_mean(norms))
                             mean_loss += loss
 
                         del htp1, ht, ctp1, ct

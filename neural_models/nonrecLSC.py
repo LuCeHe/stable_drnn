@@ -78,9 +78,12 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
         EXPERIMENTS, f"pretrained_s{seed}_{net_name}_{task_name}_{activation}_{lsct}.h5")
     if 'pretrained' in comments:
         if os.path.exists(path_pretrained):
-            print('Loading pretrained lsc weights')
-            model = tf.keras.models.load_model(path_pretrained)
-            weights = model.get_weights()
+            try:
+                print('Loading pretrained lsc weights')
+                model = tf.keras.models.load_model(path_pretrained)
+                weights = model.get_weights()
+            except Exception as e:
+                print(e)
 
     time_start = time.perf_counter()
     time_over = False
