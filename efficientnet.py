@@ -46,11 +46,11 @@ def get_argparse():
     parser.add_argument("--steps_per_epoch", default=3, type=int, help="Batch size")
     parser.add_argument("--lr", default=.001, type=float, help="Learning rate")
     parser.add_argument("--batch_normalization", default=1, type=int, help="Batch normalization")
-    parser.add_argument("--comments", default='findLSC_deslice_radius', type=str, help="String to activate extra behaviors")
+    parser.add_argument("--comments", default='findLSC_pretrained', type=str, help="String to activate extra behaviors")
     parser.add_argument("--dataset", default='cifar100', type=str, help="Dataset to train on",
                         choices=['cifar10', 'cifar100', 'mnist'])
-    parser.add_argument("--activation", default='swish', type=str, help="Activation",
-                        choices=['swish', 'relu', 'gudermanlu', 'swish.1', 'gudermanlu.1'])
+    parser.add_argument("--activation", default='tanh', type=str, help="Activation",
+                        choices=['swish', 'relu', 'gudermanlu', 'swish.1', 'gudermanlu.1', 'tanh'])
     parser.add_argument(
         "--initialization", default='default', type=str, help="Activation to train on",
         choices=['he', 'critical', 'default']
@@ -74,16 +74,15 @@ def build_model(args, input_shape, classes, effnet=None):
             comments=args.comments
         )
 
-    readout = tf.keras.layers.Conv2D(
-        classes, 7,
-        kernel_initializer='he_normal' if kernel_initializer == 'default' else kernel_initializer,
-        bias_initializer='zeros' if bias_initializer == 'default' else bias_initializer
-    )
+    readout = tf.keras.layers.Conv2D(4, 3)
     reshape = tf.keras.layers.Reshape((classes,))
 
     # model graph construction
     input_layer = tf.keras.layers.Input(input_shape)
     outeff = effnet(input_layer)
+
+    # outmodel = readout(outeff)
+    # print(outmodel.shape)
     outmodel = reshape(readout(outeff))
 
     model = tf.keras.models.Model(input_layer, outmodel)
@@ -130,11 +129,10 @@ def main(args):
             comments=args.comments
         )
         max_dim = str2val(args.comments, 'maxdim', int, default=64)
-        fanin = str2val(args.comments, 'fanin', bool, default=False)
-        flsc = str2val(args.comments, 'flsc', bool, default=False)
 
         weights, lsc_results = apply_LSC_no_time(
-            bm, generator=gen_val, max_dim=max_dim, norm_pow=2, fanin=fanin, forward_lsc=flsc, comments=args.comments
+            bm, generator=gen_val, max_dim=max_dim, norm_pow=2, comments=args.comments,
+            net_name='eff', seed=args.seed, task_name=args.dataset, activation=args.activation,
         )
         effnet = bm()
         effnet.set_weights(weights)

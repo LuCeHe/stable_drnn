@@ -3,10 +3,6 @@ import time
 from GenericTools.stay_organized.submit_jobs import dict2iter
 from alif_sg.tools.plot_tools import lsc_colors, lsc_clean_comments
 
-print(1)
-# measure time
-start = time.time()
-
 import os
 import numpy as np
 import pandas as pd
@@ -18,7 +14,7 @@ from GenericTools.stay_organized.standardize_strings import shorten_losses
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
 EXPERIMENTS = os.path.join(CDIR, 'experiments')
-# EXPERIMENTS = r'D:\work\alif_sg\experiments'
+EXPERIMENTS = r'D:\work\alif_sg\experiments'
 GEXPERIMENTS = [
     # os.path.join(CDIR, 'good_experiments', '2022-12-16--ffn'),
     # os.path.join(CDIR, 'good_experiments'),
@@ -28,30 +24,22 @@ GEXPERIMENTS = [
 
 plot_norms_evol = False
 plot_norms_evol_1 = False
-lrs_plot = False
-plot_losses = True
+lrs_plot = True
+plot_losses = False
 missing_exps = False
 remove_incomplete = False
 truely_remove = False
 
-print(2, time.time() - start)
-start = time.time()
-
 metric = 'val_acc M'  # 'val_acc M'   'val_loss min'
 expsid = 'effnet'  # effnet als ffnandcnns
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
-force_keep_column = ['LSC_norms list']
+force_keep_column = ['LSC_norms list', 'val_sparse_categorical_accuracy list']
 
 df = experiments_to_pandas(
     h5path=h5path, zips_folder=GEXPERIMENTS, unzips_folder=EXPERIMENTS, experiments_identifier=expsid,
     exclude_files=['cout.txt'], exclude_columns=['_mean ', '_var ', ' list'], check_for_new=True,
     force_keep_column=force_keep_column
 )
-
-print(list(df.columns))
-print(3, time.time() - start)
-
-start = time.time()
 
 # select only rows with width 10
 df['time_elapsed'] = pd.to_timedelta(df['time_elapsed'], unit='s')
@@ -173,9 +161,10 @@ if plot_norms_evol_1:
 
 columns_containing = ['_var']
 
-odf = df.copy()
 new_column_names = {c_name: shorten_losses(c_name) for c_name in df.columns}
 df.rename(columns=new_column_names, inplace=True)
+odf = df.copy()
+print(list(odf.columns))
 df = df.rename(columns={'test_loss': 'test_loss m', 'test_acc': 'test_acc M'})
 
 if 'ffnandcnns' in expsid:
@@ -231,9 +220,14 @@ if lrs_plot:
     activations = sorted(mdf['act'].unique())
     if 'ffnandcnns' in expsid:
         activations = ['relu', 'sin', 'cos']
+        ncol = 3
+        bbox_to_anchor = (-.7, -1.)
     elif 'effnet' in expsid:
         # remove string from column comments in the df
         mdf['comments'] = mdf['comments'].str.replace('deslice_', '')
+        mdf['comments'] = mdf['comments'].replace(r'^\s*$', 'heinit', regex=True)
+        ncol= 4
+        bbox_to_anchor = (-.3, -.4)
         # mdf['comments'] = mdf['comments'].str.replace('_preprocessinput', '')
 
     datasets = sorted(mdf['dataset'].unique())
@@ -282,11 +276,15 @@ if lrs_plot:
 
     legend_elements = [Line2D([0], [0], color=lsc_colors[n], lw=4, label=lsc_clean_comments(n))
                        for n in comments]
-    plt.legend(ncol=3, handles=legend_elements, loc='lower center', bbox_to_anchor=(-.7, -1.))
+    plt.legend(ncol=ncol, handles=legend_elements, loc='lower center', bbox_to_anchor=bbox_to_anchor)
 
-    # add a vertical text to the plot, to indicate the dataset, one for each row
-    for i, dataset in enumerate(datasets):
-        fig.text(-0.03, 0.7 - i * .45, dataset, va='center', rotation='vertical', weight='bold')
+    if len(datasets) > 1:
+        # add a vertical text to the plot, to indicate the dataset, one for each row
+        for i, dataset in enumerate(datasets):
+            fig.text(-0.03, 0.7 - i * .45, dataset, va='center', rotation='vertical', weight='bold')
+
+    else:
+        fig.text(-0.03, 0.5, datasets[0], va='center', rotation='vertical', weight='bold')
 
     # plt.legend()
 
@@ -297,22 +295,22 @@ if lrs_plot:
         ax.set_xscale('log')
 
     plt.show()
-    plot_filename = f'experiments/ffn_relu.pdf'
+    plot_filename = f'experiments/{expsid}_relu.pdf'
     fig.savefig(plot_filename, bbox_inches='tight')
 
 if plot_losses:
     df = odf
-    # df = df[df['dataset'] == 'cifar100']
-    # df = df[df['comments'].str.contains('supsubnpsd')]
 
-    activations = sorted(df['activation'].unique())
+    df['comments'] = df['comments'].str.replace('deslice_', '')
+    df['comments'] = df['comments'].str.replace('_preprocessinput', '')
+
+    activations = sorted(df['act'].unique())
 
     fig, axs = plt.subplots(1, len(activations), figsize=(6, 3))
     metric = 'val_acc list'  # 'val_acc list' 'loss list' LSC_norms
-    # print([c for c in df.columns if 'list' in c])
 
     for i, a in enumerate(activations):
-        adf = df[df['activation'] == a]
+        adf = df[df['act'] == a]
         axs[i].set_title(a)
 
         for _, row in adf.iterrows():
@@ -323,6 +321,7 @@ if plot_losses:
     plt.show()
 
 print('Maximal time elapsed is: {}'.format(df['time_elapsed'].max()))
+print('Minimal time elapsed is: {}'.format(df['time_elapsed'].min()))
 
 if remove_incomplete:
     import shutil

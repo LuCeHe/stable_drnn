@@ -472,9 +472,9 @@ def block(
             filters,
             1,
             padding='same',
-            use_bias=False if bias_initializer == 'default' else True,
+            use_bias=False,
             kernel_initializer=CONV_KERNEL_INITIALIZER if kernel_initializer == 'default' else kernel_initializer,
-            bias_initializer='zeros' if bias_initializer == 'default' else bias_initializer,
+            bias_initializer='zeros',
             name=name + 'expand_conv')(
             inputs)
         if batch_normalization:

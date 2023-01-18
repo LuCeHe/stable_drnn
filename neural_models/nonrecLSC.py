@@ -1,5 +1,5 @@
 import tensorflow as tf
-import time
+import time, os
 import numpy as np
 from tensorflow_addons.optimizers import AdamW
 from tqdm import tqdm
@@ -8,8 +8,13 @@ from GenericTools.keras_tools.convenience_operations import sample_axis, desampl
 from GenericTools.keras_tools.esoteric_losses import well_loss
 from GenericTools.keras_tools.esoteric_tasks.numpy_generator import NumpyClassificationGenerator
 from GenericTools.keras_tools.expose_latent import expose_latent_model, split_model
-from alif_sg.neural_models.recLSC import get_norms
+from alif_sg.neural_models.recLSC import get_norms, get_lsctype
 from alif_sg.neural_models.modified_efficientnet import EfficientNetB0
+
+FILENAME = os.path.realpath(__file__)
+CDIR = os.path.dirname(FILENAME)
+EXPERIMENTS = os.path.abspath(os.path.join(CDIR, '..', 'good_experiments'))
+os.makedirs(EXPERIMENTS, exist_ok=True)
 
 
 def get_weights_statistics(results, weight_names, weights):
@@ -31,9 +36,10 @@ def get_weights_statistics(results, weight_names, weights):
     return results
 
 
-def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_pow=2, fanin=False, forward_lsc=False,
-                      nlayerjump=None, layer_min=None, layer_max=None, comments='', epsilon=.06, patience=20,
-                      subsample_axis=False, skip_in_layers=[], skip_out_layers=[]):
+def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_pow=2, forward_lsc=False,
+                      nlayerjump=None, comments='', epsilon=.06, patience=20,
+                      subsample_axis=False, skip_in_layers=[], skip_out_layers=[], net_name='', task_name='', seed=0,
+                      activation=''):
     assert callable(build_model)
 
     learning_rate = 3.16e-3  # 1e1
@@ -66,6 +72,15 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
     show_loss, show_norm, show_avw, show_factor = None, None, None, None
     n_failures = 0
     loss, model = None, None
+
+    lsct = get_lsctype(comments)
+    path_pretrained = os.path.join(
+        EXPERIMENTS, f"pretrained_s{seed}_{net_name}_{task_name}_{activation}_{lsct}.h5")
+    if 'pretrained' in comments:
+        if os.path.exists(path_pretrained):
+            print('Loading pretrained lsc weights')
+            model = tf.keras.models.load_model(path_pretrained)
+            weights = model.get_weights()
 
     time_start = time.perf_counter()
     time_over = False
@@ -286,6 +301,10 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
             break
 
     fail_rate = n_failures / generator.epochs / generator.steps_per_epoch
+
+    if 'pretrained' in comments and not model is None:
+        if not os.path.exists(path_pretrained):
+            model.save(path_pretrained)
 
     del model, generator
 
