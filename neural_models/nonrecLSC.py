@@ -37,12 +37,14 @@ def get_weights_statistics(results, weight_names, weights):
 
 
 def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_pow=2, forward_lsc=False,
-                      nlayerjump=None, comments='', epsilon=.06, patience=20,
+                      nlayerjump=None, comments='', epsilon=.06, patience=20, learning_rate = 3.16e-3,
                       subsample_axis=False, skip_in_layers=[], skip_out_layers=[], net_name='', task_name='', seed=0,
                       activation=''):
     assert callable(build_model)
+    round_to = 4
+    li, pi, ni = None, None, None
 
-    learning_rate = 3.16e-3  # 1e1
+    # 1e1
     optimizer = AdamW(learning_rate=learning_rate, weight_decay=1e-4)
 
     all_norms = []
@@ -83,6 +85,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
                 model = tf.keras.models.load_model(path_pretrained)
                 weights = model.get_weights()
             except Exception as e:
+                model = None
                 print(e)
 
     time_start = time.perf_counter()
@@ -111,7 +114,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
             # if True:
             try:
                 batch = generator.__getitem__(step)[0]
-                if isinstance(batch, list):
+                if isinstance(batch, list) or isinstance(batch, tuple):
                     batch = [tf.convert_to_tensor(tf.cast(b, tf.float32), dtype=tf.float32) for b in batch]
                 else:
                     batch = tf.convert_to_tensor(tf.cast(batch, tf.float32), dtype=tf.float32)
@@ -148,12 +151,13 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
                         if isinstance(nlayerjump, int):
                             pairs[1] = ip + nlayerjump
 
-                        # print('\n\n')
-                        # print(pairs, len(lnames))
-                        # print(lnames[pairs[0]], lnames[pairs[1]])
+                        print('\n\n')
+                        print(pairs, len(lnames))
+                        print(lnames[pairs[0]], lnames[pairs[1]])
                         premodel, intermodel = split_model(model, pairs)
 
                         preinter = premodel(batch)
+                        print([i.shape for i in preinter])
 
                         tape.watch(preinter)
 
@@ -279,21 +283,26 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
                 results = get_weights_statistics(results, weight_names, weights)
 
                 # show_factor = str(np.array(ma_factor).round(3))
-                show_loss = str(ma_loss.numpy().round(3))
-                show_norm = str(ma_norm.numpy().round(3))
-                show_avw = str(av_weights.numpy().round(3))
+                show_loss = str(ma_loss.numpy().round(round_to))
+                show_norm = str(ma_norm.numpy().round(round_to))
+                show_avw = str(av_weights.numpy().round(round_to))
 
             except Exception as e:
                 print(e)
                 n_failures += 1
 
-            show_failure = str(np.array(n_failures / ((step + 1) + epoch * generator.steps_per_epoch)).round(3))
+            if li is None:
+                li = show_loss
+                pi = show_avw
+                ni = show_norm
+
+            show_failure = str(np.array(n_failures / ((step + 1) + epoch * generator.steps_per_epoch)).round(round_to))
             pbar.update(1)
             pbar.set_description(
                 f"Pretrain e {epoch + 1} s {step + 1}, "
-                f"Loss {show_loss}, Norms {show_norm}, "
+                f"Loss {show_loss}/{li}, Norms {show_norm}/{ni}, "
                 # f"Factor {show_factor}, "
-                f"Av. Weights {show_avw}, "
+                f"Av. Weights {show_avw}/{pi}, "
                 # f"Failures {n_failures}, "
                 f"Fail rate {show_failure}, "
                 f"ES {epsilon_steps}/{patience} "

@@ -2,7 +2,6 @@ import os, shutil, logging, json, copy
 import pandas as pd
 
 from GenericTools.keras_tools.silence_tensorflow import silence_tf
-from alif_sg.neural_models.nonrecLSC import apply_LSC_no_time
 
 silence_tf()
 
@@ -28,6 +27,7 @@ from GenericTools.keras_tools.esoteric_tasks.time_task_redirection import Task, 
 
 from sg_design_lif.neural_models.full_model import build_model
 from alif_sg.neural_models.recLSC import apply_LSC
+from alif_sg.neural_models.nonrecLSC import apply_LSC_no_time
 
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
@@ -49,7 +49,7 @@ def config():
 
     # test configuration
     epochs = 2
-    steps_per_epoch = 2
+    steps_per_epoch = 40
     batch_size = 2
 
     # net
@@ -201,12 +201,17 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
 
             results['lsclr'] = lsclr
 
-            if 'deslice_' in comments:
-                print('Deslicing the LSC...')
-
+            if 'deslice' in comments:
+                bm = lambda: build_model(**model_args)
+                gen_val = Task(timerepeat=timerepeat, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
+                               name=task_name, train_val_test='val', maxlen=maxlen, comments=comments)
+                # add_loss_layer
                 weights, lsc_results = apply_LSC_no_time(
-                    bm, generator=gen_val, max_dim=1024, norm_pow=2, comments=comments,
+                    bm, generator=gen_val, max_dim=1024, norm_pow=2, comments=comments, learning_rate=lsclr,
                     net_name=net_name + '_deslice', seed=seed, task_name=task_name, activation='',
+                    skip_in_layers=['add_loss_layer', 'add_metrics_layer', 'output_net'],
+                    skip_out_layers=['output_net', 'add_metrics_layer', 'learned_None_None', 'target_words'],
+
                 )
             else:
                 weights, lsc_results = apply_LSC(

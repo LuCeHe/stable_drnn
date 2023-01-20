@@ -283,6 +283,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                     }
                 )
             except Exception as e:
+                model = build_model(**model_args)
                 print(e)
 
     if weights is None:
@@ -378,7 +379,6 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                             mean_loss += loss
 
                         if depth_norm:
-
                             hl = htp1
                             cl = ctp1
                             if not state_below is None:
