@@ -55,8 +55,8 @@ def config():
     # maLSNN cLSTM LSTM maLSNNb
     net_name = 'maLSNN'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
-    stack = '4:3'
-    n_neurons = 3
+    stack = None
+    n_neurons = None
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task_name in language_tasks else False
     comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_findLSC_supsubnpsd_test_pretrained'
@@ -159,9 +159,14 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
             print('Finding the LSC...')
             n_samples = str2val(comments, 'normsamples', int, default=-1)
             lscrec = bool(str2val(comments, 'lscrec', int, default=1))
-            lscdepth = bool(str2val(comments, 'lscdepth', int, default=1))
-            lscout = bool(str2val(comments, 'lscout', int, default=1))
+            lscdepth = bool(str2val(comments, 'lscdepth', int, default=0))
+            lscout = bool(str2val(comments, 'lscout', int, default=0))
+            lscin = bool(str2val(comments, 'lscin', int, default=0))
             naswot = str2val(comments, 'naswot', int, default=0)
+
+            if 'allns' in comments:
+                lscrec, lscdepth, lscout, lscin = True, True, True, True
+
 
             # n_samples = 100
             norm_pow = str2val(comments, 'normpow', float, default=2)
@@ -197,7 +202,8 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
             results['lsclr'] = lsclr
             weights, lsc_results = apply_LSC(
                 train_task_args=new_task_args, model_args=new_model_args, norm_pow=norm_pow, n_samples=n_samples,
-                batch_size=new_batch_size, rec_norm=lscrec, depth_norm=lscdepth, decoder_norm=lscout,
+                batch_size=new_batch_size,
+                rec_norm=lscrec, depth_norm=lscdepth, decoder_norm=lscout, encoder_norm=lscin,
                 save_weights_path=save_weights_path, time_steps=time_steps, lr=lsclr, naswot=naswot
             )
             results.update(lsc_results)
