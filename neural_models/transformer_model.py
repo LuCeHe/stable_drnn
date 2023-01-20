@@ -28,7 +28,11 @@ class Transformer(object):
 
         self.encoder_embedding_layer = Embeddinglayer(inputs_vocab_size, d_model)
         self.encoder_embedding_dropout = tf.keras.layers.Dropout(dropout_prob)
-        self.decoder_embedding_layer = Embeddinglayer(target_vocab_size, d_model)
+
+        if not 'sameemb' in comments:
+            self.decoder_embedding_layer = Embeddinglayer(target_vocab_size, d_model)
+        else:
+            self.decoder_embedding_layer = self.encoder_embedding_layer
         self.decoder_embedding_dropout = tf.keras.layers.Dropout(dropout_prob)
 
         self.decoder_embedding_layer.embedding.build(None)

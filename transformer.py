@@ -45,8 +45,8 @@ def main(args, experiment_dir):
 
     # hyper paramaters
     TRAIN_RATIO = 0.9
-    D_POINT_WISE_FF = 2048
     D_MODEL = 512
+    D_POINT_WISE_FF = D_MODEL * 4
     ENCODER_COUNT = DECODER_COUNT = 6
     ATTENTION_HEAD_COUNT = 8
     DROPOUT_PROB = 0.1
@@ -174,7 +174,7 @@ def main(args, experiment_dir):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--comments", default='findLSC_deslice', type=str, help="String to activate extra behaviors")
+    parser.add_argument("--comments", default='sameemb', type=str, help="String to activate extra behaviors")
     parser.add_argument("--activation", default='swish', type=str, help="Network non-linearity")
     parser.add_argument("--seed", default=0, type=int, help="Random seed")
     parser.add_argument("--epochs", default=3, type=int, help="Epochs")

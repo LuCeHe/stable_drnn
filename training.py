@@ -2,6 +2,7 @@ import os, shutil, logging, json, copy
 import pandas as pd
 
 from GenericTools.keras_tools.silence_tensorflow import silence_tf
+from alif_sg.neural_models.nonrecLSC import apply_LSC_no_time
 
 silence_tf()
 
@@ -59,7 +60,7 @@ def config():
     n_neurons = None
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task_name in language_tasks else False
-    comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_findLSC_supsubnpsd_test_pretrained'
+    comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_findLSC_supsubnpsd_test_pretrained_deslice'
 
     # optimizer properties
     lr = None  # 7e-4 None
@@ -167,7 +168,6 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
             if 'allns' in comments:
                 lscrec, lscdepth, lscout, lscin = True, True, True, True
 
-
             # n_samples = 100
             norm_pow = str2val(comments, 'normpow', float, default=2)
             norm_pow = norm_pow if norm_pow > 0 else np.inf
@@ -200,12 +200,21 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
             lsclr = 7e-3
 
             results['lsclr'] = lsclr
-            weights, lsc_results = apply_LSC(
-                train_task_args=new_task_args, model_args=new_model_args, norm_pow=norm_pow, n_samples=n_samples,
-                batch_size=new_batch_size,
-                rec_norm=lscrec, depth_norm=lscdepth, decoder_norm=lscout, encoder_norm=lscin,
-                save_weights_path=save_weights_path, time_steps=time_steps, lr=lsclr, naswot=naswot
-            )
+
+            if 'deslice_' in comments:
+                print('Deslicing the LSC...')
+
+                weights, lsc_results = apply_LSC_no_time(
+                    bm, generator=gen_val, max_dim=1024, norm_pow=2, comments=comments,
+                    net_name=net_name + '_deslice', seed=seed, task_name=task_name, activation='',
+                )
+            else:
+                weights, lsc_results = apply_LSC(
+                    train_task_args=new_task_args, model_args=new_model_args, norm_pow=norm_pow, n_samples=n_samples,
+                    batch_size=new_batch_size,
+                    rec_norm=lscrec, depth_norm=lscdepth, decoder_norm=lscout, encoder_norm=lscin,
+                    save_weights_path=save_weights_path, time_steps=time_steps, lr=lsclr, naswot=naswot
+                )
             results.update(lsc_results)
 
         gen_train = Task(**train_task_args)
