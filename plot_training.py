@@ -70,7 +70,8 @@ optimizer_name = 'SWAAdaBelief'  # SGD SWAAdaBelief
 metrics_oi = [
     # 't_ppl min', 't_mode_acc max', 'v_ppl min', 'v_mode_acc max',
     't_ppl', 't_mode_acc', 'v_ppl', 'v_mode_acc',
-    'LSC_norms i', 'LSC_norms f'
+    # 'LSC_norms i',
+    'LSC_norms f'
 ]
 
 plot_only = ['eps', 'net_name', 'task_name', 'n_params', 'stack', 'comments', 'path', 'lr'] + metrics_oi
@@ -239,7 +240,7 @@ if pandas_means:
     df['lr'] = df['lr i']
     # group_cols = ['net_name', 'task_name', 'comments', 'stack', 'lr i']
     counts = df.groupby(group_cols).size().reset_index(name='counts')
-
+    stats = ['mean'] # ['mean', 'std']
     metrics_oi = [shorten_losses(m) for m in metrics_oi]
     mdf = df.groupby(
         group_cols, as_index=False
@@ -398,7 +399,7 @@ if plot_init_lrs:
     plt.show()
 
 if plot_lrs:
-    stack = 'None'  # 1 None 7
+    stack = '1'  # 1 None 7
 
     idf = mdf.copy()
     idf = idf[idf['stack'].eq(stack)]
