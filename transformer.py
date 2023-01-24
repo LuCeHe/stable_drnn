@@ -126,7 +126,7 @@ def main(args, experiment_dir):
     )
 
     # learning_rate = CustomSchedule(D_MODEL)
-    learning_rate = 1e-4
+    learning_rate = args.lr
     optimizer = tf.optimizers.Adam(learning_rate, beta_1=0.9, beta_2=0.98, epsilon=1e-9)
     model.compile(
         loss=tf.losses.SparseCategoricalCrossentropy(from_logits=True),
@@ -182,7 +182,9 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", default=32, type=int, help="Batch size")
     parser.add_argument("--stop_time", default=60, type=int, help="Stop time")
     parser.add_argument("--results_dir", default=EXPERIMENTS, type=str, help="Experiments Folder")
+    parser.add_argument("--lr", default=1e-4, type=float, help="Experiments Folder")
     args = parser.parse_args()
+
 
     EXPERIMENT = os.path.join(args.results_dir, time_string + random_string + '_lsc-transformer')
     os.makedirs(EXPERIMENT, exist_ok=True)
