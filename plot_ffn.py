@@ -24,8 +24,8 @@ GEXPERIMENTS = [
 
 plot_norms_evol = False
 plot_norms_evol_1 = False
-lrs_plot = True
-plot_losses = False
+lrs_plot = False
+plot_losses = True
 missing_exps = False
 remove_incomplete = False
 truely_remove = False
@@ -33,13 +33,18 @@ truely_remove = False
 metric = 'val_acc M'  # 'val_acc M'   'val_loss min'
 expsid = 'effnet'  # effnet als ffnandcnns
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
-force_keep_column = ['LSC_norms list', 'val_sparse_categorical_accuracy list']
+force_keep_column = ['LSC_norms list', 'val_sparse_categorical_accuracy list', 'val_loss list']
 
 df = experiments_to_pandas(
     h5path=h5path, zips_folder=GEXPERIMENTS, unzips_folder=EXPERIMENTS, experiments_identifier=expsid,
     exclude_files=['cout.txt'], exclude_columns=['_mean ', '_var ', ' list'], check_for_new=True,
     force_keep_column=force_keep_column
 )
+
+if expsid == 'effnet':
+    df = df[df['comments'].str.contains('newarch')]
+    df['comments'] = df['comments'].str.replace('newarch_', '')
+    df['comments'] = df['comments'].str.replace('pretrained_', '')
 
 # select only rows with width 10
 df['time_elapsed'] = pd.to_timedelta(df['time_elapsed'], unit='s')
@@ -307,7 +312,7 @@ if plot_losses:
     activations = sorted(df['act'].unique())
 
     fig, axs = plt.subplots(1, len(activations), figsize=(6, 3))
-    metric = 'val_acc list'  # 'val_acc list' 'loss list' LSC_norms
+    metric = 'val_loss list'  # 'val_acc list' 'loss list' LSC_norms
 
     for i, a in enumerate(activations):
         adf = df[df['act'] == a]

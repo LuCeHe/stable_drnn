@@ -149,6 +149,7 @@ def main(args):
     callbacks = [
         TimeStopping(args.stop_time, 1),
         tf.keras.callbacks.CSVLogger(history_path),
+        # tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=10, restore_best_weights=True)
     ]
 
     loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
