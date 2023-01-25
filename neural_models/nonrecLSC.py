@@ -39,7 +39,7 @@ def get_weights_statistics(results, weight_names, weights):
 def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_pow=2, forward_lsc=False,
                       nlayerjump=None, comments='', epsilon=.06, patience=20, learning_rate = 3.16e-3,
                       subsample_axis=False, skip_in_layers=[], skip_out_layers=[], net_name='', task_name='', seed=0,
-                      activation=''):
+                      activation='', custom_objects=None):
     assert callable(build_model)
     round_to = 4
     li, pi, ni = None, None, None
@@ -66,11 +66,10 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
     lnames = [layer.name for layer in model.layers]
     inlnames = [i for i, l in enumerate(lnames) if not any([s in l for s in skip_in_layers])][:-1]
     outlnames = [i for i, l in enumerate(lnames) if not any([s in l for s in skip_out_layers])]
-
     del model
     tf.keras.backend.clear_session()
 
-    ma_loss, ma_norm, ma_factor = None, 0, None
+    ma_loss, ma_norm, ma_factor = None, None, None
     show_loss, show_norm, show_avw, show_factor = None, None, None, None
     n_failures = 0
     loss, model = None, None
@@ -82,7 +81,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
         if os.path.exists(path_pretrained):
             try:
                 print('Loading pretrained lsc weights')
-                model = tf.keras.models.load_model(path_pretrained)
+                model = tf.keras.models.load_model(path_pretrained, custom_objects=custom_objects)
                 weights = model.get_weights()
             except Exception as e:
                 model = None
@@ -103,7 +102,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
                 time_over = True
                 break
 
-            if not loss is None and abs(ma_norm - 1.) < epsilon:
+            if not ma_norm is None and abs(ma_norm - 1.) < epsilon:
                 epsilon_steps += 1
             else:
                 epsilon_steps = 0
@@ -141,7 +140,6 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
 
                     if 'alllays' in comments:
                         init_pairs = list(range(len(lnames)))
-                        # print('init_pairs', init_pairs)
                     else:
                         init_pairs = [pairs[0]]
 
@@ -151,13 +149,13 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
                         if isinstance(nlayerjump, int):
                             pairs[1] = ip + nlayerjump
 
-                        print('\n\n')
-                        print(pairs, len(lnames))
-                        print(lnames[pairs[0]], lnames[pairs[1]])
+                        # print('\n\n')
+                        # print(pairs, len(lnames))
+                        # print(lnames[pairs[0]], lnames[pairs[1]])
                         premodel, intermodel = split_model(model, pairs)
 
                         preinter = premodel(batch)
-                        print([i.shape for i in preinter])
+                        # print(preinter.shape)
 
                         tape.watch(preinter)
 
@@ -220,8 +218,10 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
                             new_preinter = preinter
 
                         interout = intermodel(new_preinter)
-
                         if not forward_lsc:
+                            if isinstance(interout, list) or isinstance(interout, tuple):
+                                idx = np.random.choice(len(interout))
+                                interout = interout[idx]
                             oup = interout
 
                             if subsample_axis:
@@ -264,9 +264,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
                             norms = varout / varin
                         loss += iloss
 
-                    av_weights = tf.reduce_mean([tf.reduce_mean(tf.cast(t, tf.float32)) for t in model.weights])
                     ma_loss = loss if ma_loss is None else ma_loss * 9 / 10 + loss / 10
-                    # ma_factor = factor if ma_factor is None else ma_factor * 9 / 10 + factor / 10
                     norm = tf.reduce_mean(norms)
                     ma_norm = norm if ma_norm is None else ma_norm * 9 / 10 + norm / 10
                     all_norms.append(norm.numpy())

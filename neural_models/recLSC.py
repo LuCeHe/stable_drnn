@@ -10,7 +10,7 @@ from GenericTools.keras_tools.convenience_operations import sample_axis
 from GenericTools.keras_tools.esoteric_layers import AddLossLayer, AddMetricsLayer, SymbolAndPositionEmbedding
 from GenericTools.keras_tools.esoteric_layers.rate_voltage_reg import RateVoltageRegularization
 from GenericTools.keras_tools.learning_rate_schedules import DummyConstantSchedule
-from GenericTools.stay_organized.utils import str2val
+from GenericTools.stay_organized.utils import str2val, timeStructured
 from sg_design_lif.neural_models import maLSNN, maLSNNb
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -39,8 +39,9 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
     if tape is None and lower_states is None and upper_states is None and test == False:
         raise ValueError('No input data given!')
 
+    norms = None
+    loss = 0
     upper_states = [tf.squeeze(hl) for hl in upper_states]
-    # lower_states = [tf.squeeze(hl) for hl in lower_states]
     if not test:
         hss = []
         for hlm1 in lower_states:
@@ -56,9 +57,6 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
     else:
         td = tape
 
-    norms = None
-    loss = 0
-
     if td.shape[-1] == td.shape[-2]:
         std = td
     else:
@@ -70,8 +68,6 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
             max_dim = td.shape[1]
 
         std = sample_axis(td, max_dim=max_dim, axis=sample_ax)
-
-    # print(std.shape, td.shape)
 
     n_s = 4
     if 'supnpsd' in comments:
@@ -98,13 +94,13 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
 
         a = std @ zT
         preloss = tf.einsum('bks,sk->bs', a, z)
-        loss += tf.reduce_mean(tf.nn.relu(-preloss)) / 4
+        loss += tf.reduce_mean(tf.nn.relu(-preloss)) / 100
 
         eig = tf.linalg.eigvals(std)
         r = tf.math.real(eig)
         i = tf.math.imag(eig)
-        norms = r
-        loss += well_loss(min_value=0., max_value=0., walls_type='relu', axis='all')(i) / 4
+        norms = r + i
+        loss += well_loss(min_value=0., max_value=0., walls_type='relu', axis='all')(i) / 50
 
     elif 'logradius' in comments:
         if td.shape[-1] == td.shape[-2]:
@@ -202,6 +198,8 @@ def get_lsctype(comments):
 def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, steps_per_epoch=2, es_epsilon=.08,
               patience=10, rec_norm=True, depth_norm=True, encoder_norm=False, decoder_norm=True, learn=True,
               time_steps=None, weights=None, save_weights_path=None, lr=1e-3, naswot=0):
+    time_string = timeStructured()
+    print('LSC starts at: ', time_string)
     # FIXME: generalize this loop for any recurrent model
     gen_train = Task(**train_task_args)
 
@@ -263,6 +261,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
     c = ''
     if 'targetnorm' in comments:
         c += f'_tn{str(target_norm).replace(".", "p")}'
+    if 'randlsc' in comments:
+        c += '_randlsc'
 
     path_pretrained = os.path.join(
         EXPERIMENTS, f"pretrained_s{s}_{net_name}_{lsct}_{task_name}_stack{str(ostack).replace(':', 'c')}{c}.h5")
@@ -270,6 +270,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
         if os.path.exists(path_pretrained):
             print('Loading pretrained lsc weights')
             # model.load_weights(path_pretrained)
+            # if True:
             try:
                 model = tf.keras.models.load_model(
                     path_pretrained,
@@ -293,10 +294,18 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
     results.update({f'{n}_mean': [tf.reduce_mean(w).numpy()] for n, w in zip(weight_names, weights)})
     results.update({f'{n}_var': [tf.math.reduce_variance(w).numpy()] for n, w in zip(weight_names, weights)})
 
-    model, tape = None, None
+    model, tape, norms = None, None, None
 
     time_start = time.perf_counter()
     time_over = False
+    randlsc = True if 'randlsc' in comments else False
+    r1, r2, r3, r4 = 0, 0, 0, 0
+
+    round_to = 4
+    ma_loss, ma_norm = None, None
+
+    best_norm = 1e10
+    best_count = 0
     for step in range(steps_per_epoch):
         if time_over:
             break
@@ -320,7 +329,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
             shuffled = [tf.random.shuffle(b) for b in flatbatch[0]],
             batch = [tf.reshape(b, s) for s, b in zip(shapes, shuffled[0])],
 
-        elif 'randwlsc' in comments:
+        elif 'randchlsc' in comments:
             shapes = [b.shape for b in batch[0]]
             batch = [tf.constant(np.random.choice(gen_train.vocab_size, size=s)) for s in shapes],
 
@@ -329,6 +338,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
         for t in range(ts):
 
+            # if True:
             try:
                 bt = batch[0][0][:, t, :][:, None]
                 wt = batch[0][1][:, t][:, None]
@@ -351,6 +361,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                     mean_loss = 0
                     some_norms = []
                     state_below = None
+
                     for i, _ in enumerate(stack):
 
                         htp1 = states_p1[i * n_states + hi]
@@ -358,7 +369,10 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                         ctp1 = states_p1[i * n_states + ci]
                         ct = states[i * n_states + ci]
 
-                        if rec_norm:
+                        if randlsc:
+                            r1, r2, r3, r4 = np.random.rand(4)
+
+                        if rec_norm and r1 < .5:
                             norms, loss, naswot_score = get_norms(tape=tape, lower_states=[ht, ct],
                                                                   upper_states=[htp1, ctp1],
                                                                   n_samples=n_samples, norm_pow=norm_pow, naswot=naswot,
@@ -369,7 +383,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                                 all_naswot.append(tf.reduce_mean(naswot_score))
                             mean_loss += loss
 
-                        if encoder_norm and i == 0:
+                        if encoder_norm and i == 0 and r2 < .5:
                             norms, loss, naswot_score = get_norms(tape=tape, lower_states=[bt[:, 0, :]],
                                                                   upper_states=[htp1, ctp1],
                                                                   n_samples=n_samples, norm_pow=norm_pow, naswot=naswot,
@@ -378,9 +392,9 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                             some_norms.append(tf.reduce_mean(norms))
                             mean_loss += loss
 
-                        if depth_norm:
-                            hl = htp1
-                            cl = ctp1
+                        hl = htp1
+                        cl = ctp1
+                        if depth_norm and r3 < .5:
                             if not state_below is None:
                                 hlm1, clm1 = state_below
                                 norms, loss, naswot_score = get_norms(tape=tape, lower_states=[hlm1, clm1],
@@ -392,12 +406,18 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                                 some_norms.append(tf.reduce_mean(norms))
                                 mean_loss += loss
 
-                            state_below = (hl, cl)
-                            del hl, cl
+                        state_below = (hl, cl)
+                        del hl, cl
 
-                        if decoder_norm and i == len(stack) - 1:
+                        if decoder_norm and i == len(stack) - 1 and r4 < .5:
+                            output = outputs[0][:, 0, :]
+
+                            if tf.math.greater(output.shape[-1], htp1.shape[-1] + ctp1.shape[-1]):
+                                max_dim = htp1.shape[-1] + ctp1.shape[-1]
+                                output = sample_axis(output, max_dim=max_dim, axis=1)
+
                             norms, loss, naswot_score = get_norms(tape=tape, lower_states=[htp1, ctp1],
-                                                                  upper_states=[outputs[0][:, 0, :]],
+                                                                  upper_states=[output],
                                                                   n_samples=n_samples, norm_pow=norm_pow, naswot=naswot,
                                                                   comments=comments, target_norm=1.)
 
@@ -405,6 +425,14 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                             mean_loss += loss
 
                         del htp1, ht, ctp1, ct
+
+                best_count += 1
+                if np.abs(np.mean(norms.numpy()) - target_norm) < np.abs(best_norm - target_norm):
+                    best_norm = np.mean(norms.numpy())
+                    best_weights = model.get_weights()
+                    best_count = 0
+                elif best_count > patience:
+                    model.set_weights(best_weights)
 
                 if learn:
                     grads = tape.gradient(mean_loss, model.trainable_weights)
@@ -427,30 +455,34 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
                 norms = tf.reduce_mean(some_norms)
 
-                if abs(norms.numpy() - target_norm) < es_epsilon:
+                ma_loss = loss if ma_loss is None else ma_loss * 9 / 10 + loss / 10
+                ma_norm = norms if ma_norm is None else ma_norm * 9 / 10 + norms / 10
+
+                if not ma_norm is None and abs(ma_norm - target_norm) < es_epsilon:
                     epsilon_steps += 1
                 else:
                     epsilon_steps = 0
 
                 if epsilon_steps > patience:
                     break
-
                 all_norms.append(norms.numpy())
                 losses.append(mean_loss.numpy())
 
                 pbar2.update(1)
 
                 prms = tf.reduce_mean([tf.reduce_mean(w) for w in model.trainable_weights]).numpy()
-                if li is None:
+                if li is None and not mean_loss is None:
                     li = str(round(mean_loss.numpy(), 4))
                     pi = str(round(prms, 4))
                     ni = str(round(norms.numpy(), 4))
 
+                show_loss = str(ma_loss.numpy().round(round_to))
+                show_norm = str(ma_norm.numpy().round(round_to))
                 pbar2.set_description(
                     f"Step {step}; "
-                    f"loss {str(round(mean_loss.numpy(), 4))}/{li}; "
-                    f"mean params {str(round(prms, 4))}/{pi}; "
-                    f"mean norms {str(round(norms.numpy(), 4))}/{ni} "
+                    f"loss {str(show_loss)}/{li}; "
+                    f"mean params {str(round(prms, round_to))}/{pi}; "
+                    f"mean norms {show_norm}/{ni} "
                 )
                 for n, w in zip(weight_names, model.get_weights()):
                     results[f'{n}_mean'].append(tf.reduce_mean(w).numpy())
@@ -482,8 +514,10 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
         model.save_weights(weights_path)
 
     if 'pretrained' in comments and not model is None:
-        if not os.path.exists(path_pretrained):
-            model.save(path_pretrained)
+        if hasattr(ma_norm, 'numpy'):
+            if np.abs(ma_norm.numpy() - target_norm) < np.abs(float(ni) - target_norm):
+                print('Saving pretrained lsc weights')
+                model.save(path_pretrained)
 
     del model, tape
 

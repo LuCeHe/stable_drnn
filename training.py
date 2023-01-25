@@ -49,18 +49,20 @@ def config():
 
     # test configuration
     epochs = 2
-    steps_per_epoch = 40
+    steps_per_epoch = 10
     batch_size = 2
 
     # net
     # maLSNN cLSTM LSTM maLSNNb
     net_name = 'maLSNN'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
-    stack = None
-    n_neurons = None
+    stack = '4:3'
+    n_neurons = 3
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task_name in language_tasks else False
     comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_findLSC_supsubnpsd_test_pretrained_deslice'
+    # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_findLSC_supsubnpsd_test_pretrained'
+    # comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_findLSC_supsubnpsd_test_pretrained_randlsc'
 
     # optimizer properties
     lr = None  # 7e-4 None
@@ -157,6 +159,8 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
 
     for _ in range(relsc):
         if 'findLSC' in comments:
+            import time
+            time_start = time.perf_counter()
             print('Finding the LSC...')
             n_samples = str2val(comments, 'normsamples', int, default=-1)
             lscrec = bool(str2val(comments, 'lscrec', int, default=1))
@@ -176,7 +180,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
             new_batch_size = batch_size
 
             if 'ptb' in task_name:
-                new_batch_size = 4
+                new_batch_size = 6
                 new_comments = str2val(new_comments, 'batchsize', replace=new_batch_size)
 
             if 'heidelberg' in task_name and 'maLSNN' in net_name:
@@ -192,28 +196,41 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
 
             lscw_filepath = os.path.join(models_dir, 'lsc')
             save_weights_path = lscw_filepath if 'savelscweights' in comments else None
-            time_steps = 2 if 'test' in comments else None
+            time_steps = 6 if 'test' in comments else None
 
-            del gen_train
             print(json.dumps(new_model_args, indent=4, cls=NumpyEncoder))
             # lsclr = 3.14e-4 if not net_name == 'LSTM' else 3.14e-3
-            lsclr = 1e-2
+            lsclr = 1e-4 # 1e-2
 
-            results['lsclr'] = lsclr
 
             if 'deslice' in comments:
+                from GenericTools.keras_tools.esoteric_optimizers.AdamW import AdamW as AdamW2
+                from GenericTools.keras_tools.esoteric_layers import AddLossLayer, AddMetricsLayer, \
+                    SymbolAndPositionEmbedding
+                from GenericTools.keras_tools.esoteric_layers.rate_voltage_reg import RateVoltageRegularization
+                from GenericTools.keras_tools.learning_rate_schedules import DummyConstantSchedule
+                from sg_design_lif.neural_models import maLSNNb, maLSNN
+
+                custom_objects = {
+                    'maLSNN': maLSNN, 'maLSNNb': maLSNNb, 'RateVoltageRegularization': RateVoltageRegularization,
+                    'AddLossLayer': AddLossLayer, 'AddMetricsLayer': AddMetricsLayer,
+                    'SparseCategoricalCrossentropy': tf.keras.losses.SparseCategoricalCrossentropy,
+                    'AdamW': AdamW2, 'DummyConstantSchedule': DummyConstantSchedule,
+                    'SymbolAndPositionEmbedding': SymbolAndPositionEmbedding,
+                }
                 bm = lambda: build_model(**model_args)
-                gen_val = Task(timerepeat=timerepeat, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
-                               name=task_name, train_val_test='val', maxlen=maxlen, comments=comments)
-                # add_loss_layer
+
+                lsclr = 1e-4 # 1e-2
                 weights, lsc_results = apply_LSC_no_time(
-                    bm, generator=gen_val, max_dim=1024, norm_pow=2, comments=comments, learning_rate=lsclr,
+                    bm, generator=gen_train, max_dim=1024, norm_pow=2, comments=comments, learning_rate=lsclr,
                     net_name=net_name + '_deslice', seed=seed, task_name=task_name, activation='',
                     skip_in_layers=['add_loss_layer', 'add_metrics_layer', 'output_net'],
                     skip_out_layers=['output_net', 'add_metrics_layer', 'learned_None_None', 'target_words'],
-
+                    custom_objects=custom_objects
                 )
             else:
+
+                del gen_train
                 weights, lsc_results = apply_LSC(
                     train_task_args=new_task_args, model_args=new_model_args, norm_pow=norm_pow, n_samples=n_samples,
                     batch_size=new_batch_size,
@@ -221,6 +238,11 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
                     save_weights_path=save_weights_path, time_steps=time_steps, lr=lsclr, naswot=naswot
                 )
             results.update(lsc_results)
+            results['lsclr'] = lsclr
+
+            time_lsc = (time.perf_counter() - time_start)
+            print('LSC took {} seconds'.format(time_lsc))
+            stop_time = int(stop_time - time_lsc)
 
         gen_train = Task(**train_task_args)
         gen_val = Task(timerepeat=timerepeat, batch_size=batch_size, steps_per_epoch=steps_per_epoch,

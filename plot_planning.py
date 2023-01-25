@@ -14,7 +14,7 @@ if expsid == 'transfeff':
         f'findLSC_supsubnpsd',
     ]
     activations = ['relu', 'tanh', 'swish']
-    archs = ['EfficientNet', 'Transformer']
+    archs = ['EfficientNet\nCIFAR100' + r' $\uparrow$', 'Transformer\nEnglish-German' + ' $\downarrow$']
     bbox_to_anchor = (-.2, -.3)
     # shift = 1.5
 elif expsid == 'rnns':
@@ -26,8 +26,8 @@ elif expsid == 'rnns':
         'findLSC_radius_targetnorm:.5',
         f'findLSC_supsubnpsd',
     ]
-    activations = ['sl-MNIST', 'SHD', 'PTB']
-    archs = ['LSTM', 'ALIF', 'ALIFb']
+    archs = ['sl-MNIST'+ r' $\uparrow$', 'SHD'+ r' $\uparrow$', 'PTB'+ r' $\downarrow$']
+    activations = ['LSTM', 'ALIF', 'ALIFb']
     bbox_to_anchor = (-.7, -.3)
 else:
     raise ValueError

@@ -36,25 +36,27 @@ GEXPERIMENTS = [
     # os.path.join(CDIR, 'good_experiments'),
     # os.path.join(CDIR, 'good_experiments', '2022-11-07--complete_set_of_exps'),
     # r'D:\work\alif_sg\experiments',
-    r'D:\work\alif_sg\good_experiments\2022-12-21--rnn',
+    # r'D:\work\alif_sg\good_experiments\2022-12-21--rnn',
+    r'D:\work\alif_sg\good_experiments\2023-01-20--rnn-v2',
 ]
 
 expsid = 'als'  # effnet als ffnandcnns
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
-check_for_new = True
+check_for_new = False
 plot_losses = False
 one_exp_curves = False
 pandas_means = True
 show_per_tasknet = True
 make_latex = False
-missing_exps = False
+missing_exps = True
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
 plot_weights = False
 plot_init_lrs = False
-plot_lrs = True
+plot_lrs = False
+plot_bars = False
 
 remove_incomplete = False
 truely_remove = False
@@ -84,7 +86,7 @@ columns_to_remove = [
 columns_to_remove = []
 columns_to_remove = ['_var', '_mean', 'sparse_categorical_crossentropy', 'bpc', 'loss',
                      'sparse_categorical_accuracy', 'LSC_losses', 'rec_norms', 'fail_trace']
-force_keep_column = ['LSC_norms list']
+force_keep_column = ['LSC_norms list', 'val_sparse_mode_accuracy list']
 
 df = experiments_to_pandas(
     h5path=h5path, zips_folder=GEXPERIMENTS, unzips_folder=EXPERIMENTS, experiments_identifier=expsid,
@@ -98,13 +100,14 @@ df['stack'] = df['stack'].astype(str)
 df['batch_size'] = df['batch_size'].astype(str)
 df['comments'] = df['comments'].str.replace('_pretrained', '')
 
+print(list(df.columns))
 if plot_losses:
-    df['comments'] = df['comments'].str.replace('36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_', '')
+    df['comments'] = df['comments'].str.replace('allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_', '')
 
     plot_metric = 'rec_norms list'
     plot_metric = 'val_perplexity list'
-    plot_metric = 'val_sparse_categorical_accuracy list'
-    plot_metric = 'LSC_norms list'
+    # plot_metric = 'val_sparse_categorical_accuracy list'
+    # plot_metric = 'LSC_norms list'
     tasks = df['task_name'].unique()
     nets = df['net_name'].unique()
     comments = df['comments'].unique()
@@ -126,13 +129,13 @@ if plot_losses:
                     if isinstance(row[plot_metric], list):
                         # print(row['loss list'])
                         print('epochs', len(row[plot_metric]))
-                        axs[i, j].plot(row[plot_metric], color=lsc_colors[n], label=n)
+                        axs[i, j].plot(row[plot_metric], color=lsc_colors[n], label=lsc_clean_comments(n))
                     else:
                         print(row[plot_metric], row['path'])
 
                 axs[i, j].set_title(f'{task} {net}')
 
-    legend_elements = [Line2D([0], [0], color=lsc_colors[n], lw=4, label=n) for n in comments]
+    legend_elements = [Line2D([0], [0], color=lsc_colors[n], lw=4, label=lsc_clean_comments(n)) for n in comments]
     plt.legend(ncol=3, handles=legend_elements, loc='lower center')  # , bbox_to_anchor=(-.1, -1.))
 
     plt.show()
@@ -157,7 +160,9 @@ if 'task_name' in df.columns:
 new_column_names = {c_name: shorten_losses(c_name) for c_name in df.columns}
 df.rename(columns=new_column_names, inplace=True)
 
-df = df[~df['eps'].eq(0)]
+
+# eps column stays eps if not equal to None else it becomes the content of v_mode_acc len
+df.loc[df['eps'].isnull(), 'eps'] = df.loc[df['eps'].isnull(), 'v_mode_acc len']
 
 
 if 'v_mode_acc len' in df.columns:
@@ -165,17 +170,17 @@ if 'v_mode_acc len' in df.columns:
     print(list(df.columns))
     print('v_mode_acc nans:', df['v_mode_acc len'].isna().sum())
     print('t_ppl nans:', df['t_ppl list'].isna().sum())
-    # df['v_ppl argm'] = df['v_ppl argm'].astype(int)
-    # df['v_mode_acc argM'] = df['v_mode_acc argM'].astype(int)
+    df['v_ppl argm'] = df['v_ppl argm'].astype(int)
+    df['v_mode_acc argM'] = df['v_mode_acc argM'].astype(int)
 
     df['v_ppl'] = df['v_ppl m']
-    # df['t_ppl'] = df.apply(lambda row: row['t_ppl list'][row['v_ppl argm']], axis=1)
+    df['t_ppl'] = df.apply(lambda row: row['t_ppl list'][row['v_ppl argm']], axis=1)
     df['v_mode_acc'] = df['v_mode_acc M']
-    # df['t_mode_acc'] = df.apply(lambda row: row['t_mode_acc list'][row['v_mode_acc argM']], axis=1)
+    df['t_mode_acc'] = df.apply(lambda row: row['t_mode_acc list'][row['v_mode_acc argM']], axis=1)
     #
     # FIXME: following is incorrect, correct it as soon as you get rid of the NaNs
-    df['t_ppl'] = df['t_ppl m']
-    df['t_mode_acc'] = df['t_mode_acc M']
+    # df['t_ppl'] = df['t_ppl m']
+    # df['t_mode_acc'] = df['t_mode_acc M']
 
 for c_name in columns_to_remove:
     df = df[df.columns.drop(list(df.filter(regex=c_name)))]
@@ -404,7 +409,7 @@ if plot_lrs:
     idf = mdf.copy()
     idf = idf[idf['stack'].eq(stack)]
 
-    idf['comments'] = idf['comments'].str.replace('36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_', '')
+    idf['comments'] = idf['comments'].str.replace('allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_', '')
 
     tasks = idf['task_name'].unique()
     nets = idf['net_name'].unique()
@@ -460,9 +465,72 @@ if plot_lrs:
 
     plt.show()
 
+
+if plot_bars:
+    stack = 'None'  # 1 None 7
+
+    idf = mdf.copy()
+    idf = idf[idf['stack'].eq(stack)]
+
+    idf['comments'] = idf['comments'].str.replace('allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_', '')
+
+    tasks = idf['task_name'].unique()
+    nets = idf['net_name'].unique()
+    comments = idf['comments'].unique()
+
+    # tasks = ['sl-MNIST', 'SHD', 'PTB']
+    lrs = np.unique(idf['lr'])
+    idf = idf.sort_values(by='lr')
+
+    # nets = ['LSTM', 'ALIF', 'ALIFb']
+
+    fig, axs = plt.subplots(len(nets), len(tasks), gridspec_kw={'wspace': .2, 'hspace': 0.8}, figsize=(14, 3))
+    if len(nets) == 1:
+        axs = np.array([axs])
+    if len(tasks) == 1:
+        axs = np.array([axs]).T
+
+    colors = lambda net_name: '#FF5733' if net_name == 'ALIF' else '#1E55A9'
+    for j, task in enumerate(tasks):
+        for i, net in enumerate(nets):
+            iidf = idf[idf['task_name'].eq(task) & idf['net_name'].eq(net)]
+            iidf = iidf.sort_values(by='lr')
+
+            for c in comments:
+                cdf = iidf[iidf['comments'].eq(c)]
+                print('-==*-' * 20)
+                print(cdf.to_string())
+                means, stds, lrs = cdf[f'mean_{metric}'].values, cdf[f'std_{metric}'].values, cdf['lr'].values
+                axs[i, j].plot(lrs, means, color=lsc_colors[c], label=c)
+                axs[i, j].fill_between(lrs, means - stds / 2, means + stds / 2, alpha=0.5, color=lsc_colors[c])
+            axs[i, j].set_xscale('log')
+
+            iidf = iidf.sort_values(by=f'mean_{metric}')
+
+            if not iidf.shape[0] == 0:
+                print(f"{net} on {task} got best vPPL {iidf[f'mean_{metric}'].values[0]} for {iidf['lr'].values[0]}")
+
+        axs[0, j].set_title(task)
+        # axs[i,0].set_xticks([1e-2, 1e-3, 1e-4, 1e-5])
+        # axs[i,0].locator_params(axis='y', nbins=5)
+    axs[0, 0].set_ylabel('Validation Perplexity')
+    axs[-1, -1].set_xlabel('Learning Rate')
+
+    for ax in axs.reshape(-1):
+        for pos in ['right', 'left', 'bottom', 'top']:
+            ax.spines[pos].set_visible(False)
+
+    legend_elements = [Line2D([0], [0], color=lsc_colors[n], lw=4, label=n) for n in comments]
+    plt.legend(ncol=3, handles=legend_elements, loc='lower center')  # , bbox_to_anchor=(-.1, -1.))
+
+    plot_filename = f'experiments/bars.pdf'
+    fig.savefig(plot_filename, bbox_inches='tight')
+
+    plt.show()
+
 if missing_exps:
     # columns of interest
-    coi = ['seed', 'task_name', 'net_name', 'comments', 'stack', 'lr', 'batch_size']
+    coi = ['seed', 'task_name', 'net_name', 'comments', 'stack']
 
     import pandas as pd
 
@@ -476,61 +544,49 @@ if missing_exps:
     sdf.loc[df['net_name'].str.contains('ALIFb'), 'net_name'] = 'maLSNNb'
     sdf.loc[df['net_name'].str.contains('ALIF'), 'net_name'] = 'maLSNN'
 
-    sdf['lr'] = sdf['lr i']
+    # sdf['lr'] = sdf['lr i']
 
     sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
+    # substitute the string _timerepeat:2 by _timerepeat:2_pretrained_ in the comments column
+    sdf['comments'] = sdf['comments'].str.replace('_timerepeat:2', '_timerepeat:2_pretrained')
 
     seed = 0
     n_seeds = 4
     seeds = [l + seed for l in range(n_seeds)]
+
+    incomplete_comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_'
+
+    experiments = []
+
     all_comments = [
         incomplete_comments,
         incomplete_comments + f'findLSC',
         incomplete_comments + f'findLSC_supsubnpsd',
-        # incomplete_comments + f'findLSC_supnpsd2',
         incomplete_comments + f'findLSC_radius',
         incomplete_comments + f'findLSC_radius_targetnorm:.5',
+        incomplete_comments + f'findLSC_radius_targetnorm:.5_randlsc',
+        incomplete_comments + f'findLSC_supsubnpsd_deslice',
     ]
-    experiments = []
-
-    nets = ['maLSNN', 'maLSNNb']
-    nets = ['LSTM']
     nets = ['LSTM', 'maLSNN', 'maLSNNb']
-
-    # select only the experiments belonging to a specific network
-    found = sdf['net_name'].apply(lambda x: any(x == n for n in nets))
-    sdf = sdf[found]
-
-    # add the string _pretrained to if not present in the comments column
-    sdf['comments'] = sdf['comments'].apply(
-        lambda x: x.replace('lscdepth:1', 'lscdepth:1_pretrained') if 'pretrained' not in x else x)
-
-    # print(sdf.to_string())
-    # import sys
-    # sys.exit()
-
+    tasks = ['heidelberg', 'sl_mnist', 'wordptb']
     experiment = {
-        'task_name': ['heidelberg', 'sl_mnist'],
-        'net_name': nets, 'seed': seeds, 'stack': ['1', 'None'], 'batch_size': ['None'],
-        'comments': all_comments, 'lr': [1e-2, 3.16e-3, 1e-3],
+        'task_name': tasks,
+        'net_name': nets, 'seed': seeds, 'stack': ['None'],
+        'comments': all_comments,
     }
     experiments.append(experiment)
+
     experiment = {
         'task_name': ['heidelberg'],
-        'net_name': ['maLSNN', 'LSTM'], 'seed': seeds, 'stack': ['7'], 'batch_size': ['None'],
-        'comments': all_comments, 'lr': [1e-2, 3.16e-3, 1e-3],
-    }
-    experiments.append(experiment)
-    experiment = {
-        'task_name': ['wordptb'],
-        'net_name': nets, 'seed': seeds, 'stack': ['None'], 'batch_size': ['None'],
-        'comments': all_comments, 'lr': [1e-2, 3.16e-3, 1e-3],
+        'net_name': nets, 'seed': seeds, 'stack': ['1', '3', '5'],
+        'comments': all_comments,
     }
     experiments.append(experiment)
 
     ds = dict2iter(experiments)
     print(ds[0])
     complete_missing_exps(sdf, ds, coi)
+    # print(sdf.to_string())
 
 if plot_weights:
     create_pickles = False
@@ -922,28 +978,19 @@ if remove_incomplete:
     rdfs = []
     # from LSC_norms final column, select those that are epsilon away from 1
     epsilon = 0.09
-    epsilon = 0.2
-    rdf = plotdf[abs(plotdf['LSC_norms f'] - 1) > epsilon]
-    # print(rdf.shape, df.shape)
-    # rdfs.append(rdf)
-
-    rdf = plotdf[plotdf['task_name'].eq('PTB')]
-    # print(rdf.shape)
-    # rdfs.append(rdf)
-
-    print('-=***=-' * 10)
-    print('Epochs=0')
-    rdf = plotdf[plotdf['eps'].eq(0)]
-    print(rdf.shape)
+    # epsilon = 0.2
+    # make a column target equal to .5 if targetnorm:.5 is in comments else 1 if findLSC is in comments
+    # else nan
+    plotdf['target'] = plotdf['comments'].apply(lambda x: 0.5 if 'targetnorm:.5' in x else 1 if 'findLSC' in x else np.nan)
+    rdf = plotdf[abs(plotdf['LSC_norms f'] - plotdf['target']) > epsilon]
+    print(rdf.shape, df.shape)
     rdfs.append(rdf)
 
-    rdf = plotdf[plotdf['task_name'].eq('SHD')]
-    # print(rdf.shape)
-    # rdfs.append(rdf)
+    # remove stack 7 since it fails too often
+    rdf = plotdf[plotdf['stack'] == '7']
+    print(rdf.shape, df.shape)
+    rdfs.append(rdf)
 
-    rdf = plotdf[plotdf['comments'].str.contains('supnpsd2')]
-    # print(rdf.shape)
-    # rdfs.append(rdf)
 
     # remove repeated
     # remove one seed from those that have more than 4 seeds

@@ -133,6 +133,8 @@ def main(args):
         weights, lsc_results = apply_LSC_no_time(
             bm, generator=gen_val, max_dim=max_dim, norm_pow=2, comments=args.comments,
             net_name='eff', seed=args.seed, task_name=args.dataset, activation=args.activation,
+            skip_in_layers=['rescaling', 'normalization', 'resizing'],
+            skip_out_layers=['rescaling', 'normalization', 'resizing'],
         )
         effnet = bm()
         effnet.set_weights(weights)
