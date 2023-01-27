@@ -7,14 +7,15 @@ from tqdm import tqdm
 from GenericTools.keras_tools.convenience_operations import sample_axis, desample_axis
 from GenericTools.keras_tools.esoteric_losses import well_loss
 from GenericTools.keras_tools.esoteric_tasks.numpy_generator import NumpyClassificationGenerator
-from GenericTools.keras_tools.expose_latent import expose_latent_model, split_model
+from GenericTools.keras_tools.expose_latent import split_model
 from alif_sg.neural_models.recLSC import get_norms, get_lsctype
-from alif_sg.neural_models.modified_efficientnet import EfficientNetB0
 
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
 EXPERIMENTS = os.path.abspath(os.path.join(CDIR, '..', 'good_experiments'))
 os.makedirs(EXPERIMENTS, exist_ok=True)
+
+os.environ["TF_GPU_ALLOCATOR"] = "cuda_malloc_async"
 
 
 def get_weights_statistics(results, weight_names, weights):
@@ -37,8 +38,11 @@ def get_weights_statistics(results, weight_names, weights):
 
 
 def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_pow=2, forward_lsc=False,
-                      nlayerjump=None, comments='', epsilon=.06, patience=20, learning_rate = 3.16e-3,
-                      subsample_axis=False, skip_in_layers=[], skip_out_layers=[], net_name='', task_name='', seed=0,
+                      nlayerjump=None, comments='', epsilon=.06, patience=20, learning_rate=3.16e-3,
+                      subsample_axis=False,
+                      skip_in_layers=[], skip_out_layers=[],
+                      keep_in_layers=None, keep_out_layers=None,
+                      net_name='', task_name='', seed=0,
                       activation='', custom_objects=None):
     assert callable(build_model)
     round_to = 4
@@ -64,8 +68,21 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
     results = get_weights_statistics(results, weight_names, weights)
 
     lnames = [layer.name for layer in model.layers]
-    inlnames = [i for i, l in enumerate(lnames) if not any([s in l for s in skip_in_layers])][:-1]
-    outlnames = [i for i, l in enumerate(lnames) if not any([s in l for s in skip_out_layers])]
+
+    if keep_in_layers is None:
+        keep_in_layers = lnames
+    if keep_out_layers is None:
+        keep_out_layers = lnames
+    inlnames = [
+                   i for i, l in enumerate(lnames)
+                   if not any([s in l for s in skip_in_layers])
+                      and any([s in l for s in keep_in_layers])
+               ][:-1]
+    outlnames = [
+                    i for i, l in enumerate(lnames)
+                    if not any([s in l for s in skip_out_layers])
+                       and any([s in l for s in keep_out_layers])
+                ][1:]
     del model
     tf.keras.backend.clear_session()
 
@@ -257,6 +274,12 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
 
                             norms, iloss, naswot_score = get_norms(tape, [inp], [oup], n_samples=n_samples,
                                                                    norm_pow=norm_pow, comments=comments)
+                            if (norms.numpy() == 1).all():
+                                raise ValueError('Norms are all 1, since the input and output are the same. '
+                                                 'This happens because the architecture is complex and now '
+                                                 'we are not able to find a path from the input to the output '
+                                                 'in the general case.')
+
                         else:
                             varin = tf.math.reduce_variance(new_preinter)
                             varout = tf.math.reduce_variance(interout)
@@ -313,9 +336,10 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
     fail_rate = n_failures / generator.epochs / generator.steps_per_epoch
 
     if 'pretrained' in comments and not model is None:
-        if not os.path.exists(path_pretrained):
+        if (float(show_norm) - 1) < (float(ni) - 1):
             model.save(path_pretrained)
 
+    model, generator = None, None
     del model, generator
 
     for n in weight_names:
@@ -324,21 +348,6 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
 
     results.update(LSC_losses=str(all_losses), LSC_norms=str(all_norms), LSC_fail_rate=str(fail_rate))
     tf.keras.backend.clear_session()
+    tf.keras.backend.clear_session()
+    tf.keras.backend.clear_session()
     return weights, results
-
-
-if __name__ == '__main__':
-    (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
-
-    # make mnist grayscale -> rgb
-    x_train = x_train if x_train.shape[-1] == 3 else tf.image.resize(x_train[..., None], [32, 32]).numpy().repeat(3, -1)
-    x_test = x_test if x_test.shape[-1] == 3 else tf.image.resize(x_test[..., None], [32, 32]).numpy().repeat(3, -1)
-
-    gen_val = NumpyClassificationGenerator(
-        x_train, y_train,
-        epochs=3, steps_per_epoch=4,
-        batch_size=2,
-        output_type='[i]o'
-    )
-    build_model = lambda: EfficientNetB0()
-    apply_LSC_no_time(build_model, generator=gen_val, max_dim=1024, n_samples=100, norm_pow=2)

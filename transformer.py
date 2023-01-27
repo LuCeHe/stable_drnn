@@ -15,6 +15,8 @@ from alif_sg.neural_models.transformer_model import build_model
 from filmformer.generation_data.data_loader import WMT_ENDE
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+os.environ["TF_GPU_ALLOCATOR"] = "cuda_malloc_async"
+
 
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
@@ -99,6 +101,8 @@ def main(args, experiment_dir):
         weights, lsc_results = apply_LSC_no_time(
             bm, generator=gen_lsc, max_dim=max_dim, norm_pow=2, nlayerjump=None,
             skip_in_layers=['input', ], skip_out_layers=[],
+            keep_in_layers=['embeddinglayer', 'identity_'],
+            keep_out_layers=['identity_'],
             net_name='trasnf', task_name='ende', seed=args.seed, activation=args.activation
         )
 
@@ -174,12 +178,12 @@ def main(args, experiment_dir):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--comments", default='sameemb', type=str, help="String to activate extra behaviors")
+    parser.add_argument("--comments", default='sameemb_findLSC_supsubnpsd', type=str, help="String to activate extra behaviors")
     parser.add_argument("--activation", default='swish', type=str, help="Network non-linearity")
     parser.add_argument("--seed", default=0, type=int, help="Random seed")
     parser.add_argument("--epochs", default=3, type=int, help="Epochs")
-    parser.add_argument("--steps_per_epoch", default=2, type=int, help="Steps per epoch")
-    parser.add_argument("--batch_size", default=32, type=int, help="Batch size")
+    parser.add_argument("--steps_per_epoch", default=1, type=int, help="Steps per epoch")
+    parser.add_argument("--batch_size", default=16, type=int, help="Batch size")
     parser.add_argument("--stop_time", default=60, type=int, help="Stop time")
     parser.add_argument("--results_dir", default=EXPERIMENTS, type=str, help="Experiments Folder")
     parser.add_argument("--lr", default=1e-4, type=float, help="Experiments Folder")

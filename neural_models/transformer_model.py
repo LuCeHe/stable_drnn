@@ -3,6 +3,8 @@ import os
 import numpy as np
 import tensorflow as tf
 
+from GenericTools.keras_tools.esoteric_models.model import modifiedModel
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
@@ -45,8 +47,9 @@ class Transformer(object):
                 d_point_wise_ff,
                 dropout_prob,
                 activation=activation,
-                comments=comments
-            ) for _ in range(encoder_count)
+                comments=comments,
+                layer_index=i
+            ) for i in range(encoder_count)
         ]
 
         self.decoder_layers = [
@@ -56,8 +59,9 @@ class Transformer(object):
                 d_point_wise_ff,
                 dropout_prob,
                 activation=activation,
-                comments=comments
-            ) for _ in range(decoder_count)
+                comments=comments,
+                layer_index=i
+            ) for i in range(decoder_count)
         ]
 
         # self.linear = tf.keras.layers.Dense(target_vocab_size)
@@ -79,12 +83,13 @@ class Transformer(object):
             decoder_tensor, _, _ = self.decoder_layers[i](decoder_tensor, encoder_tensor, look_ahead_mask,
                                                           target_padding_mask)
 
-        output = decoder_tensor@self.emb_matrix
+        output = decoder_tensor @ self.emb_matrix
         return output
 
 
 class EncoderLayer(object):
-    def __init__(self, attention_head_count, d_model, d_point_wise_ff, dropout_prob, activation='relu', comments=''):
+    def __init__(self, attention_head_count, d_model, d_point_wise_ff, dropout_prob, activation='relu', comments='',
+                 layer_index=0):
         # super(EncoderLayer, self).__init__()
 
         # model hyper parameter variables
@@ -92,6 +97,7 @@ class EncoderLayer(object):
         self.d_model = d_model
         self.d_point_wise_ff = d_point_wise_ff
         self.dropout_prob = dropout_prob
+        self.layer_index = layer_index
 
         self.attention = MultiHeadAttention(attention_head_count, d_model)
 
@@ -104,21 +110,32 @@ class EncoderLayer(object):
         self.dropout_2 = tf.keras.layers.Dropout(dropout_prob)
         self.layer_norm_2 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
 
+        self.id1 = Identity(name=f'eidentity_1_{layer_index}')
+        self.id2 = Identity(name=f'eidentity_2_{layer_index}')
+        self.id3 = Identity(name=f'eidentity_3_{layer_index}')
+
+        self.add1 = tf.keras.layers.Add(name=f'eadd_1_{layer_index}')
+        self.add2 = tf.keras.layers.Add(name=f'eadd_2_{layer_index}')
+
     def __call__(self, inputs, mask):
+        inputs = self.id1(inputs)
         output, attention = self.attention([inputs, inputs, inputs, mask])
         output = self.dropout_1(output)
-        output = self.layer_norm_1(tf.add(inputs, output))  # residual network
+        output = self.layer_norm_1(self.add1([inputs, output]))  # residual network
+        output = self.id2(output)
         output_temp = output
 
         output = self.position_wise_feed_forward_layer(output)
         output = self.dropout_2(output)
-        output = self.layer_norm_2(tf.add(output_temp, output))  # correct
+        output = self.layer_norm_2(self.add2([output_temp, output]))
+        output = self.id3(output)
 
         return output, attention
 
 
 class DecoderLayer(object):
-    def __init__(self, attention_head_count, d_model, d_point_wise_ff, dropout_prob, activation='relu', comments=''):
+    def __init__(self, attention_head_count, d_model, d_point_wise_ff, dropout_prob, activation='relu', comments='',
+                 layer_index=0):
         super(DecoderLayer, self).__init__()
 
         # model hyper parameter variables
@@ -126,6 +143,7 @@ class DecoderLayer(object):
         self.d_model = d_model
         self.d_point_wise_ff = d_point_wise_ff
         self.dropout_prob = dropout_prob
+        self.layer_index = layer_index
 
         self.attention = MultiHeadAttention(attention_head_count, d_model)
 
@@ -143,17 +161,29 @@ class DecoderLayer(object):
         self.dropout_3 = tf.keras.layers.Dropout(dropout_prob)
         self.layer_norm_3 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
 
+        self.id1 = Identity(name=f'didentity_1_{layer_index}')
+        self.id2 = Identity(name=f'didentity_2_{layer_index}')
+        self.id3 = Identity(name=f'didentity_3_{layer_index}')
+
+        self.add1 = tf.keras.layers.Add(name=f'dadd_1_{layer_index}')
+        self.add2 = tf.keras.layers.Add(name=f'dadd_2_{layer_index}')
+        self.add3 = tf.keras.layers.Add(name=f'dadd_3_{layer_index}')
+
     def __call__(self, decoder_inputs, encoder_output, look_ahead_mask, padding_mask):
+        # decoder_inputs = tf.identity(decoder_inputs, name=f'decoder_inputs_{self.layer_index}')
+        decoder_inputs = self.id1(decoder_inputs)
         output, attention_1 = self.attention([decoder_inputs, decoder_inputs, decoder_inputs, look_ahead_mask])
         output = self.dropout_1(output)
-        query = self.layer_norm_1(tf.add(decoder_inputs, output))  # residual network
+        query = self.layer_norm_1(self.add1([decoder_inputs, output]))  # residual network
         output, attention_2 = self.conditioned_attention([query, encoder_output, encoder_output, padding_mask])
         output = self.dropout_2(output)
-        encoder_decoder_attention_output = self.layer_norm_2(tf.add(output, query))
+        encoder_decoder_attention_output = self.layer_norm_2(self.add2([output, query]))
+        encoder_decoder_attention_output = self.id1(encoder_decoder_attention_output)
 
         output = self.position_wise_feed_forward_layer(encoder_decoder_attention_output)
         output = self.dropout_3(output)
-        output = self.layer_norm_3(tf.add(encoder_decoder_attention_output, output))  # residual network
+        output = self.layer_norm_3(self.add3([encoder_decoder_attention_output, output]))  # residual network
+        output = self.id3(output)
 
         return output, attention_1, attention_2
 
@@ -232,6 +262,11 @@ class MultiHeadAttention(tf.keras.layers.Layer):
         )
 
 
+class Identity(tf.keras.layers.Layer):
+    def call(self, inputs, **kwargs):
+        return inputs
+
+
 class ScaledDotProductAttention(tf.keras.layers.Layer):
     def __init__(self, d_h):
         super(ScaledDotProductAttention, self).__init__()
@@ -258,7 +293,7 @@ class Embeddinglayer(tf.keras.layers.Layer):
 
         self.embedding = tf.keras.layers.Embedding(vocab_size, d_model)
 
-    def call(self, sequences):
+    def call(self, sequences, **kwargs):
         max_sequence_len = sequences.shape[1]
         output = self.embedding(sequences) * tf.sqrt(tf.cast(self.d_model, dtype=tf.float32))
         output += self.positional_encoding(max_sequence_len)
@@ -319,10 +354,15 @@ def build_model(
 
     output = transformer([inputs_layer, target_layer, inputs_padding_mask, look_ahead_mask, target_padding_mask])
 
-    model = tf.keras.models.Model(
+    model = modifiedModel(
         [inputs_layer, target_layer, inputs_padding_mask, look_ahead_mask, target_padding_mask],
-        output
-    )
+        output,
+        name='Transformer')
+
+    # model = tf.keras.models.Model(
+    #     [inputs_layer, target_layer, inputs_padding_mask, look_ahead_mask, target_padding_mask],
+    #     output
+    # )
 
     # model.summary()
     return model
