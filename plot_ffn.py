@@ -24,8 +24,8 @@ GEXPERIMENTS = [
 
 plot_norms_evol = False
 plot_norms_evol_1 = False
-lrs_plot = False
-plot_losses = True
+lrs_plot = True
+plot_losses = False
 missing_exps = False
 remove_incomplete = False
 truely_remove = False

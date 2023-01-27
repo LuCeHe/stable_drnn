@@ -153,9 +153,17 @@ def main(args):
         tf.keras.callbacks.CSVLogger(history_path),
         # tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=10, restore_best_weights=True)
     ]
+    lr = args.lr
+    if lr<0:
+        if args.activation in ['swish', 'relu']:
+            lr = 0.001
+        elif args.activation in ['tanh']:
+            lr = 0.01
+        else:
+            lr = 0.001
 
     loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-    optimizer = tf.keras.optimizers.Adam(learning_rate=args.lr)
+    optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
     model.compile(optimizer, loss, metrics=['sparse_categorical_accuracy', 'sparse_categorical_crossentropy'])
     steps_per_epoch = args.steps_per_epoch if args.steps_per_epoch > 0 else None
     model.fit(
