@@ -134,6 +134,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
                     batch = [tf.convert_to_tensor(tf.cast(b, tf.float32), dtype=tf.float32) for b in batch]
                 else:
                     batch = tf.convert_to_tensor(tf.cast(batch, tf.float32), dtype=tf.float32)
+                tf.keras.backend.clear_session()
 
                 with tf.GradientTape(persistent=True, watch_accessed_variables=True) as tape:
                     tape.watch(batch)
@@ -172,6 +173,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
                         premodel, intermodel = split_model(model, pairs)
 
                         preinter = premodel(batch)
+                        del premodel
                         # print(preinter.shape)
 
                         tape.watch(preinter)
@@ -295,6 +297,9 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
 
                 grads = tape.gradient(loss, intermodel.trainable_weights)
                 optimizer.apply_gradients(zip(grads, intermodel.trainable_weights))
+                del intermodel
+                tf.keras.backend.clear_session()
+                tf.keras.backend.clear_session()
 
                 new_weights = model.get_weights()
                 av_weights = tf.reduce_mean([tf.reduce_mean(tf.cast(t, tf.float32)) for t in new_weights])

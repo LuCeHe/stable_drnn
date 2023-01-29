@@ -42,9 +42,12 @@ df = experiments_to_pandas(
 )
 
 if expsid == 'effnet':
+    from alif_sg.tools.config import default_eff_lr
+
     df = df[df['comments'].str.contains('newarch')]
     df['comments'] = df['comments'].str.replace('newarch_', '')
     df['comments'] = df['comments'].str.replace('pretrained_', '')
+    df['lr'] = df.apply(lambda x: default_eff_lr(x['activation'], x['lr']), axis=1)
 
 # select only rows with width 10
 df['time_elapsed'] = pd.to_timedelta(df['time_elapsed'], unit='s')

@@ -3,6 +3,7 @@ import numpy as np
 
 from GenericTools.keras_tools.esoteric_activations.smoothrelus import Guderman_T, Swish_T
 from GenericTools.keras_tools.silence_tensorflow import silence_tf
+from alif_sg.tools.config import default_eff_lr
 
 silence_tf()
 
@@ -112,10 +113,10 @@ def main(args):
 
     results = {}
     if 'findLSC' in args.comments:
-        gen_val = NumpyClassificationGenerator(
+        gen_train = NumpyClassificationGenerator(
             x_train, y_train,
             epochs=3, steps_per_epoch=args.steps_per_epoch,
-            batch_size=2,
+            batch_size=4,
             output_type='[i]o'
         )
         activation = args.activation if not args.activation in extra_acts.keys() else extra_acts[args.activation]
@@ -131,7 +132,7 @@ def main(args):
         max_dim = str2val(args.comments, 'maxdim', int, default=64)
 
         weights, lsc_results = apply_LSC_no_time(
-            bm, generator=gen_val, max_dim=max_dim, norm_pow=2, comments=args.comments,
+            bm, generator=gen_train, max_dim=max_dim, norm_pow=2, comments=args.comments,
             net_name='eff', seed=args.seed, task_name=args.dataset, activation=args.activation,
             skip_in_layers=['rescaling', 'normalization', 'resizing'],
             skip_out_layers=['rescaling', 'normalization', 'resizing'],
@@ -153,14 +154,7 @@ def main(args):
         tf.keras.callbacks.CSVLogger(history_path),
         # tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=10, restore_best_weights=True)
     ]
-    lr = args.lr
-    if lr<0:
-        if args.activation in ['swish', 'relu']:
-            lr = 0.001
-        elif args.activation in ['tanh']:
-            lr = 0.01
-        else:
-            lr = 0.001
+    lr = default_eff_lr(args.activation, args.lr)
 
     loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
