@@ -3,6 +3,7 @@ import os
 import numpy as np
 import tensorflow as tf
 
+from GenericTools.keras_tools.esoteric_layers import Identity
 from GenericTools.keras_tools.esoteric_models.model import modifiedModel
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -118,6 +119,8 @@ class EncoderLayer(object):
         self.add2 = tf.keras.layers.Add(name=f'eadd_2_{layer_index}')
 
     def __call__(self, inputs, mask):
+        mask = tf.stop_gradient(mask)
+
         inputs = self.id1(inputs)
         output, attention = self.attention([inputs, inputs, inputs, mask])
         output = self.dropout_1(output)
@@ -170,8 +173,20 @@ class DecoderLayer(object):
         self.add3 = tf.keras.layers.Add(name=f'dadd_3_{layer_index}')
 
     def __call__(self, decoder_inputs, encoder_output, look_ahead_mask, padding_mask):
-        # decoder_inputs = tf.identity(decoder_inputs, name=f'decoder_inputs_{self.layer_index}')
-        decoder_inputs = self.id1(decoder_inputs)
+        # stop gradients through look_ahead_mask
+        look_ahead_mask = tf.stop_gradient(look_ahead_mask)
+        padding_mask = tf.stop_gradient(padding_mask)
+
+        encoder_length = tf.shape(encoder_output)[1]
+        # concatenate encode and decoder representations on the time axis
+        concats = tf.concat([encoder_output, decoder_inputs], axis=1)
+
+        concats = self.id1(concats)
+
+        # deconcatenate representations
+        encoder_output = concats[:, :encoder_length, :]
+        decoder_inputs = concats[:, encoder_length:, :]
+
         output, attention_1 = self.attention([decoder_inputs, decoder_inputs, decoder_inputs, look_ahead_mask])
         output = self.dropout_1(output)
         query = self.layer_norm_1(self.add1([decoder_inputs, output]))  # residual network
@@ -260,11 +275,6 @@ class MultiHeadAttention(tf.keras.layers.Layer):
             tf.transpose(tensor, [0, 2, 1, 3]),
             (batch_size, -1, self.attention_head_count * self.d_h)
         )
-
-
-class Identity(tf.keras.layers.Layer):
-    def call(self, inputs, **kwargs):
-        return inputs
 
 
 class ScaledDotProductAttention(tf.keras.layers.Layer):

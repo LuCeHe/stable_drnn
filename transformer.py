@@ -178,7 +178,7 @@ def main(args, experiment_dir):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--comments", default='sameemb_findLSC_supsubnpsd', type=str, help="String to activate extra behaviors")
+    parser.add_argument("--comments", default='sameemb', type=str, help="String to activate extra behaviors")
     parser.add_argument("--activation", default='swish', type=str, help="Network non-linearity")
     parser.add_argument("--seed", default=0, type=int, help="Random seed")
     parser.add_argument("--epochs", default=3, type=int, help="Epochs")

@@ -7,7 +7,8 @@ from tqdm import tqdm
 from GenericTools.keras_tools.convenience_operations import sample_axis, desample_axis
 from GenericTools.keras_tools.esoteric_losses import well_loss
 from GenericTools.keras_tools.esoteric_tasks.numpy_generator import NumpyClassificationGenerator
-from GenericTools.keras_tools.expose_latent import split_model
+from GenericTools.keras_tools.expose_latent import split_model, truer_split_model
+from GenericTools.stay_organized.utils import flaggedtry
 from alif_sg.neural_models.recLSC import get_norms, get_lsctype
 
 FILENAME = os.path.realpath(__file__)
@@ -114,6 +115,8 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
 
         generator.on_epoch_end()
         for step in range(generator.steps_per_epoch):
+            tf.keras.backend.clear_session()
+            tf.compat.v1.reset_default_graph()
 
             if time.perf_counter() - time_start > 60 * 60 * 12:
                 time_over = True
@@ -170,12 +173,17 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
                         # print('\n\n')
                         # print(pairs, len(lnames))
                         # print(lnames[pairs[0]], lnames[pairs[1]])
-                        premodel, intermodel = split_model(model, pairs)
+                        if not 'truersplit' in comments:
+                            premodel, intermodel = split_model(model, pairs)
+                        else:
+                            premodel, intermodel = truer_split_model(model, pairs)
 
                         preinter = premodel(batch)
                         del premodel
-                        # print(preinter.shape)
+                        allpreinter = preinter
 
+                        if isinstance(allpreinter, list):
+                            preinter = allpreinter[0]
                         tape.watch(preinter)
 
                         if subsample_axis and not forward_lsc:
@@ -236,7 +244,15 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
                         else:
                             new_preinter = preinter
 
-                        interout = intermodel(new_preinter)
+                        if isinstance(allpreinter, list):
+                            allpreinter[0] = new_preinter
+                        else:
+                            allpreinter = new_preinter
+
+                        interout = intermodel(allpreinter)
+
+                        del allpreinter
+
                         if not forward_lsc:
                             if isinstance(interout, list) or isinstance(interout, tuple):
                                 idx = np.random.choice(len(interout))
