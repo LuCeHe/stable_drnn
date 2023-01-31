@@ -31,7 +31,7 @@ from GenericTools.stay_organized.unzip import unzip_good_exps
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
 EXPERIMENTS = os.path.join(CDIR, 'experiments')
-EXPERIMENTS = r'D:\work\alif_sg\experiments'
+# EXPERIMENTS = r'D:\work\alif_sg\experiments'
 GEXPERIMENTS = [
     # os.path.join(CDIR, 'good_experiments'),
     # os.path.join(CDIR, 'good_experiments', '2022-11-07--complete_set_of_exps'),
@@ -44,12 +44,12 @@ expsid = 'als'  # effnet als ffnandcnns
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 check_for_new = True
-plot_losses = True
+plot_losses = False
 one_exp_curves = False
 pandas_means = True
 show_per_tasknet = True
 make_latex = False
-missing_exps = False
+missing_exps = True
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -977,6 +977,9 @@ if remove_incomplete:
     import shutil
 
     rdfs = []
+
+    print('-=***=-' * 10)
+    print('Eliminate if not close enough to target norm')
     # from LSC_norms final column, select those that are epsilon away from 1
     epsilon = 0.09
     # epsilon = 0.2
