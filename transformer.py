@@ -100,10 +100,11 @@ def main(args, experiment_dir):
 
         weights, lsc_results = apply_LSC_no_time(
             bm, generator=gen_lsc, max_dim=max_dim, norm_pow=2, nlayerjump=None,
-            skip_in_layers=['input', ], skip_out_layers=[],
-            keep_in_layers=['embeddinglayer', 'identity_'],
-            keep_out_layers=['identity_'],
-            net_name='trasnf', task_name='ende', seed=args.seed, activation=args.activation
+            skip_in_layers=['input', ], skip_out_layers=['tf.linalg.matmul'],
+            # keep_in_layers=['embeddinglayer', 'identity_'],
+            # keep_out_layers=['identity_'],
+            net_name='trasnf', task_name='ende', seed=args.seed, activation=args.activation,
+            comments=args.comments,
         )
 
         del gen_lsc
@@ -178,11 +179,11 @@ def main(args, experiment_dir):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--comments", default='sameemb', type=str, help="String to activate extra behaviors")
+    parser.add_argument("--comments", default='sameemb_truersplit_findLSC', type=str, help="String to activate extra behaviors")
     parser.add_argument("--activation", default='swish', type=str, help="Network non-linearity")
     parser.add_argument("--seed", default=0, type=int, help="Random seed")
     parser.add_argument("--epochs", default=3, type=int, help="Epochs")
-    parser.add_argument("--steps_per_epoch", default=1, type=int, help="Steps per epoch")
+    parser.add_argument("--steps_per_epoch", default=2, type=int, help="Steps per epoch")
     parser.add_argument("--batch_size", default=16, type=int, help="Batch size")
     parser.add_argument("--stop_time", default=60, type=int, help="Stop time")
     parser.add_argument("--results_dir", default=EXPERIMENTS, type=str, help="Experiments Folder")

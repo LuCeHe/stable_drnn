@@ -78,12 +78,15 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
                    i for i, l in enumerate(lnames)
                    if not any([s in l for s in skip_in_layers])
                       and any([s in l for s in keep_in_layers])
-               ][:-1]
+               ]
     outlnames = [
                     i for i, l in enumerate(lnames)
                     if not any([s in l for s in skip_out_layers])
                        and any([s in l for s in keep_out_layers])
-                ][1:]
+                ]
+    inlnames = [i for i in inlnames if i < max(outlnames)]
+    outlnames = [i for i in outlnames if i > min(inlnames)]
+
     del model
     tf.keras.backend.clear_session()
 
@@ -149,15 +152,10 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
                     if not weights is None:
                         model.set_weights(weights)
 
-                    # print(lnames)
-                    for _ in range(3):
-                        inp_l = np.random.choice(inlnames)
-                        outlist = [i for i in outlnames if i > inp_l]
-                        out_l = np.random.choice(outlist)
-                        pairs = [inp_l, out_l]
-                        input_shape = model.layers[pairs[0] + 1].input_shape[1:]
-                        if not isinstance(input_shape, list):
-                            break
+                    inp_l = np.random.choice(inlnames)
+                    outlist = [i for i in outlnames if i > inp_l]
+                    out_l = np.random.choice(outlist)
+                    pairs = [inp_l, out_l]
 
                     if 'alllays' in comments:
                         init_pairs = list(range(len(lnames)))
@@ -166,13 +164,9 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
 
                     loss = 0
                     for ip in init_pairs:
-                        # print(ip,len(init_pairs))
                         if isinstance(nlayerjump, int):
                             pairs[1] = ip + nlayerjump
 
-                        # print('\n\n')
-                        # print(pairs, len(lnames))
-                        # print(lnames[pairs[0]], lnames[pairs[1]])
                         if not 'truersplit' in comments:
                             premodel, intermodel = split_model(model, pairs)
                         else:

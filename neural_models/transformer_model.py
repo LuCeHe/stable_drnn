@@ -77,21 +77,21 @@ class Transformer(object):
 
         encoded_ts = []
         for i in range(self.encoder_count):
-            encoder_tensor, _ = self.encoder_layers[i](encoder_tensor, inputs_padding_mask)
+            encoder_tensor = self.encoder_layers[i]([encoder_tensor, inputs_padding_mask])
             encoded_ts.append(encoder_tensor)
 
         for i in range(self.decoder_count):
-            decoder_tensor, _, _ = self.decoder_layers[i](decoder_tensor, encoder_tensor, look_ahead_mask,
-                                                          target_padding_mask)
+            decoder_tensor = self.decoder_layers[i]([decoder_tensor, encoder_tensor, look_ahead_mask,
+                                                          target_padding_mask])
 
         output = decoder_tensor @ self.emb_matrix
         return output
 
 
-class EncoderLayer(object):
+class EncoderLayer(tf.keras.layers.Layer):
     def __init__(self, attention_head_count, d_model, d_point_wise_ff, dropout_prob, activation='relu', comments='',
-                 layer_index=0):
-        # super(EncoderLayer, self).__init__()
+                 layer_index=0, **kwargs):
+        super().__init__(**kwargs)
 
         # model hyper parameter variables
         self.attention_head_count = attention_head_count
@@ -118,13 +118,14 @@ class EncoderLayer(object):
         self.add1 = tf.keras.layers.Add(name=f'eadd_1_{layer_index}')
         self.add2 = tf.keras.layers.Add(name=f'eadd_2_{layer_index}')
 
-    def __call__(self, inputs, mask):
+    def call(self, inputs, **kwargs):
+        x, mask = inputs
         mask = tf.stop_gradient(mask)
 
-        inputs = self.id1(inputs)
-        output, attention = self.attention([inputs, inputs, inputs, mask])
+        x = self.id1(x)
+        output, attention = self.attention([x, x, x, mask])
         output = self.dropout_1(output)
-        output = self.layer_norm_1(self.add1([inputs, output]))  # residual network
+        output = self.layer_norm_1(self.add1([x, output]))  # residual network
         output = self.id2(output)
         output_temp = output
 
@@ -133,13 +134,13 @@ class EncoderLayer(object):
         output = self.layer_norm_2(self.add2([output_temp, output]))
         output = self.id3(output)
 
-        return output, attention
+        return output
 
 
-class DecoderLayer(object):
+class DecoderLayer(tf.keras.layers.Layer):
     def __init__(self, attention_head_count, d_model, d_point_wise_ff, dropout_prob, activation='relu', comments='',
-                 layer_index=0):
-        super(DecoderLayer, self).__init__()
+                 layer_index=0, **kwargs):
+        super().__init__(**kwargs)
 
         # model hyper parameter variables
         self.attention_head_count = attention_head_count
@@ -172,7 +173,8 @@ class DecoderLayer(object):
         self.add2 = tf.keras.layers.Add(name=f'dadd_2_{layer_index}')
         self.add3 = tf.keras.layers.Add(name=f'dadd_3_{layer_index}')
 
-    def __call__(self, decoder_inputs, encoder_output, look_ahead_mask, padding_mask):
+    def call(self, inputs, **kwargs):
+        decoder_inputs, encoder_output, look_ahead_mask, padding_mask = inputs
         # stop gradients through look_ahead_mask
         look_ahead_mask = tf.stop_gradient(look_ahead_mask)
         padding_mask = tf.stop_gradient(padding_mask)
@@ -200,7 +202,7 @@ class DecoderLayer(object):
         output = self.layer_norm_3(self.add3([encoder_decoder_attention_output, output]))  # residual network
         output = self.id3(output)
 
-        return output, attention_1, attention_2
+        return output
 
 
 class PositionWiseFeedForwardLayer(tf.keras.layers.Layer):
@@ -210,7 +212,7 @@ class PositionWiseFeedForwardLayer(tf.keras.layers.Layer):
         self.w_2 = tf.keras.layers.Dense(d_model)
         self.activation = tf.keras.layers.Activation(activation)
 
-    def call(self, inputs):
+    def call(self, inputs, **kwargs):
         inputs = self.w_1(inputs)
         inputs = self.activation(inputs)
         return self.w_2(inputs)
@@ -241,7 +243,7 @@ class MultiHeadAttention(tf.keras.layers.Layer):
 
         self.ff = tf.keras.layers.Dense(d_model, use_bias=False)
 
-    def call(self, inputs):
+    def call(self, inputs, **kwargs):
         query, key, value, mask = inputs
         batch_size = tf.shape(query)[0]
 
@@ -304,6 +306,11 @@ class Embeddinglayer(tf.keras.layers.Layer):
         self.embedding = tf.keras.layers.Embedding(vocab_size, d_model)
 
     def call(self, sequences, **kwargs):
+        # print(sequences)
+        if isinstance(sequences, list):
+            # fixme:
+            sequences = sequences[0]
+
         max_sequence_len = sequences.shape[1]
         output = self.embedding(sequences) * tf.sqrt(tf.cast(self.d_model, dtype=tf.float32))
         output += self.positional_encoding(max_sequence_len)
