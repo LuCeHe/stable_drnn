@@ -44,7 +44,7 @@ expsid = 'als'  # effnet als ffnandcnns
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 check_for_new = True
-plot_losses = False
+plot_losses = True
 one_exp_curves = False
 pandas_means = True
 show_per_tasknet = True
@@ -107,10 +107,11 @@ if plot_losses:
     plot_metric = 'rec_norms list'
     plot_metric = 'val_perplexity list'
     # plot_metric = 'val_sparse_categorical_accuracy list'
-    # plot_metric = 'LSC_norms list'
+    plot_metric = 'LSC_norms list'
     tasks = df['task_name'].unique()
     nets = df['net_name'].unique()
     comments = df['comments'].unique()
+    df = df[~df['comments'].str.contains('randlsc')]
     print(comments)
     print(tasks)
     print(nets)
