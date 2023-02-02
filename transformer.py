@@ -101,7 +101,7 @@ def main(args, experiment_dir):
         weights, lsc_results = apply_LSC_no_time(
             bm, generator=gen_lsc, max_dim=max_dim, norm_pow=2, nlayerjump=2,
             skip_in_layers=['embeddinglayer', 'dropout', 'de_concatenate'],
-            skip_out_layers=['input', 'tf.linalg.matmul', 'dropout', 'de_concatenate'],
+            skip_out_layers=['input', 'tf.linalg.matmul', 'dropout'],
             keep_in_layers=['encoder', 'concatenate'],
             # keep_out_layers=['identity_'],
             net_name='trasnf', task_name='ende', seed=args.seed, activation=args.activation,

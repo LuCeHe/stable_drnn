@@ -4,7 +4,7 @@ import numpy as np
 import tensorflow as tf
 
 from GenericTools.keras_tools.esoteric_layers import Identity, Concatenate, DeConcatenate, Compare
-from GenericTools.keras_tools.esoteric_models.model import modifiedModel
+# from GenericTools.keras_tools.esoteric_models.model import modifiedModel
 from filmformer.generation_data.utils import Mask
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -90,7 +90,6 @@ class Transformer(object):
             # concatenate decoder_tensor, encoder_tensor
             concs = self.dec_concat[i]([decoder_tensor, encoder_tensor])
             decoder_tensor, encoder_tensor = self.dec_deconcat[i](concs)
-
 
             decoder_tensor = self.decoder_layers[i]([decoder_tensor, encoder_tensor, target_padding_mask])
 
@@ -419,12 +418,7 @@ def build_model(
 
     output = transformer([inputs_layer, target_layer])
 
-    model = modifiedModel([inputs_layer, target_layer], output, name='Transformer')
+    # model = modifiedModel([inputs_layer, target_layer], output, name='Transformer')
+    model = tf.keras.models.Model([inputs_layer, target_layer], output)
 
-    # model = tf.keras.models.Model(
-    #     [inputs_layer, target_layer, inputs_padding_mask, look_ahead_mask, target_padding_mask],
-    #     output
-    # )
-
-    # model.summary()
     return model
