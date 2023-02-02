@@ -2,6 +2,7 @@ from __future__ import (absolute_import, division, print_function, unicode_liter
 import os, argparse, random, socket, time, json, shutil
 
 import tensorflow as tf
+
 import numpy as np
 import pandas as pd
 
@@ -99,8 +100,9 @@ def main(args, experiment_dir):
 
         weights, lsc_results = apply_LSC_no_time(
             bm, generator=gen_lsc, max_dim=max_dim, norm_pow=2, nlayerjump=2,
-            skip_in_layers=['embeddinglayer', 'dropout'], skip_out_layers=['input', 'tf.linalg.matmul', 'dropout'],
-            # keep_in_layers=['embeddinglayer', 'identity_'],
+            skip_in_layers=['embeddinglayer', 'dropout', 'de_concatenate'],
+            skip_out_layers=['input', 'tf.linalg.matmul', 'dropout', 'de_concatenate'],
+            keep_in_layers=['encoder', 'concatenate'],
             # keep_out_layers=['identity_'],
             net_name='trasnf', task_name='ende', seed=args.seed, activation=args.activation,
             comments=args.comments,
@@ -129,6 +131,8 @@ def main(args, experiment_dir):
         comments=comments
     )
 
+
+
     # learning_rate = CustomSchedule(D_MODEL)
     learning_rate = args.lr
     optimizer = tf.optimizers.Adam(learning_rate, beta_1=0.9, beta_2=0.98, epsilon=1e-9)
@@ -139,7 +143,7 @@ def main(args, experiment_dir):
             'sparse_categorical_accuracy', tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
             sparse_perplexity
         ],
-        run_eagerly=True
+        # run_eagerly=True
     )
 
     history_path = os.path.join(experiment_dir, 'history.csv')
@@ -178,8 +182,10 @@ def main(args, experiment_dir):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--comments", default='sameemb_truersplit_findLSC_deslice', type=str,
-                        help="String to activate extra behaviors")
+    parser.add_argument("--comments",
+                        default='sameemb_truersplit_findLSC_deslice',
+                        # default='',
+                        type=str, help="String to activate extra behaviors")
     parser.add_argument("--activation", default='swish', type=str, help="Network non-linearity")
     parser.add_argument("--seed", default=1, type=int, help="Random seed")
     parser.add_argument("--epochs", default=3, type=int, help="Epochs")

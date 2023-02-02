@@ -3,8 +3,9 @@ import os
 import numpy as np
 import tensorflow as tf
 
-from GenericTools.keras_tools.esoteric_layers import Identity
+from GenericTools.keras_tools.esoteric_layers import Identity, Concatenate, DeConcatenate, Compare
 from GenericTools.keras_tools.esoteric_models.model import modifiedModel
+from filmformer.generation_data.utils import Mask
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -63,11 +64,17 @@ class Transformer(object):
                 layer_index=i
             ) for i in range(decoder_count)
         ]
+        self.dec_concat = [Concatenate(axis=-1) for _ in range(decoder_count)]
+        self.dec_deconcat = [DeConcatenate(axis=-1, num_or_size_splits=2) for _ in range(decoder_count)]
 
+        self.source_padding = PaddingMask()
+        self.target_padding = PaddingMask()
         # self.linear = tf.keras.layers.Dense(target_vocab_size)
 
     def __call__(self, inputs):
-        source, target, inputs_padding_mask, look_ahead_mask, target_padding_mask = inputs
+        source, target = inputs
+        inputs_padding_mask = self.source_padding(source)
+        target_padding_mask = self.target_padding(target)
         # print(inputs.shape, target.shape, inputs_padding_mask.shape, look_ahead_mask.shape, target_padding_mask.shape)
         encoder_tensor = self.encoder_embedding_layer(source)
         encoder_tensor = self.encoder_embedding_dropout(encoder_tensor)
@@ -80,8 +87,12 @@ class Transformer(object):
             encoded_ts.append(encoder_tensor)
 
         for i in range(self.decoder_count):
-            decoder_tensor = self.decoder_layers[i]([decoder_tensor, encoder_tensor, look_ahead_mask,
-                                                     target_padding_mask])
+            # concatenate decoder_tensor, encoder_tensor
+            concs = self.dec_concat[i]([decoder_tensor, encoder_tensor])
+            decoder_tensor, encoder_tensor = self.dec_deconcat[i](concs)
+
+
+            decoder_tensor = self.decoder_layers[i]([decoder_tensor, encoder_tensor, target_padding_mask])
 
         output = self.decoder_embedding_layer(decoder_tensor, mode='projection')
 
@@ -174,10 +185,13 @@ class DecoderLayer(tf.keras.layers.Layer):
         self.add2 = tf.keras.layers.Add(name=f'dadd_2_{layer_index}')
         self.add3 = tf.keras.layers.Add(name=f'dadd_3_{layer_index}')
 
+        self.lookahead = LookAheadMask()
+
     def call(self, inputs, **kwargs):
-        decoder_inputs, encoder_output, look_ahead_mask, padding_mask = inputs
+        decoder_inputs, encoder_output, padding_mask = inputs
+
         # stop gradients through look_ahead_mask
-        look_ahead_mask = tf.stop_gradient(look_ahead_mask)
+        look_ahead_mask = tf.stop_gradient(self.lookahead(decoder_inputs))
         padding_mask = tf.stop_gradient(padding_mask)
 
         encoder_length = tf.shape(encoder_output)[1]
@@ -204,6 +218,16 @@ class DecoderLayer(tf.keras.layers.Layer):
         output = self.id3(output)
 
         return output
+
+
+class LookAheadMask(tf.keras.layers.Layer):
+    def call(self, inputs, **kwargs):
+        return Mask.create_look_ahead_mask(inputs.shape[1])
+
+
+class PaddingMask(tf.keras.layers.Layer):
+    def call(self, inputs, **kwargs):
+        return Mask.create_padding_mask(inputs)
 
 
 class PositionWiseFeedForwardLayer(tf.keras.layers.Layer):
@@ -390,21 +414,12 @@ def build_model(
         comments=comments
     )
 
-    # print(transformer.inputs)
-    # print(transformer.outputs)
-
     inputs_layer = tf.keras.layers.Input((inputs_timesteps,))
     target_layer = tf.keras.layers.Input((target_timesteps - 1,))
-    inputs_padding_mask = tf.keras.layers.Input((1, 1, inputs_timesteps,))
-    look_ahead_mask = tf.keras.layers.Input((1, inputs_timesteps, inputs_timesteps,))
-    target_padding_mask = tf.keras.layers.Input((1, 1, target_timesteps - 1,))
 
-    output = transformer([inputs_layer, target_layer, inputs_padding_mask, look_ahead_mask, target_padding_mask])
+    output = transformer([inputs_layer, target_layer])
 
-    model = modifiedModel(
-        [inputs_layer, target_layer, inputs_padding_mask, look_ahead_mask, target_padding_mask],
-        output,
-        name='Transformer')
+    model = modifiedModel([inputs_layer, target_layer], output, name='Transformer')
 
     # model = tf.keras.models.Model(
     #     [inputs_layer, target_layer, inputs_padding_mask, look_ahead_mask, target_padding_mask],
