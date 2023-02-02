@@ -98,7 +98,7 @@ def main(args, experiment_dir):
         max_dim = str2val(args.comments, 'maxdim', int, default=1024)
 
         weights, lsc_results = apply_LSC_no_time(
-            bm, generator=gen_lsc, max_dim=max_dim, norm_pow=2, nlayerjump=2,
+            bm, generator=gen_lsc, max_dim=max_dim, norm_pow=2, nlayerjump=None,
             skip_in_layers=[], skip_out_layers=['input', 'tf.linalg.matmul'],
             # keep_in_layers=['embeddinglayer', 'identity_'],
             # keep_out_layers=['identity_'],
