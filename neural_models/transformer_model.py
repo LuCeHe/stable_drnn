@@ -39,7 +39,6 @@ class Transformer(object):
         self.decoder_embedding_dropout = tf.keras.layers.Dropout(dropout_prob)
 
         self.decoder_embedding_layer.embedding.build(None)
-        self.emb_matrix = tf.transpose(self.decoder_embedding_layer.embedding.embeddings)
 
         self.encoder_layers = [
             EncoderLayer(
@@ -82,9 +81,11 @@ class Transformer(object):
 
         for i in range(self.decoder_count):
             decoder_tensor = self.decoder_layers[i]([decoder_tensor, encoder_tensor, look_ahead_mask,
-                                                          target_padding_mask])
+                                                     target_padding_mask])
 
-        output = decoder_tensor @ self.emb_matrix
+        output = self.decoder_embedding_layer(decoder_tensor, mode='projection')
+
+        # output = decoder_tensor @ self.emb_matrix
         return output
 
 
@@ -304,8 +305,26 @@ class Embeddinglayer(tf.keras.layers.Layer):
         self.d_model = d_model
 
         self.embedding = tf.keras.layers.Embedding(vocab_size, d_model)
+        self.embedding.build(())
+        self.emb_matrix = tf.transpose(self.embedding.embeddings)
 
-    def call(self, sequences, **kwargs):
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            "vocab_size": self.vocab_size,
+            "d_model": self.d_model,
+        })
+        return config
+
+    def call(self, inputs, mode="embedding", **kwargs):
+        if mode == "embedding":
+            return self.embedding(inputs)
+        elif mode == "projection":
+            return self.projection(inputs)
+        else:
+            raise ValueError("mode {} is not valid.".format(mode))
+
+    def embedding(self, sequences):
         # print(sequences)
         if isinstance(sequences, list):
             # fixme:
@@ -314,6 +333,17 @@ class Embeddinglayer(tf.keras.layers.Layer):
         max_sequence_len = sequences.shape[1]
         output = self.embedding(sequences) * tf.sqrt(tf.cast(self.d_model, dtype=tf.float32))
         output += self.positional_encoding(max_sequence_len)
+
+        return output
+
+    def projection(self, inputs):
+        # with tf.name_scope("projection"):
+        # batch_size = tf.shape(inputs)[0]
+        # seq_len = tf.shape(inputs)[1]
+
+        # h_flat = tf.reshape(inputs, [-1, self.d_model])
+        # logits = tf.matmul(h_flat, self.embedding_weights, transpose_b=True)
+        output = inputs @ self.emb_matrix
 
         return output
 

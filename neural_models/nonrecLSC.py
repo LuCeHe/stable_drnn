@@ -165,7 +165,8 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
                     loss = 0
                     for ip in init_pairs:
                         if isinstance(nlayerjump, int):
-                            pairs[1] = ip + nlayerjump
+                            actual_jump = np.random.choice(list(range(1, nlayerjump)))
+                            pairs[1] = outlist[actual_jump-1]
 
                         if not 'truersplit' in comments:
                             premodel, intermodel = split_model(model, pairs)
