@@ -31,7 +31,7 @@ from GenericTools.stay_organized.unzip import unzip_good_exps
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
 EXPERIMENTS = os.path.join(CDIR, 'experiments')
-# EXPERIMENTS = r'D:\work\alif_sg\experiments'
+EXPERIMENTS = r'D:\work\alif_sg\experiments'
 GEXPERIMENTS = [
     # os.path.join(CDIR, 'good_experiments'),
     # os.path.join(CDIR, 'good_experiments', '2022-11-07--complete_set_of_exps'),
@@ -49,7 +49,7 @@ one_exp_curves = False
 pandas_means = True
 show_per_tasknet = True
 make_latex = False
-missing_exps = True
+missing_exps = False
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -171,17 +171,17 @@ if 'v_mode_acc len' in df.columns:
     print(list(df.columns))
     print('v_mode_acc nans:', df['v_mode_acc len'].isna().sum())
     print('t_ppl nans:', df['t_ppl list'].isna().sum())
-    df['v_ppl argm'] = df['v_ppl argm'].astype(int)
-    df['v_mode_acc argM'] = df['v_mode_acc argM'].astype(int)
+    # df['v_ppl argm'] = df['v_ppl argm'].astype(int)
+    # df['v_mode_acc argM'] = df['v_mode_acc argM'].astype(int)
 
     df['v_ppl'] = df['v_ppl m']
-    df['t_ppl'] = df.apply(lambda row: row['t_ppl list'][row['v_ppl argm']], axis=1)
+    # df['t_ppl'] = df.apply(lambda row: row['t_ppl list'][row['v_ppl argm']], axis=1)
     df['v_mode_acc'] = df['v_mode_acc M']
-    df['t_mode_acc'] = df.apply(lambda row: row['t_mode_acc list'][row['v_mode_acc argM']], axis=1)
+    # df['t_mode_acc'] = df.apply(lambda row: row['t_mode_acc list'][row['v_mode_acc argM']], axis=1)
     #
     # FIXME: following is incorrect, correct it as soon as you get rid of the NaNs
-    # df['t_ppl'] = df['t_ppl m']
-    # df['t_mode_acc'] = df['t_mode_acc M']
+    df['t_ppl'] = df['t_ppl m']
+    df['t_mode_acc'] = df['t_mode_acc M']
 
 for c_name in columns_to_remove:
     df = df[df.columns.drop(list(df.filter(regex=c_name)))]
