@@ -290,9 +290,9 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
     if weights is None:
         weights = model.get_weights()
 
-    weight_names = [weight.name for layer in model.layers for weight in layer.weights]
-    results.update({f'{n}_mean': [tf.reduce_mean(w).numpy()] for n, w in zip(weight_names, weights)})
-    results.update({f'{n}_var': [tf.math.reduce_variance(w).numpy()] for n, w in zip(weight_names, weights)})
+    # weight_names = [weight.name for layer in model.layers for weight in layer.weights]
+    # results.update({f'{n}_mean': [tf.reduce_mean(w).numpy()] for n, w in zip(weight_names, weights)})
+    # results.update({f'{n}_var': [tf.math.reduce_variance(w).numpy()] for n, w in zip(weight_names, weights)})
 
     model, tape, norms = None, None, None
 
@@ -484,9 +484,9 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                     f"mean params {str(round(prms, round_to))}/{pi}; "
                     f"mean norms {show_norm}/{ni} "
                 )
-                for n, w in zip(weight_names, model.get_weights()):
-                    results[f'{n}_mean'].append(tf.reduce_mean(w).numpy())
-                    results[f'{n}_var'].append(tf.math.reduce_variance(w).numpy())
+                # for n, w in zip(weight_names, model.get_weights()):
+                #     results[f'{n}_mean'].append(tf.reduce_mean(w).numpy())
+                #     results[f'{n}_var'].append(tf.math.reduce_variance(w).numpy())
 
             except Exception as e:
                 print(e)
@@ -499,9 +499,9 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
     del gen_train
 
-    for n in weight_names:
-        results[f'{n}_mean'] = str(results[f'{n}_mean'])
-        results[f'{n}_var'] = str(results[f'{n}_var'])
+    # for n in weight_names:
+    #     results[f'{n}_mean'] = str(results[f'{n}_mean'])
+    #     results[f'{n}_var'] = str(results[f'{n}_var'])
 
     if not save_weights_path is None:
         # Guardar configuración JSON en el disco
