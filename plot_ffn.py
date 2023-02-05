@@ -24,8 +24,9 @@ GEXPERIMENTS = [
 
 plot_norms_evol = False
 plot_norms_evol_1 = False
-lrs_plot = True
-plot_losses = False
+lrs_plot = False
+bar_plot = False
+plot_losses = True
 missing_exps = False
 remove_incomplete = False
 truely_remove = False
@@ -200,17 +201,18 @@ print(df.to_string())
 df['comments'] = df['comments'].str.replace('_preprocessinput', '')
 
 metrics_oi = ['val_acc M', 'test_acc M', 'val_loss m', 'test_loss m', 'LSC_norms i', 'LSC_norms f']
+stats_oi = ['mean', 'std']  # ['mean', 'std']
 group_cols = ['lr', 'comments', 'act', 'dataset']
 counts = df.groupby(group_cols).size().reset_index(name='counts')
 
 metrics_oi = [shorten_losses(m) for m in metrics_oi]
 mdf = df.groupby(
     group_cols, as_index=False
-).agg({m: ['mean', 'std'] for m in metrics_oi})
+).agg({m: stats_oi for m in metrics_oi})
 
 for m in metrics_oi:
-    mdf['mean_{}'.format(m)] = mdf[m]['mean']
-    mdf['std_{}'.format(m)] = mdf[m]['std']
+    for s in stats_oi:
+        mdf[f'{s}_{m}'] = mdf[m][s]
     mdf = mdf.drop([m], axis=1)
 mdf = mdf.droplevel(level=1, axis=1)
 
@@ -234,7 +236,7 @@ if lrs_plot:
         # remove string from column comments in the df
         mdf['comments'] = mdf['comments'].str.replace('deslice_', '')
         mdf['comments'] = mdf['comments'].replace(r'^\s*$', 'heinit', regex=True)
-        ncol= 4
+        ncol = 4
         bbox_to_anchor = (-.3, -.4)
         # mdf['comments'] = mdf['comments'].str.replace('_preprocessinput', '')
 
@@ -306,6 +308,76 @@ if lrs_plot:
     plot_filename = f'experiments/{expsid}_relu.pdf'
     fig.savefig(plot_filename, bbox_inches='tight')
 
+if bar_plot:
+    from matplotlib.lines import Line2D
+
+    mdf = mdf.sort_values(by='lr')
+
+    comments = mdf['comments'].unique()
+    activations = sorted(mdf['act'].unique())
+
+    datasets = sorted(mdf['dataset'].unique())
+
+    if 'effnet' in expsid:
+        # remove string from column comments in the df
+        mdf['comments'] = mdf['comments'].str.replace('deslice_', '')
+        mdf['comments'] = mdf['comments'].replace(r'^\s*$', 'heinit', regex=True)
+
+    comments = sorted(mdf['comments'].unique())
+
+    # comments = ['', 'heinit', 'findLSC', 'findLSC_radius', 'findLSC_supnpsd2', 'findLSC_supsubnpsd']
+
+    print(comments)
+
+    # figsize=(4, 2)
+    fig, axs = plt.subplots(
+        1, 1, figsize=(5, 3), sharey='row',
+        gridspec_kw={'wspace': .3, 'hspace': .1},
+    )
+    if len(datasets) == 1:
+        axs = np.array([axs])
+    if len(activations) == 1:
+        axs = np.array([axs]).T
+
+
+    X = np.arange(len(activations))
+    w = 1 / (len(comments) + 1)
+
+    for i, c in enumerate(comments):
+        data = []
+        error = []
+
+        for a in activations:
+            adf = mdf[mdf['act'] == a]
+
+            # select best lr
+            lrdf = adf[adf['comments'] == 'heinit']
+            lrdf = lrdf[lrdf['mean_' + metric] == lrdf['mean_' + metric].max()]
+            print(a)
+            lr = lrdf['lr'].values[0]
+            idf = adf[adf['lr'].astype(float).eq(lr)]
+            iidf = idf[idf['comments'] == c]
+
+            data.append(iidf['mean_' + metric].values[0])
+            error.append(iidf['std_' + metric].values[0])
+        # print(data)
+        # print(error)
+        axs[0].bar(X + i * w, data, yerr=error, width=w, color=lsc_colors[c], label=lsc_clean_comments(c))
+
+    legend_elements = [Line2D([0], [0], color=lsc_colors[n], lw=4, label=lsc_clean_comments(n))
+                       for n in comments]
+    plt.legend(ncol=4, handles=legend_elements, loc='lower center')
+
+    for ax in axs.reshape(-1):
+        for pos in ['right', 'left', 'bottom', 'top']:
+            ax.spines[pos].set_visible(False)
+        ax.locator_params(axis='y', nbins=5)
+
+    plot_filename = f'experiments/{expsid}_bars.pdf'
+    fig.savefig(plot_filename, bbox_inches='tight')
+
+    plt.show()
+
 if plot_losses:
     df = odf
 
@@ -315,7 +387,7 @@ if plot_losses:
     activations = sorted(df['act'].unique())
 
     fig, axs = plt.subplots(1, len(activations), figsize=(6, 3))
-    metric = 'val_loss list'  # 'val_acc list' 'loss list' LSC_norms
+    metric = 'LSC_norms list'  # 'val_acc list' 'loss list' LSC_norms
 
     for i, a in enumerate(activations):
         adf = df[df['act'] == a]
@@ -323,7 +395,9 @@ if plot_losses:
 
         for _, row in adf.iterrows():
             c = row['comments']
-            axs[i].plot(row[metric], color=lsc_colors[c])
+            if 'truersplit' in c:
+                print(row[metric])
+                axs[i].plot(row[metric], color=lsc_colors[c])
 
     plt.legend()
     plt.show()
