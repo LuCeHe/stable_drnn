@@ -131,9 +131,6 @@ def main(args, experiment_dir):
         comments=comments
     )
 
-
-
-    # learning_rate = CustomSchedule(D_MODEL)
     learning_rate = args.lr
     optimizer = tf.optimizers.Adam(learning_rate, beta_1=0.9, beta_2=0.98, epsilon=1e-9)
     model.compile(
