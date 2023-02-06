@@ -39,6 +39,8 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
     if tape is None and lower_states is None and upper_states is None and test == False:
         raise ValueError('No input data given!')
 
+    print([t.shape for t in lower_states])
+    print([t.shape for t in upper_states])
     norms = None
     loss = 0
     upper_states = [tf.squeeze(hl) for hl in upper_states]

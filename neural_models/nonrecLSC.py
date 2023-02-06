@@ -131,7 +131,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
                 break
 
             if True:
-            # try:
+                # try:
                 batch = generator.__getitem__(step)[0]
                 if isinstance(batch, list) or isinstance(batch, tuple):
                     batch = [tf.convert_to_tensor(tf.cast(b, tf.float32), dtype=tf.float32) for b in batch]

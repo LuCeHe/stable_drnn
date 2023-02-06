@@ -152,8 +152,8 @@ def main(args, experiment_dir):
     )
 
     learning_rate = args.lr
-    # optimizer = tf.optimizers.Adam(learning_rate, beta_1=0.9, beta_2=0.98, epsilon=1e-9)
-    optimizer = AdamW(learning_rate=learning_rate)
+    optimizer = tf.optimizers.Adam(learning_rate, beta_1=0.9, beta_2=0.98, epsilon=1e-9)
+    # optimizer = AdamW(learning_rate=learning_rate)
 
     model.compile(
         loss=tf.losses.SparseCategoricalCrossentropy(from_logits=True),

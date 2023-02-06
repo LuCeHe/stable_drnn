@@ -88,7 +88,6 @@ class Transformer(object):
 
         encoded_ts = []
         for i in range(self.encoder_count):
-            print('hm!', inputs_padding_mask.shape)
             encoder_tensor = self.encoder_layers[i]([encoder_tensor, inputs_padding_mask])
             encoded_ts.append(encoder_tensor)
 
@@ -135,9 +134,14 @@ class EncoderLayer(tf.keras.layers.Layer):
         self.add2 = tf.keras.layers.Add(name=f'eadd_2_{layer_index}')
 
     def call(self, inputs, **kwargs):
-        print(inputs)
+        # print('-' * 10)
+        # print(inputs)
         if len(inputs) > 2:
             inputs = [inputs[0], inputs[-1]]
+            if len(inputs[0].shape) == 2:
+                inputs = [tf.expand_dims(inputs[0], 0), tf.expand_dims(inputs[-1], 0)]
+
+        # print(inputs)
         x, mask = inputs
         mask = tf.stop_gradient(mask)
 
