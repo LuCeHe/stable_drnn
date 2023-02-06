@@ -11,6 +11,21 @@ import matplotlib.pyplot as plt
 from GenericTools.stay_organized.pandardize import experiments_to_pandas, complete_missing_exps
 from GenericTools.stay_organized.standardize_strings import shorten_losses
 
+
+def clean_title(c):
+    t = ''
+    if 'ppl' in c:
+        t = 'Perplexity'
+    if 'acc' in c:
+        t = 'Accuracy'
+    if 'loss' in c:
+        t = 'Loss'
+
+    if 'val' in c:
+        t = 'Validation ' + t
+    return t
+
+
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
 EXPERIMENTS = os.path.join(CDIR, 'experiments')
@@ -20,19 +35,20 @@ GEXPERIMENTS = [
     # os.path.join(CDIR, 'good_experiments'),
     # r'D:\work\alif_sg\good_experiments\2022-12-16--ffn'
     r'D:\work\alif_sg\good_experiments\2023-01-01--effnet',
+    r'D:\work\alif_sg\good_experiments\2023-01-15--transf',
 ]
 
 plot_norms_evol = False
 plot_norms_evol_1 = False
 lrs_plot = False
 bar_plot = False
-plot_losses = True
+plot_losses = False
 missing_exps = False
 remove_incomplete = False
 truely_remove = False
 
 metric = 'val_acc M'  # 'val_acc M'   'val_loss min'
-expsid = 'effnet'  # effnet als ffnandcnns
+expsid = 'effnet'  # effnet als ffnandcnns transf
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 force_keep_column = ['LSC_norms list', 'val_sparse_categorical_accuracy list', 'val_loss list']
 
@@ -176,6 +192,9 @@ odf = df.copy()
 print(list(odf.columns))
 df = df.rename(columns={'test_loss': 'test_loss m', 'test_acc': 'test_acc M'})
 
+metrics_oi = ['val_acc M', 'test_acc M', 'val_loss m', 'test_loss m', 'LSC_norms i', 'LSC_norms f']
+stats_oi = ['mean', 'std']  # ['mean', 'std']
+group_cols = ['lr', 'comments', 'act', 'dataset']
 if 'ffnandcnns' in expsid:
     plot_only = [
         'act', 'pre_eps', 'eps', 'dataset',
@@ -195,14 +214,30 @@ elif 'effnet' in expsid:
         'ep M', 'time_elapsed', 'hostname', 'path',
     ]
 
+elif 'transf' in expsid:
+    plot_only = [
+        'act', 'eps', 'dataset',
+        'seed', 'lr', 'comments',
+        'val_acc M', 'val_loss m',
+        # 'test_acc M', 'test_loss m',
+        'val_ppl M', 'val_ppl m',
+        # 'test_ppl M', 'test_ppl m',
+        # 'LSC_norms i', 'LSC_norms f',
+        'ep M', 'time_elapsed', 'hostname', 'path',
+    ]
+    metrics_oi = [
+        'val_acc M', 'val_loss m', 'val_ppl m',
+        # 'LSC_norms i', 'LSC_norms f'
+    ]
+    # group_cols = ['lr', 'comments', 'act']
+    df['dataset'] = 'ende'
+    metric = 'val_ppl m'  # 'val_acc M'   'val_loss min'
+
 df = df[plot_only]
 df = df.sort_values(by=metric)
 print(df.to_string())
 df['comments'] = df['comments'].str.replace('_preprocessinput', '')
 
-metrics_oi = ['val_acc M', 'test_acc M', 'val_loss m', 'test_loss m', 'LSC_norms i', 'LSC_norms f']
-stats_oi = ['mean', 'std']  # ['mean', 'std']
-group_cols = ['lr', 'comments', 'act', 'dataset']
 counts = df.groupby(group_cols).size().reset_index(name='counts')
 
 metrics_oi = [shorten_losses(m) for m in metrics_oi]
@@ -232,9 +267,12 @@ if lrs_plot:
         activations = ['relu', 'sin', 'cos']
         ncol = 3
         bbox_to_anchor = (-.7, -1.)
-    elif 'effnet' in expsid:
+    elif 'effnet' in expsid or 'transf' in expsid:
         # remove string from column comments in the df
         mdf['comments'] = mdf['comments'].str.replace('deslice_', '')
+        mdf['comments'] = mdf['comments'].str.replace('pretrained_', '')
+        mdf['comments'] = mdf['comments'].str.replace('truersplit_', '')
+        mdf['comments'] = mdf['comments'].str.replace('sameemb_', '')
         mdf['comments'] = mdf['comments'].replace(r'^\s*$', 'heinit', regex=True)
         ncol = 4
         bbox_to_anchor = (-.3, -.4)
@@ -282,7 +320,7 @@ if lrs_plot:
 
                 # x axis log scale
     axs[-1, -1].set_xlabel('Learning rate', fontsize=fontsize)
-    axs[0, 0].set_ylabel('Accuracy', fontsize=fontsize)
+    axs[0, 0].set_ylabel(clean_title(metric), fontsize=fontsize)
 
     legend_elements = [Line2D([0], [0], color=lsc_colors[n], lw=4, label=lsc_clean_comments(n))
                        for n in comments]
@@ -339,7 +377,6 @@ if bar_plot:
     if len(activations) == 1:
         axs = np.array([axs]).T
 
-
     X = np.arange(len(activations))
     w = 1 / (len(comments) + 1)
 
@@ -395,9 +432,9 @@ if plot_losses:
 
         for _, row in adf.iterrows():
             c = row['comments']
-            if 'truersplit' in c:
-                print(row[metric])
-                axs[i].plot(row[metric], color=lsc_colors[c])
+            # if 'truersplit' in c:
+            #     print(row[metric])
+            axs[i].plot(row[metric], color=lsc_colors[c])
 
     plt.legend()
     plt.show()
@@ -411,21 +448,23 @@ if remove_incomplete:
     # df = odf
     ids = [
         'findLSC_supn',
-        'findLSC_logradius'
+        'findLSC_logradius',
+        'findLSC'
     ]
     rdfs = []
     for c in ids:
         rdf = df[df['comments'].str.contains(c)]
+        print(rdf.shape)
         rdfs.append(rdf)
 
     # from LSC_norms final column, select those that are epsilon away from 1
     epsilon = 0.09
     epsilon = 2.
     rdf = df[abs(df['LSC_norms f'] - 1) > epsilon]
-    print(rdf.to_string())
+    # print(rdf.to_string())
     print(rdf.shape, odf.shape)
 
-    rdfs.append(rdf)
+    # rdfs.append(rdf)
 
     # remove one seed from those that have more than 4 seeds
     brdf = mdf[mdf['counts'] > 4]
@@ -445,20 +484,13 @@ if remove_incomplete:
 
         # remainder
         rdf = srdf[~srdf.apply(tuple, 1).isin(gsrdf.apply(tuple, 1))]
+        print(rdf.shape, odf.shape)
+        print(rdf.to_string())
         rdfs.append(rdf)
 
-    rdf = odf[odf['width'] < 128]
-    rdfs.append(rdf)
 
-    print(rdf.shape)
-    rdf = odf[odf['layers'] < 30]
-    rdfs.append(rdf)
-
-    print(rdf.shape)
     rdf = df[df['eps'] < 50]
-    rdfs.append(rdf)
-
-    print(rdf.shape)
+    # rdfs.append(rdf)
 
     if truely_remove:
         for rdf in rdfs:

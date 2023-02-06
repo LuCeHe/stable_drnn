@@ -44,7 +44,7 @@ expsid = 'als'  # effnet als ffnandcnns
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 check_for_new = True
-plot_losses = False
+plot_losses = True
 one_exp_curves = False
 pandas_means = True
 show_per_tasknet = True
@@ -132,7 +132,7 @@ if plot_losses:
                         print('epochs', len(row[plot_metric]))
                         axs[i, j].plot(row[plot_metric], color=lsc_colors[n], label=lsc_clean_comments(n))
                     else:
-                        print(row[plot_metric], row['path'])
+                        print(row[plot_metric], row['path'], row['comments'])
 
                 axs[i, j].set_title(f'{task} {net}')
 
@@ -529,65 +529,6 @@ if plot_bars:
 
     plt.show()
 
-if missing_exps:
-    # columns of interest
-    coi = ['seed', 'task_name', 'net_name', 'comments', 'stack']
-
-    import pandas as pd
-
-    # sdf = pd.read_hdf(h5path, 'df')
-    sdf = df.copy()
-
-    sdf.loc[df['task_name'].str.contains('SHD'), 'task_name'] = 'heidelberg'
-    sdf.loc[df['task_name'].str.contains('sl-MNIST'), 'task_name'] = 'sl_mnist'
-    sdf.loc[df['task_name'].str.contains('PTB'), 'task_name'] = 'wordptb'
-
-    sdf.loc[df['net_name'].str.contains('ALIFb'), 'net_name'] = 'maLSNNb'
-    sdf.loc[df['net_name'].str.contains('ALIF'), 'net_name'] = 'maLSNN'
-
-    # sdf['lr'] = sdf['lr i']
-
-    sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
-    # substitute the string _timerepeat:2 by _timerepeat:2_pretrained_ in the comments column
-    sdf['comments'] = sdf['comments'].str.replace('_timerepeat:2', '_timerepeat:2_pretrained')
-
-    seed = 0
-    n_seeds = 4
-    seeds = [l + seed for l in range(n_seeds)]
-
-    incomplete_comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_'
-
-    experiments = []
-
-    all_comments = [
-        incomplete_comments,
-        incomplete_comments + f'findLSC',
-        incomplete_comments + f'findLSC_supsubnpsd',
-        incomplete_comments + f'findLSC_radius',
-        incomplete_comments + f'findLSC_radius_targetnorm:.5',
-        incomplete_comments + f'findLSC_radius_targetnorm:.5_randlsc',
-        incomplete_comments + f'findLSC_supsubnpsd_deslice',
-    ]
-    nets = ['LSTM', 'maLSNN', 'maLSNNb']
-    tasks = ['heidelberg', 'sl_mnist', 'wordptb']
-    experiment = {
-        'task_name': tasks,
-        'net_name': nets, 'seed': seeds, 'stack': ['None'],
-        'comments': all_comments,
-    }
-    experiments.append(experiment)
-
-    experiment = {
-        'task_name': ['heidelberg'],
-        'net_name': nets, 'seed': seeds, 'stack': ['1', '3', '5'],
-        'comments': all_comments,
-    }
-    experiments.append(experiment)
-
-    ds = dict2iter(experiments)
-    print(ds[0])
-    complete_missing_exps(sdf, ds, coi)
-    # print(sdf.to_string())
 
 if plot_weights:
     create_pickles = False
@@ -1022,6 +963,9 @@ if remove_incomplete:
         rdf = srdf[~srdf.apply(tuple, 1).isin(gsrdf.apply(tuple, 1))]
         # print(rdf.shape)
         rdfs.append(rdf)
+    # allrdfs = pd.concat(rdfs)
+    # print(allrdfs.shape)
+
 
     if truely_remove:
         for rdf in rdfs:
@@ -1039,33 +983,63 @@ if remove_incomplete:
                 if os.path.exists(gexp_path):
                     os.remove(gexp_path)
 
-if remove_saved_model:
-    from zipfile import ZipFile
 
-    ds = [d for d in os.listdir(GEXPERIMENTS[0]) if expsid in d and 'zip' in d]
-    n2clean = 0
-    for d in tqdm(ds):
-        print('-' * 80)
-        print(d)
-        path = os.path.join(GEXPERIMENTS[0], d)
-        with ZipFile(path, 'r') as zf:
-            # print(zf.namelist())
-            n = [n for n in zf.namelist() if 'checkpoint' in n]
-            if len(n) > 0:
-                n2clean += 1
-                # zin = ZipFile('archive.zip', 'r')
-                zout = ZipFile(path.replace('als', 'als_new'), 'w')
-                for item in zf.infolist():
-                    buffer = zf.read(item.filename)
-                    if ('checkpoint' not in item.filename):
-                        zout.writestr(item, buffer)
-                zout.close()
-                # zin.close()
-                # dst = os.path.join(DESTDRL, d.replace('.zip', '').replace('kiwanoDRL', ''))
-                # if not os.path.exists(dst):
-                #     os.makedirs(dst)
-                #     import shutil
-                #
-                #     shutil.copy(path, os.path.join(dst, d))
+if missing_exps:
+    # columns of interest
+    coi = ['seed', 'task_name', 'net_name', 'comments', 'stack']
 
-    print('There are {} models to clean'.format(n2clean))
+    import pandas as pd
+
+    # sdf = pd.read_hdf(h5path, 'df')
+    sdf = df.copy()
+
+    sdf.loc[df['task_name'].str.contains('SHD'), 'task_name'] = 'heidelberg'
+    sdf.loc[df['task_name'].str.contains('sl-MNIST'), 'task_name'] = 'sl_mnist'
+    sdf.loc[df['task_name'].str.contains('PTB'), 'task_name'] = 'wordptb'
+
+    sdf.loc[df['net_name'].str.contains('ALIFb'), 'net_name'] = 'maLSNNb'
+    sdf.loc[df['net_name'].str.contains('ALIF'), 'net_name'] = 'maLSNN'
+
+    # sdf['lr'] = sdf['lr i']
+
+    sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
+    # substitute the string _timerepeat:2 by _timerepeat:2_pretrained_ in the comments column
+    sdf['comments'] = sdf['comments'].str.replace('_timerepeat:2', '_timerepeat:2_pretrained')
+
+    seed = 0
+    n_seeds = 4
+    seeds = [l + seed for l in range(n_seeds)]
+
+    incomplete_comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_'
+
+    experiments = []
+
+    all_comments = [
+        incomplete_comments,
+        incomplete_comments + f'findLSC',
+        incomplete_comments + f'findLSC_supsubnpsd',
+        incomplete_comments + f'findLSC_radius',
+        incomplete_comments + f'findLSC_radius_targetnorm:.5',
+        # incomplete_comments + f'findLSC_radius_targetnorm:.5_randlsc',
+        # incomplete_comments + f'findLSC_supsubnpsd_deslice',
+    ]
+    nets = ['LSTM', 'maLSNN', 'maLSNNb']
+    tasks = ['heidelberg', 'sl_mnist', 'wordptb']
+    experiment = {
+        'task_name': tasks,
+        'net_name': nets, 'seed': seeds, 'stack': ['None'],
+        'comments': all_comments,
+    }
+    experiments.append(experiment)
+
+    experiment = {
+        'task_name': ['heidelberg'],
+        'net_name': nets, 'seed': seeds, 'stack': ['1', '3', '5'],
+        'comments': all_comments,
+    }
+    experiments.append(experiment)
+
+    ds = dict2iter(experiments)
+    print(ds[0])
+    complete_missing_exps(sdf, ds, coi)
+    # print(sdf.to_string())

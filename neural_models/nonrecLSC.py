@@ -45,6 +45,10 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
                       keep_in_layers=None, keep_out_layers=None,
                       net_name='', task_name='', seed=0,
                       activation='', custom_objects=None):
+
+    np.random.seed(seed)
+    tf.random.set_seed(seed)
+
     assert callable(build_model)
     round_to = 4
     li, pi, ni = None, None, None
@@ -63,10 +67,8 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
 
     weights = model.get_weights()
     weight_names = [weight.name for layer in model.layers for weight in layer.weights]
-    results.update({f'{n}_mean': [] for n in weight_names})
-    results.update({f'{n}_var': [] for n in weight_names})
 
-    results = get_weights_statistics(results, weight_names, weights)
+    # results = get_weights_statistics(results, weight_names, weights)
 
     lnames = [layer.name for layer in model.layers]
 
@@ -157,49 +159,104 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
                     out_l = np.random.choice(outlist)
                     pairs = [inp_l, out_l]
 
-                    if 'alllays' in comments:
-                        init_pairs = list(range(len(lnames)))
-                    else:
-                        init_pairs = [pairs[0]]
-
                     loss = 0
-                    for ip in init_pairs:
-                        if isinstance(nlayerjump, int):
-                            actual_jump = np.random.choice(list(range(1, nlayerjump)))
-                            pairs[1] = outlist[actual_jump-1]
+                    if isinstance(nlayerjump, int):
+                        actual_jump = np.random.choice(list(range(1, nlayerjump)))
+                        pairs[1] = outlist[actual_jump-1]
 
-                        if not 'truersplit' in comments:
-                            premodel, intermodel = split_model(model, pairs)
-                        else:
-                            premodel, intermodel = truer_split_model(model, pairs)
+                    if not 'truersplit' in comments:
+                        premodel, intermodel = split_model(model, pairs)
+                    else:
+                        premodel, intermodel = truer_split_model(model, pairs)
 
-                        preinter = premodel(batch)
-                        del premodel
-                        allpreinter = preinter
+                    preinter = premodel(batch)
+                    del premodel
+                    allpreinter = preinter
 
-                        if isinstance(allpreinter, list):
-                            preinter = allpreinter[0]
-                        tape.watch(preinter)
+                    if isinstance(allpreinter, list):
+                        preinter = allpreinter[0]
+                    tape.watch(preinter)
 
-                        if subsample_axis and not forward_lsc:
-                            # flatten and deflatten to make sure the flat version is in the gradient graph
-                            # preinter_shape = preinter.shape
-                            flat_inp = tf.reshape(preinter, [preinter.shape[0], -1])
+                    if subsample_axis and not forward_lsc:
+                        # flatten and deflatten to make sure the flat version is in the gradient graph
+                        # preinter_shape = preinter.shape
+                        flat_inp = tf.reshape(preinter, [preinter.shape[0], -1])
 
-                            # sample and desample to make sure that the sample is in the graph,
-                            # so the derivative will be taken correctly
-                            shuffinp, reminder, indices = sample_axis(flat_inp, max_dim=max_dim,
-                                                                      return_deshuffling=True)
-                            defhuffledinp = desample_axis(shuffinp, reminder, indices)
+                        # sample and desample to make sure that the sample is in the graph,
+                        # so the derivative will be taken correctly
+                        shuffinp, reminder, indices = sample_axis(flat_inp, max_dim=max_dim,
+                                                                  return_deshuffling=True)
+                        defhuffledinp = desample_axis(shuffinp, reminder, indices)
 
-                            assert tf.math.reduce_all(tf.equal(defhuffledinp, flat_inp))
+                        assert tf.math.reduce_all(tf.equal(defhuffledinp, flat_inp))
 
-                            new_preinter = tf.reshape(defhuffledinp, preinter.shape)
+                        new_preinter = tf.reshape(defhuffledinp, preinter.shape)
 
-                            assert tf.math.reduce_all(tf.equal(new_preinter, preinter))
+                        assert tf.math.reduce_all(tf.equal(new_preinter, preinter))
+
+                    elif 'deslice' in comments:
+                        shape = preinter.shape
+                        ones = np.array(shape) == 1
+                        deslice_axis = list(range(len(shape)))
+                        deslice_axis = [a for a, b in zip(deslice_axis, ones) if b == False and not a == 0]
+
+                        np.random.shuffle(deslice_axis)
+                        deslice_axis = deslice_axis[:-1]
+
+                        st = preinter
+                        reminders = []
+                        deshuffles = []
+                        for axis in deslice_axis:
+                            st, remainder, deshuffle_indices = sample_axis(st, max_dim=1, return_deshuffling=True,
+                                                                           axis=axis)
+                            reminders.append(remainder)
+                            deshuffles.append(deshuffle_indices)
+
+                        # squeeze
+                        oshape = st.shape
+                        unsq_idx = [i for i, s in enumerate(oshape) if s == 1]
+                        st = tf.squeeze(st)
+
+                        slice = st
+
+                        # unsqueeze
+                        rt = slice
+                        for i in unsq_idx:
+                            rt = tf.expand_dims(rt, i)
+
+                        st = rt
+
+                        for j, _ in enumerate(deslice_axis):
+                            i = -j - 1
+                            st = desample_axis(st, reminders[i], deshuffles[i], axis=deslice_axis[i])
+
+                        new_preinter = st
+
+                    else:
+                        new_preinter = preinter
+
+                    if isinstance(allpreinter, list):
+                        allpreinter[0] = new_preinter
+                    else:
+                        allpreinter = new_preinter
+
+                    interout = intermodel(allpreinter)
+
+                    del allpreinter
+
+                    if not forward_lsc:
+                        if isinstance(interout, list) or isinstance(interout, tuple):
+                            idx = np.random.choice(len(interout))
+                            interout = interout[idx]
+                        oup = interout
+
+                        if subsample_axis:
+                            inp = shuffinp
 
                         elif 'deslice' in comments:
-                            shape = preinter.shape
+                            inp = slice
+
+                            shape = interout.shape
                             ones = np.array(shape) == 1
                             deslice_axis = list(range(len(shape)))
                             deslice_axis = [a for a, b in zip(deslice_axis, ones) if b == False and not a == 0]
@@ -207,106 +264,46 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
                             np.random.shuffle(deslice_axis)
                             deslice_axis = deslice_axis[:-1]
 
-                            st = preinter
+                            st = interout
                             reminders = []
                             deshuffles = []
                             for axis in deslice_axis:
-                                st, remainder, deshuffle_indices = sample_axis(st, max_dim=1, return_deshuffling=True,
+                                st, remainder, deshuffle_indices = sample_axis(st, max_dim=1,
+                                                                               return_deshuffling=True,
                                                                                axis=axis)
                                 reminders.append(remainder)
                                 deshuffles.append(deshuffle_indices)
-
-                            # squeeze
-                            oshape = st.shape
-                            unsq_idx = [i for i, s in enumerate(oshape) if s == 1]
-                            st = tf.squeeze(st)
-
-                            slice = st
-
-                            # unsqueeze
-                            rt = slice
-                            for i in unsq_idx:
-                                rt = tf.expand_dims(rt, i)
-
-                            st = rt
-
-                            for j, _ in enumerate(deslice_axis):
-                                i = -j - 1
-                                st = desample_axis(st, reminders[i], deshuffles[i], axis=deslice_axis[i])
-
-                            new_preinter = st
+                            oup = tf.squeeze(st)
 
                         else:
-                            new_preinter = preinter
+                            inp = preinter
 
-                        if isinstance(allpreinter, list):
-                            allpreinter[0] = new_preinter
-                        else:
-                            allpreinter = new_preinter
+                        reoup = tf.reshape(oup, [oup.shape[0], -1])
+                        oup = sample_axis(reoup, max_dim=max_dim)
 
-                        interout = intermodel(allpreinter)
+                        norms, iloss, naswot_score = get_norms(tape, [inp], [oup], n_samples=n_samples,
+                                                               norm_pow=norm_pow, comments=comments)
+                        if (norms.numpy() == 1).all():
+                            raise ValueError('Norms are all 1, since the input and output are the same. '
+                                             'This happens because the architecture is complex and now '
+                                             'we are not able to find a path from the input to the output '
+                                             'in the general case.')
 
-                        del allpreinter
+                    else:
+                        varin = tf.math.reduce_variance(new_preinter)
+                        varout = tf.math.reduce_variance(interout)
+                        iloss = tf.reduce_mean(tf.abs(varin - varout))
+                        norms = varout / varin
+                    loss += iloss
 
-                        if not forward_lsc:
-                            if isinstance(interout, list) or isinstance(interout, tuple):
-                                idx = np.random.choice(len(interout))
-                                interout = interout[idx]
-                            oup = interout
-
-                            if subsample_axis:
-                                inp = shuffinp
-
-                            elif 'deslice' in comments:
-                                inp = slice
-
-                                shape = interout.shape
-                                ones = np.array(shape) == 1
-                                deslice_axis = list(range(len(shape)))
-                                deslice_axis = [a for a, b in zip(deslice_axis, ones) if b == False and not a == 0]
-
-                                np.random.shuffle(deslice_axis)
-                                deslice_axis = deslice_axis[:-1]
-
-                                st = interout
-                                reminders = []
-                                deshuffles = []
-                                for axis in deslice_axis:
-                                    st, remainder, deshuffle_indices = sample_axis(st, max_dim=1,
-                                                                                   return_deshuffling=True,
-                                                                                   axis=axis)
-                                    reminders.append(remainder)
-                                    deshuffles.append(deshuffle_indices)
-                                oup = tf.squeeze(st)
-
-                            else:
-                                inp = preinter
-
-                            reoup = tf.reshape(oup, [oup.shape[0], -1])
-                            oup = sample_axis(reoup, max_dim=max_dim)
-
-                            norms, iloss, naswot_score = get_norms(tape, [inp], [oup], n_samples=n_samples,
-                                                                   norm_pow=norm_pow, comments=comments)
-                            if (norms.numpy() == 1).all():
-                                raise ValueError('Norms are all 1, since the input and output are the same. '
-                                                 'This happens because the architecture is complex and now '
-                                                 'we are not able to find a path from the input to the output '
-                                                 'in the general case.')
-
-                        else:
-                            varin = tf.math.reduce_variance(new_preinter)
-                            varout = tf.math.reduce_variance(interout)
-                            iloss = tf.reduce_mean(tf.abs(varin - varout))
-                            norms = varout / varin
-                        loss += iloss
-
-                    ma_loss = loss if ma_loss is None else ma_loss * 9 / 10 + loss / 10
-                    norm = tf.reduce_mean(norms)
-                    ma_norm = norm if ma_norm is None else ma_norm * 9 / 10 + norm / 10
-                    all_norms.append(norm.numpy())
-                    all_losses.append(loss.numpy())
+                ma_loss = loss if ma_loss is None else ma_loss * 9 / 10 + loss / 10
+                norm = tf.reduce_mean(norms)
+                ma_norm = norm if ma_norm is None else ma_norm * 9 / 10 + norm / 10
+                all_norms.append(norm.numpy())
+                all_losses.append(loss.numpy())
 
                 grads = tape.gradient(loss, intermodel.trainable_weights)
+                # print([g.shape if not g is None else g for g in grads])
                 optimizer.apply_gradients(zip(grads, intermodel.trainable_weights))
                 del intermodel
                 tf.keras.backend.clear_session()
@@ -317,7 +314,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
                 if not tf.math.is_nan(av_weights):
                     weights = new_weights
 
-                results = get_weights_statistics(results, weight_names, weights)
+                # results = get_weights_statistics(results, weight_names, weights)
 
                 # show_factor = str(np.array(ma_factor).round(3))
                 show_loss = str(ma_loss.numpy().round(round_to))
@@ -353,14 +350,14 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
 
     if 'pretrained' in comments and not model is None:
         if (float(show_norm) - 1) < (float(ni) - 1):
-            model.save(path_pretrained)
+            try:
+                model.save(path_pretrained)
+            except Exception as e:
+                print(e)
 
     model, generator = None, None
     del model, generator
 
-    for n in weight_names:
-        results[f'{n}_mean'] = str(results[f'{n}_mean'])
-        results[f'{n}_var'] = str(results[f'{n}_var'])
 
     results.update(LSC_losses=str(all_losses), LSC_norms=str(all_norms), LSC_fail_rate=str(fail_rate))
     tf.keras.backend.clear_session()

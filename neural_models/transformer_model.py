@@ -71,6 +71,11 @@ class Transformer(object):
         self.target_padding = PaddingMask()
         # self.linear = tf.keras.layers.Dense(target_vocab_size)
 
+        self.decoder_embedding_layer.build((1,))
+        embm = tf.transpose(self.decoder_embedding_layer.embedding.embeddings)
+        self.project = ProjectionLayer()
+        self.project.project_matrix = embm
+
     def __call__(self, inputs):
         source, target = inputs
         inputs_padding_mask = self.source_padding(source)
@@ -93,7 +98,7 @@ class Transformer(object):
 
             decoder_tensor = self.decoder_layers[i]([decoder_tensor, encoder_tensor, target_padding_mask])
 
-        output = self.decoder_embedding_layer(decoder_tensor, mode='projection')
+        output = self.project(decoder_tensor)
 
         # output = decoder_tensor @ self.emb_matrix
         return output
@@ -339,15 +344,7 @@ class Embeddinglayer(tf.keras.layers.Layer):
         })
         return config
 
-    def call(self, inputs, mode="embedding", **kwargs):
-        if mode == "embedding":
-            return self.embedding(inputs)
-        elif mode == "projection":
-            return self.projection(inputs)
-        else:
-            raise ValueError("mode {} is not valid.".format(mode))
-
-    def embedding(self, sequences):
+    def call(self, sequences, **kwargs):
         # print(sequences)
         if isinstance(sequences, list):
             # fixme:
@@ -356,17 +353,6 @@ class Embeddinglayer(tf.keras.layers.Layer):
         max_sequence_len = sequences.shape[1]
         output = self.embedding(sequences) * tf.sqrt(tf.cast(self.d_model, dtype=tf.float32))
         output += self.positional_encoding(max_sequence_len)
-
-        return output
-
-    def projection(self, inputs):
-        # with tf.name_scope("projection"):
-        # batch_size = tf.shape(inputs)[0]
-        # seq_len = tf.shape(inputs)[1]
-
-        # h_flat = tf.reshape(inputs, [-1, self.d_model])
-        # logits = tf.matmul(h_flat, self.embedding_weights, transpose_b=True)
-        output = inputs @ self.emb_matrix
 
         return output
 
@@ -385,6 +371,19 @@ class Embeddinglayer(tf.keras.layers.Layer):
     def angle(self, pos, index):
         return pos / np.power(10000, (index - index % 2) / np.float32(self.d_model))
 
+
+
+
+class ProjectionLayer(tf.keras.layers.Layer):
+    def __init__(self):
+        # model hyper parameter variables
+        super().__init__()
+        self.project_matrix = 'project_matrix'
+
+    def call(self, inputs, **kwargs):
+        output = inputs @ self.project_matrix
+
+        return output
 
 def build_model(
         inputs_timesteps,

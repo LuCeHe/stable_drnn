@@ -97,7 +97,7 @@ def main(args, experiment_dir):
         )
 
         max_dim = str2val(args.comments, 'maxdim', int, default=1024)
-
+        lsclr = 1e-2,
         weights, lsc_results = apply_LSC_no_time(
             bm, generator=gen_lsc, max_dim=max_dim, norm_pow=2, nlayerjump=2,
             skip_in_layers=['embeddinglayer', 'dropout', 'de_concatenate'],
@@ -105,6 +105,7 @@ def main(args, experiment_dir):
             keep_in_layers=['encoder', 'concatenate'],
             # keep_out_layers=['identity_'],
             net_name='trasnf', task_name='ende', seed=args.seed, activation=args.activation,
+            learning_rate=lsclr,
             comments=args.comments,
         )
 
@@ -113,6 +114,7 @@ def main(args, experiment_dir):
         model.set_weights(weights)
 
         results.update(lsc_results)
+        results.update(lsclr=lsclr)
     else:
         model = bm()
     model.summary()
@@ -180,17 +182,17 @@ def main(args, experiment_dir):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--comments",
-                        default='sameemb_truersplit_findLSC_deslice',
+                        default='pretrained_deslice_sameemb_truersplit_findLSC_supsubnpsd',
                         # default='',
                         type=str, help="String to activate extra behaviors")
     parser.add_argument("--activation", default='swish', type=str, help="Network non-linearity")
-    parser.add_argument("--seed", default=1, type=int, help="Random seed")
+    parser.add_argument("--seed", default=5, type=int, help="Random seed")
     parser.add_argument("--epochs", default=3, type=int, help="Epochs")
     parser.add_argument("--steps_per_epoch", default=10, type=int, help="Steps per epoch")
     parser.add_argument("--batch_size", default=16, type=int, help="Batch size")
     parser.add_argument("--stop_time", default=60, type=int, help="Stop time")
     parser.add_argument("--results_dir", default=EXPERIMENTS, type=str, help="Experiments Folder")
-    parser.add_argument("--lr", default=1e-4, type=float, help="Experiments Folder")
+    parser.add_argument("--lr", default=3.16e-5, type=float, help="Experiments Folder")
     args = parser.parse_args()
 
     EXPERIMENT = os.path.join(args.results_dir, time_string + random_string + '_lsc-transformer')

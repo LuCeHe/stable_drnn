@@ -56,13 +56,15 @@ def config():
     # maLSNN cLSTM LSTM maLSNNb
     net_name = 'maLSNN'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
-    stack = '4:3'
-    n_neurons = 3
+    stack = None
+    n_neurons = None
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task_name in language_tasks else False
     comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_findLSC_supsubnpsd_test_pretrained_deslice'
     # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_findLSC_supsubnpsd_test_pretrained'
     # comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_findLSC_supsubnpsd_test_pretrained_randlsc'
+    comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_supsubnpsd_test'
+    # 'truersplit'
 
     # optimizer properties
     lr = None  # 7e-4 None
@@ -196,11 +198,11 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
 
             lscw_filepath = os.path.join(models_dir, 'lsc')
             save_weights_path = lscw_filepath if 'savelscweights' in comments else None
-            time_steps = 6 if 'test' in comments else None
+            time_steps = 2 if 'test' in comments else None
 
             print(json.dumps(new_model_args, indent=4, cls=NumpyEncoder))
             # lsclr = 3.14e-4 if not net_name == 'LSTM' else 3.14e-3
-            lsclr = 1e-3 # 1e-2
+            lsclr = 3.16e-3 # 1e-2
 
 
             if 'deslice' in comments:
