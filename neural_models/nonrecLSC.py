@@ -62,13 +62,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
     # get initial values of model
     model = build_model()
     model.summary()
-
     weights = model.get_weights()
-    weight_names = [weight.name for layer in model.layers for weight in layer.weights]
-
-    print('nice!')
-    print([w.shape for w in weights])
-    # results = get_weights_statistics(results, weight_names, weights)
 
     lnames = [layer.name for layer in model.layers]
 
@@ -76,6 +70,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
         keep_in_layers = lnames
     if keep_out_layers is None:
         keep_out_layers = lnames
+
     inlnames = [
                    i for i, l in enumerate(lnames)
                    if not any([s in l for s in skip_in_layers])

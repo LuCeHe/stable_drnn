@@ -84,14 +84,31 @@ def main(args, experiment_dir):
         d_model=D_MODEL,
         d_point_wise_ff=D_POINT_WISE_FF,
         dropout_prob=DROPOUT_PROB,
+        batch_size=args.batch_size,
         activation=activation,
         comments=args.comments,
     )
 
     if 'findLSC' in args.comments:
+        lsc_batch_size = 16
+        bm = lambda: build_model(
+            inputs_timesteps=SEQ_MAX_LEN_SOURCE,
+            target_timesteps=SEQ_MAX_LEN_TARGET,
+            inputs_vocab_size=BPE_VOCAB_SIZE,
+            target_vocab_size=BPE_VOCAB_SIZE,
+            encoder_count=ENCODER_COUNT,
+            decoder_count=DECODER_COUNT,
+            attention_head_count=ATTENTION_HEAD_COUNT,
+            d_model=D_MODEL,
+            d_point_wise_ff=D_POINT_WISE_FF,
+            dropout_prob=DROPOUT_PROB,
+            batch_size=lsc_batch_size,
+            activation=activation,
+            comments=args.comments,
+        )
 
         gen_lsc = WMT_ENDE(
-            data_dir=DATADIR, batch_size=2, bpe_vocab_size=BPE_VOCAB_SIZE,
+            data_dir=DATADIR, batch_size=lsc_batch_size, bpe_vocab_size=BPE_VOCAB_SIZE,
             seq_max_len_source=SEQ_MAX_LEN_SOURCE, seq_max_len_target=SEQ_MAX_LEN_TARGET, data_limit=DATA_LIMIT,
             train_ratio=TRAIN_RATIO, epochs=args.epochs, steps_per_epoch=args.steps_per_epoch, data_split='train',
             comments=comments
@@ -150,7 +167,7 @@ def main(args, experiment_dir):
 
     history_path = os.path.join(experiment_dir, 'history.csv')
     callbacks = [
-        # LearningRateLogger(),
+        LearningRateLogger(),
         TimeStopping(args.stop_time, 1),
         CSVLogger(history_path),
         tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=10, restore_best_weights=True)

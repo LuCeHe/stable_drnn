@@ -44,12 +44,12 @@ expsid = 'als'  # effnet als ffnandcnns
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 check_for_new = True
-plot_losses = True
+plot_losses = False
 one_exp_curves = False
 pandas_means = True
 show_per_tasknet = True
 make_latex = False
-missing_exps = False
+missing_exps = True
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -161,10 +161,8 @@ if 'task_name' in df.columns:
 new_column_names = {c_name: shorten_losses(c_name) for c_name in df.columns}
 df.rename(columns=new_column_names, inplace=True)
 
-
 # eps column stays eps if not equal to None else it becomes the content of v_mode_acc len
 df.loc[df['eps'].isnull(), 'eps'] = df.loc[df['eps'].isnull(), 'v_mode_acc len']
-
 
 if 'v_mode_acc len' in df.columns:
     # # FIXME: 14 experiments got nans in the heidelberg task validation, plot them anyway?
@@ -246,7 +244,7 @@ if pandas_means:
     df['lr'] = df['lr i']
     # group_cols = ['net_name', 'task_name', 'comments', 'stack', 'lr i']
     counts = df.groupby(group_cols).size().reset_index(name='counts')
-    stats = ['mean'] # ['mean', 'std']
+    stats = ['mean']  # ['mean', 'std']
     metrics_oi = [shorten_losses(m) for m in metrics_oi]
     mdf = df.groupby(
         group_cols, as_index=False
@@ -466,7 +464,6 @@ if plot_lrs:
 
     plt.show()
 
-
 if plot_bars:
     stack = 'None'  # 1 None 7
 
@@ -528,7 +525,6 @@ if plot_bars:
     fig.savefig(plot_filename, bbox_inches='tight')
 
     plt.show()
-
 
 if plot_weights:
     create_pickles = False
@@ -926,16 +922,20 @@ if remove_incomplete:
     # epsilon = 0.2
     # make a column target equal to .5 if targetnorm:.5 is in comments else 1 if findLSC is in comments
     # else nan
-    plotdf['target'] = plotdf['comments'].apply(lambda x: 0.5 if 'targetnorm:.5' in x else 1 if 'findLSC' in x else np.nan)
+    plotdf['target'] = plotdf['comments'].apply(
+        lambda x: 0.5 if 'targetnorm:.5' in x else 1 if 'findLSC' in x else np.nan)
     rdf = plotdf[abs(plotdf['LSC_norms f'] - plotdf['target']) > epsilon]
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
 
-    # remove stack 7 since it fails too often
-    rdf = plotdf[plotdf['stack'] == '7']
+    # remove LSC that didn't record LSC norms
+    print('remove LSC that didnt record LSC norms')
+    rdf = plotdf[plotdf['comments'].str.contains('findLSC')]
+    rdf = rdf[rdf['LSC_norms f'].isna()]
+    print(rdf.to_string())
+
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
-
 
     # remove repeated
     # remove one seed from those that have more than 4 seeds
@@ -944,8 +944,6 @@ if remove_incomplete:
     print('-=***=-' * 10)
     print('Count>4')
     for _, row in brdf.iterrows():
-        print('-' * 10)
-        print(row['comments'])
         srdf = df[
             (df['lr'] == row['lr'])
             & (df['comments'].eq(incomplete_comments + row['comments']))
@@ -954,18 +952,15 @@ if remove_incomplete:
             & (df['net_name'] == row['net_name'])
             ].copy()
 
-        # print(srdf.columns)
-        print(srdf[['comments', 'lr', 'task_name', 'net_name', 'stack']].to_string())
         # no duplicates
         gsrdf = srdf.drop_duplicates(subset=['seed'])
 
         # remainder
         rdf = srdf[~srdf.apply(tuple, 1).isin(gsrdf.apply(tuple, 1))]
         # print(rdf.shape)
-        rdfs.append(rdf)
+        # rdfs.append(rdf)
     # allrdfs = pd.concat(rdfs)
     # print(allrdfs.shape)
-
 
     if truely_remove:
         for rdf in rdfs:
@@ -982,7 +977,6 @@ if remove_incomplete:
                     shutil.rmtree(exps_path)
                 if os.path.exists(gexp_path):
                     os.remove(gexp_path)
-
 
 if missing_exps:
     # columns of interest

@@ -88,6 +88,7 @@ class Transformer(object):
 
         encoded_ts = []
         for i in range(self.encoder_count):
+            print('hm!', inputs_padding_mask.shape)
             encoder_tensor = self.encoder_layers[i]([encoder_tensor, inputs_padding_mask])
             encoded_ts.append(encoder_tensor)
 
@@ -134,6 +135,9 @@ class EncoderLayer(tf.keras.layers.Layer):
         self.add2 = tf.keras.layers.Add(name=f'eadd_2_{layer_index}')
 
     def call(self, inputs, **kwargs):
+        print(inputs)
+        if len(inputs) > 2:
+            inputs = [inputs[0], inputs[-1]]
         x, mask = inputs
         mask = tf.stop_gradient(mask)
 
@@ -383,6 +387,7 @@ def build_model(
         d_model,
         d_point_wise_ff,
         dropout_prob,
+        batch_size,
         activation='relu',
         comments='',
 ):
@@ -399,8 +404,8 @@ def build_model(
         comments=comments
     )
 
-    inputs_layer = tf.keras.layers.Input((inputs_timesteps,))
-    target_layer = tf.keras.layers.Input((target_timesteps - 1,))
+    inputs_layer = tf.keras.layers.Input((inputs_timesteps,), batch_size=batch_size)
+    target_layer = tf.keras.layers.Input((target_timesteps - 1,), batch_size=batch_size)
 
     output = transformer([inputs_layer, target_layer])
 

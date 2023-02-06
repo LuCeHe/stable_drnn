@@ -271,8 +271,6 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
     if 'pretrained' in comments:
         if os.path.exists(path_pretrained):
             print('Loading pretrained lsc weights')
-            # model.load_weights(path_pretrained)
-            # if True:
             try:
                 model = tf.keras.models.load_model(
                     path_pretrained,
@@ -291,11 +289,6 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
     if weights is None:
         weights = model.get_weights()
-
-    # weight_names = [weight.name for layer in model.layers for weight in layer.weights]
-    # results.update({f'{n}_mean': [tf.reduce_mean(w).numpy()] for n, w in zip(weight_names, weights)})
-    # results.update({f'{n}_var': [tf.math.reduce_variance(w).numpy()] for n, w in zip(weight_names, weights)})
-
 
     time_start = time.perf_counter()
     time_over = False
@@ -340,7 +333,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
         for t in range(ts):
 
             if True:
-            # try:
+                # try:
                 bt = batch[0][0][:, t, :][:, None]
                 wt = batch[0][1][:, t][:, None]
 
@@ -462,7 +455,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                 ma_loss = loss if ma_loss is None else ma_loss * 9 / 10 + loss / 10
                 ma_norm = rec_norm_mean if ma_norm is None else ma_norm * 9 / 10 + rec_norm_mean / 10
 
-                if not ma_norm is None and abs(ma_norm - target_norm) < es_epsilon:
+                epsilons = [(abs(n - target_norm) < es_epsilon).numpy() for n in some_norms]
+                if not ma_norm is None and all(epsilons):
                     epsilon_steps += 1
                 else:
                     epsilon_steps = 0
@@ -499,7 +493,6 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
             break
 
     del gen_train
-
 
     if not save_weights_path is None:
         # Guardar configuración JSON en el disco
