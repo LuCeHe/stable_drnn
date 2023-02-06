@@ -5,8 +5,6 @@ from tensorflow_addons.optimizers import AdamW
 from tqdm import tqdm
 
 from GenericTools.keras_tools.convenience_operations import sample_axis, desample_axis
-from GenericTools.keras_tools.esoteric_losses import well_loss
-from GenericTools.keras_tools.esoteric_tasks.numpy_generator import NumpyClassificationGenerator
 from GenericTools.keras_tools.expose_latent import split_model, truer_split_model
 from GenericTools.stay_organized.utils import flaggedtry
 from alif_sg.neural_models.recLSC import get_norms, get_lsctype
@@ -68,6 +66,8 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
     weights = model.get_weights()
     weight_names = [weight.name for layer in model.layers for weight in layer.weights]
 
+    print('nice!')
+    print([w.shape for w in weights])
     # results = get_weights_statistics(results, weight_names, weights)
 
     lnames = [layer.name for layer in model.layers]
@@ -135,8 +135,8 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
             if epsilon_steps > patience:
                 break
 
-            # if True:
-            try:
+            if True:
+            # try:
                 batch = generator.__getitem__(step)[0]
                 if isinstance(batch, list) or isinstance(batch, tuple):
                     batch = [tf.convert_to_tensor(tf.cast(b, tf.float32), dtype=tf.float32) for b in batch]
@@ -303,7 +303,8 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
                 all_losses.append(loss.numpy())
 
                 grads = tape.gradient(loss, intermodel.trainable_weights)
-                # print([g.shape if not g is None else g for g in grads])
+                print([g.shape if not g is None else g for g in grads])
+                print([w.name for w in intermodel.trainable_weights])
                 optimizer.apply_gradients(zip(grads, intermodel.trainable_weights))
                 del intermodel
                 tf.keras.backend.clear_session()
@@ -321,9 +322,9 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
                 show_norm = str(ma_norm.numpy().round(round_to))
                 show_avw = str(av_weights.numpy().round(round_to))
 
-            except Exception as e:
-                print(e)
-                n_failures += 1
+            # except Exception as e:
+            #     print(e)
+            #     n_failures += 1
 
             if li is None:
                 li = show_loss

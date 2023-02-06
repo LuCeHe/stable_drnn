@@ -2,6 +2,7 @@ from __future__ import (absolute_import, division, print_function, unicode_liter
 import os, argparse, random, socket, time, json, shutil
 
 import tensorflow as tf
+from tensorflow_addons.optimizers import AdamW
 
 import numpy as np
 import pandas as pd
@@ -101,7 +102,7 @@ def main(args, experiment_dir):
         weights, lsc_results = apply_LSC_no_time(
             bm, generator=gen_lsc, max_dim=max_dim, norm_pow=2, nlayerjump=2,
             skip_in_layers=['embeddinglayer', 'dropout', 'de_concatenate'],
-            skip_out_layers=['input', 'tf.linalg.matmul', 'dropout'],
+            skip_out_layers=['input', 'tf.linalg.matmul', 'dropout', 'embedding'],
             keep_in_layers=['encoder', 'concatenate'],
             # keep_out_layers=['identity_'],
             net_name='trasnf', task_name='ende', seed=args.seed, activation=args.activation,
@@ -134,7 +135,9 @@ def main(args, experiment_dir):
     )
 
     learning_rate = args.lr
-    optimizer = tf.optimizers.Adam(learning_rate, beta_1=0.9, beta_2=0.98, epsilon=1e-9)
+    # optimizer = tf.optimizers.Adam(learning_rate, beta_1=0.9, beta_2=0.98, epsilon=1e-9)
+    optimizer = AdamW(learning_rate=learning_rate)
+
     model.compile(
         loss=tf.losses.SparseCategoricalCrossentropy(from_logits=True),
         optimizer=optimizer,
@@ -147,7 +150,7 @@ def main(args, experiment_dir):
 
     history_path = os.path.join(experiment_dir, 'history.csv')
     callbacks = [
-        LearningRateLogger(),
+        # LearningRateLogger(),
         TimeStopping(args.stop_time, 1),
         CSVLogger(history_path),
         tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=10, restore_best_weights=True)
@@ -182,7 +185,8 @@ def main(args, experiment_dir):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--comments",
-                        default='pretrained_deslice_sameemb_truersplit_findLSC_supsubnpsd',
+                        default='deslice_truersplit_findLSC',
+                        # default='pretrained_deslice_sameemb_truersplit_findLSC_supsubnpsd',
                         # default='',
                         type=str, help="String to activate extra behaviors")
     parser.add_argument("--activation", default='swish', type=str, help="Network non-linearity")

@@ -39,7 +39,7 @@ class Transformer(object):
             self.decoder_embedding_layer = self.encoder_embedding_layer
         self.decoder_embedding_dropout = tf.keras.layers.Dropout(dropout_prob)
 
-        self.decoder_embedding_layer.embedding.build(None)
+        # self.decoder_embedding_layer.embedding.build(None)
 
         self.encoder_layers = [
             EncoderLayer(
@@ -69,12 +69,12 @@ class Transformer(object):
 
         self.source_padding = PaddingMask()
         self.target_padding = PaddingMask()
-        # self.linear = tf.keras.layers.Dense(target_vocab_size)
+        self.linear = tf.keras.layers.Dense(target_vocab_size)
 
-        self.decoder_embedding_layer.build((1,))
-        embm = tf.transpose(self.decoder_embedding_layer.embedding.embeddings)
-        self.project = ProjectionLayer()
-        self.project.project_matrix = embm
+        # self.decoder_embedding_layer.build((1,))
+        # embm = tf.transpose(self.decoder_embedding_layer.embedding.embeddings)
+        # self.project = ProjectionLayer()
+        # self.project.project_matrix = embm
 
     def __call__(self, inputs):
         source, target = inputs
@@ -98,9 +98,12 @@ class Transformer(object):
 
             decoder_tensor = self.decoder_layers[i]([decoder_tensor, encoder_tensor, target_padding_mask])
 
-        output = self.project(decoder_tensor)
+        # output = self.project(decoder_tensor)
 
         # output = decoder_tensor @ self.emb_matrix
+
+        output = self.linear(decoder_tensor)
+
         return output
 
 
@@ -127,10 +130,6 @@ class EncoderLayer(tf.keras.layers.Layer):
         self.dropout_2 = tf.keras.layers.Dropout(dropout_prob)
         self.layer_norm_2 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
 
-        self.id1 = Identity(name=f'eidentity_1_{layer_index}')
-        self.id2 = Identity(name=f'eidentity_2_{layer_index}')
-        self.id3 = Identity(name=f'eidentity_3_{layer_index}')
-
         self.add1 = tf.keras.layers.Add(name=f'eadd_1_{layer_index}')
         self.add2 = tf.keras.layers.Add(name=f'eadd_2_{layer_index}')
 
@@ -138,17 +137,14 @@ class EncoderLayer(tf.keras.layers.Layer):
         x, mask = inputs
         mask = tf.stop_gradient(mask)
 
-        x = self.id1(x)
         output, attention = self.attention([x, x, x, mask])
         output = self.dropout_1(output)
         output = self.layer_norm_1(self.add1([x, output]))  # residual network
-        output = self.id2(output)
         output_temp = output
 
         output = self.position_wise_feed_forward_layer(output)
         output = self.dropout_2(output)
         output = self.layer_norm_2(self.add2([output_temp, output]))
-        output = self.id3(output)
 
         return output
 
@@ -181,10 +177,6 @@ class DecoderLayer(tf.keras.layers.Layer):
         self.dropout_3 = tf.keras.layers.Dropout(dropout_prob)
         self.layer_norm_3 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
 
-        self.id1 = Identity(name=f'didentity_1_{layer_index}')
-        self.id2 = Identity(name=f'didentity_2_{layer_index}')
-        self.id3 = Identity(name=f'didentity_3_{layer_index}')
-
         self.add1 = tf.keras.layers.Add(name=f'dadd_1_{layer_index}')
         self.add2 = tf.keras.layers.Add(name=f'dadd_2_{layer_index}')
         self.add3 = tf.keras.layers.Add(name=f'dadd_3_{layer_index}')
@@ -202,8 +194,6 @@ class DecoderLayer(tf.keras.layers.Layer):
         # concatenate encode and decoder representations on the time axis
         concats = tf.concat([encoder_output, decoder_inputs], axis=1)
 
-        concats = self.id1(concats)
-
         # deconcatenate representations
         encoder_output = concats[:, :encoder_length, :]
         decoder_inputs = concats[:, encoder_length:, :]
@@ -214,12 +204,10 @@ class DecoderLayer(tf.keras.layers.Layer):
         output, attention_2 = self.conditioned_attention([query, encoder_output, encoder_output, padding_mask])
         output = self.dropout_2(output)
         encoder_decoder_attention_output = self.layer_norm_2(self.add2([output, query]))
-        encoder_decoder_attention_output = self.id1(encoder_decoder_attention_output)
 
         output = self.position_wise_feed_forward_layer(encoder_decoder_attention_output)
         output = self.dropout_3(output)
         output = self.layer_norm_3(self.add3([encoder_decoder_attention_output, output]))  # residual network
-        output = self.id3(output)
 
         return output
 
@@ -333,8 +321,8 @@ class Embeddinglayer(tf.keras.layers.Layer):
         self.d_model = d_model
 
         self.embedding = tf.keras.layers.Embedding(vocab_size, d_model)
-        self.embedding.build(())
-        self.emb_matrix = tf.transpose(self.embedding.embeddings)
+        # self.embeddin/g.build((1,))
+        # self.emb_matrix = tf.transpose(self.embedding.embeddings)
 
     def get_config(self):
         config = super().get_config()
@@ -372,8 +360,6 @@ class Embeddinglayer(tf.keras.layers.Layer):
         return pos / np.power(10000, (index - index % 2) / np.float32(self.d_model))
 
 
-
-
 class ProjectionLayer(tf.keras.layers.Layer):
     def __init__(self):
         # model hyper parameter variables
@@ -384,6 +370,7 @@ class ProjectionLayer(tf.keras.layers.Layer):
         output = inputs @ self.project_matrix
 
         return output
+
 
 def build_model(
         inputs_timesteps,
