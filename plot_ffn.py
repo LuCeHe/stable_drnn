@@ -41,13 +41,13 @@ GEXPERIMENTS = [
 plot_norms_evol = False
 plot_norms_evol_1 = False
 lrs_plot = False
-bar_plot = False
+bar_plot = True
 plot_losses = False
 missing_exps = False
 remove_incomplete = False
 truely_remove = False
 
-metric = 'val_acc M'  # 'val_acc M'   'val_loss min'
+metric = 'val_acc M'  # 'val_acc M'   'val_loss m'
 expsid = 'effnet'  # effnet als ffnandcnns transf
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 force_keep_column = ['LSC_norms list', 'val_sparse_categorical_accuracy list', 'val_loss list']
@@ -207,12 +207,14 @@ if 'ffnandcnns' in expsid:
     ]
 elif 'effnet' in expsid:
     plot_only = [
-        'act', 'eps', 'dataset',
+        'act', 'eps', 'dataset', 'batch_normalization',
         'seed', 'lr', 'comments',
         'val_acc M', 'val_loss m', 'test_acc M', 'test_loss m',
         'LSC_norms i', 'LSC_norms f',
         'ep M', 'time_elapsed', 'hostname', 'path',
     ]
+    group_cols = ['lr', 'comments', 'act', 'dataset', 'batch_normalization']
+
 
 elif 'transf' in expsid:
     plot_only = [
@@ -361,6 +363,8 @@ if bar_plot:
         mdf['comments'] = mdf['comments'].str.replace('deslice_', '')
         mdf['comments'] = mdf['comments'].replace(r'^\s*$', 'heinit', regex=True)
 
+        mdf = mdf[mdf['batch_normalization'].eq(1)]
+
     comments = sorted(mdf['comments'].unique())
 
     # comments = ['', 'heinit', 'findLSC', 'findLSC_radius', 'findLSC_supnpsd2', 'findLSC_supsubnpsd']
@@ -386,19 +390,18 @@ if bar_plot:
 
         for a in activations:
             adf = mdf[mdf['act'] == a]
+            print(a)
 
             # select best lr
             lrdf = adf[adf['comments'] == 'heinit']
             lrdf = lrdf[lrdf['mean_' + metric] == lrdf['mean_' + metric].max()]
-            print(a)
             lr = lrdf['lr'].values[0]
             idf = adf[adf['lr'].astype(float).eq(lr)]
             iidf = idf[idf['comments'] == c]
+            print(iidf.to_string())
 
             data.append(iidf['mean_' + metric].values[0])
             error.append(iidf['std_' + metric].values[0])
-        # print(data)
-        # print(error)
         axs[0].bar(X + i * w, data, yerr=error, width=w, color=lsc_colors[c], label=lsc_clean_comments(c))
 
     legend_elements = [Line2D([0], [0], color=lsc_colors[n], lw=4, label=lsc_clean_comments(n))
