@@ -83,8 +83,6 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
     inlnames = [i for i in inlnames if i < max(outlnames)]
     outlnames = [i for i in outlnames if i > min(inlnames)]
 
-    print(inlnames)
-    print(outlnames)
     del model
     tf.keras.backend.clear_session()
 
@@ -179,8 +177,6 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
                     del premodel
                     allpreinter = preinter
 
-                    print('hm')
-                    # print(preinter)
                     if isinstance(allpreinter, list):
                         preinter = allpreinter[0]
                     tape.watch(preinter)
@@ -272,11 +268,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
                             np.random.shuffle(deslice_axis)
                             deslice_axis = deslice_axis[:-1]
                             oup = interout
-                            # for axis in deslice_axis:
-                            #     oup = tf.reduce_mean(oup, axis=axis)
-                            print(oup.shape)
                             oup = tf.reduce_mean(oup, axis=deslice_axis)
-                            print(oup.shape)
 
                         elif 'deslice' in comments:
                             inp = slice
@@ -328,9 +320,9 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
                 all_losses.append(loss.numpy())
 
                 grads = tape.gradient(loss, intermodel.trainable_weights)
-                print([g.shape if not g is None else g for g in grads if len(g.shape) == 1])
+                # print([g.shape if not g is None else g for g in grads if len(g.shape) == 1])
                 # print([g.shape if not g is None else g for g in grads])
-                print([w.name for w in intermodel.trainable_weights])
+                # print([w.name for w in intermodel.trainable_weights])
                 optimizer.apply_gradients(zip(grads, intermodel.trainable_weights))
                 del intermodel
                 tf.keras.backend.clear_session()

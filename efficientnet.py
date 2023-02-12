@@ -42,7 +42,7 @@ def get_argparse():
 
     # Required parameters
     parser.add_argument("--batch_size", default=32, type=int, help="Batch size")
-    parser.add_argument("--seed", default=1, type=int, help="Random seed")
+    parser.add_argument("--seed", default=0, type=int, help="Random seed")
     parser.add_argument("--epochs", default=3, type=int, help="Batch size")
     parser.add_argument("--steps_per_epoch", default=3, type=int, help="Batch size")
     parser.add_argument("--lr", default=.001, type=float, help="Learning rate")
@@ -139,7 +139,7 @@ def main(args):
 
         bm = lambda: build_model(args, input_shape, classes, effnet=None)
         max_dim = str2val(args.comments, 'maxdim', int, default=64)
-        lsclr = 3.16e-4
+        lsclr = 1.0e-4
         weights, lsc_results = apply_LSC_no_time(
             build_model=bm, generator=gen_train, max_dim=max_dim, norm_pow=2, comments=args.comments,
             net_name='eff', seed=args.seed, task_name=args.dataset, activation=args.activation,
