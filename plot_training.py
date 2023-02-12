@@ -76,7 +76,7 @@ metrics_oi = [
     'LSC_norms f'
 ]
 
-plot_only = ['eps', 'net_name', 'task_name', 'n_params', 'stack', 'comments', 'path', 'lr'] + metrics_oi
+plot_only = ['eps', 'net_name', 'task_name', 'n_params', 'stack', 'comments', 'path', 'lr', 'seed'] + metrics_oi
 columns_to_remove = [
     'heaviside', '_test', 'weight', 'sLSTM_factor', 'save_model', 'clipnorm', 'GPU', 'batch_size',
     'continue_training', 'embedding', 'lr_schedule', 'loss_name', 'seed', 'stack', 'stop_time',
@@ -934,8 +934,14 @@ if remove_incomplete:
     rdf = rdf[rdf['LSC_norms f'].isna()]
     print(rdf.to_string())
 
-    print(rdf.shape, df.shape)
+    print('remove old settings')
+    rdf = plotdf[plotdf['comments'].str.contains('_randlsc')]
     rdfs.append(rdf)
+    print(rdf.to_string())
+
+    rdf = plotdf[plotdf['comments'].str.contains('deslice')]
+    rdfs.append(rdf)
+    print(rdf.to_string())
 
     # remove repeated
     # remove one seed from those that have more than 4 seeds
@@ -943,13 +949,14 @@ if remove_incomplete:
 
     print('-=***=-' * 10)
     print('Count>4')
+
     for _, row in brdf.iterrows():
-        srdf = df[
-            (df['lr'] == row['lr'])
-            & (df['comments'].eq(incomplete_comments + row['comments']))
-            & (df['stack'] == row['stack'])
-            & (df['task_name'] == row['task_name'])
-            & (df['net_name'] == row['net_name'])
+        srdf = plotdf[
+            # (df['lr'] == row['lr'])
+            (plotdf['comments'].eq(row['comments']))
+            & (plotdf['stack'] == row['stack'])
+            & (plotdf['task_name'] == row['task_name'])
+            & (plotdf['net_name'] == row['net_name'])
             ].copy()
 
         # no duplicates
@@ -957,13 +964,16 @@ if remove_incomplete:
 
         # remainder
         rdf = srdf[~srdf.apply(tuple, 1).isin(gsrdf.apply(tuple, 1))]
-        # print(rdf.shape)
-        # rdfs.append(rdf)
-    # allrdfs = pd.concat(rdfs)
-    # print(allrdfs.shape)
+        print(rdf.shape)
+        rdfs.append(rdf)
+
+    allrdfs = pd.concat(rdfs)
+    allrdfs = allrdfs.drop_duplicates()
+    print(allrdfs.shape)
 
     if truely_remove:
-        for rdf in rdfs:
+        # for rdf in rdfs:
+        for rdf in [allrdfs]:
             print(rdf['comments'])
             paths = rdf['path'].values
             for p in paths:
