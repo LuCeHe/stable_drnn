@@ -405,11 +405,11 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
                         if decoder_norm and i == len(stack) - 1 and r4 < .5:
                             output = outputs[0][:, 0, :]
-
+                            print(output.shape, htp1.shape, ctp1.shape)
                             if tf.math.greater(output.shape[-1], htp1.shape[-1] + ctp1.shape[-1]):
                                 max_dim = htp1.shape[-1] + ctp1.shape[-1]
                                 output = sample_axis(output, max_dim=max_dim, axis=1)
-
+                            print(output.shape, htp1.shape, ctp1.shape)
                             norms, loss, naswot_score = get_norms(tape=tape, lower_states=[htp1, ctp1],
                                                                   upper_states=[output],
                                                                   n_samples=n_samples, norm_pow=norm_pow, naswot=naswot,
