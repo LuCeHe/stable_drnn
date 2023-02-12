@@ -35,12 +35,10 @@ os.makedirs(EXPERIMENTS, exist_ok=True)
 
 
 def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, norm_pow=2, naswot=0, comments='',
-              log_epsilon=1e-8, target_norm=1., test=False):
+              log_epsilon=1e-8, target_norm=1., n_s=4, test=False):
     if tape is None and lower_states is None and upper_states is None and test == False:
         raise ValueError('No input data given!')
 
-    print([t.shape for t in lower_states])
-    print([t.shape for t in upper_states])
     norms = None
     loss = 0
     upper_states = [tf.squeeze(hl) for hl in upper_states]
@@ -71,7 +69,6 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
 
         std = sample_axis(td, max_dim=max_dim, axis=sample_ax)
 
-    n_s = 4
     if 'supnpsd' in comments:
         # loss that encourages the matrix to be psd
         z = tf.random.normal((n_s, std.shape[-1]))
