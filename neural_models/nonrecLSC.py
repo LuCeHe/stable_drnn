@@ -43,7 +43,6 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
                       keep_in_layers=None, keep_out_layers=None,
                       net_name='', task_name='', seed=0,
                       activation='', custom_objects=None):
-
     np.random.seed(seed)
     tf.random.set_seed(seed)
 
@@ -51,8 +50,8 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
     round_to = 4
     li, pi, ni = None, None, None
 
-    # 1e1
-    optimizer = AdamW(learning_rate=learning_rate, weight_decay=1e-4)
+    lr = learning_rate[0] if isinstance(learning_rate,tuple) else learning_rate
+    optimizer = AdamW(learning_rate=lr, weight_decay=1e-4)
 
     all_norms = []
     all_losses = []
@@ -72,18 +71,20 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
         keep_out_layers = lnames
 
     inlnames = [
-                   i for i, l in enumerate(lnames)
-                   if not any([s in l for s in skip_in_layers])
-                      and any([s in l for s in keep_in_layers])
-               ]
+        i for i, l in enumerate(lnames)
+        if not any([s in l for s in skip_in_layers])
+           and any([s in l for s in keep_in_layers])
+    ]
     outlnames = [
-                    i for i, l in enumerate(lnames)
-                    if not any([s in l for s in skip_out_layers])
-                       and any([s in l for s in keep_out_layers])
-                ]
+        i for i, l in enumerate(lnames)
+        if not any([s in l for s in skip_out_layers])
+           and any([s in l for s in keep_out_layers])
+    ]
     inlnames = [i for i in inlnames if i < max(outlnames)]
     outlnames = [i for i in outlnames if i > min(inlnames)]
 
+    print(inlnames)
+    print(outlnames)
     del model
     tf.keras.backend.clear_session()
 
@@ -130,8 +131,8 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
             if epsilon_steps > patience:
                 break
 
-            if True:
-                # try:
+            # if True:
+            try:
                 batch = generator.__getitem__(step)[0]
                 if isinstance(batch, list) or isinstance(batch, tuple):
                     batch = [tf.convert_to_tensor(tf.cast(b, tf.float32), dtype=tf.float32) for b in batch]
@@ -146,6 +147,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
                     tf.keras.backend.clear_session()
 
                     model = build_model()
+                    # model.compile(loss='mse', optimizer=optimizer)
                     if not weights is None:
                         model.set_weights(weights)
 
@@ -157,17 +159,28 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
                     loss = 0
                     if isinstance(nlayerjump, int):
                         actual_jump = np.random.choice(list(range(1, nlayerjump)))
-                        pairs[1] = outlist[actual_jump-1]
+                        pairs[1] = outlist[actual_jump - 1]
 
-                    if not 'truersplit' in comments:
-                        premodel, intermodel = split_model(model, pairs)
-                    else:
+                    if 'truersplit' in comments:
                         premodel, intermodel = truer_split_model(model, pairs)
+
+                    elif 'onlyprem' in comments:
+                        print('here!')
+                        lnames = [layer.name for layer in model.layers]
+                        last_layer_name = lnames[pairs[1]]
+                        print(last_layer_name)
+                        intermodel = tf.keras.models.Model(model.input, model.get_layer(last_layer_name).output)
+                        premodel = lambda x: x
+
+                    else:
+                        premodel, intermodel = split_model(model, pairs)
 
                     preinter = premodel(batch)
                     del premodel
                     allpreinter = preinter
 
+                    print('hm')
+                    # print(preinter)
                     if isinstance(allpreinter, list):
                         preinter = allpreinter[0]
                     tape.watch(preinter)
@@ -248,6 +261,23 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
                         if subsample_axis:
                             inp = shuffinp
 
+                        elif 'meanaxis' in comments:
+                            inp = slice
+
+                            shape = interout.shape
+                            ones = np.array(shape) == 1
+                            deslice_axis = list(range(len(shape)))
+                            deslice_axis = [a for a, b in zip(deslice_axis, ones) if b == False and not a == 0]
+
+                            np.random.shuffle(deslice_axis)
+                            deslice_axis = deslice_axis[:-1]
+                            oup = interout
+                            # for axis in deslice_axis:
+                            #     oup = tf.reduce_mean(oup, axis=axis)
+                            print(oup.shape)
+                            oup = tf.reduce_mean(oup, axis=deslice_axis)
+                            print(oup.shape)
+
                         elif 'deslice' in comments:
                             inp = slice
 
@@ -298,7 +328,8 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
                 all_losses.append(loss.numpy())
 
                 grads = tape.gradient(loss, intermodel.trainable_weights)
-                print([g.shape if not g is None else g for g in grads])
+                print([g.shape if not g is None else g for g in grads if len(g.shape) == 1])
+                # print([g.shape if not g is None else g for g in grads])
                 print([w.name for w in intermodel.trainable_weights])
                 optimizer.apply_gradients(zip(grads, intermodel.trainable_weights))
                 del intermodel
@@ -317,9 +348,10 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
                 show_norm = str(ma_norm.numpy().round(round_to))
                 show_avw = str(av_weights.numpy().round(round_to))
 
-            # except Exception as e:
-            #     print(e)
-            #     n_failures += 1
+            except Exception as e:
+                print(e)
+                n_failures += 1
+
 
             if li is None:
                 li = show_loss
@@ -353,7 +385,6 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
 
     model, generator = None, None
     del model, generator
-
 
     results.update(LSC_losses=str(all_losses), LSC_norms=str(all_norms), LSC_fail_rate=str(fail_rate))
     tf.keras.backend.clear_session()

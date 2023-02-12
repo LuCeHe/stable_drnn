@@ -202,7 +202,7 @@ def main(args, experiment_dir):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--comments",
-                        default='deslice_truersplit_findLSC',
+                        default='deslice_truersplit_findLSC_meanaxis',
                         # default='pretrained_deslice_sameemb_truersplit_findLSC_supsubnpsd',
                         # default='',
                         type=str, help="String to activate extra behaviors")
