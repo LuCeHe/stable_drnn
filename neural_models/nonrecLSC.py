@@ -159,14 +159,15 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
                         actual_jump = np.random.choice(list(range(1, nlayerjump)))
                         pairs[1] = outlist[actual_jump - 1]
 
+                    lnames = [layer.name for layer in model.layers]
+                    last_layer_name = lnames[pairs[1]]
+                    print(last_layer_name)
+
                     if 'truersplit' in comments:
                         premodel, intermodel = truer_split_model(model, pairs)
 
                     elif 'onlyprem' in comments:
                         print('here!')
-                        lnames = [layer.name for layer in model.layers]
-                        last_layer_name = lnames[pairs[1]]
-                        print(last_layer_name)
                         intermodel = tf.keras.models.Model(model.input, model.get_layer(last_layer_name).output)
                         premodel = lambda x: x
 
@@ -297,7 +298,6 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
 
                         reoup = tf.reshape(oup, [oup.shape[0], -1])
                         oup = sample_axis(reoup, max_dim=max_dim)
-
                         norms, iloss, naswot_score = get_norms(tape, [inp], [oup], n_samples=n_samples,
                                                                norm_pow=norm_pow, comments=comments)
                         if (norms.numpy() == 1).all():
@@ -321,8 +321,8 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
 
                 grads = tape.gradient(loss, intermodel.trainable_weights)
                 # print([g.shape if not g is None else g for g in grads if len(g.shape) == 1])
-                # print([g.shape if not g is None else g for g in grads])
-                # print([w.name for w in intermodel.trainable_weights])
+                print('g shapes', [g.shape if not g is None else g for g in grads])
+                print('w names ', [w.name for w in intermodel.trainable_weights])
                 optimizer.apply_gradients(zip(grads, intermodel.trainable_weights))
                 del intermodel
                 tf.keras.backend.clear_session()

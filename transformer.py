@@ -115,7 +115,7 @@ def main(args, experiment_dir):
         )
 
         max_dim = str2val(args.comments, 'maxdim', int, default=1024)
-        lsclr = 1e-2,
+        lsclr = 1e-3,
         weights, lsc_results = apply_LSC_no_time(
             bm, generator=gen_lsc, max_dim=max_dim, norm_pow=2, nlayerjump=2,
             skip_in_layers=['embeddinglayer', 'dropout', 'de_concatenate'],
@@ -202,7 +202,7 @@ def main(args, experiment_dir):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--comments",
-                        default='deslice_truersplit_findLSC_meanaxis',
+                        default='deslice_findLSC_meanaxis',
                         # default='pretrained_deslice_sameemb_truersplit_findLSC_supsubnpsd',
                         # default='',
                         type=str, help="String to activate extra behaviors")

@@ -136,10 +136,10 @@ class EncoderLayer(tf.keras.layers.Layer):
     def call(self, inputs, **kwargs):
         # print('-' * 10)
         # print(inputs)
-        if len(inputs) > 2:
-            inputs = [inputs[0], inputs[-1]]
-            if len(inputs[0].shape) == 2:
-                inputs = [tf.expand_dims(inputs[0], 0), tf.expand_dims(inputs[-1], 0)]
+        # if len(inputs) > 2:
+        #     inputs = [inputs[0], inputs[-1]]
+        #     if len(inputs[0].shape) == 2:
+        #         inputs = [tf.expand_dims(inputs[0], 0), tf.expand_dims(inputs[-1], 0)]
 
         # print(inputs)
         x, mask = inputs
