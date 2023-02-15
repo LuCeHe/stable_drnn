@@ -93,13 +93,13 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
 
         a = std @ zT
         preloss = tf.einsum('bks,sk->bs', a, z)
-        loss += tf.reduce_mean(tf.nn.relu(-preloss))/2
+        loss += tf.reduce_mean(tf.nn.relu(-preloss)) / 2
 
         eig = tf.linalg.eigvals(std)
         r = tf.math.real(eig)
         i = tf.math.imag(eig)
         norms = r
-        loss += well_loss(min_value=0., max_value=0., walls_type='relu', axis='all')(i)/2
+        loss += well_loss(min_value=0., max_value=0., walls_type='relu', axis='all')(i) / 2
 
     elif 'logradius' in comments:
         if td.shape[-1] == td.shape[-2]:
@@ -288,6 +288,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
     if weights is None:
         weights = model.get_weights()
+        best_weights = weights
 
     time_start = time.perf_counter()
     time_over = False
@@ -331,8 +332,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
         for t in range(ts):
 
-            if True:
-            # try:
+            # if True:
+            try:
                 bt = batch[0][0][:, t, :][:, None]
                 wt = batch[0][1][:, t][:, None]
 
@@ -405,12 +406,12 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
                         if decoder_norm and i == len(stack) - 1 and r4 < .5:
                             output = outputs[0][:, 0, :]
-                            # print(output.shape, htp1.shape, ctp1.shape)
+
                             if not output.shape[-1] > 100:
                                 if tf.math.greater(output.shape[-1], htp1.shape[-1] + ctp1.shape[-1]):
                                     max_dim = htp1.shape[-1] + ctp1.shape[-1]
                                     output = sample_axis(output, max_dim=max_dim, axis=1)
-                                # print(output.shape, htp1.shape, ctp1.shape)
+
                                 norms, loss, naswot_score = get_norms(tape=tape, lower_states=[htp1, ctp1],
                                                                       upper_states=[output],
                                                                       n_samples=n_samples, norm_pow=norm_pow,
@@ -424,7 +425,6 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
                 best_count += 1
                 if not best_norm is None:
-                    print('here', np.mean(rnorm.numpy()) - target_norm, np.abs(best_norm - target_norm))
                     if np.abs(np.mean(rnorm.numpy()) - target_norm) < np.abs(best_norm - target_norm):
                         best_norm = np.mean(rnorm.numpy())
                         best_weights = model.get_weights()
@@ -434,16 +434,17 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                             print('Saving pretrained lsc weights with best norms')
                             model.save(path_pretrained)
 
-                    elif best_count > 2 * patience:
-                        print('Reloading best weights')
-                        model.set_weights(best_weights)
-
                 if learn:
                     grads = tape.gradient(mean_loss, model.trainable_weights)
                     optimizer.apply_gradients(zip(grads, model.trainable_weights))
                     del grads
 
                 states = states_p1
+
+                if best_count > 2 * patience:
+                    print('Reloading best weights')
+                    weights = best_weights
+                    best_count = 0
 
                 if not np.isnan(mean_loss.numpy()):
                     del weights
@@ -492,8 +493,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                     f"mean norms {show_norm}/{ni} (best {str(best_norm.round(round_to))})"
                 )
 
-            # except Exception as e:
-            #     print(e)
+            except Exception as e:
+                print(e)
 
         del batch
 

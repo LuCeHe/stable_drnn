@@ -49,7 +49,7 @@ one_exp_curves = False
 pandas_means = True
 show_per_tasknet = True
 make_latex = False
-missing_exps = False
+missing_exps = True
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -85,8 +85,14 @@ columns_to_remove = [
 ]
 columns_to_remove = []
 columns_to_remove = ['_var', '_mean', 'sparse_categorical_crossentropy', 'bpc', 'loss',
-                     'sparse_categorical_accuracy', 'LSC_losses', 'rec_norms', 'fail_trace']
-force_keep_column = ['LSC_norms list', 'val_sparse_mode_accuracy list']
+                     'sparse_categorical_accuracy', 'LSC_losses', 'rec_norms', 'fail_trace', 'list']
+force_keep_column = [
+    'LSC_norms list',
+    'val_sparse_mode_accuracy list', 'val_perplexity list',
+    'v_sparse_mode_accuracy list', 'v_perplexity list',
+    't_sparse_mode_accuracy list', 't_perplexity list',
+]
+
 
 df = experiments_to_pandas(
     h5path=h5path, zips_folder=GEXPERIMENTS, unzips_folder=EXPERIMENTS, experiments_identifier=expsid,
@@ -106,8 +112,8 @@ if plot_losses:
 
     plot_metric = 'rec_norms list'
     plot_metric = 'val_perplexity list'
-    # plot_metric = 'val_sparse_categorical_accuracy list'
-    plot_metric = 'LSC_norms list'
+    plot_metric = 'val_sparse_mode_accuracy list'
+    # plot_metric = 'LSC_norms list'
     tasks = df['task_name'].unique()
     nets = df['net_name'].unique()
     comments = df['comments'].unique()
@@ -115,7 +121,8 @@ if plot_losses:
     print(comments)
     print(tasks)
     print(nets)
-    fig, axs = plt.subplots(len(tasks), len(nets), figsize=(len(nets) * 3, len(tasks) * 3))
+    fig, axs = plt.subplots(len(tasks), len(nets), figsize=(len(nets) * 3, len(tasks) * 3),
+                            gridspec_kw={'wspace': .2, 'hspace': 0.8})
     for i, task in enumerate(tasks):
         for j, net in enumerate(nets):
             if not net == 'LIF':
@@ -969,7 +976,7 @@ if remove_incomplete:
 
     allrdfs = pd.concat(rdfs)
     allrdfs = allrdfs.drop_duplicates()
-    print(allrdfs.shape)
+    print(f'Remove {allrdfs.shape} of {plotdf.shape}')
 
     if truely_remove:
         # for rdf in rdfs:
@@ -1020,7 +1027,7 @@ if missing_exps:
 
     all_comments = [
         incomplete_comments,
-        incomplete_comments + f'findLSC',
+        # incomplete_comments + f'findLSC',
         incomplete_comments + f'findLSC_supsubnpsd',
         incomplete_comments + f'findLSC_radius',
         incomplete_comments + f'findLSC_radius_targetnorm:.5',
@@ -1038,7 +1045,7 @@ if missing_exps:
 
     experiment = {
         'task_name': ['heidelberg'],
-        'net_name': nets, 'seed': seeds, 'stack': ['1', '3', '5'],
+        'net_name': nets, 'seed': seeds, 'stack': ['1', '3', '5', '7'],
         'comments': all_comments,
     }
     experiments.append(experiment)
