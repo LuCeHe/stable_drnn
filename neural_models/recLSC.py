@@ -35,7 +35,7 @@ os.makedirs(EXPERIMENTS, exist_ok=True)
 
 
 def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, norm_pow=2, naswot=0, comments='',
-              log_epsilon=1e-8, target_norm=1., n_s=4, test=False):
+              log_epsilon=1e-8, target_norm=1., n_s=2, test=False):
     if tape is None and lower_states is None and upper_states is None and test == False:
         raise ValueError('No input data given!')
 
@@ -93,13 +93,13 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
 
         a = std @ zT
         preloss = tf.einsum('bks,sk->bs', a, z)
-        loss += tf.reduce_mean(tf.nn.relu(-preloss))
+        loss += tf.reduce_mean(tf.nn.relu(-preloss))/2
 
         eig = tf.linalg.eigvals(std)
         r = tf.math.real(eig)
         i = tf.math.imag(eig)
         norms = r
-        loss += well_loss(min_value=0., max_value=0., walls_type='relu', axis='all')(i)
+        loss += well_loss(min_value=0., max_value=0., walls_type='relu', axis='all')(i)/2
 
     elif 'logradius' in comments:
         if td.shape[-1] == td.shape[-2]:
@@ -228,7 +228,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
     all_naswot = []
     rec_norms = {}
 
-    li, pi, mi = None, None, None
+    li, pi, ni = None, None, None
 
     # the else is valid for the LSTM
     hi, ci = (1, 2) if 'LSNN' in net_name else (0, 1)
@@ -297,7 +297,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
     round_to = 4
     ma_loss, ma_norm = None, None
 
-    best_norm = 1e10
+    best_norm = None
     best_count = 0
     for step in range(steps_per_epoch):
         if time_over:
@@ -331,8 +331,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
         for t in range(ts):
 
-            # if True:
-            try:
+            if True:
+            # try:
                 bt = batch[0][0][:, t, :][:, None]
                 wt = batch[0][1][:, t][:, None]
 
@@ -423,13 +423,20 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                         del htp1, ht, ctp1, ct
 
                 best_count += 1
-                if np.abs(np.mean(rnorm.numpy()) - target_norm) < np.abs(best_norm - target_norm):
-                    best_norm = np.mean(rnorm.numpy())
-                    best_weights = model.get_weights()
-                    best_count = 0
+                if not best_norm is None:
+                    print('here', np.mean(rnorm.numpy()) - target_norm, np.abs(best_norm - target_norm))
+                    if np.abs(np.mean(rnorm.numpy()) - target_norm) < np.abs(best_norm - target_norm):
+                        best_norm = np.mean(rnorm.numpy())
+                        best_weights = model.get_weights()
+                        best_count = 0
 
-                elif best_count > patience:
-                    model.set_weights(best_weights)
+                        if 'pretrained' in comments and not model is None:
+                            print('Saving pretrained lsc weights with best norms')
+                            model.save(path_pretrained)
+
+                    elif best_count > 2 * patience:
+                        print('Reloading best weights')
+                        model.set_weights(best_weights)
 
                 if learn:
                     grads = tape.gradient(mean_loss, model.trainable_weights)
@@ -473,7 +480,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                 if li is None and not mean_loss is None:
                     li = str(round(mean_loss.numpy(), 4))
                     pi = str(round(prms, 4))
-                    ni = str(round(norms.numpy(), 4))
+                    ni = str(ma_norm.numpy().round(round_to))
+                    best_norm = np.array(float(ni))
 
                 show_loss = str(ma_loss.numpy().round(round_to))
                 show_norm = str(ma_norm.numpy().round(round_to))
@@ -481,11 +489,11 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                     f"Step {step}; "
                     f"loss {str(show_loss)}/{li}; "
                     f"mean params {str(round(prms, round_to))}/{pi}; "
-                    f"mean norms {show_norm}/{ni} "
+                    f"mean norms {show_norm}/{ni} (best {str(best_norm.round(round_to))})"
                 )
 
-            except Exception as e:
-                print(e)
+            # except Exception as e:
+            #     print(e)
 
         del batch
 
@@ -505,18 +513,9 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
         weights_path = os.path.join(save_weights_path, 'model_weights_lsc_after.h5')
         model.save_weights(weights_path)
 
-    if 'pretrained' in comments and not model is None:
-        if hasattr(ma_norm, 'numpy'):
-            if np.abs(ma_norm.numpy() - target_norm) < np.abs(float(ni) - target_norm):
-                print('Saving pretrained lsc weights')
-                model.save(path_pretrained)
-
     del model, tape
 
-    # results.update(LSC_losses=str(losses), LSC_norms=str(all_norms))
     results.update(LSC_losses=str(losses), LSC_norms=str(all_norms), rec_norms=rec_norms, all_naswot=str(all_naswot))
-
-    # print(rec_norms)
     tf.keras.backend.clear_session()
 
     return weights, results
