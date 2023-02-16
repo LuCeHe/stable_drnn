@@ -145,7 +145,7 @@ class EncoderLayer(tf.keras.layers.Layer):
         x, mask = inputs
         mask = tf.stop_gradient(mask)
 
-        output, attention = self.attention([x, x, x, mask])
+        output = self.attention([x, x, x, mask])
         output = self.dropout_1(output)
         output = self.layer_norm_1(self.add1([x, output]))  # residual network
         output_temp = output
@@ -206,10 +206,10 @@ class DecoderLayer(tf.keras.layers.Layer):
         encoder_output = concats[:, :encoder_length, :]
         decoder_inputs = concats[:, encoder_length:, :]
 
-        output, attention_1 = self.attention([decoder_inputs, decoder_inputs, decoder_inputs, look_ahead_mask])
+        output = self.attention([decoder_inputs, decoder_inputs, decoder_inputs, look_ahead_mask])
         output = self.dropout_1(output)
         query = self.layer_norm_1(self.add1([decoder_inputs, output]))  # residual network
-        output, attention_2 = self.conditioned_attention([query, encoder_output, encoder_output, padding_mask])
+        output = self.conditioned_attention([query, encoder_output, encoder_output, padding_mask])
         output = self.dropout_2(output)
         encoder_decoder_attention_output = self.layer_norm_2(self.add2([output, query]))
 
@@ -280,10 +280,10 @@ class MultiHeadAttention(tf.keras.layers.Layer):
         key = self.split_head(key, batch_size)
         value = self.split_head(value, batch_size)
 
-        output, attention = self.scaled_dot_product(query, key, value, mask)
+        output = self.scaled_dot_product(query, key, value, mask)
         output = self.concat_head(output, batch_size)
 
-        return self.ff(output), attention
+        return self.ff(output)
 
     def split_head(self, tensor, batch_size):
         # inputs tensor: (batch_size, seq_len, d_model)
@@ -318,7 +318,7 @@ class ScaledDotProductAttention(tf.keras.layers.Layer):
 
         attention_weight = tf.nn.softmax(scaled_attention_score, axis=-1)
 
-        return tf.matmul(attention_weight, value), attention_weight
+        return tf.matmul(attention_weight, value)
 
 
 class Embeddinglayer(tf.keras.layers.Layer):

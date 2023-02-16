@@ -34,7 +34,23 @@ extra_acts = {
     'gudermanlu.1': Guderman_T(.1),
     'swish.1': Swish_T(.1),
 }
-
+def get_argparse():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--comments",
+                        default='deslice_findLSC_meanaxis_truersplit',
+                        # default='pretrained_deslice_sameemb_truersplit_findLSC_supsubnpsd',
+                        # default='',
+                        type=str, help="String to activate extra behaviors")
+    parser.add_argument("--activation", default='swish', type=str, help="Network non-linearity")
+    parser.add_argument("--seed", default=5, type=int, help="Random seed")
+    parser.add_argument("--epochs", default=3, type=int, help="Epochs")
+    parser.add_argument("--steps_per_epoch", default=10, type=int, help="Steps per epoch")
+    parser.add_argument("--batch_size", default=16, type=int, help="Batch size")
+    parser.add_argument("--stop_time", default=60, type=int, help="Stop time")
+    parser.add_argument("--results_dir", default=EXPERIMENTS, type=str, help="Experiments Folder")
+    parser.add_argument("--lr", default=3.16e-5, type=float, help="Experiments Folder")
+    args = parser.parse_args()
+    return args
 
 def main(args, experiment_dir):
     comments = args.comments
@@ -90,7 +106,7 @@ def main(args, experiment_dir):
     )
 
     if 'findLSC' in args.comments:
-        lsc_batch_size = 16
+        lsc_batch_size = 8
         bm = lambda: build_model(
             inputs_timesteps=SEQ_MAX_LEN_SOURCE,
             target_timesteps=SEQ_MAX_LEN_TARGET,
@@ -200,21 +216,7 @@ def main(args, experiment_dir):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--comments",
-                        default='deslice_findLSC_meanaxis',
-                        # default='pretrained_deslice_sameemb_truersplit_findLSC_supsubnpsd',
-                        # default='',
-                        type=str, help="String to activate extra behaviors")
-    parser.add_argument("--activation", default='swish', type=str, help="Network non-linearity")
-    parser.add_argument("--seed", default=5, type=int, help="Random seed")
-    parser.add_argument("--epochs", default=3, type=int, help="Epochs")
-    parser.add_argument("--steps_per_epoch", default=10, type=int, help="Steps per epoch")
-    parser.add_argument("--batch_size", default=16, type=int, help="Batch size")
-    parser.add_argument("--stop_time", default=60, type=int, help="Stop time")
-    parser.add_argument("--results_dir", default=EXPERIMENTS, type=str, help="Experiments Folder")
-    parser.add_argument("--lr", default=3.16e-5, type=float, help="Experiments Folder")
-    args = parser.parse_args()
+    args = get_argparse()
 
     EXPERIMENT = os.path.join(args.results_dir, time_string + random_string + '_lsc-transformer')
     os.makedirs(EXPERIMENT, exist_ok=True)

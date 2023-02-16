@@ -42,10 +42,10 @@ plot_norms_evol = False
 plot_norms_evol_1 = False
 lrs_plot = False
 bar_plot = False
-plot_losses = False
+plot_losses = True
 missing_exps = False
-remove_incomplete = True
-truely_remove = True
+remove_incomplete = False
+truely_remove = False
 
 metric = 'val_acc M'  # 'val_acc M'   'val_loss m'
 expsid = 'effnet'  # effnet als ffnandcnns transf
@@ -64,7 +64,9 @@ if expsid == 'effnet':
     df = df[df['comments'].str.contains('newarch')]
     df['comments'] = df['comments'].str.replace('newarch_', '')
     df['comments'] = df['comments'].str.replace('pretrained_', '')
-    df['lr'] = df.apply(lambda x: default_eff_lr(x['activation'], x['lr'], x['batch_normalization']), axis=1)
+    df['lr'] = df.apply(
+        lambda x: default_eff_lr(x['activation'], x['lr'], x['batch_normalization']) if x['lr']==-1 else x['lr'],
+        axis=1)
 
 # select only rows with width 10
 df['time_elapsed'] = pd.to_timedelta(df['time_elapsed'], unit='s')
@@ -445,7 +447,10 @@ if plot_losses:
         axs[i].set_title(a)
 
         for _, row in adf.iterrows():
-            c = row['comments']
+            c = row['comments'].replace('meanaxis_', '')
+            c = c.replace('_meanaxis', '')
+            c = c.replace('_truersplit', '')
+            # print(c, lsc_colors[c], row[metric])
             # if 'truersplit' in c:
             #     print(row[metric])
             axs[i].plot(row[metric], color=lsc_colors[c])
