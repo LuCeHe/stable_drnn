@@ -40,7 +40,7 @@ GEXPERIMENTS = [
 
 plot_norms_evol = False
 plot_norms_evol_1 = False
-lrs_plot = False
+lrs_plot = True
 bar_plot = True
 plot_losses = False
 missing_exps = False
@@ -307,6 +307,9 @@ if lrs_plot:
             title = a if not 'relu' in a else 'ReLU'
             axs[0, j].set_title(title, weight='bold', fontsize=fontsize)
             for c in comments:
+                if 'findLSC' in c and not 'meanaxis' in c:
+                    break
+                c = c.replace('meanaxis_', '')
                 idf = adf[adf['comments'] == c]
                 ys = idf['mean_' + metric].values
                 yerrs = idf['std_' + metric].values
