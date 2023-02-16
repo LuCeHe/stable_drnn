@@ -40,12 +40,12 @@ GEXPERIMENTS = [
 
 plot_norms_evol = False
 plot_norms_evol_1 = False
-lrs_plot = True
-bar_plot = True
+lrs_plot = False
+bar_plot = False
 plot_losses = False
 missing_exps = False
-remove_incomplete = False
-truely_remove = False
+remove_incomplete = True
+truely_remove = True
 
 metric = 'val_acc M'  # 'val_acc M'   'val_loss m'
 expsid = 'effnet'  # effnet als ffnandcnns transf
@@ -64,7 +64,7 @@ if expsid == 'effnet':
     df = df[df['comments'].str.contains('newarch')]
     df['comments'] = df['comments'].str.replace('newarch_', '')
     df['comments'] = df['comments'].str.replace('pretrained_', '')
-    df['lr'] = df.apply(lambda x: default_eff_lr(x['activation'], x['lr']), axis=1)
+    df['lr'] = df.apply(lambda x: default_eff_lr(x['activation'], x['lr'], x['batch_normalization']), axis=1)
 
 # select only rows with width 10
 df['time_elapsed'] = pd.to_timedelta(df['time_elapsed'], unit='s')
@@ -258,6 +258,29 @@ mdf = mdf.sort_values(by='mean_' + metric)
 
 print(mdf.to_string())
 
+if 'effnet' in expsid:
+    # remove string from column comments in the df
+    bn = 0
+    mdf = mdf[~mdf['comments'].eq('deslice_findLSC_truersplit_meanaxis')]
+    no_LSC_string = 'deslice_' if bn == 1 else 'meanaxis_deslice_'
+    mdf = mdf[
+        mdf['comments'].eq(no_LSC_string)
+        | (
+                mdf['comments'].str.contains('findLSC')
+                & mdf['comments'].str.contains('meanaxis')
+        )
+        ]
+    mdf['comments'] = mdf['comments'].str.replace('meanaxis_', '')
+    mdf = mdf[mdf['batch_normalization'].eq(bn)]
+    mdf['comments'] = mdf['comments'].str.replace('deslice_', '')
+    mdf['comments'] = mdf['comments'].str.replace('pretrained_', '')
+    mdf['comments'] = mdf['comments'].str.replace('truersplit_', '')
+    mdf['comments'] = mdf['comments'].str.replace('sameemb_', '')
+
+    mdf['comments'] = mdf['comments'].replace(r'^\s*$', 'heinit', regex=True)
+
+
+
 if lrs_plot:
     from matplotlib.lines import Line2D
 
@@ -270,15 +293,8 @@ if lrs_plot:
         ncol = 3
         bbox_to_anchor = (-.7, -1.)
     elif 'effnet' in expsid or 'transf' in expsid:
-        # remove string from column comments in the df
-        mdf['comments'] = mdf['comments'].str.replace('deslice_', '')
-        mdf['comments'] = mdf['comments'].str.replace('pretrained_', '')
-        mdf['comments'] = mdf['comments'].str.replace('truersplit_', '')
-        mdf['comments'] = mdf['comments'].str.replace('sameemb_', '')
-        mdf['comments'] = mdf['comments'].replace(r'^\s*$', 'heinit', regex=True)
         ncol = 4
         bbox_to_anchor = (-.3, -.4)
-        # mdf['comments'] = mdf['comments'].str.replace('_preprocessinput', '')
 
     datasets = sorted(mdf['dataset'].unique())
     comments = sorted(mdf['comments'].unique())
@@ -287,7 +303,6 @@ if lrs_plot:
 
     print(comments)
 
-    # figsize=(4, 2)
     fig, axs = plt.subplots(
         len(datasets), len(activations), figsize=(5, 3), sharey='row',
         gridspec_kw={'wspace': .3, 'hspace': .1},
@@ -307,9 +322,6 @@ if lrs_plot:
             title = a if not 'relu' in a else 'ReLU'
             axs[0, j].set_title(title, weight='bold', fontsize=fontsize)
             for c in comments:
-                if 'findLSC' in c and not 'meanaxis' in c:
-                    break
-                c = c.replace('meanaxis_', '')
                 idf = adf[adf['comments'] == c]
                 ys = idf['mean_' + metric].values
                 yerrs = idf['std_' + metric].values
@@ -360,14 +372,6 @@ if bar_plot:
     activations = sorted(mdf['act'].unique())
 
     datasets = sorted(mdf['dataset'].unique())
-
-    if 'effnet' in expsid:
-        # remove string from column comments in the df
-        mdf['comments'] = mdf['comments'].str.replace('deslice_', '')
-        mdf['comments'] = mdf['comments'].replace(r'^\s*$', 'heinit', regex=True)
-
-        mdf = mdf[mdf['batch_normalization'].eq(1)]
-
     comments = sorted(mdf['comments'].unique())
 
     # comments = ['', 'heinit', 'findLSC', 'findLSC_radius', 'findLSC_supnpsd2', 'findLSC_supsubnpsd']
@@ -396,11 +400,15 @@ if bar_plot:
             print(a)
 
             # select best lr
-            lrdf = adf[adf['comments'] == 'heinit']
-            lrdf = lrdf[lrdf['mean_' + metric] == lrdf['mean_' + metric].max()]
-            lr = lrdf['lr'].values[0]
-            idf = adf[adf['lr'].astype(float).eq(lr)]
-            iidf = idf[idf['comments'] == c]
+            #fixme:
+            if bn ==1:
+                lrdf = adf[adf['comments'] == 'heinit']
+                lrdf = lrdf[lrdf['mean_' + metric] == lrdf['mean_' + metric].max()]
+                lr = lrdf['lr'].values[0]
+                idf = adf[adf['lr'].astype(float).eq(lr)]
+                iidf = idf[idf['comments'] == c]
+            else:
+                iidf = adf[adf['comments'] == c]
             print(iidf.to_string())
 
             data.append(iidf['mean_' + metric].values[0])
@@ -460,15 +468,27 @@ if remove_incomplete:
     rdfs = []
     for c in ids:
         rdf = df[df['comments'].str.contains(c)]
-        print(rdf.shape)
-        rdfs.append(rdf)
+        # print(rdf.shape)
+        # rdfs.append(rdf)
+
+
+    rdf = df[
+        df['batch_normalization'].eq(0)
+        & df['act'].eq('tanh')
+        & df['comments'].str.contains('findLSC')
+    ]
+    rdfs.append(rdf)
+
+    print(rdf.to_string())
+    print(rdf.shape, odf.shape)
+
 
     # from LSC_norms final column, select those that are epsilon away from 1
     epsilon = 0.09
     epsilon = 2.
     rdf = df[abs(df['LSC_norms f'] - 1) > epsilon]
     # print(rdf.to_string())
-    print(rdf.shape, odf.shape)
+    # print(rdf.shape, odf.shape)
 
     # rdfs.append(rdf)
 
@@ -491,8 +511,8 @@ if remove_incomplete:
         # remainder
         rdf = srdf[~srdf.apply(tuple, 1).isin(gsrdf.apply(tuple, 1))]
         print(rdf.shape, odf.shape)
-        print(rdf.to_string())
-        rdfs.append(rdf)
+        # print(rdf.to_string())
+        # rdfs.append(rdf)
 
 
     rdf = df[df['eps'] < 50]

@@ -45,8 +45,8 @@ def get_argparse():
     parser.add_argument("--seed", default=0, type=int, help="Random seed")
     parser.add_argument("--epochs", default=3, type=int, help="Batch size")
     parser.add_argument("--steps_per_epoch", default=3, type=int, help="Batch size")
-    parser.add_argument("--lr", default=.001, type=float, help="Learning rate")
-    parser.add_argument("--batch_normalization", default=1, type=int, help="Batch normalization")
+    parser.add_argument("--lr", default=-1, type=float, help="Learning rate")
+    parser.add_argument("--batch_normalization", default=0, type=int, help="Batch normalization")
     parser.add_argument("--comments",
                         default='newarch_pretrained_deslice_findLSC_truersplit_preprocessinput_meanaxis',
                         # default='newarch_pretrained_deslice_findLSC_onlyprem_preprocessinput_meanaxis',
@@ -74,13 +74,13 @@ def build_model(args, input_shape, classes, effnet=None):
     input_layer = tf.keras.layers.Input(input_shape)
 
     outeff = EfficientNetB0(
-            include_top=False, weights=None, activation=activation,
-            batch_normalization=bool(args.batch_normalization),
-            kernel_initializer=kernel_initializer,
-            bias_initializer=bias_initializer,
-            comments=args.comments,
-            input_tensor=input_layer,
-        )
+        include_top=False, weights=None, activation=activation,
+        batch_normalization=bool(args.batch_normalization),
+        kernel_initializer=kernel_initializer,
+        bias_initializer=bias_initializer,
+        comments=args.comments,
+        input_tensor=input_layer,
+    )
 
     readout = tf.keras.layers.Conv2D(4, 3)
     reshape = tf.keras.layers.Reshape((classes,))
@@ -126,16 +126,6 @@ def main(args):
             batch_size=4,
             output_type='[i]o'
         )
-        activation = args.activation if not args.activation in extra_acts.keys() else extra_acts[args.activation]
-
-        kernel_initializer, bias_initializer = 'default', 'default'
-        # bm = lambda: EfficientNetB0(
-        #     include_top=False, weights=None, activation=activation,
-        #     batch_normalization=bool(args.batch_normalization),
-        #     kernel_initializer=kernel_initializer,
-        #     bias_initializer=bias_initializer,
-        #     comments=args.comments
-        # )
 
         bm = lambda: build_model(args, input_shape, classes, effnet=None)
         max_dim = str2val(args.comments, 'maxdim', int, default=64)
@@ -149,7 +139,6 @@ def main(args):
         )
         model = bm()
         model.set_weights(weights)
-        # model = build_model(args, input_shape, classes, effnet=effnet)
 
         results.update(lsc_results)
         results.update(lsclr=lsclr)
@@ -165,7 +154,7 @@ def main(args):
         tf.keras.callbacks.CSVLogger(history_path),
         # tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=10, restore_best_weights=True)
     ]
-    lr = default_eff_lr(args.activation, args.lr)
+    lr = default_eff_lr(args.activation, args.lr, args.batch_normalization)
 
     loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
