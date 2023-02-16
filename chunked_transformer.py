@@ -4,14 +4,14 @@ import numpy as np
 from alif_sg.neural_models.transformer_model import EncoderLayer, DecoderLayer
 from alif_sg.neural_models.transformer_model import build_model
 
-SEQ_MAX_LEN_SOURCE = 100
-SEQ_MAX_LEN_TARGET = 101
-BPE_VOCAB_SIZE = 32000
-encoder_count = 6
-decoder_count=encoder_count
+SEQ_MAX_LEN_SOURCE = 2
+SEQ_MAX_LEN_TARGET = 3
+BPE_VOCAB_SIZE = 2
+encoder_count = 2
+decoder_count = encoder_count
 batch_size = 2
 attention_head_count = 2
-d_model = 12
+d_model = 4
 d_point_wise_ff = 2 * d_model
 dropout_prob = .2
 activation = 'swish'
@@ -67,10 +67,10 @@ decoder_tensor = tf.keras.layers.Input(rep_shape[1:])
 encoder_tensor = tf.keras.layers.Input(rep_shape[1:])
 target_padding_mask = tf.keras.layers.Input(mask_shape[1:])
 output = dec([decoder_tensor, encoder_tensor, target_padding_mask])
-model = tf.keras.Model(inputs=[decoder_tensor, encoder_tensor, target_padding_mask], outputs=output)
+dec_model = tf.keras.Model(inputs=[decoder_tensor, encoder_tensor, target_padding_mask], outputs=output)
 
 # get weights
-weights = model.get_weights()
+weights = dec_model.get_weights()
 
 # turn weights to ones
 # weights = [np.ones_like(w) for w in weights]
@@ -79,10 +79,12 @@ weights = model.get_weights()
 weights = [np.random.binomial(1, .5, w.shape) for w in weights]
 
 # set weights
-model.set_weights(weights)
+dec_model.set_weights(weights)
 
-weights = model.get_weights()
-print(weights[0])
+weights = dec_model.get_weights()
+# print(weights[0])
+
+coders = {'encoder': enc_model, 'decoder': dec_model}
 
 transformer = build_model(
     inputs_timesteps=SEQ_MAX_LEN_SOURCE,
@@ -100,13 +102,44 @@ transformer = build_model(
     comments=comments,
 )
 
-#print names of weights
-print([w.name for w in transformer.weights])
-print(len(transformer.weights))
+def coders2transf():
+    # print names of weights
+    print([w.name for w in transformer.weights])
+    print(len(transformer.weights))
 
-# same for the encoder model
-print([w.name for w in enc.weights])
-print(len(enc.weights))
+    # same for the encoder model
+    print([w.name for w in enc.weights])
+    print(len(enc.weights))
 
-for i, wt in enumerate(transformer.weights):
-    print(i, wt.name)
+    # print(transformer.weights[1])
+    t_weights = transformer.weights
+    print('here!')
+    print(t_weights[0])
+    print(t_weights[1])
+    print(t_weights[2])
+    t_names = [w.name for w in transformer.weights]
+
+    for coder in coders.keys():
+        encoders = np.unique([w.name.split('/')[0] for w in transformer.weights if coder in w.name])
+        print(encoders)
+        for i, e in enumerate(encoders):
+            print(f'------------ {coder}', i, e)
+            enl = [j for j, w in enumerate(transformer.weights) if e in w.name]
+            print(enl)
+            shuffled_coder = []
+            for w in coders[coder].weights:
+                wn = w.numpy()
+                np.random.shuffle(wn)
+                shuffled_coder.append(wn)
+
+            for j, l in enumerate(enl):
+                t_weights[l] = shuffled_coder[j]
+
+    print('here!')
+    print(t_weights[0])
+    print(t_weights[1])
+    print(t_weights[2])
+
+    transformer.set_weights(t_weights)
+
+
