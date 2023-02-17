@@ -1,8 +1,10 @@
 import tensorflow as tf
 import numpy as np
 
+from alif_sg.neural_models.recLSC import get_norms
 from alif_sg.neural_models.transformer_model import EncoderLayer, DecoderLayer
 from alif_sg.neural_models.transformer_model import build_model
+from tensorflow_addons.optimizers import AdamW
 
 SEQ_MAX_LEN_SOURCE = 2
 SEQ_MAX_LEN_TARGET = 3
@@ -15,8 +17,10 @@ d_model = 4
 d_point_wise_ff = 2 * d_model
 dropout_prob = .2
 activation = 'swish'
-comments = ''
+comments = 'meanaxis_supsubnpsd'
 layer_index = 0
+epochs = 5
+lr = 1e-3
 
 enc = EncoderLayer(
     attention_head_count,
@@ -40,7 +44,7 @@ dec = DecoderLayer(
 
 # here (16, 100, 512) (16, 1, 1, 100)
 
-rep_shape = (batch_size, 3, d_model)
+rep_shape = (batch_size, SEQ_MAX_LEN_SOURCE, d_model)
 mask_shape = [rep_shape[0]] + [1, 1] + [rep_shape[1]]
 
 input_layer = tf.keras.layers.Input(rep_shape[1:])
@@ -102,6 +106,7 @@ transformer = build_model(
     comments=comments,
 )
 
+
 def coders2transf():
     # print names of weights
     print([w.name for w in transformer.weights])
@@ -143,3 +148,36 @@ def coders2transf():
     transformer.set_weights(t_weights)
 
 
+optimizer = AdamW(learning_rate=lr, weight_decay=1e-4)
+
+for e in range(epochs):
+    # calculate the gradient
+    with tf.GradientTape(persistent=True, watch_accessed_variables=True) as tape:
+        # pass a random input to the encoder
+        input_layer = tf.random.uniform((batch_size, SEQ_MAX_LEN_SOURCE, d_model))
+
+        inp = tf.reshape(input_layer, (batch_size, -1))
+        reshaped_inp = tf.reshape(inp, (batch_size, SEQ_MAX_LEN_SOURCE, d_model))
+        mask_layer = tf.cast(tf.random.uniform((batch_size, 1, 1, SEQ_MAX_LEN_SOURCE)) > 0.5, tf.float32)
+        output = enc_model([input_layer, mask_layer])
+
+        # inp = input_layer
+        # calculate the loss
+        if 'meanaxis' in comments:
+            shape = output.shape
+            ones = np.array(shape) == 1
+            deslice_axis = list(range(len(shape)))
+            deslice_axis = [a for a, b in zip(deslice_axis, ones) if b == False and not a == 0]
+
+            np.random.shuffle(deslice_axis)
+            deslice_axis = deslice_axis[:-1]
+            oup = output
+            output = tf.reduce_mean(oup, axis=deslice_axis)
+
+        norms, iloss, naswot_score = get_norms(tape, [inp], [output], comments=comments)
+        loss = iloss
+    print(e)
+    grads = tape.gradient(loss, enc_model.trainable_weights)
+    print(loss)
+    print(grads)
+    optimizer.apply_gradients(zip(grads, enc_model.trainable_weights))

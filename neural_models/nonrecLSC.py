@@ -167,7 +167,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
                         premodel, intermodel = truer_split_model(model, pairs)
 
                     elif 'onlyprem' in comments:
-                        print('here!')
+                        # print('here!')
                         intermodel = tf.keras.models.Model(model.input, model.get_layer(last_layer_name).output)
                         premodel = lambda x: x
 
