@@ -93,13 +93,13 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
 
         a = std @ zT
         preloss = tf.einsum('bks,sk->bs', a, z)
-        loss += tf.reduce_mean(tf.nn.relu(-preloss)) / 2
+        loss += tf.reduce_mean(tf.nn.relu(-preloss)) / 4
 
         eig = tf.linalg.eigvals(std)
         r = tf.math.real(eig)
         i = tf.math.imag(eig)
         norms = r
-        loss += well_loss(min_value=0., max_value=0., walls_type='relu', axis='all')(i) / 2
+        loss += well_loss(min_value=0., max_value=0., walls_type='relu', axis='all')(i) / 4
 
     elif 'logradius' in comments:
         if td.shape[-1] == td.shape[-2]:

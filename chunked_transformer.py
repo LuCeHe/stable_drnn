@@ -1,60 +1,90 @@
 import tensorflow as tf
 import numpy as np
+import matplotlib.pyplot as plt
 
 from alif_sg.neural_models.recLSC import get_norms
 from alif_sg.neural_models.transformer_model import EncoderLayer, DecoderLayer
 from alif_sg.neural_models.transformer_model import build_model
 from tensorflow_addons.optimizers import AdamW
 
-SEQ_MAX_LEN_SOURCE = 2
-SEQ_MAX_LEN_TARGET = 3
+SEQ_MAX_LEN_SOURCE = 3
+SEQ_MAX_LEN_TARGET = SEQ_MAX_LEN_SOURCE + 1
 BPE_VOCAB_SIZE = 2
 encoder_count = 2
 decoder_count = encoder_count
-batch_size = 2
+batch_size = 32
 attention_head_count = 2
-d_model = 4
+d_model = 64
 d_point_wise_ff = 2 * d_model
 dropout_prob = .2
 activation = 'swish'
-comments = 'meanaxis_supsubnpsd'
+comments = 'meanaxis_supsubnpsd_deslonly:1'
+# comments = 'meanaxis_radius_deslonly:1'
+# comments = 'meanaxis_radius'
+# comments = 'supsubnpsd'
 layer_index = 0
-epochs = 5
-lr = 1e-3
+epochs = 20
 
-enc = EncoderLayer(
-    attention_head_count,
-    d_model,
-    d_point_wise_ff,
-    dropout_prob,
-    activation=activation,
-    comments=comments,
-    layer_index=layer_index
-)
+if not 'supsubnpsd' in comments:
+    lr = 1e-1  # 1e-6 went to 0.61 norm, 1e-3/1e-2 show an upper trend
+    weight_decay = 1e-2
 
-dec = DecoderLayer(
-    attention_head_count,
-    d_model,
-    d_point_wise_ff,
-    dropout_prob,
-    activation=activation,
-    comments=comments,
-    layer_index=layer_index
-)
+    optimizer = AdamW(learning_rate=lr, weight_decay=weight_decay)
+    # optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
+else:
+    lr = 1e-2
+    weight_decay = 1e-6
 
-# here (16, 100, 512) (16, 1, 1, 100)
+    # optimizer = AdamW(learning_rate=lr, weight_decay=weight_decay)
+    optimizer = tf.keras.optimizers.SGD(learning_rate=lr)
+    # optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
 
 rep_shape = (batch_size, SEQ_MAX_LEN_SOURCE, d_model)
 mask_shape = [rep_shape[0]] + [1, 1] + [rep_shape[1]]
 
-input_layer = tf.keras.layers.Input(rep_shape[1:])
-mask_layer = tf.keras.layers.Input(mask_shape[1:])
 
-print(input_layer.shape)
-print(mask_layer.shape)
+def get_enc_model():
+    enc = EncoderLayer(
+        attention_head_count,
+        d_model,
+        d_point_wise_ff,
+        dropout_prob,
+        activation=activation,
+        comments=comments,
+        layer_index=layer_index
+    )
 
-output = enc([input_layer, mask_layer])
-enc_model = tf.keras.Model(inputs=[input_layer, mask_layer], outputs=output)
+    input_layer = tf.keras.layers.Input(rep_shape[1:])
+    mask_layer = tf.keras.layers.Input(mask_shape[1:])
+
+    output = enc([input_layer, mask_layer])
+    enc_model = tf.keras.Model(inputs=[input_layer, mask_layer], outputs=output)
+    return enc_model
+
+
+def get_dec_model():
+    dec = DecoderLayer(
+        attention_head_count,
+        d_model,
+        d_point_wise_ff,
+        dropout_prob,
+        activation=activation,
+        comments=comments,
+        layer_index=layer_index
+    )
+    decoder_tensor = tf.keras.layers.Input(rep_shape[1:])
+    encoder_tensor = tf.keras.layers.Input(rep_shape[1:])
+    target_padding_mask = tf.keras.layers.Input(mask_shape[1:])
+    output = dec([decoder_tensor, encoder_tensor, target_padding_mask])
+    dec_model = tf.keras.Model(inputs=[decoder_tensor, encoder_tensor, target_padding_mask], outputs=output)
+    return dec_model
+
+
+enc_model = get_enc_model()
+dec_model = get_dec_model()
+
+# here (16, 100, 512) (16, 1, 1, 100)
+
 
 # get weights
 enc_weights = enc_model.get_weights()
@@ -64,14 +94,6 @@ enc_weights = [np.ones_like(w) for w in enc_weights]
 
 # set weights
 enc_model.set_weights(enc_weights)
-
-print(output.shape)
-
-decoder_tensor = tf.keras.layers.Input(rep_shape[1:])
-encoder_tensor = tf.keras.layers.Input(rep_shape[1:])
-target_padding_mask = tf.keras.layers.Input(mask_shape[1:])
-output = dec([decoder_tensor, encoder_tensor, target_padding_mask])
-dec_model = tf.keras.Model(inputs=[decoder_tensor, encoder_tensor, target_padding_mask], outputs=output)
 
 # get weights
 weights = dec_model.get_weights()
@@ -88,7 +110,10 @@ dec_model.set_weights(weights)
 weights = dec_model.get_weights()
 # print(weights[0])
 
-coders = {'encoder': enc_model, 'decoder': dec_model}
+coders = {
+    'encoder': get_enc_model(),
+    # 'decoder': get_dec_model()
+}
 
 transformer = build_model(
     inputs_timesteps=SEQ_MAX_LEN_SOURCE,
@@ -148,36 +173,73 @@ def coders2transf():
     transformer.set_weights(t_weights)
 
 
-optimizer = AdamW(learning_rate=lr, weight_decay=1e-4)
 
-for e in range(epochs):
-    # calculate the gradient
-    with tf.GradientTape(persistent=True, watch_accessed_variables=True) as tape:
-        # pass a random input to the encoder
-        input_layer = tf.random.uniform((batch_size, SEQ_MAX_LEN_SOURCE, d_model))
+n_inputs = {'encoder': 1, 'decoder': 2}
 
-        inp = tf.reshape(input_layer, (batch_size, -1))
-        reshaped_inp = tf.reshape(inp, (batch_size, SEQ_MAX_LEN_SOURCE, d_model))
-        mask_layer = tf.cast(tf.random.uniform((batch_size, 1, 1, SEQ_MAX_LEN_SOURCE)) > 0.5, tf.float32)
-        output = enc_model([input_layer, mask_layer])
+for coder_name in coders.keys():
+    print(f'------------ {coder_name}')
+    weights = None
+    loss_list, norm_list = [], []
+    for e in range(epochs):
+        # calculate the gradient
+        with tf.GradientTape(persistent=True, watch_accessed_variables=True) as tape:
 
-        # inp = input_layer
-        # calculate the loss
-        if 'meanaxis' in comments:
-            shape = output.shape
-            ones = np.array(shape) == 1
-            deslice_axis = list(range(len(shape)))
-            deslice_axis = [a for a, b in zip(deslice_axis, ones) if b == False and not a == 0]
+            coder_model = coders[coder_name]
+            if not weights is None:
+                coder_model.set_weights(weights)
 
-            np.random.shuffle(deslice_axis)
-            deslice_axis = deslice_axis[:-1]
-            oup = output
-            output = tf.reduce_mean(oup, axis=deslice_axis)
+            # pass a random input to the encoder
+            inputs = []
+            for _ in range(n_inputs[coder_name]):
+                input_layer = tf.random.normal((batch_size, SEQ_MAX_LEN_SOURCE, d_model))
+                tape.watch(input_layer)
+                inputs.append(input_layer)
 
-        norms, iloss, naswot_score = get_norms(tape, [inp], [output], comments=comments)
-        loss = iloss
-    print(e)
-    grads = tape.gradient(loss, enc_model.trainable_weights)
-    print(loss)
-    print(grads)
-    optimizer.apply_gradients(zip(grads, enc_model.trainable_weights))
+            inp = tf.reshape(input_layer, (batch_size, -1))
+            reshaped_inp = tf.reshape(inp, (batch_size, SEQ_MAX_LEN_SOURCE, d_model))
+            inputs[0] = reshaped_inp
+            np.random.shuffle(inputs)
+
+            mask_layer = tf.cast(tf.random.uniform((batch_size, 1, 1, SEQ_MAX_LEN_SOURCE)) > 0.5, tf.float32)
+            tape.watch(mask_layer)
+
+            output = coder_model([*inputs, mask_layer])
+
+            # calculate the loss
+            if 'meanaxis' in comments:
+                if 'deslonly:1' in comments:
+                    deslice_axis = [1]
+                else:
+                    shape = output.shape
+                    ones = np.array(shape) == 1
+                    deslice_axis = list(range(len(shape)))
+                    deslice_axis = [d for d, o in zip(deslice_axis, ones) if o == False and not d == 0]
+
+                    np.random.shuffle(deslice_axis)
+                    deslice_axis = deslice_axis[:-1]
+                output = tf.reduce_mean(output, axis=deslice_axis)
+            norms, iloss, _ = get_norms(tape, [inp], [output], comments=comments)
+            loss = iloss
+        grads = tape.gradient(loss, coder_model.trainable_weights)
+        optimizer.apply_gradients(zip(grads, coder_model.trainable_weights))
+        norm = tf.reduce_mean(norms).numpy().round(4)
+        loss = tf.reduce_mean(loss).numpy().round(4)
+
+        loss_list.append(loss)
+        norm_list.append(norm)
+
+        weights = coder_model.get_weights()
+
+        # if not 'supsubnpsd' in comments:
+        for w in weights:
+            np.random.shuffle(w)
+
+        print(f'Epoch {e} - loss: {str(loss)} - norm: {str(norm)} - desliced on {deslice_axis}')
+
+    # plot norms and losses as subplots
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
+    ax1.plot(loss_list)
+    ax1.set_title('Loss')
+    ax2.plot(norm_list)
+    ax2.set_title('Norm')
+    plt.show()
