@@ -12,6 +12,7 @@ from GenericTools.keras_tools.esoteric_callbacks import LearningRateLogger, Time
 from GenericTools.keras_tools.esoteric_losses import sparse_perplexity
 from GenericTools.keras_tools.plot_tools import plot_history
 from GenericTools.stay_organized.utils import NumpyEncoder, str2val
+from alif_sg.neural_models.chunked_transformer import chunked_lsc
 from alif_sg.neural_models.nonrecLSC import apply_LSC_no_time
 from alif_sg.neural_models.transformer_model import build_model
 from filmformer.generation_data.data_loader import WMT_ENDE
@@ -34,23 +35,27 @@ extra_acts = {
     'gudermanlu.1': Guderman_T(.1),
     'swish.1': Swish_T(.1),
 }
+
+
 def get_argparse():
     parser = argparse.ArgumentParser()
     parser.add_argument("--comments",
-                        default='deslice_findLSC_meanaxis_truersplit',
+                        # default='deslice_findLSC_meanaxis_truersplit',
+                        # default='chunked_deslice_findLSC_meanaxis_truersplit',
                         # default='pretrained_deslice_sameemb_truersplit_findLSC_supsubnpsd',
-                        # default='',
+                        default='',
                         type=str, help="String to activate extra behaviors")
     parser.add_argument("--activation", default='swish', type=str, help="Network non-linearity")
     parser.add_argument("--seed", default=5, type=int, help="Random seed")
     parser.add_argument("--epochs", default=3, type=int, help="Epochs")
-    parser.add_argument("--steps_per_epoch", default=10, type=int, help="Steps per epoch")
+    parser.add_argument("--steps_per_epoch", default=2, type=int, help="Steps per epoch")
     parser.add_argument("--batch_size", default=16, type=int, help="Batch size")
     parser.add_argument("--stop_time", default=60, type=int, help="Stop time")
     parser.add_argument("--results_dir", default=EXPERIMENTS, type=str, help="Experiments Folder")
     parser.add_argument("--lr", default=3.16e-5, type=float, help="Experiments Folder")
     args = parser.parse_args()
     return args
+
 
 def main(args, experiment_dir):
     comments = args.comments
@@ -81,7 +86,7 @@ def main(args, experiment_dir):
     if 'DESKTOP-4MV34QG' in socket.gethostname():
         DATA_LIMIT = 200000
         BATCH_SIZE = 2
-        D_MODEL = 512
+        D_MODEL = 8
         ATTENTION_HEAD_COUNT = 8
         # comments += 'test'
 
@@ -105,7 +110,27 @@ def main(args, experiment_dir):
         comments=args.comments,
     )
 
-    if 'findLSC' in args.comments:
+    if 'chunked' in args.comments:
+        model, lsc_results = chunked_lsc(
+            SEQ_MAX_LEN_SOURCE=SEQ_MAX_LEN_SOURCE,
+            SEQ_MAX_LEN_TARGET=SEQ_MAX_LEN_TARGET,
+            pretrain_SEQ_MAX_LEN_SOURCE=50,
+            BPE_VOCAB_SIZE=BPE_VOCAB_SIZE,
+            encoder_count=ENCODER_COUNT,
+            decoder_count=DECODER_COUNT,
+            attention_head_count=ATTENTION_HEAD_COUNT,
+            d_model=D_MODEL,
+            d_point_wise_ff=D_POINT_WISE_FF,
+            dropout_prob=DROPOUT_PROB,
+            activation=activation,
+            comments=args.comments,
+            plot_pretraining=False,
+            layer_index=0,
+            epochs=1,
+        )
+        results.update(lsc_results)
+
+    elif 'findLSC' in args.comments:
         lsc_batch_size = 8
         bm = lambda: build_model(
             inputs_timesteps=SEQ_MAX_LEN_SOURCE,
