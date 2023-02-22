@@ -49,12 +49,12 @@ def config():
 
     # test configuration
     epochs = 2
-    steps_per_epoch = 10
+    steps_per_epoch = 2
     batch_size = 2
 
     # net
     # maLSNN cLSTM LSTM maLSNNb
-    net_name = 'maLSNN'
+    net_name = 'maLSNNb'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
     stack = '4:3'
     n_neurons = 3
@@ -63,7 +63,7 @@ def config():
     comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_findLSC_supsubnpsd_test_pretrained_deslice'
     # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_findLSC_supsubnpsd_test_pretrained'
     # comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_findLSC_supsubnpsd_test_pretrained_randlsc'
-    comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_supsubnpsd_test'
+    comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_targetnorm:.5_test'
     # 'truersplit'
 
     # optimizer properties
@@ -188,7 +188,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
             if 'heidelberg' in task_name and 'maLSNN' in net_name:
                 new_batch_size = 100
                 if stack == 7:
-                    new_batch_size = 50
+                    new_batch_size = 32
 
                 new_comments = str2val(new_comments, 'batchsize', replace=new_batch_size)
 

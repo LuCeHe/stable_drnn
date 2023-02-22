@@ -936,19 +936,11 @@ if remove_incomplete:
     rdfs.append(rdf)
 
     # remove LSC that didn't record LSC norms
-    print('remove LSC that didnt record LSC norms')
-    rdf = plotdf[plotdf['comments'].str.contains('findLSC')]
-    rdf = rdf[rdf['LSC_norms f'].isna()]
-    print(rdf.to_string())
 
     print('remove old settings')
-    rdf = plotdf[plotdf['comments'].str.contains('_randlsc')]
+    rdf = plotdf[plotdf['comments'].eq('allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC')]
     rdfs.append(rdf)
-    print(rdf.to_string())
-
-    rdf = plotdf[plotdf['comments'].str.contains('deslice')]
-    rdfs.append(rdf)
-    print(rdf.to_string())
+    print(rdf.shape)
 
     # remove repeated
     # remove one seed from those that have more than 4 seeds
@@ -983,8 +975,8 @@ if remove_incomplete:
         for rdf in [allrdfs]:
             print(rdf['comments'])
             paths = rdf['path'].values
-            for p in paths:
-                print('Removing {}'.format(p))
+            for i, p in enumerate(paths):
+                print(f'{i}/{len(paths)} Removing {p}')
                 exps_path = p
                 gexp_path = os.path.join(GEXPERIMENTS[0], os.path.split(p)[1] + '.zip')
                 print(exps_path)
@@ -1028,7 +1020,7 @@ if missing_exps:
     all_comments = [
         incomplete_comments,
         # incomplete_comments + f'findLSC',
-        incomplete_comments + f'findLSC_supsubnpsd',
+        # incomplete_comments + f'findLSC_supsubnpsd',
         incomplete_comments + f'findLSC_radius',
         incomplete_comments + f'findLSC_radius_targetnorm:.5',
         # incomplete_comments + f'findLSC_radius_targetnorm:.5_randlsc',
