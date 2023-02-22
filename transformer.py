@@ -41,9 +41,9 @@ def get_argparse():
     parser = argparse.ArgumentParser()
     parser.add_argument("--comments",
                         # default='deslice_findLSC_meanaxis_truersplit',
-                        # default='chunked_deslice_findLSC_meanaxis_truersplit',
+                        default='chunked_deslice_findLSC_meanaxis_truersplit',
                         # default='pretrained_deslice_sameemb_truersplit_findLSC_supsubnpsd',
-                        default='',
+                        # default='',
                         type=str, help="String to activate extra behaviors")
     parser.add_argument("--activation", default='swish', type=str, help="Network non-linearity")
     parser.add_argument("--seed", default=5, type=int, help="Random seed")
@@ -77,6 +77,7 @@ def main(args, experiment_dir):
     SEQ_MAX_LEN_SOURCE = 100
     SEQ_MAX_LEN_TARGET = 101
     BPE_VOCAB_SIZE = 32000
+    pretraining_epochs = 100
 
     # for overfitting test hyper parameters
     # BATCH_SIZE = 32
@@ -87,7 +88,8 @@ def main(args, experiment_dir):
         DATA_LIMIT = 200000
         BATCH_SIZE = 2
         D_MODEL = 8
-        ATTENTION_HEAD_COUNT = 8
+        ATTENTION_HEAD_COUNT = 2
+        pretraining_epochs = 2
         # comments += 'test'
 
     GLOBAL_BATCH_SIZE = (args.batch_size * 1)
@@ -110,8 +112,8 @@ def main(args, experiment_dir):
         comments=args.comments,
     )
 
-    if 'chunked' in args.comments:
-        model, lsc_results = chunked_lsc(
+    if 'chunked' in args.comments and 'findLSC' in args.comments:
+        weights, lsc_results = chunked_lsc(
             SEQ_MAX_LEN_SOURCE=SEQ_MAX_LEN_SOURCE,
             SEQ_MAX_LEN_TARGET=SEQ_MAX_LEN_TARGET,
             pretrain_SEQ_MAX_LEN_SOURCE=50,
@@ -126,9 +128,12 @@ def main(args, experiment_dir):
             comments=args.comments,
             plot_pretraining=False,
             layer_index=0,
-            epochs=1,
+            epochs=pretraining_epochs,
         )
         results.update(lsc_results)
+        model = bm()
+        model.set_weights(weights)
+
 
     elif 'findLSC' in args.comments:
         lsc_batch_size = 8

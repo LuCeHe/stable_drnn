@@ -1,4 +1,7 @@
+from tqdm import tqdm
+
 import tensorflow as tf
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -79,13 +82,13 @@ def coders2transf(coders, encoder_count, decoder_count, attention_head_count, d_
 
     t_weights = transformer.weights
 
-    for coder in coders.keys():
+    for coder in tqdm(coders.keys()):
         encoders = np.unique([w.name.split('/')[0] for w in transformer.weights if coder in w.name])
-        print(encoders)
+        # print(encoders)
         for i, e in enumerate(encoders):
-            print(f'------------ {coder}', i, e)
+            # print(f'------------ {coder}', i, e)
             enl = [j for j, w in enumerate(transformer.weights) if e in w.name]
-            print(enl)
+            # print(enl)
             shuffled_coder = []
             for w in coders[coder].weights:
                 wn = w.numpy()
@@ -93,6 +96,7 @@ def coders2transf(coders, encoder_count, decoder_count, attention_head_count, d_
                 shuffled_coder.append(wn)
 
             for j, l in enumerate(enl):
+                # print(t_weights[l].shape, shuffled_coder[j].shape)
                 t_weights[l] = shuffled_coder[j]
 
     print('Weights were passed to the Transformer!')
@@ -156,9 +160,11 @@ def chunked_lsc(
 
     results = {}
     for coder_name in coders_fn.keys():
-        print(f'------------ {coder_name}')
+        print(f'------------ Pretraining the {coder_name}')
         weights = None
         loss_list, norm_list = [], []
+        pbar = tqdm(total=epochs)
+
         for e in range(epochs):
             # calculate the gradient
             with tf.GradientTape(persistent=True, watch_accessed_variables=True) as tape:
@@ -226,10 +232,15 @@ def chunked_lsc(
             for w in weights:
                 np.random.shuffle(w)
 
-            print(f'Epoch {e} - loss: {str(loss)} - norm: {str(norm)} - desliced on {deslice_axis}')
-
-        coders_2_transformer[coder_name].set_weights(weights)
-
+            # print(f'Epoch {e} - loss: {str(loss)} - norm: {str(norm)} - desliced on {deslice_axis}')
+            pbar.update(1)
+            pbar.set_description(
+                f'Epoch {e} - loss: {str(loss)} - norm: {str(norm)} - desliced on {deslice_axis}'
+            )
+        if not weights is None:
+            coders_2_transformer[coder_name].set_weights(weights)
+        results[coder_name + '_loss'] = loss_list
+        results[coder_name + '_norm'] = norm_list
         if plot_pretraining:
             # plot norms and losses as subplots
             fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
@@ -243,7 +254,7 @@ def chunked_lsc(
                                 d_point_wise_ff, dropout_prob, activation, comments, batch_size, SEQ_MAX_LEN_SOURCE,
                                 SEQ_MAX_LEN_TARGET, BPE_VOCAB_SIZE)
 
-    return transformer, results
+    return transformer.get_weights(), results
 
 
 if __name__ == '__main__':

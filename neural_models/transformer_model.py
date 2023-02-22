@@ -69,12 +69,12 @@ class Transformer(object):
 
         self.source_padding = PaddingMask()
         self.target_padding = PaddingMask()
-        self.linear = tf.keras.layers.Dense(target_vocab_size)
+        # self.linear = tf.keras.layers.Dense(target_vocab_size)
 
-        # self.decoder_embedding_layer.build((1,))
-        # embm = tf.transpose(self.decoder_embedding_layer.embedding.embeddings)
-        # self.project = ProjectionLayer()
-        # self.project.project_matrix = embm
+        self.decoder_embedding_layer.embedding.build((1,))
+        embm = tf.transpose(self.decoder_embedding_layer.embedding.embeddings)
+        self.project = ProjectionLayer()
+        self.project.project_matrix = embm
 
     def __call__(self, inputs):
         source, target = inputs
@@ -102,7 +102,7 @@ class Transformer(object):
 
         # output = decoder_tensor @ self.emb_matrix
 
-        output = self.linear(decoder_tensor)
+        output = self.project(decoder_tensor)
 
         return output
 
