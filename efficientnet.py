@@ -1,4 +1,4 @@
-import argparse, os, time, json, shutil, socket, random
+import argparse, os, time, json, shutil, socket, random, copy
 import numpy as np
 
 from GenericTools.keras_tools.esoteric_activations.smoothrelus import Guderman_T, Swish_T
@@ -48,7 +48,7 @@ def get_argparse():
     parser.add_argument("--lr", default=-1, type=float, help="Learning rate")
     parser.add_argument("--batch_normalization", default=0, type=int, help="Batch normalization")
     parser.add_argument("--comments",
-                        default='newarch_pretrained_deslice_findLSC_truersplit_preprocessinput_meanaxis',
+                        default='newarch_deflect_truersplit_pretrained_findLSC_preprocessinput_meanaxis',
                         # default='newarch_pretrained_deslice_findLSC_onlyprem_preprocessinput_meanaxis',
                         # default='newarch_pretrained_deslice_findLSC_truersplit_preprocessinput',
                         type=str, help="String to activate extra behaviors")
@@ -66,14 +66,14 @@ def get_argparse():
     return args
 
 
-def build_model(args, input_shape, classes, effnet=None):
+def build_model(args, input_shape, classes):
     # model parameters initialization
     kernel_initializer, bias_initializer = 'default', 'default'
     activation = args.activation if not args.activation in extra_acts.keys() else extra_acts[args.activation]
 
     input_layer = tf.keras.layers.Input(input_shape)
 
-    outeff = EfficientNetB0(
+    outmodel = EfficientNetB0(
         include_top=False, weights=None, activation=activation,
         batch_normalization=bool(args.batch_normalization),
         kernel_initializer=kernel_initializer,
@@ -82,15 +82,10 @@ def build_model(args, input_shape, classes, effnet=None):
         input_tensor=input_layer,
     )
 
-    readout = tf.keras.layers.Conv2D(4, 3)
-    reshape = tf.keras.layers.Reshape((classes,))
-
-    # model graph construction
-    # outeff = effnet(input_layer)
-
-    # outmodel = readout(outeff)
-    # print(outmodel.shape)
-    outmodel = reshape(readout(outeff))
+    if not 'noresize' in args.comments:
+        readout = tf.keras.layers.Conv2D(4, 3)
+        reshape = tf.keras.layers.Reshape((classes,))
+        outmodel = reshape(readout(outmodel))
 
     model = tf.keras.models.Model(input_layer, outmodel)
     return model
@@ -123,16 +118,23 @@ def main(args):
         gen_train = NumpyClassificationGenerator(
             x_train, y_train,
             epochs=3, steps_per_epoch=args.steps_per_epoch,
-            batch_size=4,
+            batch_size=2,
             output_type='[i]o'
         )
 
-        bm = lambda: build_model(args, input_shape, classes, effnet=None)
-        max_dim = str2val(args.comments, 'maxdim', int, default=64)
-        lsclr = 1.0e-4
+        lsc_args = copy.deepcopy(args)
+        # lsc_args.comments = lsc_args.comments.replace('findLSC', 'findLSC_noresize')
+
+        bm = lambda: build_model(lsc_args, input_shape, classes)
+        max_dim = str2val(args.comments, 'maxdim', int, default=1024)
+        lsclr = 1.0e-3
+        if not 'deslice' in args.comments:
+            subsample_axis = True
+
         weights, lsc_results = apply_LSC_no_time(
             build_model=bm, generator=gen_train, max_dim=max_dim, norm_pow=2, comments=args.comments,
             net_name='eff', seed=args.seed, task_name=args.dataset, activation=args.activation,
+            subsample_axis=subsample_axis,
             learning_rate=lsclr,
             skip_in_layers=['rescaling', 'normalization', 'resizing'],
             skip_out_layers=['rescaling', 'normalization', 'resizing'],

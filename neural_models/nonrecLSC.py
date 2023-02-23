@@ -36,7 +36,7 @@ def get_weights_statistics(results, weight_names, weights):
     return results
 
 
-def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_pow=2, forward_lsc=False,
+def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_pow=2, forward_lsc=False,
                       nlayerjump=None, comments='', epsilon=.06, patience=20, learning_rate=3.16e-3,
                       subsample_axis=False,
                       skip_in_layers=[], skip_out_layers=[],
@@ -161,18 +161,21 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
 
                     lnames = [layer.name for layer in model.layers]
                     last_layer_name = lnames[pairs[1]]
-                    print(last_layer_name)
+                    # print(last_layer_name)
 
                     if 'truersplit' in comments:
                         premodel, intermodel = truer_split_model(model, pairs)
 
                     elif 'onlyprem' in comments:
-                        # print('here!')
                         intermodel = tf.keras.models.Model(model.input, model.get_layer(last_layer_name).output)
                         premodel = lambda x: x
 
                     else:
                         premodel, intermodel = split_model(model, pairs)
+
+
+                    # print('letssee', batch.shape)
+
 
                     preinter = premodel(batch)
                     del premodel
@@ -182,7 +185,22 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
                         preinter = allpreinter[0]
                     tape.watch(preinter)
 
-                    if subsample_axis and not forward_lsc:
+
+                    if 'deflect' in comments:
+                        target_shape = preinter.shape[1:]
+                        inp = tf.random.normal((preinter.shape[0], max_dim))
+                        projector = tf.random.normal([max_dim] + list(target_shape), mean=1)
+
+                        tape.watch(inp)
+                        tape.watch(projector)
+
+                        dest = ''.join(np.random.choice(list('klmnop'), size=len(target_shape), replace=False))
+                        projection = tf.einsum(f'ij,j{dest}->i{dest}', inp, projector)
+                        new_preinter = projection
+
+
+
+                    elif subsample_axis and not forward_lsc:
                         # flatten and deflatten to make sure the flat version is in the gradient graph
                         # preinter_shape = preinter.shape
                         flat_inp = tf.reshape(preinter, [preinter.shape[0], -1])
@@ -191,6 +209,8 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
                         # so the derivative will be taken correctly
                         shuffinp, reminder, indices = sample_axis(flat_inp, max_dim=max_dim,
                                                                   return_deshuffling=True)
+
+
                         defhuffledinp = desample_axis(shuffinp, reminder, indices)
 
                         assert tf.math.reduce_all(tf.equal(defhuffledinp, flat_inp))
@@ -198,6 +218,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
                         new_preinter = tf.reshape(defhuffledinp, preinter.shape)
 
                         assert tf.math.reduce_all(tf.equal(new_preinter, preinter))
+                        inp = shuffinp
 
                     elif 'deslice' in comments:
                         shape = preinter.shape
@@ -236,9 +257,11 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
                             st = desample_axis(st, reminders[i], deshuffles[i], axis=deslice_axis[i])
 
                         new_preinter = st
+                        inp = slice
 
                     else:
                         new_preinter = preinter
+                        inp = preinter
 
                     if isinstance(allpreinter, list):
                         allpreinter[0] = new_preinter
@@ -255,12 +278,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
                             interout = interout[idx]
                         oup = interout
 
-                        if subsample_axis:
-                            inp = shuffinp
-
-                        elif 'meanaxis' in comments:
-                            inp = slice
-
+                        if 'meanaxis' in comments:
                             shape = interout.shape
                             ones = np.array(shape) == 1
                             deslice_axis = list(range(len(shape)))
@@ -272,7 +290,6 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
                             oup = tf.reduce_mean(oup, axis=deslice_axis)
 
                         elif 'deslice' in comments:
-                            inp = slice
 
                             shape = interout.shape
                             ones = np.array(shape) == 1
@@ -321,8 +338,8 @@ def apply_LSC_no_time(build_model, generator, max_dim=1024, n_samples=-1, norm_p
 
                 grads = tape.gradient(loss, intermodel.trainable_weights)
                 # print([g.shape if not g is None else g for g in grads if len(g.shape) == 1])
-                print('g shapes', [g.shape if not g is None else g for g in grads])
-                print('w names ', [w.name for w in intermodel.trainable_weights])
+                # print('g shapes', [g.shape if not g is None else g for g in grads])
+                # print('w names ', [w.name for w in intermodel.trainable_weights])
                 optimizer.apply_gradients(zip(grads, intermodel.trainable_weights))
                 del intermodel
                 tf.keras.backend.clear_session()

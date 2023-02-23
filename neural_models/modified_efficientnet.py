@@ -325,7 +325,10 @@ def EfficientNet(
     if 'preprocessinput' in comments:
         x = tf.keras.layers.experimental.preprocessing.Rescaling(1. / 255.)(x)
         x = tf.keras.layers.experimental.preprocessing.Normalization(axis=bn_axis)(x)
-        x = tf.keras.layers.experimental.preprocessing.Resizing(224, 224, interpolation="bilinear")(x)
+
+        if not 'noresize' in comments:
+            x = tf.keras.layers.experimental.preprocessing.Resizing(224, 224, interpolation="bilinear")(x)
+
         x = layers.ZeroPadding2D(
             padding=imagenet_utils.correct_pad(x, 3),
             name='stem_conv_pad')(x)

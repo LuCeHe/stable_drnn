@@ -41,8 +41,8 @@ GEXPERIMENTS = [
 plot_norms_evol = False
 plot_norms_evol_1 = False
 lrs_plot = False
-bar_plot = False
-plot_losses = True
+bar_plot = True
+plot_losses = False
 missing_exps = False
 remove_incomplete = False
 truely_remove = False
@@ -394,16 +394,17 @@ if bar_plot:
     w = 1 / (len(comments) + 1)
 
     for i, c in enumerate(comments):
+
         data = []
         error = []
 
         for a in activations:
             adf = mdf[mdf['act'] == a]
-            print(a)
+            print(a, c)
 
             # select best lr
             #fixme:
-            if bn ==1:
+            if bn == 1:
                 lrdf = adf[adf['comments'] == 'heinit']
                 lrdf = lrdf[lrdf['mean_' + metric] == lrdf['mean_' + metric].max()]
                 lr = lrdf['lr'].values[0]
@@ -411,6 +412,8 @@ if bar_plot:
                 iidf = idf[idf['comments'] == c]
             else:
                 iidf = adf[adf['comments'] == c]
+                iidf = iidf[iidf['mean_val_acc M'] == iidf['mean_val_acc M'].max()]
+
             print(iidf.to_string())
 
             data.append(iidf['mean_' + metric].values[0])
