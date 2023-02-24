@@ -166,79 +166,83 @@ def chunked_lsc(
         pbar = tqdm(total=epochs)
 
         for e in range(epochs):
-            # calculate the gradient
-            with tf.GradientTape(persistent=True, watch_accessed_variables=True) as tape:
+            try:
+                # calculate the gradient
+                with tf.GradientTape(persistent=True, watch_accessed_variables=True) as tape:
 
-                coder_model = coders_fn[coder_name]
-                if not weights is None:
-                    coder_model.set_weights(weights)
+                    coder_model = coders_fn[coder_name]
+                    if not weights is None:
+                        coder_model.set_weights(weights)
 
-                # pass a random input to the encoder
-                inputs = []
-                for _ in range(n_inputs[coder_name]):
+                    # pass a random input to the encoder
+                    inputs = []
+                    for _ in range(n_inputs[coder_name]):
+                        if not coder_name == 'embedding':
+                            input_layer = tf.random.normal((batch_size, pretrain_SEQ_MAX_LEN_SOURCE, d_model))
+                        else:
+                            # random integers from 0 to 100
+                            input_layer = tf.random.uniform((batch_size, pretrain_SEQ_MAX_LEN_SOURCE), minval=0,
+                                                            maxval=BPE_VOCAB_SIZE,
+                                                            dtype=tf.int32)
+
+                        tape.watch(input_layer)
+                        inputs.append(input_layer)
+
+                    inp = tf.reshape(input_layer, (batch_size, -1))
                     if not coder_name == 'embedding':
-                        input_layer = tf.random.normal((batch_size, pretrain_SEQ_MAX_LEN_SOURCE, d_model))
+                        reshaped_inp = tf.reshape(inp, (batch_size, pretrain_SEQ_MAX_LEN_SOURCE, d_model))
                     else:
-                        # random integers from 0 to 100
-                        input_layer = tf.random.uniform((batch_size, pretrain_SEQ_MAX_LEN_SOURCE), minval=0,
-                                                        maxval=BPE_VOCAB_SIZE,
-                                                        dtype=tf.int32)
+                        reshaped_inp = inp
 
-                    tape.watch(input_layer)
-                    inputs.append(input_layer)
+                    inputs[0] = reshaped_inp
+                    np.random.shuffle(inputs)
 
-                inp = tf.reshape(input_layer, (batch_size, -1))
-                if not coder_name == 'embedding':
-                    reshaped_inp = tf.reshape(inp, (batch_size, pretrain_SEQ_MAX_LEN_SOURCE, d_model))
-                else:
-                    reshaped_inp = inp
+                    if not coder_name == 'embedding':
+                        mask_layer = tf.cast(tf.random.uniform((batch_size, 1, 1, pretrain_SEQ_MAX_LEN_SOURCE)) > 0.5, tf.float32)
+                        tape.watch(mask_layer)
+                        inputs.append(mask_layer)
 
-                inputs[0] = reshaped_inp
-                np.random.shuffle(inputs)
+                    output = coder_model(inputs)
 
-                if not coder_name == 'embedding':
-                    mask_layer = tf.cast(tf.random.uniform((batch_size, 1, 1, pretrain_SEQ_MAX_LEN_SOURCE)) > 0.5, tf.float32)
-                    tape.watch(mask_layer)
-                    inputs.append(mask_layer)
+                    # calculate the loss
+                    if 'meanaxis' in comments:
+                        if 'deslonly:1' in comments:
+                            deslice_axis = [1]
+                        else:
+                            shape = output.shape
+                            ones = np.array(shape) == 1
+                            deslice_axis = list(range(len(shape)))
+                            deslice_axis = [d for d, o in zip(deslice_axis, ones) if o == False and not d == 0]
 
-                output = coder_model(inputs)
+                            np.random.shuffle(deslice_axis)
+                            deslice_axis = deslice_axis[:-1]
+                        output = tf.reduce_mean(output, axis=deslice_axis)
+                    norms, iloss, _ = get_norms(tape, [inp], [output], comments=comments)
+                    loss = iloss
+                grads = tape.gradient(loss, coder_model.trainable_weights)
+                optimizer.apply_gradients(zip(grads, coder_model.trainable_weights))
+                norm = tf.reduce_mean(norms).numpy().round(4)
+                loss = tf.reduce_mean(loss).numpy().round(4)
 
-                # calculate the loss
-                if 'meanaxis' in comments:
-                    if 'deslonly:1' in comments:
-                        deslice_axis = [1]
-                    else:
-                        shape = output.shape
-                        ones = np.array(shape) == 1
-                        deslice_axis = list(range(len(shape)))
-                        deslice_axis = [d for d, o in zip(deslice_axis, ones) if o == False and not d == 0]
+                loss_list.append(loss)
+                norm_list.append(norm)
 
-                        np.random.shuffle(deslice_axis)
-                        deslice_axis = deslice_axis[:-1]
-                    output = tf.reduce_mean(output, axis=deslice_axis)
-                norms, iloss, _ = get_norms(tape, [inp], [output], comments=comments)
-                loss = iloss
-            grads = tape.gradient(loss, coder_model.trainable_weights)
-            optimizer.apply_gradients(zip(grads, coder_model.trainable_weights))
-            norm = tf.reduce_mean(norms).numpy().round(4)
-            loss = tf.reduce_mean(loss).numpy().round(4)
+                weights = coder_model.get_weights()
 
-            loss_list.append(loss)
-            norm_list.append(norm)
+                # if not 'supsubnpsd' in comments:
+                for w in weights:
+                    np.random.shuffle(w)
 
-            weights = coder_model.get_weights()
-
-            # if not 'supsubnpsd' in comments:
-            for w in weights:
-                np.random.shuffle(w)
-
-            # print(f'Epoch {e} - loss: {str(loss)} - norm: {str(norm)} - desliced on {deslice_axis}')
-            pbar.update(1)
-            pbar.set_description(
-                f'Epoch {e} - loss: {str(loss)} - norm: {str(norm)} - desliced on {deslice_axis}'
-            )
+                # print(f'Epoch {e} - loss: {str(loss)} - norm: {str(norm)} - desliced on {deslice_axis}')
+                pbar.update(1)
+                pbar.set_description(
+                    f'Epoch {e} - loss: {str(loss)} - norm: {str(norm)} - desliced on {deslice_axis}'
+                )
+            except Exception as e:
+                print(e)
         if not weights is None:
             coders_2_transformer[coder_name].set_weights(weights)
+
         results[coder_name + '_loss'] = loss_list
         results[coder_name + '_norm'] = norm_list
         if plot_pretraining:
