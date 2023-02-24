@@ -48,6 +48,7 @@ def get_argparse():
     parser.add_argument("--activation", default='swish', type=str, help="Network non-linearity")
     parser.add_argument("--seed", default=5, type=int, help="Random seed")
     parser.add_argument("--epochs", default=3, type=int, help="Epochs")
+    parser.add_argument("--pretraining_epochs", default=100, type=int, help="Pretraining Epochs")
     parser.add_argument("--steps_per_epoch", default=2, type=int, help="Steps per epoch")
     parser.add_argument("--batch_size", default=16, type=int, help="Batch size")
     parser.add_argument("--stop_time", default=60, type=int, help="Stop time")
@@ -77,7 +78,7 @@ def main(args, experiment_dir):
     SEQ_MAX_LEN_SOURCE = 100
     SEQ_MAX_LEN_TARGET = 101
     BPE_VOCAB_SIZE = 32000
-    pretraining_epochs = 100
+    pretraining_epochs = args.pretraining_epochs
 
     # for overfitting test hyper parameters
     # BATCH_SIZE = 32
