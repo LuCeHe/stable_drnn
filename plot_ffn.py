@@ -41,16 +41,17 @@ GEXPERIMENTS = [
 plot_norms_evol = False
 plot_norms_evol_1 = False
 lrs_plot = False
-bar_plot = True
-plot_losses = False
+bar_plot = False
+plot_losses = True
 missing_exps = False
 remove_incomplete = False
 truely_remove = False
 
 metric = 'val_acc M'  # 'val_acc M'   'val_loss m'
-expsid = 'effnet'  # effnet als ffnandcnns transf
+expsid = 'transf'  # effnet als ffnandcnns transf
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
-force_keep_column = ['LSC_norms list', 'val_sparse_categorical_accuracy list', 'val_loss list']
+force_keep_column = ['LSC_norms list', 'val_sparse_categorical_accuracy list', 'val_loss list',
+                     'encoder_norm list', 'decoder_norm list']
 
 df = experiments_to_pandas(
     h5path=h5path, zips_folder=GEXPERIMENTS, unzips_folder=EXPERIMENTS, experiments_identifier=expsid,
@@ -65,7 +66,7 @@ if expsid == 'effnet':
     df['comments'] = df['comments'].str.replace('newarch_', '')
     df['comments'] = df['comments'].str.replace('pretrained_', '')
     df['lr'] = df.apply(
-        lambda x: default_eff_lr(x['activation'], x['lr'], x['batch_normalization']) if x['lr']==-1 else x['lr'],
+        lambda x: default_eff_lr(x['activation'], x['lr'], x['batch_normalization']) if x['lr'] == -1 else x['lr'],
         axis=1)
 
 # select only rows with width 10
@@ -197,6 +198,7 @@ df = df.rename(columns={'test_loss': 'test_loss m', 'test_acc': 'test_acc M'})
 metrics_oi = ['val_acc M', 'test_acc M', 'val_loss m', 'test_loss m', 'LSC_norms i', 'LSC_norms f']
 stats_oi = ['mean', 'std']  # ['mean', 'std']
 group_cols = ['lr', 'comments', 'act', 'dataset']
+bn = 1
 if 'ffnandcnns' in expsid:
     plot_only = [
         'act', 'pre_eps', 'eps', 'dataset',
@@ -217,25 +219,27 @@ elif 'effnet' in expsid:
     ]
     group_cols = ['lr', 'comments', 'act', 'dataset', 'batch_normalization']
 
-
 elif 'transf' in expsid:
     plot_only = [
         'act', 'eps', 'dataset',
         'seed', 'lr', 'comments',
-        'val_acc M', 'val_loss m',
-        # 'test_acc M', 'test_loss m',
-        'val_ppl M', 'val_ppl m',
-        # 'test_ppl M', 'test_ppl m',
-        # 'LSC_norms i', 'LSC_norms f',
+        'val_ppl m',
+        'LSC_norms i', 'LSC_norms f',
+        'encoder_norm i', 'encoder_norm f',
+        'decoder_norm i', 'decoder_norm f',
         'ep M', 'time_elapsed', 'hostname', 'path',
+        'dataset',
     ]
     metrics_oi = [
-        'val_acc M', 'val_loss m', 'val_ppl m',
-        # 'LSC_norms i', 'LSC_norms f'
+        'val_ppl m',
+        'LSC_norms f',
+        'encoder_norm f',
+        'decoder_norm f',
     ]
-    # group_cols = ['lr', 'comments', 'act']
+    group_cols = ['lr', 'comments', 'act']
     df['dataset'] = 'ende'
     metric = 'val_ppl m'  # 'val_acc M'   'val_loss min'
+    stats_ois = ['mean']
 
 df = df[plot_only]
 df = df.sort_values(by=metric)
@@ -280,8 +284,6 @@ if 'effnet' in expsid:
     mdf['comments'] = mdf['comments'].str.replace('sameemb_', '')
 
     mdf['comments'] = mdf['comments'].replace(r'^\s*$', 'heinit', regex=True)
-
-
 
 if lrs_plot:
     from matplotlib.lines import Line2D
@@ -403,7 +405,7 @@ if bar_plot:
             print(a, c)
 
             # select best lr
-            #fixme:
+            # fixme:
             if bn == 1:
                 lrdf = adf[adf['comments'] == 'heinit']
                 lrdf = lrdf[lrdf['mean_' + metric] == lrdf['mean_' + metric].max()]
@@ -443,7 +445,7 @@ if plot_losses:
     activations = sorted(df['act'].unique())
 
     fig, axs = plt.subplots(1, len(activations), figsize=(6, 3))
-    metric = 'LSC_norms list'  # 'val_acc list' 'loss list' LSC_norms
+    metric = 'decoder_norm list'  # 'val_acc list' 'loss list' LSC_norms encoder_norm decoder_norm
 
     for i, a in enumerate(activations):
         adf = df[df['act'] == a]
@@ -453,6 +455,10 @@ if plot_losses:
             c = row['comments'].replace('meanaxis_', '')
             c = c.replace('_meanaxis', '')
             c = c.replace('_truersplit', '')
+            c = c.replace('pretrained_', '')
+            c = c.replace('sameemb_', '')
+            c = c.replace('chunked_', '')
+            c = c.replace('_deslice', '')
             # print(c, lsc_colors[c], row[metric])
             # if 'truersplit' in c:
             #     print(row[metric])
@@ -479,17 +485,15 @@ if remove_incomplete:
         # print(rdf.shape)
         # rdfs.append(rdf)
 
-
     rdf = df[
         df['batch_normalization'].eq(0)
         & df['act'].eq('tanh')
         & df['comments'].str.contains('findLSC')
-    ]
+        ]
     rdfs.append(rdf)
 
     print(rdf.to_string())
     print(rdf.shape, odf.shape)
-
 
     # from LSC_norms final column, select those that are epsilon away from 1
     epsilon = 0.09
@@ -521,7 +525,6 @@ if remove_incomplete:
         print(rdf.shape, odf.shape)
         # print(rdf.to_string())
         # rdfs.append(rdf)
-
 
     rdf = df[df['eps'] < 50]
     # rdfs.append(rdf)
