@@ -123,7 +123,13 @@ def chunked_lsc(
         epochs=1,
 ):
     comments += '_deslonly:1'
-    if not 'supsubnpsd' in comments:
+    if 'radius' in comments:
+        lr = 1e0  # 1e-6 went to 0.61 norm, 1e-3/1e-2 show an upper trend
+        weight_decay = 1e-5
+
+        optimizer = AdamW(learning_rate=lr, weight_decay=weight_decay)
+
+    elif not 'supsubnpsd' in comments:
         lr = 1e-1  # 1e-6 went to 0.61 norm, 1e-3/1e-2 show an upper trend
         weight_decay = 1e-2
 
@@ -176,17 +182,30 @@ def chunked_lsc(
 
                     # pass a random input to the encoder
                     inputs = []
-                    for _ in range(n_inputs[coder_name]):
-                        if not coder_name == 'embedding':
-                            input_layer = tf.random.normal((batch_size, pretrain_SEQ_MAX_LEN_SOURCE, d_model))
-                        else:
-                            # random integers from 0 to 100
-                            input_layer = tf.random.uniform((batch_size, pretrain_SEQ_MAX_LEN_SOURCE), minval=0,
-                                                            maxval=BPE_VOCAB_SIZE,
-                                                            dtype=tf.int32)
+                    # for _ in range(n_inputs[coder_name]):
+                    if not coder_name == 'embedding':
+                        # input_layer = tf.random.normal((batch_size, pretrain_SEQ_MAX_LEN_SOURCE, n_inputs[coder_name]*d_model))
+                        input_layer = tf.random.uniform(
+                            (batch_size, pretrain_SEQ_MAX_LEN_SOURCE, n_inputs[coder_name] * d_model),
+                            minval=-1, maxval=1
+                        )
 
-                        tape.watch(input_layer)
+
+                    else:
+                        # random integers from 0 to 100
+                        input_layer = tf.random.uniform((batch_size, pretrain_SEQ_MAX_LEN_SOURCE), minval=0,
+                                                        maxval=BPE_VOCAB_SIZE,
+                                                        dtype=tf.int32)
+
+                    tape.watch(input_layer)
+
+                    if 'encoder' in coder_name:
                         inputs.append(input_layer)
+                    else:
+                        # split input_layer in 2 in the -1 axis
+                        layers = tf.split(input_layer, 2, axis=-1)
+                        inputs.extend(layers)
+                        input_layer = layers[0]
 
                     inp = tf.reshape(input_layer, (batch_size, -1))
                     if not coder_name == 'embedding':
@@ -198,7 +217,8 @@ def chunked_lsc(
                     np.random.shuffle(inputs)
 
                     if not coder_name == 'embedding':
-                        mask_layer = tf.cast(tf.random.uniform((batch_size, 1, 1, pretrain_SEQ_MAX_LEN_SOURCE)) > 0.5, tf.float32)
+                        mask_layer = tf.cast(tf.random.uniform((batch_size, 1, 1, pretrain_SEQ_MAX_LEN_SOURCE)) > 0.5,
+                                             tf.float32)
                         tape.watch(mask_layer)
                         inputs.append(mask_layer)
 
@@ -229,11 +249,10 @@ def chunked_lsc(
 
                 weights = coder_model.get_weights()
 
-                # if not 'supsubnpsd' in comments:
-                for w in weights:
-                    np.random.shuffle(w)
+                if not 'noshuffle' in comments:
+                    for w in weights:
+                        np.random.shuffle(w)
 
-                # print(f'Epoch {e} - loss: {str(loss)} - norm: {str(norm)} - desliced on {deslice_axis}')
                 pbar.update(1)
                 pbar.set_description(
                     f'Epoch {e} - loss: {str(loss)} - norm: {str(norm)} - desliced on {deslice_axis}'

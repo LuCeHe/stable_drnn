@@ -48,7 +48,7 @@ remove_incomplete = False
 truely_remove = False
 
 metric = 'val_acc M'  # 'val_acc M'   'val_loss m'
-expsid = 'effnet'  # effnet als ffnandcnns transf
+expsid = 'transf'  # effnet als ffnandcnns transf
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 force_keep_column = ['LSC_norms list', 'val_sparse_categorical_accuracy list', 'val_loss list',
                      'encoder_norm list', 'decoder_norm list']
@@ -224,7 +224,7 @@ elif 'effnet' in expsid:
 elif 'transf' in expsid:
     plot_only = [
         'act', 'eps', 'dataset',
-        'seed', 'lr', 'comments',
+        'seed', 'lr', 'comments', 'batch_size',
         'val_ppl m',
         'LSC_norms i', 'LSC_norms f',
         'encoder_norm i', 'encoder_norm f',
@@ -235,8 +235,8 @@ elif 'transf' in expsid:
     metrics_oi = [
         'val_ppl m',
         'LSC_norms f',
-        'encoder_norm f',
-        'decoder_norm f',
+        'encoder_norm f', 'decoder_norm f',
+        'encoder_norm i', 'decoder_norm i',
     ]
     group_cols = ['lr', 'comments', 'act']
     df['dataset'] = 'ende'
@@ -448,7 +448,7 @@ if plot_losses:
     activations = sorted(df['act'].unique())
 
     fig, axs = plt.subplots(1, len(activations), figsize=(6, 3))
-    metric = 'LSC_norms list'  # 'val_acc list' 'loss list' LSC_norms encoder_norm decoder_norm
+    metric = 'decoder_norm list'  # 'val_acc list' 'loss list' LSC_norms encoder_norm decoder_norm
 
     for i, a in enumerate(activations):
         adf = df[df['act'] == a]
@@ -462,7 +462,7 @@ if plot_losses:
             c = c.replace('chunked_', '')
             c = c.replace('_deslice', '')
 
-            axs[i].plot(row[metric], color=lsc_color(c))
+            axs[i].plot(row[metric], color=lsc_color(c), label=c)
 
     plt.legend()
     plt.show()

@@ -41,7 +41,7 @@ def get_argparse():
     parser = argparse.ArgumentParser()
     parser.add_argument("--comments",
                         # default='deslice_findLSC_meanaxis_truersplit',
-                        default='chunked_deslice_findLSC_meanaxis_truersplit',
+                        default='chunked_deslice_findLSC_radius_meanaxis_truersplit',
                         # default='pretrained_deslice_sameemb_truersplit_findLSC_supsubnpsd',
                         # default='',
                         type=str, help="String to activate extra behaviors")
@@ -90,7 +90,7 @@ def main(args, experiment_dir):
         BATCH_SIZE = 2
         D_MODEL = 8
         ATTENTION_HEAD_COUNT = 2
-        pretraining_epochs = 2
+        pretraining_epochs = 20
         # comments += 'test'
 
     GLOBAL_BATCH_SIZE = (args.batch_size * 1)
@@ -200,7 +200,6 @@ def main(args, experiment_dir):
 
     learning_rate = args.lr
     optimizer = tf.optimizers.Adam(learning_rate, beta_1=0.9, beta_2=0.98, epsilon=1e-9)
-    # optimizer = AdamW(learning_rate=learning_rate)
 
     model.compile(
         loss=tf.losses.SparseCategoricalCrossentropy(from_logits=True),
@@ -209,7 +208,6 @@ def main(args, experiment_dir):
             'sparse_categorical_accuracy', tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
             sparse_perplexity
         ],
-        # run_eagerly=True
     )
 
     history_path = os.path.join(experiment_dir, 'history.csv')
