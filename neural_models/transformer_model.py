@@ -6,6 +6,7 @@ import tensorflow as tf
 from GenericTools.keras_tools.esoteric_layers import Identity, Concatenate, DeConcatenate, Compare
 # from GenericTools.keras_tools.esoteric_models.model import modifiedModel
 from filmformer.generation_data.utils import Mask
+from keras_tools.esoteric_layers import ProjectionLayer
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -368,16 +369,6 @@ class Embeddinglayer(tf.keras.layers.Layer):
         return pos / np.power(10000, (index - index % 2) / np.float32(self.d_model))
 
 
-class ProjectionLayer(tf.keras.layers.Layer):
-    def __init__(self):
-        # model hyper parameter variables
-        super().__init__()
-        self.project_matrix = 'project_matrix'
-
-    def call(self, inputs, **kwargs):
-        output = inputs @ self.project_matrix
-
-        return output
 
 
 def build_model(
