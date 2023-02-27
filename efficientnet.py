@@ -41,14 +41,14 @@ def get_argparse():
     parser = argparse.ArgumentParser()
 
     # Required parameters
-    parser.add_argument("--batch_size", default=32, type=int, help="Batch size")
+    parser.add_argument("--batch_size", default=2, type=int, help="Batch size")
     parser.add_argument("--seed", default=0, type=int, help="Random seed")
     parser.add_argument("--epochs", default=3, type=int, help="Batch size")
     parser.add_argument("--steps_per_epoch", default=3, type=int, help="Batch size")
     parser.add_argument("--lr", default=-1, type=float, help="Learning rate")
     parser.add_argument("--batch_normalization", default=0, type=int, help="Batch normalization")
     parser.add_argument("--comments",
-                        default='newarch_deflect_truersplit_pretrained_findLSC_preprocessinput_meanaxis',
+                        default='newarch_deflect_truersplit_pretrained_findLSC_preprocessinput_meanaxis_uniform',
                         # default='newarch_pretrained_deslice_findLSC_onlyprem_preprocessinput_meanaxis',
                         # default='newarch_pretrained_deslice_findLSC_truersplit_preprocessinput',
                         type=str, help="String to activate extra behaviors")
@@ -56,10 +56,8 @@ def get_argparse():
                         choices=['cifar10', 'cifar100', 'mnist'])
     parser.add_argument("--activation", default='tanh', type=str, help="Activation",
                         choices=['swish', 'relu', 'gudermanlu', 'swish.1', 'gudermanlu.1', 'tanh'])
-    parser.add_argument(
-        "--initialization", default='default', type=str, help="Activation to train on",
-        choices=['he', 'critical', 'default']
-    )
+    parser.add_argument("--initialization", default='default', type=str, help="Activation to train on",
+                        choices=['he', 'critical', 'default'])
     parser.add_argument("--stop_time", type=int, default=42, help="Seconds assigned to this job")
 
     args = parser.parse_args()
@@ -126,13 +124,13 @@ def main(args):
         # lsc_args.comments = lsc_args.comments.replace('findLSC', 'findLSC_noresize')
 
         bm = lambda: build_model(lsc_args, input_shape, classes)
-        max_dim = str2val(args.comments, 'maxdim', int, default=1024)
-        lsclr = 1.0e-3
-        if not 'deslice' in args.comments:
-            subsample_axis = True
+        maxdim = str2val(args.comments, 'maxdim', int, default=1024)
+        lsclr = str2val(args.comments, 'lsclr', float, default=1.0e-3)
+
+        subsample_axis = True if not 'deslice' in args.comments else False
 
         weights, lsc_results = apply_LSC_no_time(
-            build_model=bm, generator=gen_train, max_dim=max_dim, norm_pow=2, comments=args.comments,
+            build_model=bm, generator=gen_train, max_dim=maxdim, norm_pow=2, comments=args.comments,
             net_name='eff', seed=args.seed, task_name=args.dataset, activation=args.activation,
             subsample_axis=subsample_axis,
             learning_rate=lsclr,

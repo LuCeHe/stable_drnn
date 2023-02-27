@@ -1,7 +1,7 @@
 import time
 
 from GenericTools.stay_organized.submit_jobs import dict2iter
-from alif_sg.tools.plot_tools import lsc_colors, lsc_clean_comments
+from alif_sg.tools.plot_tools import lsc_colors, lsc_clean_comments, lsc_color
 
 import os
 import numpy as np
@@ -48,7 +48,7 @@ remove_incomplete = False
 truely_remove = False
 
 metric = 'val_acc M'  # 'val_acc M'   'val_loss m'
-expsid = 'transf'  # effnet als ffnandcnns transf
+expsid = 'effnet'  # effnet als ffnandcnns transf
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 force_keep_column = ['LSC_norms list', 'val_sparse_categorical_accuracy list', 'val_loss list',
                      'encoder_norm list', 'decoder_norm list']
@@ -210,6 +210,7 @@ if 'ffnandcnns' in expsid:
         'ep M', 'time_elapsed', 'hostname', 'path',
     ]
 elif 'effnet' in expsid:
+    metrics_oi = ['val_acc M', 'test_acc M', 'LSC_norms i', 'LSC_norms f']
     plot_only = [
         'act', 'eps', 'dataset', 'batch_normalization',
         'seed', 'lr', 'comments',
@@ -218,6 +219,7 @@ elif 'effnet' in expsid:
         'ep M', 'time_elapsed', 'hostname', 'path',
     ]
     group_cols = ['lr', 'comments', 'act', 'dataset', 'batch_normalization']
+    stats_oi = ['mean']
 
 elif 'transf' in expsid:
     plot_only = [
@@ -239,7 +241,7 @@ elif 'transf' in expsid:
     group_cols = ['lr', 'comments', 'act']
     df['dataset'] = 'ende'
     metric = 'val_ppl m'  # 'val_acc M'   'val_loss min'
-    stats_ois = ['mean']
+    stats_oi = ['mean']
 
 df = df[plot_only]
 df = df.sort_values(by=metric)
@@ -441,11 +443,12 @@ if plot_losses:
 
     df['comments'] = df['comments'].str.replace('deslice_', '')
     df['comments'] = df['comments'].str.replace('_preprocessinput', '')
+    df['comments'] = df['comments'].str.replace('pretrained_', '')
 
     activations = sorted(df['act'].unique())
 
     fig, axs = plt.subplots(1, len(activations), figsize=(6, 3))
-    metric = 'decoder_norm list'  # 'val_acc list' 'loss list' LSC_norms encoder_norm decoder_norm
+    metric = 'LSC_norms list'  # 'val_acc list' 'loss list' LSC_norms encoder_norm decoder_norm
 
     for i, a in enumerate(activations):
         adf = df[df['act'] == a]
@@ -455,14 +458,11 @@ if plot_losses:
             c = row['comments'].replace('meanaxis_', '')
             c = c.replace('_meanaxis', '')
             c = c.replace('_truersplit', '')
-            c = c.replace('pretrained_', '')
             c = c.replace('sameemb_', '')
             c = c.replace('chunked_', '')
             c = c.replace('_deslice', '')
-            # print(c, lsc_colors[c], row[metric])
-            # if 'truersplit' in c:
-            #     print(row[metric])
-            axs[i].plot(row[metric], color=lsc_colors[c])
+
+            axs[i].plot(row[metric], color=lsc_color(c))
 
     plt.legend()
     plt.show()

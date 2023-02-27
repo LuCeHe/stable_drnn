@@ -1,3 +1,4 @@
+import numpy as np
 def clean_weight_name(wn):
     if 'encoder' in wn or 'reg' in wn:
         layer = wn.split('_')[1]
@@ -188,6 +189,13 @@ lsc_colors = {
     'findLSC_truersplit': [0.2, 0.3, 0.8],
 
 }
+
+def lsc_color(c):
+    if c in lsc_colors.keys():
+        return lsc_colors[c]
+    else:
+        # assign random color
+        return 'r' #np.random.rand(3)
 
 
 def lsc_clean_comments(c):

@@ -189,7 +189,12 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                     if 'deflect' in comments:
                         target_shape = preinter.shape[1:]
                         inp = tf.random.normal((preinter.shape[0], max_dim))
-                        projector = tf.random.normal([max_dim] + list(target_shape), mean=1)
+
+                        if not 'uniform' in comments:
+                            projector = tf.random.normal([max_dim] + list(target_shape))
+                        else:
+                            # same but with uniform distribution, between -1 and 1
+                            projector = tf.random.uniform([max_dim] + list(target_shape), minval=-1, maxval=1)
 
                         tape.watch(inp)
                         tape.watch(projector)
