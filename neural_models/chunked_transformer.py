@@ -111,20 +111,22 @@ def chunked_lsc(
         BPE_VOCAB_SIZE=200,
         encoder_count=2,
         decoder_count=2,
-        batch_size=2,
+        batch_size=16,
         attention_head_count=2,
-        d_model=512,
+        d_model=256,
         d_point_wise_ff=1024,
         dropout_prob=.2,
         activation='swish',
-        comments='meanaxis_deslonly:1',
+        comments='chunked_deslice_findLSC_radius_meanaxis',
+        # comments='chunked_deslice_findLSC_supsubnpsd_meanaxis_noimagloss_normri',
         plot_pretraining=False,
         layer_index=0,
-        epochs=1,
+        epochs=30,
 ):
     comments += '_deslonly:1'
     if 'radius' in comments:
-        lr = 1e0  # 1e-6 went to 0.61 norm, 1e-3/1e-2 show an upper trend
+        print('here?')
+        lr = 1e-1  # 1e-6 went to 0.61 norm, 1e-3/1e-2 show an upper trend
         weight_decay = 1e-5
 
         optimizer = AdamW(learning_rate=lr, weight_decay=weight_decay)
@@ -136,19 +138,21 @@ def chunked_lsc(
         optimizer = AdamW(learning_rate=lr, weight_decay=weight_decay)
         # optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
     else:
-        lr = 1e-2
-        weight_decay = 1e-6
+        print('jere?')
+        lr = 1e-2  # 1e-6 went to 0.61 norm, 1e-3/1e-2 show an upper trend
+        weight_decay = 1e-5
 
-        # optimizer = AdamW(learning_rate=lr, weight_decay=weight_decay)
-        optimizer = tf.keras.optimizers.SGD(learning_rate=lr)
-        # optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
+        # lr = 1e-2
+        # weight_decay = 1e-6
+
+        optimizer = AdamW(learning_rate=lr, weight_decay=weight_decay)
 
     rep_shape = (batch_size, pretrain_SEQ_MAX_LEN_SOURCE, d_model)
     mask_shape = (batch_size, 1, 1, pretrain_SEQ_MAX_LEN_SOURCE)
 
     coders_fn = {
-        'encoder': get_enc_model(attention_head_count, d_model, d_point_wise_ff, dropout_prob, activation, comments,
-                                 layer_index, rep_shape, mask_shape),
+        # 'encoder': get_enc_model(attention_head_count, d_model, d_point_wise_ff, dropout_prob, activation, comments,
+        #                          layer_index, rep_shape, mask_shape),
         'decoder': get_dec_model(attention_head_count, d_model, d_point_wise_ff, dropout_prob, activation, comments,
                                  layer_index, rep_shape, mask_shape),
         # 'embedding': get_emb_model(),
@@ -193,7 +197,15 @@ def chunked_lsc(
 
                     else:
                         # random integers from 0 to 100
-                        input_layer = tf.random.uniform((batch_size, pretrain_SEQ_MAX_LEN_SOURCE), minval=0,
+                        if 'sphere' in comments:
+                            print('nice!')
+                            input_layer = tf.random.uniform((batch_size, pretrain_SEQ_MAX_LEN_SOURCE), minval=0,
+                                                            maxval=BPE_VOCAB_SIZE,
+                                                            dtype=tf.int32)
+                            norm = tf.norm(input_layer, axis=-1, keepdims=True)
+                            input_layer = input_layer / norm
+                        else:
+                            input_layer = tf.random.uniform((batch_size, pretrain_SEQ_MAX_LEN_SOURCE), minval=0,
                                                         maxval=BPE_VOCAB_SIZE,
                                                         dtype=tf.int32)
 
@@ -237,7 +249,9 @@ def chunked_lsc(
                             np.random.shuffle(deslice_axis)
                             deslice_axis = deslice_axis[:-1]
                         output = tf.reduce_mean(output, axis=deslice_axis)
-                    norms, iloss, _ = get_norms(tape, [inp], [output], comments=comments)
+                    else:
+                        output = tf.reshape(output, (batch_size, -1))
+                    norms, iloss, _ = get_norms(tape, [inp], [output], comments=comments, n_s=-1)
                     loss = iloss
                 grads = tape.gradient(loss, coder_model.trainable_weights)
                 optimizer.apply_gradients(zip(grads, coder_model.trainable_weights))
@@ -263,7 +277,7 @@ def chunked_lsc(
             coders_2_transformer[coder_name].set_weights(weights)
 
         results[coder_name + '_loss'] = loss_list
-        results[coder_name + '_norm'] = norm_list
+        results[coder_name + '_norm '] = norm_list
         if plot_pretraining:
             # plot norms and losses as subplots
             fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))

@@ -86,20 +86,27 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
 
     elif 'supsubnpsd' in comments:
         # loss that encourages the matrix to be psd
-        z = tf.random.normal((n_s, std.shape[-1]))
-        zn = tf.norm(z, ord='euclidean', axis=-1)
-        z = z / tf.expand_dims(zn, axis=-1)
-        zT = tf.transpose(z)
+        if n_s > 0:
+            z = tf.random.normal((n_s, std.shape[-1]))
+            zn = tf.norm(z, ord='euclidean', axis=-1)
+            z = z / tf.expand_dims(zn, axis=-1)
+            zT = tf.transpose(z)
 
-        a = std @ zT
-        preloss = tf.einsum('bks,sk->bs', a, z)
-        loss += tf.reduce_mean(tf.nn.relu(-preloss)) / 4
+            a = std @ zT
+            preloss = tf.einsum('bks,sk->bs', a, z)
+            loss += tf.reduce_mean(tf.nn.relu(-preloss)) / 4
 
         eig = tf.linalg.eigvals(std)
         r = tf.math.real(eig)
         i = tf.math.imag(eig)
-        norms = r
-        loss += well_loss(min_value=0., max_value=0., walls_type='relu', axis='all')(i) / 4
+
+        if 'normri' in comments:
+            norms = tf.math.sqrt(r**2 + i**2)
+        else:
+            norms = r
+
+        if not 'noimagloss' in comments:
+            loss += well_loss(min_value=0., max_value=0., walls_type='relu', axis='all')(i) / 4
 
     elif 'logradius' in comments:
         if td.shape[-1] == td.shape[-2]:
@@ -140,6 +147,7 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
         norms = tf.reduce_max(norms, axis=-1)
 
     loss += well_loss(min_value=target_norm, max_value=target_norm, walls_type='relu', axis='all')(norms)
+
     naswot_score = None
     if not naswot == 0:
         batch_size = td.shape[0]

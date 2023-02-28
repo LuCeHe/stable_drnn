@@ -41,14 +41,14 @@ def get_argparse():
     parser = argparse.ArgumentParser()
     parser.add_argument("--comments",
                         # default='deslice_findLSC_meanaxis_truersplit',
-                        default='chunked_deslice_findLSC_radius_meanaxis_truersplit',
+                        default='chunked_deslice_findLSC_radius_meanaxis_truersplit_sphere',
                         # default='pretrained_deslice_sameemb_truersplit_findLSC_supsubnpsd',
                         # default='',
                         type=str, help="String to activate extra behaviors")
     parser.add_argument("--activation", default='swish', type=str, help="Network non-linearity")
     parser.add_argument("--seed", default=5, type=int, help="Random seed")
     parser.add_argument("--epochs", default=3, type=int, help="Epochs")
-    parser.add_argument("--pretraining_epochs", default=100, type=int, help="Pretraining Epochs")
+    parser.add_argument("--pretraining_epochs", default=200, type=int, help="Pretraining Epochs")
     parser.add_argument("--steps_per_epoch", default=2, type=int, help="Steps per epoch")
     parser.add_argument("--batch_size", default=16, type=int, help="Batch size")
     parser.add_argument("--stop_time", default=60, type=int, help="Stop time")
@@ -90,7 +90,7 @@ def main(args, experiment_dir):
         BATCH_SIZE = 2
         D_MODEL = 8
         ATTENTION_HEAD_COUNT = 2
-        pretraining_epochs = 20
+        pretraining_epochs = 30
         # comments += 'test'
 
     GLOBAL_BATCH_SIZE = (args.batch_size * 1)
