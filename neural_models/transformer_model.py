@@ -6,7 +6,7 @@ import tensorflow as tf
 from GenericTools.keras_tools.esoteric_layers import Identity, Concatenate, DeConcatenate, Compare
 # from GenericTools.keras_tools.esoteric_models.model import modifiedModel
 from filmformer.generation_data.utils import Mask
-from keras_tools.esoteric_layers import ProjectionLayer
+from GenericTools.keras_tools.esoteric_layers import ProjectionLayer
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
