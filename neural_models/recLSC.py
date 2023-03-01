@@ -203,7 +203,7 @@ def get_lsctype(comments):
 
 
 def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, steps_per_epoch=2, es_epsilon=.08,
-              patience=10, rec_norm=True, depth_norm=True, encoder_norm=False, decoder_norm=True, learn=True,
+              patience=5, rec_norm=True, depth_norm=True, encoder_norm=False, decoder_norm=True, learn=True,
               time_steps=None, weights=None, save_weights_path=None, lr=1e-3, naswot=0):
     time_string = timeStructured()
     print('LSC starts at: ', time_string)
@@ -457,6 +457,9 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                 if not np.isnan(mean_loss.numpy()):
                     del weights
                     weights = model.get_weights()
+                    if 'lscshuffw' in comments:
+                        for w in weights:
+                            np.random.shuffle(w)
 
                 tf.keras.backend.clear_session()
                 tf.keras.backend.clear_session()
@@ -525,7 +528,29 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
     del model, tape
 
     results.update(LSC_losses=str(losses), LSC_norms=str(all_norms), rec_norms=rec_norms, all_naswot=str(all_naswot))
+
     tf.keras.backend.clear_session()
+    tf.keras.backend.clear_session()
+    tf.keras.backend.clear_session()
+
+    if os.path.exists(path_pretrained):
+        print('Loading pretrained lsc weights')
+        try:
+            model = tf.keras.models.load_model(
+                path_pretrained,
+                custom_objects={
+                    'maLSNN': maLSNN, 'maLSNNb': maLSNNb, 'RateVoltageRegularization': RateVoltageRegularization,
+                    'AddLossLayer': AddLossLayer, 'AddMetricsLayer': AddMetricsLayer,
+                    'SparseCategoricalCrossentropy': tf.keras.losses.SparseCategoricalCrossentropy,
+                    'AdamW': AdamW2, 'DummyConstantSchedule': DummyConstantSchedule,
+                    'SymbolAndPositionEmbedding': SymbolAndPositionEmbedding,
+
+                }
+            )
+            weights = model.get_weights()
+
+        except Exception as e:
+            print(e)
 
     return weights, results
 

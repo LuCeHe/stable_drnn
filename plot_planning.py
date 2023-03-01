@@ -6,6 +6,8 @@ from alif_sg.tools.plot_tools import lsc_colors, lsc_clean_comments
 
 expsid = 'rnns'  # rnns transfeff
 
+extra_name = ''
+title = ''
 if expsid == 'transfeff':
     all_comments = [
         '',
@@ -18,17 +20,21 @@ if expsid == 'transfeff':
     bbox_to_anchor = (-.2, -.3)
     # shift = 1.5
 elif expsid == 'rnns':
-
+    title = 'layers'
     all_comments = [
         '',
-        f'findLSC',
+        # f'findLSC',
         f'findLSC_radius',
         'findLSC_radius_targetnorm:.5',
-        f'findLSC_supsubnpsd',
+        # f'findLSC_supsubnpsd',
     ]
-    archs = ['sl-MNIST'+ r' $\uparrow$', 'SHD'+ r' $\uparrow$', 'PTB'+ r' $\downarrow$']
+    if not title == 'layers':
+        archs = ['sl-MNIST' + r' $\uparrow$', 'SHD' + r' $\uparrow$', 'PTB' + r' $\downarrow$']
+    else:
+        archs = [1, 3, 5, 7]
     activations = ['LSTM', 'ALIF', 'ALIFb']
     bbox_to_anchor = (-.7, -.3)
+    extra_name = '_stack'
 else:
     raise ValueError
 shift = (len(all_comments) + 1) / 2 - 1
@@ -59,7 +65,8 @@ fig.text(0.5, 0.7, 'blueprint plot', va='center', ha='center', rotation='horizon
 legend_elements = [Line2D([0], [0], color=lsc_colors[n], lw=4, label=lsc_clean_comments(n))
                    for n in all_comments]
 plt.legend(ncol=len(all_comments), handles=legend_elements, loc='lower center', bbox_to_anchor=bbox_to_anchor)
+fig.suptitle(title, weight='bold')
 
-plot_filename = f'experiments/{expsid}.pdf'
+plot_filename = f'experiments/{expsid}_{title}.pdf'
 fig.savefig(plot_filename, bbox_inches='tight')
 plt.show()

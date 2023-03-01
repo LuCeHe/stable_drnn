@@ -62,21 +62,22 @@ remove_incomplete = False
 truely_remove = False
 remove_saved_model = False
 
-task_name = 'ps_mnist'  # heidelberg wordptb sl_mnist all ps_mnist
+task = 'ps_mnist'  # heidelberg wordptb sl_mnist all ps_mnist
 incomplete_comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_pretrained_'
 
 # sparse_mode_accuracy sparse_categorical_crossentropy bpc sparse_mode_accuracy_test_10
 # val_sparse_mode_accuracy test_perplexity
-metric = 'v_ppl'  # 'v_ppl min'
+metric = 'v_mode_acc'  # 'v_ppl min'
+metric = shorten_losses(metric)
 optimizer_name = 'SWAAdaBelief'  # SGD SWAAdaBelief
 metrics_oi = [
     # 't_ppl min', 't_mode_acc max', 'v_ppl min', 'v_mode_acc max',
     't_ppl', 't_mode_acc', 'v_ppl', 'v_mode_acc',
-    # 'LSC_norms i',
-    'LSC_norms f'
+    'LSC_norms i', 'LSC_norms f'
 ]
+metrics_oi = [shorten_losses(m) for m in metrics_oi]
 
-plot_only = ['eps', 'net_name', 'task_name', 'n_params', 'stack', 'comments', 'path', 'lr', 'seed'] + metrics_oi
+plot_only = ['eps', 'net', 'task', 'n_params', 'stack', 'comments', 'path', 'lr', 'seed'] + metrics_oi
 columns_to_remove = [
     'heaviside', '_test', 'weight', 'sLSTM_factor', 'save_model', 'clipnorm', 'GPU', 'batch_size',
     'continue_training', 'embedding', 'lr_schedule', 'loss_name', 'seed', 'stack', 'stop_time',
@@ -93,18 +94,22 @@ force_keep_column = [
     't_sparse_mode_accuracy list', 't_perplexity list',
 ]
 
-
 df = experiments_to_pandas(
     h5path=h5path, zips_folder=GEXPERIMENTS, unzips_folder=EXPERIMENTS, experiments_identifier=expsid,
     exclude_files=['cout.txt'], check_for_new=check_for_new,
     exclude_columns=columns_to_remove, force_keep_column=force_keep_column
 )
 
+df = df[~df['stack'].eq('4:3')]
 df['stack'] = df['stack'].fillna(-1).astype(int)
 df = df.replace(-1, 'None')
 df['stack'] = df['stack'].astype(str)
 df['batch_size'] = df['batch_size'].astype(str)
 df['comments'] = df['comments'].str.replace('_pretrained', '')
+df['comments'] = df['comments'].astype(str)
+
+new_column_names = {c_name: shorten_losses(c_name) for c_name in df.columns}
+df.rename(columns=new_column_names, inplace=True)
 
 print(list(df.columns))
 if plot_losses:
@@ -112,10 +117,10 @@ if plot_losses:
 
     plot_metric = 'rec_norms list'
     plot_metric = 'val_perplexity list'
-    plot_metric = 'val_sparse_mode_accuracy list'
-    # plot_metric = 'LSC_norms list'
-    tasks = df['task_name'].unique()
-    nets = df['net_name'].unique()
+    plot_metric = 'val_^acc list'
+    # plot_metric = 'LSC list'
+    tasks = df['task'].unique()
+    nets = df['net'].unique()
     comments = df['comments'].unique()
     df = df[~df['comments'].str.contains('randlsc')]
     print(comments)
@@ -128,7 +133,7 @@ if plot_losses:
             if not net == 'LIF':
                 print('-===-' * 30)
                 print(task, net)
-                idf = df[df['task_name'].str.contains(task) & df['net_name'].str.contains(net)]
+                idf = df[df['task'].str.contains(task) & df['net'].str.contains(net)]
 
                 for _, row in idf.iterrows():
                     n = row['comments']
@@ -151,42 +156,39 @@ if plot_losses:
 if 'n_params' in df.columns:
     df['n_params'] = df['n_params'].apply(lambda x: large_num_to_reasonable_string(x, 1))
 
-df['comments'] = df['comments'].astype(str)
-if 'net_name' in df.columns: df['net_name'] = df['net_name'].astype(str)
-if 'task_name' in df.columns: df['task_name'] = df['task_name'].astype(str)
+if 'net' in df.columns: df['net'] = df['net'].astype(str)
+if 'task' in df.columns: df['task'] = df['task'].astype(str)
 
-if 'net_name' in df.columns:
-    df.loc[df['comments'].str.contains('noalif'), 'net_name'] = 'LIF'
-    df.loc[df['net_name'].str.contains('maLSNNb'), 'net_name'] = 'ALIFb'
-    df.loc[df['net_name'].str.contains('maLSNN'), 'net_name'] = 'ALIF'
+if 'net' in df.columns:
+    df.loc[df['comments'].str.contains('noalif'), 'net'] = 'LIF'
+    df.loc[df['net'].str.contains('maLSNNb'), 'net'] = 'ALIFb'
+    df.loc[df['net'].str.contains('maLSNN'), 'net'] = 'ALIF'
 
-if 'task_name' in df.columns:
-    df.loc[df['task_name'].str.contains('heidelberg'), 'task_name'] = 'SHD'
-    df.loc[df['task_name'].str.contains('sl_mnist'), 'task_name'] = 'sl-MNIST'
-    df.loc[df['task_name'].str.contains('wordptb'), 'task_name'] = 'PTB'
+if 'task' in df.columns:
+    df.loc[df['task'].str.contains('heidelberg'), 'task'] = 'SHD'
+    df.loc[df['task'].str.contains('sl_mnist'), 'task'] = 'sl-MNIST'
+    df.loc[df['task'].str.contains('wordptb'), 'task'] = 'PTB'
 
-new_column_names = {c_name: shorten_losses(c_name) for c_name in df.columns}
-df.rename(columns=new_column_names, inplace=True)
 
 # eps column stays eps if not equal to None else it becomes the content of v_mode_acc len
-df.loc[df['eps'].isnull(), 'eps'] = df.loc[df['eps'].isnull(), 'v_mode_acc len']
+df.loc[df['eps'].isnull(), 'eps'] = df.loc[df['eps'].isnull(), f'{metric} len']
 
-if 'v_mode_acc len' in df.columns:
+if 'v_^acc len' in df.columns:
     # # FIXME: 14 experiments got nans in the heidelberg task validation, plot them anyway?
     print(list(df.columns))
-    print('v_mode_acc nans:', df['v_mode_acc len'].isna().sum())
+    print('v_mode_acc nans:', df['v_^acc len'].isna().sum())
     print('t_ppl nans:', df['t_ppl list'].isna().sum())
-    # df['v_ppl argm'] = df['v_ppl argm'].astype(int)
-    # df['v_mode_acc argM'] = df['v_mode_acc argM'].astype(int)
+    df['v_ppl argm'] = df['v_ppl argm'].astype(int)
+    df['v_^acc argM'] = df['v_^acc argM'].astype(int)
 
     df['v_ppl'] = df['v_ppl m']
-    # df['t_ppl'] = df.apply(lambda row: row['t_ppl list'][row['v_ppl argm']], axis=1)
-    df['v_mode_acc'] = df['v_mode_acc M']
-    # df['t_mode_acc'] = df.apply(lambda row: row['t_mode_acc list'][row['v_mode_acc argM']], axis=1)
-    #
+    df['t_ppl'] = df.apply(lambda row: row['t_ppl list'][row['v_ppl argm']], axis=1)
+    df['v_^acc'] = df['v_^acc M']
+    df['t_^acc'] = df.apply(lambda row: row['t_^acc list'][row['v_^acc argM']], axis=1)
+
     # FIXME: following is incorrect, correct it as soon as you get rid of the NaNs
-    df['t_ppl'] = df['t_ppl m']
-    df['t_mode_acc'] = df['t_mode_acc M']
+    # df['t_ppl'] = df['t_ppl m']
+    # df['t_^acc'] = df['t_^acc M']
 
 for c_name in columns_to_remove:
     df = df[df.columns.drop(list(df.filter(regex=c_name)))]
@@ -194,9 +196,9 @@ for c_name in columns_to_remove:
 if metric in df.keys():
     df = df.sort_values(by=metric)
 
+print(list(df.columns))
 if not plot_only is None:
     plotdf = df[plot_only]
-
     print(plotdf.to_string())
 
 if one_exp_curves:
@@ -247,35 +249,37 @@ if one_exp_curves:
         plt.show()
 
 if pandas_means:
-    group_cols = ['net_name', 'task_name', 'comments', 'stack', 'lr']
+    # group_cols = ['net', 'task', 'comments', 'stack', 'lr']
+    group_cols = ['net', 'task', 'comments', 'stack']
     df['lr'] = df['lr i']
-    # group_cols = ['net_name', 'task_name', 'comments', 'stack', 'lr i']
+    # group_cols = ['net', 'task', 'comments', 'stack', 'lr i']
     counts = df.groupby(group_cols).size().reset_index(name='counts')
     stats = ['mean']  # ['mean', 'std']
     metrics_oi = [shorten_losses(m) for m in metrics_oi]
+    stats_oi = ['mean']  # ['mean', 'std']
     mdf = df.groupby(
         group_cols, as_index=False
-    ).agg({m: ['mean', 'std'] for m in metrics_oi})
+    ).agg({m: stats_oi for m in metrics_oi})
 
     for m in metrics_oi:
-        mdf['mean_{}'.format(m)] = mdf[m]['mean']
-        mdf['std_{}'.format(m)] = mdf[m]['std']
+        for s in stats_oi:
+            mdf[f'{s}_{m}'] = mdf[m][s]
         mdf = mdf.drop([m], axis=1)
     mdf = mdf.droplevel(level=1, axis=1)
     mdf['counts'] = counts['counts']
 
     mdf = mdf.sort_values(by='mean_' + metric)
 
-    tasks = sorted(np.unique(mdf['task_name']))
-    nets = sorted(np.unique(mdf['net_name']))
+    tasks = sorted(np.unique(mdf['task']))
+    nets = sorted(np.unique(mdf['net']))
     stacks = sorted(np.unique(mdf['stack']))
 
     mdf['comments'] = mdf['comments'].str.replace('__', '_', regex=True)
     print(mdf.to_string())
 
     if show_per_tasknet:
-        xdf = mdf
-        xdf['comments'] = xdf['comments'].str.replace('36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_', '')
+        xdf = mdf.copy()
+        xdf['comments'] = xdf['comments'].str.replace('allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_', '')
         for stack in stacks:
             for task in tasks:
                 for net in nets:
@@ -283,10 +287,20 @@ if pandas_means:
                     print(task, net, stack)
 
                     idf = xdf[
-                        xdf['task_name'].eq(task)
-                        & xdf['net_name'].eq(net)
+                        xdf['task'].eq(task)
+                        & xdf['net'].eq(net)
                         & xdf['stack'].eq(stack)
                         ]
+
+                    if not 'wordptb' in task:
+                        idf = idf.sort_values(by='mean_' + metric, ascending=False)
+                    else:
+                        idf = idf.sort_values(by='mean_v_ppl', ascending=True)
+
+                    # new_column_names = {c_name: shorten_losses(c_name) for c_name in idf.columns}
+                    # print(new_column_names)
+                    idf.rename(columns=new_column_names, inplace=True)
+
                     print(idf.to_string())
 
     print('-===-' * 30)
@@ -296,8 +310,8 @@ if pandas_means:
 
         net = 'LSTM'  # ALIF LSTM
 
-        idf = mdf[mdf['net_name'].str.contains(net)]
-        # print(mdf[mdf['net_name'].str.contains('ALIF')].shape, mdf[mdf['net_name'].str.contains('LSTM')].shape)
+        idf = mdf[mdf['net'].str.contains(net)]
+        # print(mdf[mdf['net'].str.contains('ALIF')].shape, mdf[mdf['net'].str.contains('LSTM')].shape)
 
         idf = idf[~idf['comments'].str.contains('reoldspike')]
         idf = idf[~idf['comments'].str.contains('savelscweights')]
@@ -307,14 +321,14 @@ if pandas_means:
         metrics_cols = [c for c in idf.columns if 'ppl' in c or 'acc' in c]
         for m in metrics_cols:
             mode = 'max' if 'acc' in m and not 'std' in m else 'min'
-            idf[f'best_{m}'] = idf.groupby(['task_name'])[m].transform(mode)
+            idf[f'best_{m}'] = idf.groupby(['task'])[m].transform(mode)
             idf[m] = idf.apply(bolden_best(m), axis=1)
 
         idf['ppl'] = idf.apply(compactify_metrics('ppl min'), axis=1)
         idf['acc'] = idf.apply(compactify_metrics('mode_acc max'), axis=1)
         idf['metric'] = idf.apply(choose_metric, axis=1)
         idf = idf[idf.columns.drop(list(idf.filter(regex='acc')) + list(idf.filter(regex='ppl')))]
-        idf = idf[idf.columns.drop(['counts', 'initializer', 'net_name'])]
+        idf = idf[idf.columns.drop(['counts', 'initializer', 'net'])]
 
         idf['comments'] = idf['comments'].str.replace('34_embproj_nogradreset_dropout:.3_timerepeat:2_', '', regex=True)
         idf['comments'] = idf['comments'].str.replace('find', '', regex=True)
@@ -346,7 +360,7 @@ if pandas_means:
 
         idf['comments'] = pd.Categorical(idf['comments'], order_conditions)
 
-        pdf = pd.pivot_table(idf, values='metric', index=['comments'], columns=['task_name'], aggfunc=np.sum)
+        pdf = pd.pivot_table(idf, values='metric', index=['comments'], columns=['task'], aggfunc=np.sum)
         pdf = pdf.replace([0], '-')
 
         pdf = pdf[tasks]
@@ -371,10 +385,10 @@ if plot_init_lrs:
     nets = ['LSTM', 'ALIF', 'ALIFb']
 
     fig, axs = plt.subplots(1, len(tasks), gridspec_kw={'wspace': .2, 'hspace': 0.8}, figsize=(14, 3))
-    colors = lambda net_name: '#FF5733' if net_name == 'ALIF' else '#1E55A9'
+    colors = lambda net: '#FF5733' if net == 'ALIF' else '#1E55A9'
     for i, task in enumerate(tasks):
         for net in nets:
-            iidf = idf[idf['task_name'].eq(task) & idf['net_name'].eq(net)]
+            iidf = idf[idf['task'].eq(task) & idf['net'].eq(net)]
             iidf = iidf.sort_values(by='lr')
             print(iidf.columns)
             vppls = iidf[f'mean_{metric}'].values
@@ -417,8 +431,8 @@ if plot_lrs:
 
     idf['comments'] = idf['comments'].str.replace('allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_', '')
 
-    tasks = idf['task_name'].unique()
-    nets = idf['net_name'].unique()
+    tasks = idf['task'].unique()
+    nets = idf['net'].unique()
     comments = idf['comments'].unique()
 
     # tasks = ['sl-MNIST', 'SHD', 'PTB']
@@ -433,10 +447,10 @@ if plot_lrs:
     if len(tasks) == 1:
         axs = np.array([axs]).T
 
-    colors = lambda net_name: '#FF5733' if net_name == 'ALIF' else '#1E55A9'
+    colors = lambda net: '#FF5733' if net == 'ALIF' else '#1E55A9'
     for j, task in enumerate(tasks):
         for i, net in enumerate(nets):
-            iidf = idf[idf['task_name'].eq(task) & idf['net_name'].eq(net)]
+            iidf = idf[idf['task'].eq(task) & idf['net'].eq(net)]
             iidf = iidf.sort_values(by='lr')
 
             for c in comments:
@@ -479,8 +493,8 @@ if plot_bars:
 
     idf['comments'] = idf['comments'].str.replace('allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_', '')
 
-    tasks = idf['task_name'].unique()
-    nets = idf['net_name'].unique()
+    tasks = idf['task'].unique()
+    nets = idf['net'].unique()
     comments = idf['comments'].unique()
 
     # tasks = ['sl-MNIST', 'SHD', 'PTB']
@@ -495,10 +509,10 @@ if plot_bars:
     if len(tasks) == 1:
         axs = np.array([axs]).T
 
-    colors = lambda net_name: '#FF5733' if net_name == 'ALIF' else '#1E55A9'
+    colors = lambda net: '#FF5733' if net == 'ALIF' else '#1E55A9'
     for j, task in enumerate(tasks):
         for i, net in enumerate(nets):
-            iidf = idf[idf['task_name'].eq(task) & idf['net_name'].eq(net)]
+            iidf = idf[idf['task'].eq(task) & idf['net'].eq(net)]
             iidf = iidf.sort_values(by='lr')
 
             for c in comments:
@@ -538,18 +552,18 @@ if plot_weights:
     plot_1 = False
     plot_2 = True
 
-    net_name = 'LSTM'  # ALIF LSTM
-    task_name = 'sl-MNIST'  # sl_mnist heidelberg
+    net = 'LSTM'  # ALIF LSTM
+    task = 'sl-MNIST'  # sl_mnist heidelberg
     gauss_beta = False
     kwargs = dict(histtype='step', alpha=1., density=True, lw=1)
 
     axs = None
-    cols = 3 if net_name == 'LSTM' else 6
+    cols = 3 if net == 'LSTM' else 6
     n_bins = 50
 
     if create_pickles:
         for normpow in [1, -1, 2]:
-            path = get_path(df, normpow, task_name, net_name, gauss_beta)
+            path = get_path(df, normpow, task, net, gauss_beta)
             _, exp_identifiers = os.path.split(path)
 
             model_path = os.path.join(path, 'trained_models', 'lsc', 'model_weights_lsc_before.h5')
@@ -566,8 +580,8 @@ if plot_weights:
         import tensorflow as tf
 
         for norm in [1, 2, -1]:
-            hists_path = os.path.join(EXPERIMENTS, f'hists_{net_name}_{task_name}_gb{gauss_beta}_normpow{norm}.pickle')
-            path = get_path(df, norm, task_name, net_name, gauss_beta)
+            hists_path = os.path.join(EXPERIMENTS, f'hists_{net}_{task}_gb{gauss_beta}_normpow{norm}.pickle')
+            path = get_path(df, norm, task, net, gauss_beta)
 
             hist_dict = {}
 
@@ -612,15 +626,15 @@ if plot_weights:
         norms = [None, 1, 2, -1]
         for norm_id in norms:
             norm = norm_id if norm_id is not None else 1
-            hists_path = os.path.join(EXPERIMENTS, f'hists_{net_name}_{task_name}_gb{gauss_beta}_normpow{norm}.pickle')
+            hists_path = os.path.join(EXPERIMENTS, f'hists_{net}_{task}_gb{gauss_beta}_normpow{norm}.pickle')
             hist_dict = pickle.load(open(hists_path, 'rb'))  # Unpickling the object
 
             befafts = ['before'] if norm_id is None else ['after']
             for befaft in befafts:
                 n_weights = len(hist_dict[befaft]) if os.path.exists(hists_path) else len(weights)
                 if axs is None:
-                    wspace = 0.1 if net_name == 'LSTM' else 0.4
-                    hspace = 1.6 if net_name == 'LSTM' else 1.6
+                    wspace = 0.1 if net == 'LSTM' else 0.4
+                    hspace = 1.6 if net == 'LSTM' else 1.6
                     fig, axs = plt.subplots(
                         int(n_weights / cols + 1), cols, gridspec_kw={'wspace': wspace, 'hspace': hspace},
                         figsize=(10, 3)
@@ -670,8 +684,8 @@ if plot_weights:
 
         fig.legend(ncol=5, handles=legend_elements, loc='lower center', bbox_to_anchor=(0.5, -.2), fontsize=12)
 
-        plt.suptitle(f"{net_name} weights with LSC pretraining on {task_name}", y=1.01, fontsize=16)
-        plot_filename = f'experiments/weights_{net_name}_{task_name}_gb{gauss_beta}.pdf'
+        plt.suptitle(f"{net} weights with LSC pretraining on {task}", y=1.01, fontsize=16)
+        plot_filename = f'experiments/weights_{net}_{task}_gb{gauss_beta}.pdf'
         fig.savefig(plot_filename, bbox_inches='tight')
         plt.show()
 
@@ -688,12 +702,12 @@ if plot_weights:
         norms = [None, 1, 2, -1]
         for norm_id in norms:
             norm = norm_id if norm_id is not None else 1
-            # hists_path = os.path.join(EXPERIMENTS, f'hists_{net_name}_{task_name}_gb{gauss_beta}_normpow{norm}.pickle')
+            # hists_path = os.path.join(EXPERIMENTS, f'hists_{net}_{task}_gb{gauss_beta}_normpow{norm}.pickle')
             # hist_dict = pickle.load(open(hists_path, 'rb'))  # Unpickling the object
 
-            lstm_path = os.path.join(EXPERIMENTS, f'hists_LSTM_{task_name}_gb{gauss_beta}_normpow{norm}.pickle')
+            lstm_path = os.path.join(EXPERIMENTS, f'hists_LSTM_{task}_gb{gauss_beta}_normpow{norm}.pickle')
             lstm_dict = pickle.load(open(lstm_path, 'rb'))
-            alif_path = os.path.join(EXPERIMENTS, f'hists_ALIF_{task_name}_gb{gauss_beta}_normpow{norm}.pickle')
+            alif_path = os.path.join(EXPERIMENTS, f'hists_ALIF_{task}_gb{gauss_beta}_normpow{norm}.pickle')
             alif_dict = pickle.load(open(alif_path, 'rb'))
 
             color = color_nid(norm_id)
@@ -739,7 +753,7 @@ if plot_weights:
 
         fig.legend(ncol=5, handles=legend_elements, loc='lower center', bbox_to_anchor=(0.5, -.25), fontsize=12)
 
-        plot_filename = f'experiments/weights_aliflstm_{task_name}.pdf'
+        plot_filename = f'experiments/weights_aliflstm_{task}.pdf'
         fig.savefig(plot_filename, bbox_inches='tight')
 
         plt.show()
@@ -757,7 +771,7 @@ if plot_norms_pretraining:
     colors = cmap(np.arange(len(norms)) / len(norms))
     for i, n in enumerate(nets):
         for j, t in enumerate(tasks):
-            idf = df[(df['net_name'].eq(n)) & (df['task_name'].eq(t))]
+            idf = df[(df['net'].eq(n)) & (df['task'].eq(t))]
 
             for index, row in idf.iterrows():
                 if 'LSC_' + moi in row.keys():
@@ -776,10 +790,10 @@ if plot_lsc_vs_naive:
 
     from matplotlib.lines import Line2D
 
-    if task_name == 'all':
-        tasks = np.unique(df['task_name'])
+    if task == 'all':
+        tasks = np.unique(df['task'])
     else:
-        tasks = [task_name]
+        tasks = [task]
 
     # idf = df[df['optimizer_name'].str.contains(optimizer_name)]
     idf = copy.deepcopy(df)
@@ -787,7 +801,7 @@ if plot_lsc_vs_naive:
     idf['comments'] = idf['comments'].str.replace('timerepeat:2', '')
 
     for task in tasks:
-        iidf = idf[idf['task_name'].str.contains(task)]
+        iidf = idf[idf['task'].str.contains(task)]
         # idf = idf[idf['d'].str.contains('2022-07-06--')]
         # idf = idf[idf['epochs'].eq(1000)]
 
@@ -846,14 +860,14 @@ if plot_dampenings_and_betas:
     init = 'LSC2'  # lsc LSC LSC2
     fig, axs = plt.subplots(1, 2, figsize=(10, 5))
 
-    idf = df[df['task_name'].str.contains(task_name)]
+    idf = df[df['task'].str.contains(task)]
     idf = idf[idf['optimizer_name'].str.contains(optimizer_name)]
     iidf = idf[idf['comments'].str.contains(init + '_beta')]  # cdr gra blg
     iidf['betas'] = iidf['comments'].str.replace(init + '_beta:', '').values.astype(float)
     iidf = iidf.sort_values(by='betas')
 
     mdf = iidf.groupby(
-        ['net_name', 'task_name', 'initializer', 'betas'], as_index=False
+        ['net', 'task', 'initializer', 'betas'], as_index=False
     ).agg({m: ['mean', 'std'] for m in metrics_oi})
 
     for m in metrics_oi:
@@ -874,14 +888,14 @@ if plot_dampenings_and_betas:
     axs[0].plot(betas, means, color=color)
     axs[0].fill_between(betas, means - stds, means + stds, alpha=0.5, color=color)
 
-    idf = df[df['task_name'].str.contains(task_name)]
+    idf = df[df['task'].str.contains(task)]
     idf = idf[idf['optimizer_name'].str.contains(optimizer_name)]
     iidf = idf[idf['comments'].str.contains(init + '_dampening')]  # cdr gra blg
     iidf['dampening'] = iidf['comments'].str.replace(init + '_dampening:', '').values.astype(float)
     iidf = iidf.sort_values(by='dampening')
 
     mdf = iidf.groupby(
-        ['net_name', 'task_name', 'initializer', 'dampening'], as_index=False
+        ['net', 'task', 'initializer', 'dampening'], as_index=False
     ).agg({m: ['mean', 'std'] for m in metrics_oi})
 
     for m in metrics_oi:
@@ -906,7 +920,7 @@ if plot_dampenings_and_betas:
     # axs.axvline(x=value, color='k', linestyle='--')
 
     # axs[1].set_ylabel(metric)
-    # axs[1].set_title(task_name)
+    # axs[1].set_title(task)
 
     for ax in axs.reshape(-1):
         for pos in ['right', 'left', 'bottom', 'top']:
@@ -931,7 +945,7 @@ if remove_incomplete:
     # else nan
     plotdf['target'] = plotdf['comments'].apply(
         lambda x: 0.5 if 'targetnorm:.5' in x else 1 if 'findLSC' in x else np.nan)
-    rdf = plotdf[abs(plotdf['LSC_norms f'] - plotdf['target']) > epsilon]
+    rdf = plotdf[abs(plotdf['LSC f'] - plotdf['target']) > epsilon]
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
 
@@ -942,20 +956,25 @@ if remove_incomplete:
     rdfs.append(rdf)
     print(rdf.shape)
 
+    rdf = plotdf[plotdf['stack'].eq('4:3')]
+    rdfs.append(rdf)
+    print(rdf.shape)
+
     # remove repeated
     # remove one seed from those that have more than 4 seeds
     brdf = mdf[mdf['counts'] > 4]
 
     print('-=***=-' * 10)
-    print('Count>4')
+    print('Count > 4')
+    print(brdf.to_string())
 
     for _, row in brdf.iterrows():
         srdf = plotdf[
             # (df['lr'] == row['lr'])
             (plotdf['comments'].eq(row['comments']))
             & (plotdf['stack'] == row['stack'])
-            & (plotdf['task_name'] == row['task_name'])
-            & (plotdf['net_name'] == row['net_name'])
+            & (plotdf['task'] == row['task'])
+            & (plotdf['net'] == row['net'])
             ].copy()
 
         # no duplicates
@@ -989,19 +1008,19 @@ if remove_incomplete:
 
 if missing_exps:
     # columns of interest
-    coi = ['seed', 'task_name', 'net_name', 'comments', 'stack']
+    coi = ['seed', 'task', 'net', 'comments', 'stack']
 
     import pandas as pd
 
     # sdf = pd.read_hdf(h5path, 'df')
     sdf = df.copy()
 
-    sdf.loc[df['task_name'].str.contains('SHD'), 'task_name'] = 'heidelberg'
-    sdf.loc[df['task_name'].str.contains('sl-MNIST'), 'task_name'] = 'sl_mnist'
-    sdf.loc[df['task_name'].str.contains('PTB'), 'task_name'] = 'wordptb'
+    sdf.loc[df['task'].str.contains('SHD'), 'task'] = 'heidelberg'
+    sdf.loc[df['task'].str.contains('sl-MNIST'), 'task'] = 'sl_mnist'
+    sdf.loc[df['task'].str.contains('PTB'), 'task'] = 'wordptb'
 
-    sdf.loc[df['net_name'].str.contains('ALIFb'), 'net_name'] = 'maLSNNb'
-    sdf.loc[df['net_name'].str.contains('ALIF'), 'net_name'] = 'maLSNN'
+    sdf.loc[df['net'].str.contains('ALIFb'), 'net'] = 'maLSNNb'
+    sdf.loc[df['net'].str.contains('ALIF'), 'net'] = 'maLSNN'
 
     # sdf['lr'] = sdf['lr i']
 
@@ -1010,7 +1029,7 @@ if missing_exps:
     sdf['comments'] = sdf['comments'].str.replace('_timerepeat:2', '_timerepeat:2_pretrained')
 
     seed = 0
-    n_seeds = 4
+    n_seeds = 5
     seeds = [l + seed for l in range(n_seeds)]
 
     incomplete_comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_'
@@ -1026,23 +1045,34 @@ if missing_exps:
         # incomplete_comments + f'findLSC_radius_targetnorm:.5_randlsc',
         # incomplete_comments + f'findLSC_supsubnpsd_deslice',
     ]
+
+
+    all_comments_2 = [
+        incomplete_comments,
+        incomplete_comments + f'findLSC_radius',
+        incomplete_comments + f'findLSC_radius_targetnorm:.5',
+        incomplete_comments + f'findLSC_radius_targetnorm:.5_lscshuffw',
+    ]
     nets = ['LSTM', 'maLSNN', 'maLSNNb']
     tasks = ['heidelberg', 'sl_mnist', 'wordptb']
     experiment = {
-        'task_name': tasks,
-        'net_name': nets, 'seed': seeds, 'stack': ['None'],
+        'task': tasks,
+        'net': nets, 'seed': seeds, 'stack': ['None'],
         'comments': all_comments,
     }
     experiments.append(experiment)
 
     experiment = {
-        'task_name': ['heidelberg'],
-        'net_name': nets, 'seed': seeds, 'stack': ['1', '3', '5', '7'],
-        'comments': all_comments,
+        'task': ['heidelberg'],
+        'net': nets, 'seed': seeds, 'stack': ['1', '3', '5', '7'],
+        'comments': all_comments_2,
     }
     experiments.append(experiment)
 
     ds = dict2iter(experiments)
     print(ds[0])
-    complete_missing_exps(sdf, ds, coi)
-    # print(sdf.to_string())
+    experiments_left = complete_missing_exps(sdf, ds, coi)
+
+    experiments_1 = [e for e in experiments_left if e['stack'][0] in ['7', '5']]
+    experiments_2 = [e for e in experiments_left if not e['stack'][0] in ['7', '5']]
+    print(len(experiments_1), len(experiments_2), len(experiments_left))
