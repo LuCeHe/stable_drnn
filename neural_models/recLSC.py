@@ -533,7 +533,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
     del model, tape
 
-    results.update(LSC_losses=str(losses), LSC_norms=str(all_norms), rec_norms=save_norms, all_naswot=str(all_naswot))
+    results.update(LSC_losses=str(losses), LSC_norms=str(all_norms), save_norms=save_norms, all_naswot=str(all_naswot))
 
     tf.keras.backend.clear_session()
     tf.keras.backend.clear_session()
