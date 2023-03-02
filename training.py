@@ -45,7 +45,7 @@ def config():
     # task and net
     # ps_mnist heidelberg s_mnist
     # wordptb sl_mnist
-    task_name = 'wordptb'
+    task = 'wordptb'
 
     # test configuration
     epochs = 2
@@ -54,12 +54,12 @@ def config():
 
     # net
     # maLSNN cLSTM LSTM maLSNNb
-    net_name = 'maLSNNb'
+    net = 'maLSNNb'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
     stack = '4:3'
     n_neurons = 3
 
-    embedding = 'learned:None:None:{}'.format(n_neurons) if task_name in language_tasks else False
+    embedding = 'learned:None:None:{}'.format(n_neurons) if task in language_tasks else False
     comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_findLSC_supsubnpsd_test_pretrained_deslice'
     # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_findLSC_supsubnpsd_test_pretrained'
     # comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_findLSC_supsubnpsd_test_pretrained_randlsc'
@@ -72,7 +72,7 @@ def config():
     optimizer_name = 'AdamW'  # AdaBelief AdamW SWAAdaBelief
     lr_schedule = ''  # 'warmup_cosine_restarts'
     weight_decay_prop_lr = None
-    weight_decay = .0 if not 'mnist' in task_name else 0.  # weight_decay_prop_lr * lr
+    weight_decay = .0 if not 'mnist' in task else 0.  # weight_decay_prop_lr * lr
     clipnorm = None  # not 1., to avoid NaN in the embedding, only ptb though
 
     loss_name = 'sparse_categorical_crossentropy'  # categorical_crossentropy categorical_focal_loss contrastive_loss
@@ -96,9 +96,12 @@ def save_results(other_dir, results):
 
 @ex.capture
 @ex.automain
-def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
-         seed, net_name, n_neurons, lr, stack, loss_name, embedding, optimizer_name,
+def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
+         seed, net, n_neurons, lr, stack, loss_name, embedding, optimizer_name,
          lr_schedule, weight_decay, clipnorm, initializer, stop_time, _log):
+    task_name = task
+    net_name = net
+
     stack, batch_size, embedding, n_neurons, lr = default_config(
         stack, batch_size, embedding, n_neurons, lr, task_name, net_name, setting='LSC'
     )
