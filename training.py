@@ -21,7 +21,7 @@ from GenericTools.keras_tools.esoteric_initializers import esoteric_initializers
 from GenericTools.keras_tools.esoteric_callbacks import *
 from GenericTools.keras_tools.plot_tools import plot_history
 from GenericTools.stay_organized.VeryCustomSacred import CustomExperiment, ChooseGPU
-from GenericTools.stay_organized.utils import timeStructured, setReproducible, str2val, NumpyEncoder
+from GenericTools.stay_organized.utils import timeStructured, setReproducible, str2val, NumpyEncoder, save_results
 from GenericTools.keras_tools.esoteric_callbacks.several_validations import MultipleValidationSets
 from GenericTools.keras_tools.esoteric_tasks.time_task_redirection import Task, checkTaskMeanVariance, language_tasks
 
@@ -45,7 +45,7 @@ def config():
     # task and net
     # ps_mnist heidelberg s_mnist
     # wordptb sl_mnist
-    task = 'wordptb'
+    task = 'heidelberg'
 
     # test configuration
     epochs = 2
@@ -83,15 +83,6 @@ def config():
 
     # 22h=79200 s, 21h=75600 s, 20h=72000 s, 12h = 43200 s, 6h = 21600 s, 72h = 259200
     stop_time = 21600
-
-
-def save_results(other_dir, results):
-    results_filename = os.path.join(other_dir, 'results.json')
-
-    string_result = json.dumps(results, indent=4, cls=NumpyEncoder)
-    # print(string_result)
-    with open(results_filename, "w") as f:
-        f.write(string_result)
 
 
 @ex.capture
