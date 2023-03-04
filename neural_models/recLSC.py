@@ -356,11 +356,15 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                     tape.watch(wt)
                     tape.watch(bt)
                     tape.watch(states)
+
+                    bflat = tf.reshape(bt, [bt.shape[0], -1])
+                    breshaped = tf.reshape(bflat, bt.shape)
+
                     model = build_model(**model_args)
                     if not any([np.isnan(w.mean()) for w in weights]):
                         model.set_weights(weights)
 
-                    outputs = model([bt, wt, *states])
+                    outputs = model([breshaped, wt, *states])
                     states_p1 = outputs[1:]
 
                     mean_loss = 0
@@ -390,7 +394,9 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                             mean_loss += loss
 
                         if encoder_norm and i == 0 and r2 < .5:
-                            norms, loss, naswot_score = get_norms(tape=tape, lower_states=[bt[:, 0, :]],
+                            print(bflat.shape)
+                            # norms, loss, naswot_score = get_norms(tape=tape, lower_states=[bt[:, 0, :]],
+                            norms, loss, naswot_score = get_norms(tape=tape, lower_states=[bflat],
                                                                   upper_states=[htp1, ctp1],
                                                                   n_samples=n_samples, norm_pow=norm_pow, naswot=naswot,
                                                                   comments=comments, target_norm=target_norm)

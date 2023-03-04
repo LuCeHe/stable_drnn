@@ -45,7 +45,7 @@ def config():
     batch_size = None
 
     # net
-    net_name = 'maLSNNb' # LSTM maLSNNb
+    net_name = 'LSTM' # LSTM maLSNNb
     stack = '4:3'
     n_neurons = 3
 
@@ -70,12 +70,14 @@ def config():
     # 22h=79200 s, 21h=75600 s, 20h=72000 s, 12h = 43200 s, 6h = 21600 s, 72h = 259200
     stop_time = 21600
 
+    plot_time_steps = 4
+
 
 @ex.capture
 @ex.automain
 def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
          seed, net_name, n_neurons, lr, stack, loss_name, embedding, optimizer_name,
-         lr_schedule, weight_decay, clipnorm, initializer, stop_time, _log):
+         lr_schedule, weight_decay, clipnorm, initializer, stop_time, plot_time_steps, _log):
     stack, batch_size, embedding, n_neurons, lr = default_config(
         stack, batch_size, embedding, n_neurons, lr, task_name, net_name, setting='LSC'
     )
@@ -153,7 +155,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task_name, comments,
         train_task_args=new_task_args, model_args=new_model_args, norm_pow=2, n_samples=-1,
         batch_size=new_batch_size,
         rec_norm=lscrec, depth_norm=lscdepth, decoder_norm=lscout, encoder_norm=lscin, naswot=naswot,
-        learn=False, steps_per_epoch=1, time_steps=4,
+        learn=False, steps_per_epoch=1, time_steps=plot_time_steps,
     )
 
     string_result = json.dumps(lsc_results, indent=4, cls=NumpyEncoder)
