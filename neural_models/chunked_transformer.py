@@ -151,8 +151,8 @@ def chunked_lsc(
     mask_shape = (batch_size, 1, 1, pretrain_SEQ_MAX_LEN_SOURCE)
 
     coders_fn = {
-        # 'encoder': get_enc_model(attention_head_count, d_model, d_point_wise_ff, dropout_prob, activation, comments,
-        #                          layer_index, rep_shape, mask_shape),
+        'encoder': get_enc_model(attention_head_count, d_model, d_point_wise_ff, dropout_prob, activation, comments,
+                                 layer_index, rep_shape, mask_shape),
         'decoder': get_dec_model(attention_head_count, d_model, d_point_wise_ff, dropout_prob, activation, comments,
                                  layer_index, rep_shape, mask_shape),
         # 'embedding': get_emb_model(),

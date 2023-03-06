@@ -226,7 +226,7 @@ elif 'transf' in expsid:
         'act', 'eps', 'dataset',
         'seed', 'lr', 'comments', 'batch_size',
         'val_ppl m',
-        'LSC_norms i', 'LSC_norms f',
+        'LSC i', 'LSC f',
         'encoder_norm i', 'encoder_norm f',
         'decoder_norm i', 'decoder_norm f',
         'ep M', 'time_elapsed', 'hostname', 'path',
@@ -234,7 +234,7 @@ elif 'transf' in expsid:
     ]
     metrics_oi = [
         'val_ppl m',
-        'LSC_norms f',
+        'LSC f',
         'encoder_norm f', 'decoder_norm f',
         'encoder_norm i', 'decoder_norm i',
     ]
