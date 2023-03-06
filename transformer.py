@@ -51,6 +51,8 @@ def get_argparse():
     parser.add_argument("--pretraining_epochs", default=200, type=int, help="Pretraining Epochs")
     parser.add_argument("--steps_per_epoch", default=2, type=int, help="Steps per epoch")
     parser.add_argument("--batch_size", default=16, type=int, help="Batch size")
+    parser.add_argument("--pretraining_batch_size", default=16, type=int, help="Batch size")
+
     parser.add_argument("--stop_time", default=60, type=int, help="Stop time")
     parser.add_argument("--results_dir", default=EXPERIMENTS, type=str, help="Experiments Folder")
     parser.add_argument("--lr", default=3.16e-5, type=float, help="Experiments Folder")
@@ -130,6 +132,7 @@ def main(args, experiment_dir):
             plot_pretraining=False,
             layer_index=0,
             epochs=pretraining_epochs,
+            batch_size=args.pretraining_batch_size,
         )
         results.update(lsc_results)
         model = bm()
