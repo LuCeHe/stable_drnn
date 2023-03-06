@@ -198,7 +198,6 @@ def chunked_lsc(
                     else:
                         # random integers from 0 to 100
                         if 'sphere' in comments:
-                            print('nice!')
                             input_layer = tf.random.uniform((batch_size, pretrain_SEQ_MAX_LEN_SOURCE), minval=0,
                                                             maxval=BPE_VOCAB_SIZE,
                                                             dtype=tf.int32)
