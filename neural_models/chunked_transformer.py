@@ -259,6 +259,7 @@ def chunked_lsc(
                         output = tf.reduce_mean(output, axis=deslice_axis)
                     else:
                         output = tf.reshape(output, (batch_size, -1))
+                    print('here!', inp.shape, output.shape)
                     norms, iloss, _ = get_norms(tape, [inp], [output], comments=comments, n_s=-1)
                     loss = iloss
                 grads = tape.gradient(loss, coder_model.trainable_weights)
