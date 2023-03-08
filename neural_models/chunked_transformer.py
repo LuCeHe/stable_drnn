@@ -175,6 +175,7 @@ def chunked_lsc(
         target_shape = (batch_size, pretrain_SEQ_MAX_LEN_SOURCE, n_inputs[coder_name] * d_model)
         li, ni = None, None
         ma_loss, ma_norm = None, None
+        failures = 0
         for e in range(epochs):
             # if True:
             try:
@@ -284,9 +285,10 @@ def chunked_lsc(
                 pbar.update(1)
                 pbar.set_description(
                     f'Epoch {e} - loss: {str(ma_loss.round(4))}/{li} - norm: {str(ma_norm.round(4))}/{ni}'
-                    f' - desliced on {deslice_axis}'
+                    f' - desliced on {deslice_axis} - Fail rate {failures/epochs*100:.2f}%'
                 )
             except Exception as e:
+                failures +=1
                 print(e)
         if not weights is None:
             coders_2_transformer[coder_name].set_weights(weights)
