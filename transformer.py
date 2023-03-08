@@ -41,7 +41,7 @@ def get_argparse():
     parser = argparse.ArgumentParser()
     parser.add_argument("--comments",
                         # default='deslice_findLSC_meanaxis_truersplit',
-                        default='chunked_meanaxis_sameemb_noimagloss_normri_findLSC_radius',
+                        default='chunked_meanaxis_sameemb_noimagloss_normri_findLSC_radius_deflect',
                         # default='pretrained_deslice_sameemb_truersplit_findLSC_supsubnpsd',
                         # default='',
                         type=str, help="String to activate extra behaviors")

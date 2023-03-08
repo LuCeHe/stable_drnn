@@ -10,6 +10,8 @@ from alif_sg.neural_models.transformer_model import EncoderLayer, DecoderLayer, 
 from alif_sg.neural_models.transformer_model import build_model
 from tensorflow_addons.optimizers import AdamW
 
+from GenericTools.stay_organized.utils import str2val
+
 
 def get_enc_model(attention_head_count, d_model, d_point_wise_ff, dropout_prob, activation, comments, layer_index,
                   rep_shape, mask_shape):
@@ -125,7 +127,6 @@ def chunked_lsc(
 ):
     comments += '_deslonly:1'
     if 'radius' in comments:
-        print('here?')
         lr = 1e-1  # 1e-6 went to 0.61 norm, 1e-3/1e-2 show an upper trend
         weight_decay = 1e-5
 
@@ -136,14 +137,9 @@ def chunked_lsc(
         weight_decay = 1e-2
 
         optimizer = AdamW(learning_rate=lr, weight_decay=weight_decay)
-        # optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
     else:
-        print('jere?')
         lr = 1e-2  # 1e-6 went to 0.61 norm, 1e-3/1e-2 show an upper trend
         weight_decay = 1e-5
-
-        # lr = 1e-2
-        # weight_decay = 1e-6
 
         optimizer = AdamW(learning_rate=lr, weight_decay=weight_decay)
 
@@ -168,14 +164,19 @@ def chunked_lsc(
     }
     n_inputs = {'encoder': 1, 'decoder': 2, 'embedding': 1}
 
+    max_dim = str2val(comments, 'maxdim', int, default=1024)
+
     results = {}
     for coder_name in coders_fn.keys():
         print(f'------------ Pretraining the {coder_name}')
         weights = None
         loss_list, norm_list = [], []
         pbar = tqdm(total=epochs)
-
+        target_shape = (batch_size, pretrain_SEQ_MAX_LEN_SOURCE, n_inputs[coder_name] * d_model)
+        li, ni = None, None
+        ma_loss, ma_norm = None, None
         for e in range(epochs):
+            # if True:
             try:
                 # calculate the gradient
                 with tf.GradientTape(persistent=True, watch_accessed_variables=True) as tape:
@@ -187,24 +188,30 @@ def chunked_lsc(
                     # pass a random input to the encoder
                     inputs = []
                     # for _ in range(n_inputs[coder_name]):
+                    inp = None
                     if not coder_name == 'embedding':
-                        # input_layer = tf.random.normal((batch_size, pretrain_SEQ_MAX_LEN_SOURCE, n_inputs[coder_name]*d_model))
-                        input_layer = tf.random.uniform(
-                            (batch_size, pretrain_SEQ_MAX_LEN_SOURCE, n_inputs[coder_name] * d_model),
-                            minval=-1, maxval=1
-                        )
+                        if 'sphere' in comments:
+                            input_layer = tf.random.uniform(target_shape, minval=-1, maxval=1)
+                            norm = tf.norm(input_layer, axis=-1, keepdims=True)
+                            input_layer = input_layer / norm
+
+                        elif 'deflect' in comments:
+                            inp = tf.random.normal((batch_size, max_dim))
+                            projector = tf.random.uniform([max_dim] + list(target_shape[1:]), minval=-1, maxval=1)
+
+                            tape.watch(inp)
+                            tape.watch(projector)
+
+                            dest = ''.join(np.random.choice(list('klmnop'), size=len(target_shape[1:]), replace=False))
+                            projection = tf.einsum(f'ij,j{dest}->i{dest}', inp, projector)
+                            input_layer = projection
+                        else:
+                            input_layer = tf.random.uniform(target_shape, minval=-1, maxval=1)
 
 
                     else:
                         # random integers from 0 to 100
-                        if 'sphere' in comments:
-                            input_layer = tf.random.uniform((batch_size, pretrain_SEQ_MAX_LEN_SOURCE), minval=0,
-                                                            maxval=BPE_VOCAB_SIZE,
-                                                            dtype=tf.int32)
-                            norm = tf.norm(input_layer, axis=-1, keepdims=True)
-                            input_layer = input_layer / norm
-                        else:
-                            input_layer = tf.random.uniform((batch_size, pretrain_SEQ_MAX_LEN_SOURCE), minval=0,
+                        input_layer = tf.random.uniform(target_shape[:2], minval=0,
                                                         maxval=BPE_VOCAB_SIZE,
                                                         dtype=tf.int32)
 
@@ -216,16 +223,16 @@ def chunked_lsc(
                         # split input_layer in 2 in the -1 axis
                         layers = tf.split(input_layer, 2, axis=-1)
                         inputs.extend(layers)
-                        input_layer = layers[0]
+                        # input_layer = layers[0]
 
-                    inp = tf.reshape(input_layer, (batch_size, -1))
-                    if not coder_name == 'embedding':
-                        reshaped_inp = tf.reshape(inp, (batch_size, pretrain_SEQ_MAX_LEN_SOURCE, d_model))
-                    else:
-                        reshaped_inp = inp
+                    if inp is None:
+                        inp = tf.reshape(input_layer, (batch_size, -1))
+                        if not coder_name == 'embedding':
+                            reshaped_inp = tf.reshape(inp, target_shape)
+                        else:
+                            reshaped_inp = inp
 
-                    inputs[0] = reshaped_inp
-                    np.random.shuffle(inputs)
+                        inputs[0] = reshaped_inp
 
                     if not coder_name == 'embedding':
                         mask_layer = tf.cast(tf.random.uniform((batch_size, 1, 1, pretrain_SEQ_MAX_LEN_SOURCE)) > 0.5,
@@ -254,11 +261,13 @@ def chunked_lsc(
                     loss = iloss
                 grads = tape.gradient(loss, coder_model.trainable_weights)
                 optimizer.apply_gradients(zip(grads, coder_model.trainable_weights))
-                norm = tf.reduce_mean(norms).numpy().round(4)
-                loss = tf.reduce_mean(loss).numpy().round(4)
+                norm = tf.reduce_mean(norms).numpy()
+                loss = tf.reduce_mean(loss).numpy()
 
                 loss_list.append(loss)
                 norm_list.append(norm)
+
+
 
                 weights = coder_model.get_weights()
 
@@ -266,9 +275,16 @@ def chunked_lsc(
                     for w in weights:
                         np.random.shuffle(w)
 
+                ma_loss = loss if ma_loss is None else ma_loss * 9 / 10 + loss / 10
+                ma_norm = norm if ma_norm is None else ma_norm * 9 / 10 + norm / 10
+
+                if li is None:
+                    li = str(loss.round(4))
+                    ni = str(norm.round(4))
                 pbar.update(1)
                 pbar.set_description(
-                    f'Epoch {e} - loss: {str(loss)} - norm: {str(norm)} - desliced on {deslice_axis}'
+                    f'Epoch {e} - loss: {str(ma_loss.round(4))}/{li} - norm: {str(ma_norm.round(4))}/{ni}'
+                    f' - desliced on {deslice_axis}'
                 )
             except Exception as e:
                 print(e)
