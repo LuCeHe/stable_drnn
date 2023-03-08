@@ -197,6 +197,7 @@ def chunked_lsc(
                             input_layer = input_layer / norm
 
                         elif 'deflect' in comments:
+                            print('deflected!')
                             inp = tf.random.normal((batch_size, max_dim))
                             projector = tf.random.uniform([max_dim] + list(target_shape[1:]), minval=-1, maxval=1)
 
