@@ -52,6 +52,7 @@ def get_argparse():
     parser.add_argument("--steps_per_epoch", default=2, type=int, help="Steps per epoch")
     parser.add_argument("--batch_size", default=16, type=int, help="Batch size")
     parser.add_argument("--pretraining_batch_size", default=16, type=int, help="Batch size")
+    parser.add_argument("--pretraining_time_steps", default=16, type=int, help="Batch size")
 
     parser.add_argument("--stop_time", default=60, type=int, help="Stop time")
     parser.add_argument("--results_dir", default=EXPERIMENTS, type=str, help="Experiments Folder")
@@ -119,7 +120,7 @@ def main(args, experiment_dir):
         weights, lsc_results = chunked_lsc(
             SEQ_MAX_LEN_SOURCE=SEQ_MAX_LEN_SOURCE,
             SEQ_MAX_LEN_TARGET=SEQ_MAX_LEN_TARGET,
-            pretrain_SEQ_MAX_LEN_SOURCE=50,
+            pretrain_SEQ_MAX_LEN_SOURCE=args.pretraining_time_steps,
             BPE_VOCAB_SIZE=BPE_VOCAB_SIZE,
             encoder_count=ENCODER_COUNT,
             decoder_count=DECODER_COUNT,
