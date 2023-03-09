@@ -45,7 +45,7 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
     if not test:
         hss = []
         for hlm1 in lower_states:
-            hs = [tape.batch_jacobian(hl, hlm1) for hl in upper_states]
+            hs = [tape.batch_jacobian(hl, hlm1, experimental_use_pfor=True) for hl in upper_states]
             hss.append(tf.concat(hs, axis=1))
 
         if len(hss) > 1:
@@ -101,7 +101,7 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
         i = tf.math.imag(eig)
 
         if 'normri' in comments:
-            norms = tf.math.sqrt(r**2 + i**2)
+            norms = tf.math.sqrt(r ** 2 + i ** 2)
         else:
             norms = r
 
@@ -248,6 +248,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
     pbar1 = tqdm(total=steps_per_epoch, position=1)
     epsilon_steps = 0
+
     results = {}
 
     # get initial values of model
@@ -308,6 +309,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
     best_norm = None
     best_count = 0
+    failures = 0
+    iterations = 0
     for step in range(steps_per_epoch):
         if time_over:
             break
@@ -342,9 +345,10 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
         pbar2 = tqdm(total=ts, position=0)
 
         for t in range(ts):
+            iterations += 1
 
-            # if True:
-            try:
+            if True:
+            # try:
                 bt = batch[0][0][:, t, :][:, None]
                 wt = batch[0][1][:, t][:, None]
 
@@ -357,14 +361,27 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                     tape.watch(bt)
                     tape.watch(states)
 
-                    bflat = tf.reshape(bt, [bt.shape[0], -1])
-                    breshaped = tf.reshape(bflat, bt.shape)
+                    if not 'ptb' in task_name:
+                        model = build_model(**model_args)
+                    else:
+                        model, noemb_model, embedding_model = build_model(**model_args, get_embedding=True, timesteps=1)
 
-                    model = build_model(**model_args)
                     if not any([np.isnan(w.mean()) for w in weights]):
                         model.set_weights(weights)
 
-                    outputs = model([breshaped, wt, *states])
+                    if not 'ptb' in task_name:
+                        bflat = tf.reshape(bt, [bt.shape[0], -1])
+                        breshaped = tf.reshape(bflat, bt.shape)
+
+                        outputs = model([breshaped, wt, *states])
+                    else:
+                        bt = embedding_model(bt)
+
+                        bflat = tf.reshape(bt, [bt.shape[0], -1])
+                        breshaped = tf.reshape(bflat, bt.shape)
+
+                        outputs = noemb_model([breshaped, wt, *states])
+
                     states_p1 = outputs[1:]
 
                     mean_loss = 0
@@ -394,9 +411,15 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                             mean_loss += loss
 
                         if encoder_norm and i == 0 and r2 < .5:
-                            print(bflat.shape)
+                            # nodes = [n.name for n in tf.get_default_graph().as_graph_def().node]
+                            # print(nodes)
+                            # print(tf.contrib.graph_editor.get_tensors(tf.get_default_graph()))
+
+                            lower_states =[bflat]
+
                             # norms, loss, naswot_score = get_norms(tape=tape, lower_states=[bt[:, 0, :]],
-                            norms, loss, naswot_score = get_norms(tape=tape, lower_states=[bflat],
+                            # norms, loss, naswot_score = get_norms(tape=tape, lower_states=[bflat],
+                            norms, loss, naswot_score = get_norms(tape=tape, lower_states=lower_states,
                                                                   upper_states=[htp1, ctp1],
                                                                   n_samples=n_samples, norm_pow=norm_pow, naswot=naswot,
                                                                   comments=comments, target_norm=target_norm)
@@ -513,11 +536,13 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                     f"Step {step}; "
                     f"loss {str(show_loss)}/{li}; "
                     f"mean params {str(round(prms, round_to))}/{pi}; "
-                    f"mean norms {show_norm}/{ni} (best {str(best_norm.round(round_to))})"
+                    f"mean norms {show_norm}/{ni} (best {str(best_norm.round(round_to))}); "
+                    f"fail rate {failures / iterations * 100:.2f}%; "
                 )
 
-            except Exception as e:
-                print(e)
+            # except Exception as e:
+            #     failures += 1
+            #     print(e)
 
         del batch
 

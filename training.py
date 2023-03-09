@@ -45,7 +45,7 @@ def config():
     # task and net
     # ps_mnist heidelberg s_mnist
     # wordptb sl_mnist
-    task = 'heidelberg'
+    task = 'wordptb'
 
     # test configuration
     epochs = 2
@@ -54,7 +54,7 @@ def config():
 
     # net
     # maLSNN cLSTM LSTM maLSNNb
-    net = 'maLSNNb'
+    net = 'LSTM'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
     stack = '4:3'
     n_neurons = 3
@@ -65,6 +65,7 @@ def config():
     # comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_findLSC_supsubnpsd_test_pretrained_randlsc'
     # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_targetnorm:.5_test'
     comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_test'
+    # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2'
     # 'truersplit'
 
     # optimizer properties
@@ -193,7 +194,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
 
             lscw_filepath = os.path.join(models_dir, 'lsc')
             save_weights_path = lscw_filepath if 'savelscweights' in comments else None
-            time_steps = 6 if 'test' in comments else None
+            time_steps = 2 if 'test' in comments else None
 
             print(json.dumps(new_model_args, indent=4, cls=NumpyEncoder))
             # lsclr = 3.14e-4 if not net_name == 'LSTM' else 3.14e-3
