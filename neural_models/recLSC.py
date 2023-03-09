@@ -271,6 +271,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
         c += f'_tn{str(target_norm).replace(".", "p")}'
     if 'randlsc' in comments:
         c += '_randlsc'
+    if 'lscshuffw' in comments:
+        c += '_lscshuffw'
 
     tape, norms = None, None
 
@@ -311,6 +313,14 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
     best_count = 0
     failures = 0
     iterations = 0
+
+    if 'onlyloadpretrained' in comments:
+        steps_per_epoch = 1
+        time_steps = 10
+        learn = False
+
+
+
     for step in range(steps_per_epoch):
         if time_over:
             break

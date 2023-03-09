@@ -118,6 +118,9 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
     comments = str2val(comments, 'maxlen', int, default=maxlen, replace=maxlen)
 
     # task definition
+    if 'onlypretrain' in comments:
+        epochs = 0
+        steps_per_epoch = 0
     train_task_args = dict(timerepeat=timerepeat, epochs=epochs, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
                            name=task_name, train_val_test='train', maxlen=maxlen, comments=comments)
     gen_train = Task(**train_task_args)

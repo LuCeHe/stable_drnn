@@ -100,7 +100,7 @@ df = experiments_to_pandas(
     exclude_columns=columns_to_remove, force_keep_column=force_keep_column
 )
 
-df = df[~df['stack'].eq('4:3')]
+# df = df[~df['stack'].eq('4:3')]
 df['stack'] = df['stack'].fillna(-1).astype(int)
 df = df.replace(-1, 'None')
 df['stack'] = df['stack'].astype(str)
@@ -110,6 +110,10 @@ df['comments'] = df['comments'].astype(str)
 
 new_column_names = {c_name: shorten_losses(c_name) for c_name in df.columns}
 df.rename(columns=new_column_names, inplace=True)
+if not 'LSC list' in df.columns:
+    df['LSC list'] = np.nan
+    df['LSC i'] = np.nan
+    df['LSC f'] = np.nan
 
 print(list(df.columns))
 if plot_losses:
@@ -153,6 +157,12 @@ if plot_losses:
 
     plt.show()
 
+for cname in ['net', 'task']:
+    if isinstance(df[cname], pd.DataFrame):
+        c = df[cname].iloc[:, 0].fillna(df[cname].iloc[:, 1])
+        df = df.drop([cname], axis=1)
+        df[cname] = c
+
 if 'n_params' in df.columns:
     df['n_params'] = df['n_params'].apply(lambda x: large_num_to_reasonable_string(x, 1))
 
@@ -169,7 +179,6 @@ if 'task' in df.columns:
     df.loc[df['task'].str.contains('sl_mnist'), 'task'] = 'sl-MNIST'
     df.loc[df['task'].str.contains('wordptb'), 'task'] = 'PTB'
 
-
 # eps column stays eps if not equal to None else it becomes the content of v_mode_acc len
 df.loc[df['eps'].isnull(), 'eps'] = df.loc[df['eps'].isnull(), f'{metric} len']
 
@@ -182,13 +191,13 @@ if 'v_^acc len' in df.columns:
     df['v_^acc argM'] = df['v_^acc argM'].astype(int)
 
     df['v_ppl'] = df['v_ppl m']
-    df['t_ppl'] = df.apply(lambda row: row['t_ppl list'][row['v_ppl argm']], axis=1)
+    # df['t_ppl'] = df.apply(lambda row: row['t_ppl list'][row['v_ppl argm']], axis=1)
     df['v_^acc'] = df['v_^acc M']
-    df['t_^acc'] = df.apply(lambda row: row['t_^acc list'][row['v_^acc argM']], axis=1)
+    # df['t_^acc'] = df.apply(lambda row: row['t_^acc list'][row['v_^acc argM']], axis=1)
 
     # FIXME: following is incorrect, correct it as soon as you get rid of the NaNs
-    # df['t_ppl'] = df['t_ppl m']
-    # df['t_^acc'] = df['t_^acc M']
+    df['t_ppl'] = df['t_ppl m']
+    df['t_^acc'] = df['t_^acc M']
 
 for c_name in columns_to_remove:
     df = df[df.columns.drop(list(df.filter(regex=c_name)))]
@@ -947,16 +956,13 @@ if remove_incomplete:
         lambda x: 0.5 if 'targetnorm:.5' in x else 1 if 'findLSC' in x else np.nan)
     rdf = plotdf[abs(plotdf['LSC f'] - plotdf['target']) > epsilon]
     print(rdf.shape, df.shape)
-    rdfs.append(rdf)
+    # rdfs.append(rdf)
 
     # remove LSC that didn't record LSC norms
 
     print('remove old settings')
-    rdf = plotdf[plotdf['comments'].eq('allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC')]
-    rdfs.append(rdf)
-    print(rdf.shape)
-
-    rdf = plotdf[plotdf['stack'].eq('4:3')]
+    # rdf = plotdf[plotdf['comments'].eq('allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC')]
+    rdf = plotdf[plotdf['comments'].str.contains('findLSC')]
     rdfs.append(rdf)
     print(rdf.shape)
 
@@ -983,7 +989,7 @@ if remove_incomplete:
         # remainder
         rdf = srdf[~srdf.apply(tuple, 1).isin(gsrdf.apply(tuple, 1))]
         print(rdf.shape)
-        rdfs.append(rdf)
+        # rdfs.append(rdf)
 
     allrdfs = pd.concat(rdfs)
     allrdfs = allrdfs.drop_duplicates()
@@ -1029,7 +1035,7 @@ if missing_exps:
     sdf['comments'] = sdf['comments'].str.replace('_timerepeat:2', '_timerepeat:2_pretrained')
 
     seed = 0
-    n_seeds = 5
+    n_seeds = 4
     seeds = [l + seed for l in range(n_seeds)]
 
     incomplete_comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_'
@@ -1037,7 +1043,7 @@ if missing_exps:
     experiments = []
 
     all_comments = [
-        incomplete_comments,
+        # incomplete_comments,
         # incomplete_comments + f'findLSC',
         # incomplete_comments + f'findLSC_supsubnpsd',
         incomplete_comments + f'findLSC_radius',
@@ -1046,13 +1052,6 @@ if missing_exps:
         # incomplete_comments + f'findLSC_supsubnpsd_deslice',
     ]
 
-
-    all_comments_2 = [
-        incomplete_comments,
-        incomplete_comments + f'findLSC_radius',
-        incomplete_comments + f'findLSC_radius_targetnorm:.5',
-        incomplete_comments + f'findLSC_radius_targetnorm:.5_lscshuffw',
-    ]
     nets = ['LSTM', 'maLSNN', 'maLSNNb']
     tasks = ['heidelberg', 'sl_mnist', 'wordptb']
     experiment = {
@@ -1065,7 +1064,7 @@ if missing_exps:
     experiment = {
         'task': ['heidelberg'],
         'net': nets, 'seed': seeds, 'stack': ['1', '3', '5', '7'],
-        'comments': all_comments_2,
+        'comments': all_comments,
     }
     experiments.append(experiment)
 
@@ -1073,6 +1072,15 @@ if missing_exps:
     print(ds[0])
     experiments_left = complete_missing_exps(sdf, ds, coi)
 
-    experiments_1 = [e for e in experiments_left if e['stack'][0] in ['7', '5']]
-    experiments_2 = [e for e in experiments_left if not e['stack'][0] in ['7', '5']]
-    print(len(experiments_1), len(experiments_2), len(experiments_left))
+    experiments = []
+    for e in experiments_left:
+        e['comments'] = [e['comments'][0] + '_onlypretrain']
+        print(e)
+        experiments.append(e)
+
+    print(experiments)
+    print(len(experiments))
+
+    # experiments_1 = [e for e in experiments_left if e['stack'][0] in ['7', '5']]
+    # experiments_2 = [e for e in experiments_left if not e['stack'][0] in ['7', '5']]
+    # print(len(experiments_1), len(experiments_2), len(experiments_left))
