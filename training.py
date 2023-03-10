@@ -222,7 +222,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
                 }
                 bm = lambda: build_model(**model_args)
 
-                lsclr = 1e-4 # 1e-2
+                lsclr = 1e-4  # 1e-2
                 weights, lsc_results = apply_LSC_no_time(
                     bm, generator=gen_train, max_dim=1024, norm_pow=2, comments=comments, learning_rate=lsclr,
                     net_name=net_name + '_deslice', seed=seed, task_name=task_name, activation='',
@@ -318,17 +318,17 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
         # results['convergence'] = convergence_estimation(history_dict['val_loss'])
 
     print('Fitting done!')
+    gens = {'train': gen_train, 'val': gen_val, 'test': gen_test}
 
-    evaluation = train_model.evaluate(gen_test, return_dict=True, verbose=True)
-    for k in evaluation.keys():
-        results['test_' + k] = evaluation[k]
-
-    gen_v = Task(timerepeat=timerepeat, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
-                 name=task_name, train_val_test='val', maxlen=maxlen, comments=comments)
-
-    evaluation = train_model.evaluate(gen_v, return_dict=True, verbose=True)
-    for k in evaluation.keys():
-        results['valval_' + k] = evaluation[k]
+    for set, gen in gens.items():
+        try:
+            evaluation = train_model.evaluate(gen_test, return_dict=True, verbose=True)
+            for k in evaluation.keys():
+                results[set + '_' + k] = evaluation[k]
+        except Exception as e:
+            print(e)
+            print('Evaluation failed: ', set)
+            results[set + '_failed'] = e
 
     results['full_comments'] = comments
     results['final_epochs'] = str(actual_epochs)
