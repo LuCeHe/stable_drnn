@@ -44,12 +44,12 @@ expsid = 'als'  # effnet als ffnandcnns
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 check_for_new = True
-plot_losses = False
+plot_losses = True
 one_exp_curves = False
 pandas_means = True
 show_per_tasknet = True
 make_latex = False
-missing_exps = True
+missing_exps = False
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -85,13 +85,16 @@ columns_to_remove = [
     'resources', 'host', 'start_time', 'status', 'experiment', 'result',
 ]
 columns_to_remove = []
-columns_to_remove = ['_var', '_mean', 'sparse_categorical_crossentropy', 'bpc', 'loss',
-                     'sparse_categorical_accuracy', 'LSC_losses', 'rec_norms', 'fail_trace', 'list']
+columns_to_remove = [
+    '_var', '_mean', 'sparse_categorical_crossentropy', 'bpc', 'loss', 'artifacts',
+    'experiment_dependencies', 'experiment_sources', 'experiment_repositories', 'host_os',
+    'sparse_categorical_accuracy', 'LSC_losses', 'rec_norms', 'fail_trace', 'list']
 force_keep_column = [
-    'LSC_norms list',
+    'LSC_norms list', 'batch ',
     'val_sparse_mode_accuracy list', 'val_perplexity list',
     'v_sparse_mode_accuracy list', 'v_perplexity list',
     't_sparse_mode_accuracy list', 't_perplexity list',
+
 ]
 
 df = experiments_to_pandas(
@@ -100,7 +103,6 @@ df = experiments_to_pandas(
     exclude_columns=columns_to_remove, force_keep_column=force_keep_column
 )
 
-# df = df[~df['stack'].eq('4:3')]
 df['stack'] = df['stack'].fillna(-1).astype(int)
 df = df.replace(-1, 'None')
 df['stack'] = df['stack'].astype(str)
@@ -110,22 +112,48 @@ df['comments'] = df['comments'].astype(str)
 
 new_column_names = {c_name: shorten_losses(c_name) for c_name in df.columns}
 df.rename(columns=new_column_names, inplace=True)
-if not 'LSC list' in df.columns:
-    df['LSC list'] = np.nan
-    df['LSC i'] = np.nan
-    df['LSC f'] = np.nan
+
+for cname in ['net', 'task']:
+    if isinstance(df[cname], pd.DataFrame):
+        c = df[cname].iloc[:, 0].fillna(df[cname].iloc[:, 1])
+        df = df.drop([cname], axis=1)
+        df[cname] = c
+if 'net' in df.columns: df['net'] = df['net'].astype(str)
+if 'task' in df.columns: df['task'] = df['task'].astype(str)
+
+if 'n_params' in df.columns:
+    df['n_params'] = df['n_params'].apply(lambda x: large_num_to_reasonable_string(x, 1))
 
 print(list(df.columns))
+norms_cols = [c for c in df.columns if 'save_norms' in c and 'batch 0' in c and 'list' in c]
+for c in norms_cols:
+    new_c = c.replace('_batch 0 ', '')
+    tag = new_c.replace('save_norms', '')
+    title = new_c.replace('save_norms', 'norms ' )
+    tag_cols = [c for c in df.columns if tag in c]
+
+    print(title)
+    df[title] = df.apply(
+        lambda row:
+        np.concatenate([row[k] if isinstance(row[k], list) else [] for k in tag_cols]).tolist() \
+            if len(tag_cols) > 0 else [],
+        axis=1
+    )
+
+print(list(df.columns))
+
 if plot_losses:
     df['comments'] = df['comments'].str.replace('allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_', '')
 
     plot_metric = 'rec_norms list'
-    plot_metric = 'val_perplexity list'
-    plot_metric = 'val_^acc list'
+    # plot_metric = 'val_perplexity list'
+    # plot_metric = 'val_^acc list'
     # plot_metric = 'LSC list'
+    plot_metric = 'norms dec layer 1 list' # enc depth rec dec
     tasks = df['task'].unique()
     nets = df['net'].unique()
     comments = df['comments'].unique()
+    comments = [c.replace('_onlypretrain', '') for c in comments]
     df = df[~df['comments'].str.contains('randlsc')]
     print(comments)
     print(tasks)
@@ -145,29 +173,17 @@ if plot_losses:
                     # c = 'r' if 'supsub' in row['comments'] else 'b'
                     if isinstance(row[plot_metric], list):
                         # print(row['loss list'])
-                        print('epochs', len(row[plot_metric]))
-                        axs[i, j].plot(row[plot_metric], color=lsc_colors[n], label=lsc_clean_comments(n))
+                        print('epochs', len(row[plot_metric]), n)
+                        axs[i, j].plot(row[plot_metric], color=lsc_colors(n), label=lsc_clean_comments(n))
                     else:
                         print(row[plot_metric], row['path'], row['comments'])
 
                 axs[i, j].set_title(f'{task} {net}')
 
-    legend_elements = [Line2D([0], [0], color=lsc_colors[n], lw=4, label=lsc_clean_comments(n)) for n in comments]
+    legend_elements = [Line2D([0], [0], color=lsc_colors(n), lw=4, label=lsc_clean_comments(n)) for n in comments]
     plt.legend(ncol=3, handles=legend_elements, loc='lower center')  # , bbox_to_anchor=(-.1, -1.))
 
     plt.show()
-
-for cname in ['net', 'task']:
-    if isinstance(df[cname], pd.DataFrame):
-        c = df[cname].iloc[:, 0].fillna(df[cname].iloc[:, 1])
-        df = df.drop([cname], axis=1)
-        df[cname] = c
-
-if 'n_params' in df.columns:
-    df['n_params'] = df['n_params'].apply(lambda x: large_num_to_reasonable_string(x, 1))
-
-if 'net' in df.columns: df['net'] = df['net'].astype(str)
-if 'task' in df.columns: df['task'] = df['task'].astype(str)
 
 if 'net' in df.columns:
     df.loc[df['comments'].str.contains('noalif'), 'net'] = 'LIF'
@@ -187,8 +203,8 @@ if 'v_^acc len' in df.columns:
     print(list(df.columns))
     print('v_mode_acc nans:', df['v_^acc len'].isna().sum())
     print('t_ppl nans:', df['t_ppl list'].isna().sum())
-    df['v_ppl argm'] = df['v_ppl argm'].astype(int)
-    df['v_^acc argM'] = df['v_^acc argM'].astype(int)
+    # df['v_ppl argm'] = df['v_ppl argm'].astype(int)
+    # df['v_^acc argM'] = df['v_^acc argM'].astype(int)
 
     df['v_ppl'] = df['v_ppl m']
     # df['t_ppl'] = df.apply(lambda row: row['t_ppl list'][row['v_ppl argm']], axis=1)

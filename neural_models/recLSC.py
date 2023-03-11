@@ -319,7 +319,10 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
         time_steps = 10
         learn = False
 
-
+    if 'randlambda' in comments:
+        l = lambda: tf.random.uniform(shape=(), minval=0, maxval=1, dtype=tf.float32)
+    else:
+        l = lambda: 1
 
     for step in range(steps_per_epoch):
         if time_over:
@@ -418,14 +421,14 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                             some_norms.append(tf.reduce_mean(rnorm))
                             if not naswot_score is None:
                                 all_naswot.append(tf.reduce_mean(naswot_score))
-                            mean_loss += loss
+                            mean_loss += l() * loss
 
                         if encoder_norm and i == 0 and r2 < .5:
                             # nodes = [n.name for n in tf.get_default_graph().as_graph_def().node]
                             # print(nodes)
                             # print(tf.contrib.graph_editor.get_tensors(tf.get_default_graph()))
 
-                            lower_states =[bflat]
+                            lower_states = [bflat]
 
                             # norms, loss, naswot_score = get_norms(tape=tape, lower_states=[bt[:, 0, :]],
                             # norms, loss, naswot_score = get_norms(tape=tape, lower_states=[bflat],
@@ -436,7 +439,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                             save_norms[f'batch {step} enc layer {i}'].append(tf.reduce_mean(norms).numpy())
 
                             some_norms.append(tf.reduce_mean(norms))
-                            mean_loss += loss
+                            mean_loss += l() * loss
 
                         hl = htp1
                         cl = ctp1
@@ -451,7 +454,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                                 save_norms[f'batch {step} depth layer {i}'].append(tf.reduce_mean(norms).numpy())
 
                                 some_norms.append(tf.reduce_mean(norms))
-                                mean_loss += loss
+                                mean_loss += l() * loss
 
                         state_below = (hl, cl)
                         del hl, cl
@@ -472,14 +475,15 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                                 save_norms[f'batch {step} dec layer {i}'].append(tf.reduce_mean(norms).numpy())
 
                                 # some_norms.append(tf.reduce_mean(norms))
-                                mean_loss += loss
+                                mean_loss += l() * loss
 
                         del htp1, ht, ctp1, ct
 
                 best_count += 1
+                mean_norm = tf.reduce_mean(some_norms).numpy()
                 if not best_norm is None:
-                    if np.abs(np.mean(rnorm.numpy()) - target_norm) < np.abs(best_norm - target_norm):
-                        best_norm = np.mean(rnorm.numpy())
+                    if np.abs(mean_norm - target_norm) < np.abs(best_norm - target_norm):
+                        best_norm = best_norm
                         best_weights = model.get_weights()
                         best_count = 0
 
@@ -514,11 +518,11 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                     time_over = True
                     break
 
-                norms = tf.reduce_mean(some_norms)
+                # norms = tf.reduce_mean(some_norms)
 
-                rec_norm_mean = tf.reduce_mean(rnorm)
+                # rec_norm_mean = tf.reduce_mean(rnorm)
                 ma_loss = loss if ma_loss is None else ma_loss * 9 / 10 + loss / 10
-                ma_norm = rec_norm_mean if ma_norm is None else ma_norm * 9 / 10 + rec_norm_mean / 10
+                ma_norm = mean_norm if ma_norm is None else ma_norm * 9 / 10 + mean_norm / 10
 
                 epsilons = [(abs(n - target_norm) < es_epsilon).numpy() for n in some_norms]
                 if not ma_norm is None and all(epsilons):

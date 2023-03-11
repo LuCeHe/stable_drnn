@@ -176,7 +176,7 @@ def reorganize(x):
     return x
 
 
-lsc_colors = {
+lsc_colors_dict = {
     'findLSC_radius': [0.43365406, 0.83304796, 0.58958684],
     'findLSC_radius_targetnorm:.5': [0.43365406, 0.43304796, 0.58958684],
     'findLSC_radius_targetnorm:.5_randlsc': [0.73365406, 0.43304796, 0.58958684],
@@ -190,12 +190,14 @@ lsc_colors = {
 
 }
 
-def lsc_color(c):
-    if c in lsc_colors.keys():
-        return lsc_colors[c]
+
+def lsc_colors(name):
+    name  = name.replace('_onlypretrain', '')
+    if name in lsc_colors_dict.keys():
+        return lsc_colors_dict[name]
     else:
         # assign random color
-        return 'r' #np.random.rand(3)
+        return np.random.rand(3)
 
 
 def lsc_clean_comments(c):
