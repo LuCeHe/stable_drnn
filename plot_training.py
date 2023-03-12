@@ -44,12 +44,12 @@ expsid = 'als'  # effnet als ffnandcnns
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 check_for_new = True
-plot_losses = True
+plot_losses = False
 one_exp_curves = False
 pandas_means = True
 show_per_tasknet = True
 make_latex = False
-missing_exps = False
+missing_exps = True
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -94,7 +94,6 @@ force_keep_column = [
     'val_sparse_mode_accuracy list', 'val_perplexity list',
     'v_sparse_mode_accuracy list', 'v_perplexity list',
     't_sparse_mode_accuracy list', 't_perplexity list',
-
 ]
 
 df = experiments_to_pandas(
@@ -129,7 +128,7 @@ norms_cols = [c for c in df.columns if 'save_norms' in c and 'batch 0' in c and 
 for c in norms_cols:
     new_c = c.replace('_batch 0 ', '')
     tag = new_c.replace('save_norms', '')
-    title = new_c.replace('save_norms', 'norms ' )
+    title = new_c.replace('save_norms', 'norms ')
     tag_cols = [c for c in df.columns if tag in c]
 
     print(title)
@@ -149,7 +148,7 @@ if plot_losses:
     # plot_metric = 'val_perplexity list'
     # plot_metric = 'val_^acc list'
     # plot_metric = 'LSC list'
-    plot_metric = 'norms dec layer 1 list' # enc depth rec dec
+    plot_metric = 'norms dec layer 1 list'  # enc depth rec dec
     tasks = df['task'].unique()
     nets = df['net'].unique()
     comments = df['comments'].unique()
@@ -971,16 +970,22 @@ if remove_incomplete:
     plotdf['target'] = plotdf['comments'].apply(
         lambda x: 0.5 if 'targetnorm:.5' in x else 1 if 'findLSC' in x else np.nan)
     rdf = plotdf[abs(plotdf['LSC f'] - plotdf['target']) > epsilon]
+
+    rdf = plotdf[
+        plotdf['comments'].str.contains('findLSC')
+        & plotdf['LSC f'].isnull()
+        ]
+    print(rdf.to_string())
     print(rdf.shape, df.shape)
-    # rdfs.append(rdf)
+    rdfs.append(rdf)
 
     # remove LSC that didn't record LSC norms
 
     print('remove old settings')
     # rdf = plotdf[plotdf['comments'].eq('allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC')]
-    rdf = plotdf[plotdf['comments'].str.contains('findLSC')]
-    rdfs.append(rdf)
-    print(rdf.shape)
+    rdf = plotdf[plotdf['comments'].str.contains('onlypretrain')]
+    # rdfs.append(rdf)
+    # print(rdf.shape)
 
     # remove repeated
     # remove one seed from those that have more than 4 seeds
@@ -1017,7 +1022,7 @@ if remove_incomplete:
             print(rdf['comments'])
             paths = rdf['path'].values
             for i, p in enumerate(paths):
-                print(f'{i}/{len(paths)} Removing {p}')
+                print(f'{i+1}/{len(paths)} Removing {p}')
                 exps_path = p
                 gexp_path = os.path.join(GEXPERIMENTS[0], os.path.split(p)[1] + '.zip')
                 print(exps_path)
@@ -1049,6 +1054,7 @@ if missing_exps:
     sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
     # substitute the string _timerepeat:2 by _timerepeat:2_pretrained_ in the comments column
     sdf['comments'] = sdf['comments'].str.replace('_timerepeat:2', '_timerepeat:2_pretrained')
+    sdf['comments'] = sdf['comments'].str.replace('_onlypretrain', '')
 
     seed = 0
     n_seeds = 4
