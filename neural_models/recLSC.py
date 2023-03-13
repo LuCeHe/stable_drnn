@@ -202,6 +202,24 @@ def get_lsctype(comments):
     return lsctype
 
 
+def get_pretrained_file(comments, s, net_name, task_name, ostack):
+    target_norm = str2val(comments, 'targetnorm', float, default=1)
+
+    c = ''
+    if 'targetnorm' in comments:
+        c += f'_tn{str(target_norm).replace(".", "p")}'
+    if 'randlsc' in comments:
+        c += '_randlsc'
+    if 'lscshuffw' in comments:
+        c += '_lscshuffw'
+    lsct = get_lsctype(comments)
+    return f"pretrained_s{s}_{net_name}_{lsct}_{task_name}_stack{str(ostack).replace(':', 'c')}{c}.h5"
+
+
+def remove_non():
+    pass
+
+
 def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, steps_per_epoch=2, es_epsilon=.08,
               patience=5, rec_norm=True, depth_norm=True, encoder_norm=False, decoder_norm=True, learn=True,
               time_steps=None, weights=None, save_weights_path=None, lr=1e-3, naswot=0):
@@ -226,7 +244,6 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
         stack = ostack
 
     s = model_args["seed"]
-    lsct = get_lsctype(comments)
     optimizer = AdamW(learning_rate=lr, weight_decay=1e-4)
 
     states = []
@@ -266,18 +283,11 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
         weights_path = os.path.join(save_weights_path, 'model_weights_lsc_before.h5')
         model.save_weights(weights_path)
 
-    c = ''
-    if 'targetnorm' in comments:
-        c += f'_tn{str(target_norm).replace(".", "p")}'
-    if 'randlsc' in comments:
-        c += '_randlsc'
-    if 'lscshuffw' in comments:
-        c += '_lscshuffw'
-
     tape, norms = None, None
 
-    path_pretrained = os.path.join(
-        EXPERIMENTS, f"pretrained_s{s}_{net_name}_{lsct}_{task_name}_stack{str(ostack).replace(':', 'c')}{c}.h5")
+    pretrained_file = get_pretrained_file(comments, s, net_name, task_name, ostack)
+    path_pretrained = os.path.join(EXPERIMENTS, pretrained_file)
+
     if 'pretrained' in comments:
         if os.path.exists(path_pretrained):
             print('Loading pretrained lsc weights')
