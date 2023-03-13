@@ -237,7 +237,7 @@ def remove_pretrained_extra(experiments):
         # print(d)
         # print('', d in files)
         if not d in files:
-            # os.remove(os.path.join(GEXPERIMENTS, d))
+            os.remove(os.path.join(GEXPERIMENTS, d))
             removed += 1
             # pass
 
