@@ -217,7 +217,6 @@ def get_pretrained_file(comments, s, net_name, task_name, ostack):
 
 
 def remove_pretrained_extra(experiments):
-
     files = []
     for exp in experiments:
         file = get_pretrained_file(
@@ -232,16 +231,19 @@ def remove_pretrained_extra(experiments):
 
     print()
     existing_pretrained = [d for d in os.listdir(GEXPERIMENTS) if 'pretrained_' in d]
-    # pbar1 = tqdm(total=steps_per_epoch, position=1)
+    pbar = tqdm(total=len(existing_pretrained))
     removed = 0
-    for d in tqdm(existing_pretrained):
-        print(d)
-        print('', d in files)
+    for d in existing_pretrained:
+        # print(d)
+        # print('', d in files)
         if not d in files:
             # os.remove(os.path.join(GEXPERIMENTS, d))
-            removed +=1
-            pass
-    print(f'Removed {removed} pretrained files of {len(existing_pretrained)}')
+            removed += 1
+            # pass
+
+        pbar.update(1)
+        pbar.set_description(f"Removed {removed} of {len(existing_pretrained)}")
+    # print(f'Removed {removed} pretrained files of {len(existing_pretrained)}')
 
 
 def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, steps_per_epoch=2, es_epsilon=.08,
@@ -723,6 +725,7 @@ def test_subsampled_larger_axis():
               epsilon=1e-8,
               target_norm=1., test=True)
 
+
 def test_remove():
     experiments = [{'comments': [
         'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_targetnorm:.5_onlypretrain'],
@@ -744,14 +747,14 @@ def test_remove():
             'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_onlypretrain'],
             'seed': [41], 'stack': ['4:3'], 'net': ['LSTM'], 'task': ['heidelberg']},
         {'comments': [
-            'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_onlypretrain'], 'seed': [41],
+            'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_onlypretrain'],
+            'seed': [41],
             'stack': ['None'],
             'net': ['maLSNN'],
             'task': [
                 'heidelberg']}]
 
     remove_pretrained_extra(experiments)
-
 
 
 if __name__ == '__main__':
