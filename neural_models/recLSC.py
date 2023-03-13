@@ -232,14 +232,16 @@ def remove_pretrained_extra(experiments):
 
     print()
     existing_pretrained = [d for d in os.listdir(GEXPERIMENTS) if 'pretrained_' in d]
-    for d in existing_pretrained:
+    # pbar1 = tqdm(total=steps_per_epoch, position=1)
+    removed = 0
+    for d in tqdm(existing_pretrained):
         print(d)
         print('', d in files)
         if not d in files:
             # os.remove(os.path.join(GEXPERIMENTS, d))
 
             pass
-
+    print(f'Removed {removed} pretrained files of {len(existing_pretrained)}')
 
 
 def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, steps_per_epoch=2, es_epsilon=.08,
