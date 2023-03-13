@@ -234,10 +234,11 @@ def remove_pretrained_extra(experiments):
     pbar = tqdm(total=len(existing_pretrained))
     removed = 0
     for d in existing_pretrained:
+
         # print(d)
         # print('', d in files)
         if not d in files:
-            os.remove(os.path.join(GEXPERIMENTS, d))
+            # os.remove(os.path.join(GEXPERIMENTS, d))
             removed += 1
             # pass
 
