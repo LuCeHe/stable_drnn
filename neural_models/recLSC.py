@@ -30,8 +30,8 @@ warnings.filterwarnings('ignore')
 
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
-EXPERIMENTS = os.path.abspath(os.path.join(CDIR, '..', 'good_experiments'))
-os.makedirs(EXPERIMENTS, exist_ok=True)
+GEXPERIMENTS = os.path.abspath(os.path.join(CDIR, '..', 'good_experiments'))
+os.makedirs(GEXPERIMENTS, exist_ok=True)
 
 
 def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, norm_pow=2, naswot=0, comments='',
@@ -216,8 +216,30 @@ def get_pretrained_file(comments, s, net_name, task_name, ostack):
     return f"pretrained_s{s}_{net_name}_{lsct}_{task_name}_stack{str(ostack).replace(':', 'c')}{c}.h5"
 
 
-def remove_non():
-    pass
+def remove_pretrained_extra(experiments):
+
+    files = []
+    for exp in experiments:
+        file = get_pretrained_file(
+            comments=exp['comments'][0],
+            s=exp['seed'][0],
+            net_name=exp['net'][0],
+            task_name=exp['task'][0],
+            ostack=exp['stack'][0]
+        )
+        print(file)
+        files.append(file)
+
+    print()
+    existing_pretrained = [d for d in os.listdir(GEXPERIMENTS) if 'pretrained_' in d]
+    for d in existing_pretrained:
+        print(d)
+        print('', d in files)
+        if not d in files:
+            # os.remove(os.path.join(GEXPERIMENTS, d))
+
+            pass
+
 
 
 def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, steps_per_epoch=2, es_epsilon=.08,
@@ -286,7 +308,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
     tape, norms = None, None
 
     pretrained_file = get_pretrained_file(comments, s, net_name, task_name, ostack)
-    path_pretrained = os.path.join(EXPERIMENTS, pretrained_file)
+    path_pretrained = os.path.join(GEXPERIMENTS, pretrained_file)
 
     if 'pretrained' in comments:
         if os.path.exists(path_pretrained):
@@ -699,6 +721,36 @@ def test_subsampled_larger_axis():
               epsilon=1e-8,
               target_norm=1., test=True)
 
+def test_remove():
+    experiments = [{'comments': [
+        'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_targetnorm:.5_onlypretrain'],
+        'seed': [0], 'stack': ['None'], 'net': ['maLSNN'], 'task': ['heidelberg']}, {'comments': [
+        'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_onlypretrain'], 'seed': [1],
+        'stack': ['None'],
+        'net': ['maLSNN'],
+        'task': [
+            'heidelberg']}, {
+        'comments': [
+            'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_targetnorm:.5_onlypretrain'],
+        'seed': [1], 'stack': ['None'], 'net': ['maLSNN'], 'task': ['heidelberg']}, {'comments': [
+        'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_onlypretrain'], 'seed': [2],
+        'stack': ['None'],
+        'net': ['maLSNN'],
+        'task': [
+            'heidelberg']},
+        {'comments': [
+            'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_onlypretrain'],
+            'seed': [41], 'stack': ['4:3'], 'net': ['LSTM'], 'task': ['heidelberg']},
+        {'comments': [
+            'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_onlypretrain'], 'seed': [41],
+            'stack': ['None'],
+            'net': ['maLSNN'],
+            'task': [
+                'heidelberg']}]
+
+    remove_pretrained_extra(experiments)
+
+
 
 if __name__ == '__main__':
-    test_subsampled_larger_axis()
+    test_remove()
