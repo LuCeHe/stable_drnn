@@ -239,7 +239,7 @@ def remove_pretrained_extra(experiments):
         print('', d in files)
         if not d in files:
             # os.remove(os.path.join(GEXPERIMENTS, d))
-
+            removed +=1
             pass
     print(f'Removed {removed} pretrained files of {len(existing_pretrained)}')
 
