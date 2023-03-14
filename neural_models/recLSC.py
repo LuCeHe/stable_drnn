@@ -12,6 +12,7 @@ from GenericTools.keras_tools.esoteric_layers.rate_voltage_reg import RateVoltag
 from GenericTools.keras_tools.learning_rate_schedules import DummyConstantSchedule
 from GenericTools.stay_organized.utils import str2val, timeStructured
 from sg_design_lif.neural_models import maLSNN, maLSNNb
+from sg_design_lif.neural_models.config import default_config
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['AUTOGRAPH_VERBOSITY'] = '1'
@@ -204,6 +205,9 @@ def get_lsctype(comments):
 
 def get_pretrained_file(comments, s, net_name, task_name, ostack):
     target_norm = str2val(comments, 'targetnorm', float, default=1)
+    stack, batch_size, embedding, n_neurons, lr = default_config(
+        ostack, None, None, None, .1, task_name, net_name, setting='LSC'
+    )
 
     c = ''
     if 'targetnorm' in comments:
@@ -213,7 +217,7 @@ def get_pretrained_file(comments, s, net_name, task_name, ostack):
     if 'lscshuffw' in comments:
         c += '_lscshuffw'
     lsct = get_lsctype(comments)
-    return f"pretrained_s{s}_{net_name}_{lsct}_{task_name}_stack{str(ostack).replace(':', 'c')}{c}.h5"
+    return f"pretrained_s{s}_{net_name}_{lsct}_{task_name}_stack{str(stack).replace(':', 'c')}{c}.h5"
 
 
 def remove_pretrained_extra(experiments):
@@ -238,7 +242,7 @@ def remove_pretrained_extra(experiments):
         # print(d)
         # print('', d in files)
         if not d in files:
-            os.remove(os.path.join(GEXPERIMENTS, d))
+            # os.remove(os.path.join(GEXPERIMENTS, d))
             removed += 1
             # pass
 
