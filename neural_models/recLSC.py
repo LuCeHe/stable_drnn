@@ -205,9 +205,13 @@ def get_lsctype(comments):
 
 def get_pretrained_file(comments, s, net_name, task_name, ostack):
     target_norm = str2val(comments, 'targetnorm', float, default=1)
+    if ostack == 'None':
+        ostack = None
+    # print(ostack == 'None', ostack is None)
     stack, batch_size, embedding, n_neurons, lr = default_config(
         ostack, None, None, None, .1, task_name, net_name, setting='LSC'
     )
+    print(ostack, stack)
 
     c = ''
     if 'targetnorm' in comments:
