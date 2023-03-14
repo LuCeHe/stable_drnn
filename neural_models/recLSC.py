@@ -207,11 +207,10 @@ def get_pretrained_file(comments, s, net_name, task_name, ostack):
     target_norm = str2val(comments, 'targetnorm', float, default=1)
     if ostack == 'None':
         ostack = None
-    # print(ostack == 'None', ostack is None)
+
     stack, batch_size, embedding, n_neurons, lr = default_config(
         ostack, None, None, None, .1, task_name, net_name, setting='LSC'
     )
-    print(ostack, stack)
 
     c = ''
     if 'targetnorm' in comments:
@@ -234,10 +233,10 @@ def remove_pretrained_extra(experiments):
             task_name=exp['task'][0],
             ostack=exp['stack'][0]
         )
-        print(file)
+        # print(file)
         files.append(file)
 
-    print()
+    # print()
     existing_pretrained = [d for d in os.listdir(GEXPERIMENTS) if 'pretrained_' in d]
     pbar = tqdm(total=len(existing_pretrained))
     removed = 0
@@ -246,7 +245,7 @@ def remove_pretrained_extra(experiments):
         # print(d)
         # print('', d in files)
         if not d in files:
-            # os.remove(os.path.join(GEXPERIMENTS, d))
+            os.remove(os.path.join(GEXPERIMENTS, d))
             removed += 1
             # pass
 
