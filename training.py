@@ -64,7 +64,7 @@ def config():
     # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_findLSC_supsubnpsd_test_pretrained'
     # comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_findLSC_supsubnpsd_test_pretrained_randlsc'
     # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_targetnorm:.5_test'
-    comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_test'
+    comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_test_onlyloadpretrained'
     # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2'
     # 'truersplit'
 
@@ -328,7 +328,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
         except Exception as e:
             print(e)
             print('Evaluation failed: ', set)
-            results[set + '_failed'] = e
+            results[set + '_failed'] = str(e)
 
     results['full_comments'] = comments
     results['final_epochs'] = str(actual_epochs)

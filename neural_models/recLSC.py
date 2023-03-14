@@ -238,7 +238,7 @@ def remove_pretrained_extra(experiments):
         # print(d)
         # print('', d in files)
         if not d in files:
-            # os.remove(os.path.join(GEXPERIMENTS, d))
+            os.remove(os.path.join(GEXPERIMENTS, d))
             removed += 1
             # pass
 
@@ -517,10 +517,10 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                         del htp1, ht, ctp1, ct
 
                 best_count += 1
-                mean_norm = tf.reduce_mean(some_norms).numpy()
+                mean_norm = tf.reduce_mean(some_norms)
                 if not best_norm is None:
-                    if np.abs(mean_norm - target_norm) < np.abs(best_norm - target_norm):
-                        best_norm = best_norm
+                    if np.abs(mean_norm.numpy() - target_norm) < np.abs(best_norm - target_norm):
+                        best_norm = mean_norm.numpy()
                         best_weights = model.get_weights()
                         best_count = 0
 
@@ -568,6 +568,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                     epsilon_steps = 0
 
                 if epsilon_steps > patience:
+                    time_over = True
                     break
                 all_norms.append(norms.numpy())
                 losses.append(mean_loss.numpy())
