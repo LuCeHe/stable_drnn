@@ -245,7 +245,7 @@ def remove_pretrained_extra(experiments):
         # print(d)
         # print('', d in files)
         if not d in files:
-            os.remove(os.path.join(GEXPERIMENTS, d))
+            # os.remove(os.path.join(GEXPERIMENTS, d))
             removed += 1
             # pass
 
@@ -354,6 +354,9 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
     ma_loss, ma_norm = None, None
 
     best_norm = None
+    best_loss = None
+    best_individual_norms = {}
+    n_types = ['rec', 'depth', 'enc', 'dec']
     best_count = 0
     failures = 0
     iterations = 0
@@ -373,10 +376,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
             break
 
         for i, _ in enumerate(stack):
-            save_norms[f'batch {step} rec layer {i}'] = []
-            save_norms[f'batch {step} depth layer {i}'] = []
-            save_norms[f'batch {step} enc layer {i}'] = []
-            save_norms[f'batch {step} dec layer {i}'] = []
+            for nt in n_types:
+                save_norms[f'batch {step} {nt} layer {i}'] = []
 
         batch = gen_train.__getitem__(step)
         batch = [tf.convert_to_tensor(tf.cast(b, tf.float32), dtype=tf.float32) for b in batch[0]],
@@ -528,6 +529,12 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                 if not best_norm is None:
                     if np.abs(mean_norm.numpy() - target_norm) < np.abs(best_norm - target_norm):
                         best_norm = mean_norm.numpy()
+                        best_loss = mean_loss.numpy()
+
+                        for i, _ in enumerate(stack):
+                            for nt in n_types:
+                                best_individual_norms[f'{nt} layer {i}'] = save_norms[f'batch {step} {nt} layer {i}']
+
                         best_weights = model.get_weights()
                         best_count = 0
 
@@ -577,7 +584,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                 if epsilon_steps > patience:
                     time_over = True
                     break
-                all_norms.append(norms.numpy())
+
+                all_norms.append(mean_norm.numpy())
                 losses.append(mean_loss.numpy())
 
                 pbar2.update(1)
@@ -623,7 +631,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
     del model, tape
 
-    results.update(LSC_losses=str(losses), LSC_norms=str(all_norms), save_norms=save_norms, all_naswot=str(all_naswot))
+    all_norms.append(best_norm)
+    losses.append(best_loss)
 
     tf.keras.backend.clear_session()
     tf.keras.backend.clear_session()
@@ -647,6 +656,12 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
         except Exception as e:
             print(e)
+
+    for i, _ in enumerate(stack):
+        for nt in n_types:
+            save_norms[f'batch {step} {nt} layer {i}'].append(best_individual_norms[f'{nt} layer {i}'])
+
+    results.update(LSC_losses=str(losses), LSC_norms=str(all_norms), save_norms=save_norms, all_naswot=str(all_naswot))
 
     return weights, results
 

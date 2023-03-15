@@ -49,7 +49,7 @@ one_exp_curves = False
 pandas_means = True
 show_per_tasknet = True
 make_latex = False
-missing_exps = True
+missing_exps = False
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -1093,6 +1093,7 @@ if missing_exps:
     ds = dict2iter(experiments)
     print(ds[0])
     experiments_left = complete_missing_exps(sdf, ds, coi)
+    np.random.shuffle(experiments_left)
 
     experiments = []
     for e in experiments_left:
