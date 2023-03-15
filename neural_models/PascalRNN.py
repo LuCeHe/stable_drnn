@@ -3,16 +3,16 @@ import tensorflow as tf
 
 class PascalRNN(tf.keras.layers.Layer):
 
-    def __init__(self, num_neurons=None, **kwargs):
+    def __init__(self, num_neurons=None, target_norm=1., **kwargs):
         super().__init__(**kwargs)
 
-        self.init_args = dict(num_neurons=num_neurons)
+        self.init_args = dict(num_neurons=num_neurons, target_norm=target_norm)
         self.__dict__.update(self.init_args)
 
         self.state_size = (num_neurons,)
 
     def call(self, inputs, states, **kwargs):
-        output = inputs + states[0]
+        output = self.target_norm*inputs + self.target_norm*states[0]
         new_state = (output,)
         return output, new_state
 
@@ -33,7 +33,7 @@ if __name__ == '__main__':
     input_layer = tf.keras.layers.Input((None, 1))
     x = input_layer
     for _ in range(L):
-        cell = PascalRNN(num_neurons=1)
+        cell = PascalRNN(num_neurons=1, target_norm=.5)
         x = tf.keras.layers.RNN(cell, return_sequences=True, return_state=False)(x)
 
     it = tf.ones((1, T, 1))
@@ -50,11 +50,10 @@ if __name__ == '__main__':
     bin = sp.binom(n, k)
 
     fig, axs = plt.subplots(1, 1, figsize=(4, 3))
-    epsilon = 1e12
+    epsilon = 0# 1e12
     axs.plot(output[0, :, 0], label='y = PascalRNN(x)')
     axs.plot(dy_dx[0, :, 0], label='dy/dx')
-    axs.plot(bin + epsilon, label='$\\binom{\,n}{\,k}$')
-    # axs.plot(bin + epsilon, label='${n}\choose{k}$')
+    # axs.plot(bin + epsilon, label='$\\binom{\,n}{\,k}$')
 
     axs.set_xlabel('t')
     for pos in ['right', 'left', 'bottom', 'top']:
@@ -62,6 +61,6 @@ if __name__ == '__main__':
 
     plt.legend()
     plot_filename = f'../experiments/pascal.pdf'
-    fig.savefig(plot_filename, bbox_inches='tight')
+    # fig.savefig(plot_filename, bbox_inches='tight')
 
     plt.show()
