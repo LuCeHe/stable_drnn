@@ -371,10 +371,12 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
     else:
         l = lambda: 1
 
+    last_step = 0
     for step in range(steps_per_epoch):
         if time_over:
             break
 
+        last_step = step
         for i, _ in enumerate(stack):
             for nt in n_types:
                 save_norms[f'batch {step} {nt} layer {i}'] = []
@@ -659,7 +661,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
     for i, _ in enumerate(stack):
         for nt in n_types:
-            save_norms[f'batch {step} {nt} layer {i}'].append(best_individual_norms[f'{nt} layer {i}'])
+            save_norms[f'batch {last_step} {nt} layer {i}'].append(best_individual_norms[f'{nt} layer {i}'])
 
     results.update(LSC_losses=str(losses), LSC_norms=str(all_norms), save_norms=save_norms, all_naswot=str(all_naswot))
 
