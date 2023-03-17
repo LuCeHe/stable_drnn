@@ -223,7 +223,7 @@ def get_pretrained_file(comments, s, net_name, task_name, ostack):
     return f"pretrained_s{s}_{net_name}_{lsct}_{task_name}_stack{str(stack).replace(':', 'c')}{c}.h5"
 
 
-def remove_pretrained_extra(experiments):
+def remove_pretrained_extra(experiments, remove_opposite=True, folder=None):
     files = []
     for exp in experiments:
         file = get_pretrained_file(
@@ -236,18 +236,25 @@ def remove_pretrained_extra(experiments):
         # print(file)
         files.append(file)
 
-    # print()
-    existing_pretrained = [d for d in os.listdir(GEXPERIMENTS) if 'pretrained_' in d]
+    if folder is None:
+        folder = GEXPERIMENTS
+
+    existing_pretrained = [d for d in os.listdir(folder) if 'pretrained_' in d and '.h5' in d]
     pbar = tqdm(total=len(existing_pretrained))
     removed = 0
     for d in existing_pretrained:
 
         # print(d)
         # print('', d in files)
-        if not d in files:
-            # os.remove(os.path.join(GEXPERIMENTS, d))
+        if not d in files and remove_opposite:
+            # os.remove(os.path.join(folder, d))
             removed += 1
-            # pass
+
+        if d in files and not remove_opposite:
+            # print(d)
+            # os.remove(os.path.join(folder, d))
+            removed += 1
+
 
         pbar.update(1)
         pbar.set_description(f"Removed {removed} of {len(existing_pretrained)}")
@@ -407,8 +414,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
         for t in range(ts):
             iterations += 1
 
-            # if True:
-            try:
+            if True:
+            # try:
                 bt = batch[0][0][:, t, :][:, None]
                 wt = batch[0][1][:, t][:, None]
 
@@ -535,7 +542,12 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
                         for i, _ in enumerate(stack):
                             for nt in n_types:
-                                best_individual_norms[f'{nt} layer {i}'] = save_norms[f'batch {step} {nt} layer {i}']
+                                # best_individual_norms[f'{nt} layer {i}'] = save_norms[f'batch {step} {nt} layer {i}'][-1]
+                                a = save_norms[f'batch {step} {nt} layer {i}']
+                                if not len(a) == 0:
+                                    best_individual_norms[f'{nt} layer {i}'] = a[-1]
+                                else:
+                                    best_individual_norms[f'{nt} layer {i}'] = -1
 
                         best_weights = model.get_weights()
                         best_count = 0
@@ -543,6 +555,15 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                         if 'pretrained' in comments and not model is None:
                             print('Saving pretrained lsc weights with best norms')
                             model.save(path_pretrained)
+                else:
+
+                    for i, _ in enumerate(stack):
+                        for nt in n_types:
+                            a = save_norms[f'batch {step} {nt} layer {i}']
+                            if not len(a) == 0:
+                                best_individual_norms[f'{nt} layer {i}'] = a[-1]
+                            else:
+                                best_individual_norms[f'{nt} layer {i}'] = -1
 
                 if learn:
                     grads = tape.gradient(mean_loss, model.trainable_weights)
@@ -571,9 +592,6 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                     time_over = True
                     break
 
-                # norms = tf.reduce_mean(some_norms)
-
-                # rec_norm_mean = tf.reduce_mean(rnorm)
                 ma_loss = loss if ma_loss is None else ma_loss * 9 / 10 + loss / 10
                 ma_norm = mean_norm if ma_norm is None else ma_norm * 9 / 10 + mean_norm / 10
 
@@ -597,7 +615,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                     li = str(round(mean_loss.numpy(), 4))
                     pi = str(round(prms, 4))
                     ni = str(ma_norm.numpy().round(round_to))
-                    best_norm = np.array(float(ni))
+                    best_norm = ma_norm.numpy()
+                    best_loss = mean_loss.numpy()
 
                 show_loss = str(ma_loss.numpy().round(round_to))
                 show_norm = str(ma_norm.numpy().round(round_to))
@@ -605,13 +624,13 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                     f"Step {step}; "
                     f"loss {str(show_loss)}/{li}; "
                     f"mean params {str(round(prms, round_to))}/{pi}; "
-                    f"mean norms {show_norm}/{ni} (best {str(best_norm.round(round_to))}); "
+                    f"mean norms {show_norm}/{ni} (best {str(np.array(best_norm).round(round_to))}); "
                     f"fail rate {failures / iterations * 100:.2f}%; "
                 )
 
-            except Exception as e:
-                failures += 1
-                print(e)
+            # except Exception as e:
+            #     failures += 1
+            #     print(e)
 
         del batch
 

@@ -15,6 +15,7 @@ from GenericTools.stay_organized.mpl_tools import load_plot_settings
 from GenericTools.stay_organized.pandardize import experiments_to_pandas, complete_missing_exps
 from GenericTools.stay_organized.standardize_strings import shorten_losses
 from GenericTools.stay_organized.utils import str2val
+from alif_sg.neural_models.recLSC import remove_pretrained_extra
 from alif_sg.tools.plot_tools import *
 from sg_design_lif.neural_models import maLSNN
 
@@ -49,7 +50,7 @@ one_exp_curves = False
 pandas_means = True
 show_per_tasknet = True
 make_latex = False
-missing_exps = False
+missing_exps = True
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -60,6 +61,7 @@ plot_bars = False
 
 remove_incomplete = False
 truely_remove = False
+truely_remove_pretrained = False
 remove_saved_model = False
 
 task = 'ps_mnist'  # heidelberg wordptb sl_mnist all ps_mnist
@@ -77,7 +79,7 @@ metrics_oi = [
 ]
 metrics_oi = [shorten_losses(m) for m in metrics_oi]
 
-plot_only = ['eps', 'net', 'task', 'n_params', 'stack', 'comments', 'path', 'lr', 'seed'] + metrics_oi
+plot_only = ['eps', 'net', 'task', 'n_params', 'stack', 'comments', 'path', 'lr', 'seed', 'host_hostname'] + metrics_oi
 columns_to_remove = [
     'heaviside', '_test', 'weight', 'sLSTM_factor', 'save_model', 'clipnorm', 'GPU', 'batch_size',
     'continue_training', 'embedding', 'lr_schedule', 'loss_name', 'seed', 'stack', 'stop_time',
@@ -101,7 +103,9 @@ df = experiments_to_pandas(
     exclude_files=['cout.txt'], check_for_new=check_for_new,
     exclude_columns=columns_to_remove, force_keep_column=force_keep_column
 )
+# df = df[~df['comments'].str.contains('randlsc')]
 
+df = df[~df['stack'].str.contains('4:3', na=False)]
 df['stack'] = df['stack'].fillna(-1).astype(int)
 df = df.replace(-1, 'None')
 df['stack'] = df['stack'].astype(str)
@@ -223,6 +227,7 @@ if metric in df.keys():
 print(list(df.columns))
 if not plot_only is None:
     plotdf = df[plot_only]
+    # plotdf = plotdf[plotdf['task'].str.contains('PTB')]
     print(plotdf.to_string())
 
 if one_exp_curves:
@@ -970,6 +975,9 @@ if remove_incomplete:
     plotdf['target'] = plotdf['comments'].apply(
         lambda x: 0.5 if 'targetnorm:.5' in x else 1 if 'findLSC' in x else np.nan)
     rdf = plotdf[abs(plotdf['LSC f'] - plotdf['target']) > epsilon]
+    # print(rdf.to_string())
+    print(rdf.shape, df.shape)
+    rdfs.append(rdf)
 
     rdf = plotdf[
         plotdf['comments'].str.contains('findLSC')
@@ -1010,14 +1018,36 @@ if remove_incomplete:
         # remainder
         rdf = srdf[~srdf.apply(tuple, 1).isin(gsrdf.apply(tuple, 1))]
         print(rdf.shape)
-        # rdfs.append(rdf)
+        rdfs.append(rdf)
 
     allrdfs = pd.concat(rdfs)
     allrdfs = allrdfs.drop_duplicates()
     print(f'Remove {allrdfs.shape} of {plotdf.shape}')
 
+    if truely_remove_pretrained:
+
+        # sdf = pd.read_hdf(h5path, 'df')
+        sdf = allrdfs.copy()
+
+        sdf.loc[df['task'].str.contains('SHD'), 'task'] = 'heidelberg'
+        sdf.loc[df['task'].str.contains('sl-MNIST'), 'task'] = 'sl_mnist'
+        sdf.loc[df['task'].str.contains('PTB'), 'task'] = 'wordptb'
+
+        sdf.loc[df['net'].str.contains('ALIFb'), 'net'] = 'maLSNNb'
+        sdf.loc[df['net'].str.contains('ALIF'), 'net'] = 'maLSNN'
+
+
+        coi = ['seed', 'task', 'net', 'comments', 'stack']
+        experiments = []
+
+        for _, row in sdf.iterrows():
+            experiments.append({c: [row[c]] for c in coi})
+        print(experiments)
+        print(f'Experiments to remove: {len(experiments)}')
+        folder = r'D:\work\alif_sg\good_experiments\pmodels'
+        remove_pretrained_extra(experiments, remove_opposite=False, folder=folder)
+
     if truely_remove:
-        # for rdf in rdfs:
         for rdf in [allrdfs]:
             print(rdf['comments'])
             paths = rdf['path'].values
@@ -1045,7 +1075,6 @@ if missing_exps:
     sdf.loc[df['task'].str.contains('SHD'), 'task'] = 'heidelberg'
     sdf.loc[df['task'].str.contains('sl-MNIST'), 'task'] = 'sl_mnist'
     sdf.loc[df['task'].str.contains('PTB'), 'task'] = 'wordptb'
-
     sdf.loc[df['net'].str.contains('ALIFb'), 'net'] = 'maLSNNb'
     sdf.loc[df['net'].str.contains('ALIF'), 'net'] = 'maLSNN'
 
