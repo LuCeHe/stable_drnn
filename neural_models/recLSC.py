@@ -552,7 +552,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                         best_weights = model.get_weights()
                         best_count = 0
 
-                        if 'pretrained' in comments and not model is None:
+                        if 'pretrained' in comments and not model is None and learn:
                             print('Saving pretrained lsc weights with best norms')
                             model.save(path_pretrained)
                 else:
