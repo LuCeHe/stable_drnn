@@ -244,23 +244,30 @@ def remove_pretrained_extra(experiments, remove_opposite=True, folder=None):
     existing_pretrained = [d for d in os.listdir(folder) if 'pretrained_' in d and '.h5' in d]
     pbar = tqdm(total=len(existing_pretrained))
     removed = 0
+    which_not_is_missing=[]
     for d in existing_pretrained:
 
-        print('Existing:')
-
-        print(d)
-        print('', d in files)
+        # print('Existing:')
+        #
+        # print(d)
+        # print('', d in files)
         if not d in files and remove_opposite:
             # os.remove(os.path.join(folder, d))
+            which_not_is_missing.append(d)
             removed += 1
 
         if d in files and not remove_opposite:
             # os.remove(os.path.join(folder, d))
+            which_not_is_missing.append(d)
             removed += 1
 
 
         pbar.update(1)
         pbar.set_description(f"Removed {removed} of {len(existing_pretrained)}")
+    which_is_missing = [f for f in files if not f in which_not_is_missing]
+    print('Missing:')
+    for f in which_is_missing:
+        print(f)
     # print(f'Removed {removed} pretrained files of {len(existing_pretrained)}')
 
 
