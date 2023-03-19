@@ -265,7 +265,7 @@ def remove_pretrained_extra(experiments, remove_opposite=True, folder=None):
         pbar.set_description(f"Removed {removed} of {len(existing_pretrained)}")
 
     # if len(which_not_is_missing) == 0:
-    which_is_missing = [f for f in existing_pretrained if not f in files]
+    which_is_missing = [f for f in files if not f in existing_pretrained]
     print('Missing:')
     for f in which_is_missing:
         print(f)
