@@ -226,6 +226,7 @@ def get_pretrained_file(comments, s, net_name, task_name, ostack):
 def remove_pretrained_extra(experiments, remove_opposite=True, folder=None):
     files = []
     for exp in experiments:
+
         file = get_pretrained_file(
             comments=exp['comments'][0],
             s=exp['seed'][0],
@@ -233,7 +234,8 @@ def remove_pretrained_extra(experiments, remove_opposite=True, folder=None):
             task_name=exp['task'][0],
             ostack=exp['stack'][0]
         )
-        # print(file)
+        print('Desired:')
+        print(file)
         files.append(file)
 
     if folder is None:
@@ -244,8 +246,10 @@ def remove_pretrained_extra(experiments, remove_opposite=True, folder=None):
     removed = 0
     for d in existing_pretrained:
 
-        # print(d)
-        # print('', d in files)
+        print('Existing:')
+
+        print(d)
+        print('', d in files)
         if not d in files and remove_opposite:
             # os.remove(os.path.join(folder, d))
             removed += 1
