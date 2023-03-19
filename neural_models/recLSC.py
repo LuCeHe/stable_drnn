@@ -252,7 +252,7 @@ def remove_pretrained_extra(experiments, remove_opposite=True, folder=None):
         # print(d)
         # print('', d in files)
         if not d in files and remove_opposite:
-            # os.remove(os.path.join(folder, d))
+            os.remove(os.path.join(folder, d))
             which_is_missing.append(d)
             removed += 1
 
