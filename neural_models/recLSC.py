@@ -225,8 +225,8 @@ def get_pretrained_file(comments, s, net_name, task_name, ostack):
 
 def remove_pretrained_extra(experiments, remove_opposite=True, folder=None):
     files = []
+    print('Desired:')
     for exp in experiments:
-
         file = get_pretrained_file(
             comments=exp['comments'][0],
             s=exp['seed'][0],
@@ -234,7 +234,6 @@ def remove_pretrained_extra(experiments, remove_opposite=True, folder=None):
             task_name=exp['task'][0],
             ostack=exp['stack'][0]
         )
-        print('Desired:')
         print(file)
         files.append(file)
 
@@ -244,7 +243,8 @@ def remove_pretrained_extra(experiments, remove_opposite=True, folder=None):
     existing_pretrained = [d for d in os.listdir(folder) if 'pretrained_' in d and '.h5' in d]
     pbar = tqdm(total=len(existing_pretrained))
     removed = 0
-    which_not_is_missing=[]
+    which_not_is_missing = []
+    which_is_missing = []
     for d in existing_pretrained:
 
         # print('Existing:')
@@ -253,7 +253,7 @@ def remove_pretrained_extra(experiments, remove_opposite=True, folder=None):
         # print('', d in files)
         if not d in files and remove_opposite:
             # os.remove(os.path.join(folder, d))
-            which_not_is_missing.append(d)
+            which_is_missing.append(d)
             removed += 1
 
         if d in files and not remove_opposite:
@@ -261,11 +261,11 @@ def remove_pretrained_extra(experiments, remove_opposite=True, folder=None):
             which_not_is_missing.append(d)
             removed += 1
 
-
         pbar.update(1)
         pbar.set_description(f"Removed {removed} of {len(existing_pretrained)}")
 
-    which_is_missing = [f for f in existing_pretrained if not f in which_not_is_missing]
+    # if len(which_not_is_missing) == 0:
+    which_is_missing = [f for f in existing_pretrained if not f in files]
     print('Missing:')
     for f in which_is_missing:
         print(f)
@@ -426,7 +426,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
             iterations += 1
 
             if True:
-            # try:
+                # try:
                 bt = batch[0][0][:, t, :][:, None]
                 wt = batch[0][1][:, t][:, None]
 
