@@ -50,7 +50,7 @@ one_exp_curves = False
 pandas_means = True
 show_per_tasknet = True
 make_latex = False
-missing_exps = False
+missing_exps = True
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -974,15 +974,9 @@ if remove_incomplete:
     # else nan
     plotdf['target'] = plotdf['comments'].apply(
         lambda x: 0.5 if 'targetnorm:.5' in x else 1 if 'findLSC' in x else np.nan)
-    rdf = plotdf[abs(plotdf['LSC f'] - plotdf['target']) > epsilon]
-    # print(rdf.to_string())
-    print(rdf.shape, df.shape)
-    rdfs.append(rdf)
-
     rdf = plotdf[
-        plotdf['comments'].str.contains('findLSC')
-        & plotdf['LSC f'].isnull()
-        ]
+        abs(plotdf['LSC f'] - plotdf['target']) > epsilon
+    ]
     print(rdf.to_string())
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
@@ -991,7 +985,9 @@ if remove_incomplete:
 
     print('remove old settings')
     # rdf = plotdf[plotdf['comments'].eq('allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC')]
-    rdf = plotdf[plotdf['comments'].str.contains('onlypretrain')]
+    rdf = plotdf[
+        plotdf['comments'].str.contains('onlypretrain')
+    ]
     # rdfs.append(rdf)
     # print(rdf.shape)
 
@@ -1083,7 +1079,7 @@ if missing_exps:
     sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
     # substitute the string _timerepeat:2 by _timerepeat:2_pretrained_ in the comments column
     sdf['comments'] = sdf['comments'].str.replace('_timerepeat:2', '_timerepeat:2_pretrained')
-    sdf['comments'] = sdf['comments'].str.replace('_onlypretrain', '')
+    # sdf['comments'] = sdf['comments'].str.replace('_onlypretrain', '')
 
     seed = 0
     n_seeds = 4
@@ -1097,8 +1093,8 @@ if missing_exps:
         # incomplete_comments,
         # incomplete_comments + f'findLSC',
         # incomplete_comments + f'findLSC_supsubnpsd',
-        incomplete_comments + f'findLSC_radius',
-        incomplete_comments + f'findLSC_radius_targetnorm:.5',
+        incomplete_comments + f'findLSC_radius_onlyloadpretrained',
+        incomplete_comments + f'findLSC_radius_targetnorm:.5_onlyloadpretrained',
         # incomplete_comments + f'findLSC_radius_targetnorm:.5_randlsc',
         # incomplete_comments + f'findLSC_supsubnpsd_deslice',
     ]
@@ -1123,12 +1119,12 @@ if missing_exps:
     print(ds[0])
     experiments_left = complete_missing_exps(sdf, ds, coi)
     np.random.shuffle(experiments_left)
-
-    experiments = []
-    for e in experiments_left:
-        e['comments'] = [e['comments'][0] + '_onlypretrain']
-        print(e)
-        experiments.append(e)
+    experiments = experiments_left
+    # experiments = []
+    # for e in experiments_left:
+    #     e['comments'] = [e['comments'][0] + '_onlypretrain']
+    #     print(e)
+    #     experiments.append(e)
 
     print(experiments)
     print(len(experiments))
