@@ -976,7 +976,7 @@ if remove_incomplete:
         lambda x: 0.5 if 'targetnorm:.5' in x else 1 if 'findLSC' in x else np.nan)
     rdf = plotdf[
         abs(plotdf['LSC f'] - plotdf['target']) > epsilon
-    ]
+        ]
     print(rdf.to_string())
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
@@ -1032,7 +1032,6 @@ if remove_incomplete:
         sdf.loc[df['net'].str.contains('ALIFb'), 'net'] = 'maLSNNb'
         sdf.loc[df['net'].str.contains('ALIF'), 'net'] = 'maLSNN'
 
-
         coi = ['seed', 'task', 'net', 'comments', 'stack']
         experiments = []
 
@@ -1048,7 +1047,7 @@ if remove_incomplete:
             print(rdf['comments'])
             paths = rdf['path'].values
             for i, p in enumerate(paths):
-                print(f'{i+1}/{len(paths)} Removing {p}')
+                print(f'{i + 1}/{len(paths)} Removing {p}')
                 exps_path = p
                 gexp_path = os.path.join(GEXPERIMENTS[0], os.path.split(p)[1] + '.zip')
                 print(exps_path)
@@ -1081,6 +1080,7 @@ if missing_exps:
     sdf['comments'] = sdf['comments'].str.replace('_timerepeat:2', '_timerepeat:2_pretrained')
     # sdf['comments'] = sdf['comments'].str.replace('_onlypretrain', '')
 
+    add_flag = '_onlyloadpretrained'  # _onlyloadpretrained _onlypretrain
     seed = 0
     n_seeds = 4
     seeds = [l + seed for l in range(n_seeds)]
@@ -1093,8 +1093,8 @@ if missing_exps:
         # incomplete_comments,
         # incomplete_comments + f'findLSC',
         # incomplete_comments + f'findLSC_supsubnpsd',
-        incomplete_comments + f'findLSC_radius_onlyloadpretrained',
-        incomplete_comments + f'findLSC_radius_targetnorm:.5_onlyloadpretrained',
+        incomplete_comments + f'findLSC_radius' + add_flag,
+        incomplete_comments + f'findLSC_radius_targetnorm:.5' + add_flag,
         # incomplete_comments + f'findLSC_radius_targetnorm:.5_randlsc',
         # incomplete_comments + f'findLSC_supsubnpsd_deslice',
     ]
