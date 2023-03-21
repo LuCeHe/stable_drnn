@@ -58,6 +58,7 @@ plot_weights = False
 plot_init_lrs = False
 plot_lrs = False
 plot_bars = False
+chain_norms = False
 
 remove_incomplete = False
 truely_remove = False
@@ -128,20 +129,22 @@ if 'n_params' in df.columns:
     df['n_params'] = df['n_params'].apply(lambda x: large_num_to_reasonable_string(x, 1))
 
 print(list(df.columns))
-norms_cols = [c for c in df.columns if 'save_norms' in c and 'batch 0' in c and 'list' in c]
-for c in norms_cols:
-    new_c = c.replace('_batch 0 ', '')
-    tag = new_c.replace('save_norms', '')
-    title = new_c.replace('save_norms', 'norms ')
-    tag_cols = [c for c in df.columns if tag in c]
 
-    print(title)
-    df[title] = df.apply(
-        lambda row:
-        np.concatenate([row[k] if isinstance(row[k], list) else [] for k in tag_cols]).tolist() \
-            if len(tag_cols) > 0 else [],
-        axis=1
-    )
+if chain_norms:
+    norms_cols = [c for c in df.columns if 'save_norms' in c and 'batch 0' in c and 'list' in c]
+    for c in norms_cols:
+        new_c = c.replace('_batch 0 ', '')
+        tag = new_c.replace('save_norms', '')
+        title = new_c.replace('save_norms', 'norms ')
+        tag_cols = [c for c in df.columns if tag in c]
+
+        print(title)
+        df[title] = df.apply(
+            lambda row:
+            np.concatenate([row[k] if isinstance(row[k], list) else [] for k in tag_cols]).tolist() \
+                if len(tag_cols) > 0 else [],
+            axis=1
+        )
 
 print(list(df.columns))
 
