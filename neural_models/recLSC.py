@@ -240,7 +240,7 @@ def remove_pretrained_extra(experiments, remove_opposite=True, folder=None):
     if folder is None:
         folder = GEXPERIMENTS
 
-    safety_folder = os.path.join(folder, 'safety')
+    safety_folder = os.path.abspath(os.path.join(folder, '..', 'safety'))
     os.makedirs(safety_folder, exist_ok=True)
 
     existing_pretrained = [d for d in os.listdir(folder) if 'pretrained_' in d and '.h5' in d]
