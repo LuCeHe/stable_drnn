@@ -1,4 +1,4 @@
-import os, time
+import os, time, shutil
 import numpy as np
 import warnings
 import tensorflow as tf
@@ -240,12 +240,18 @@ def remove_pretrained_extra(experiments, remove_opposite=True, folder=None):
     if folder is None:
         folder = GEXPERIMENTS
 
+    safety_folder = os.path.join(folder, 'safety')
+    os.makedirs(safety_folder, exist_ok=True)
+
     existing_pretrained = [d for d in os.listdir(folder) if 'pretrained_' in d and '.h5' in d]
     pbar = tqdm(total=len(existing_pretrained))
     removed = 0
     for d in existing_pretrained:
+        # copy d file to safety folder
+        shutil.copy(os.path.join(folder, d), os.path.join(safety_folder, d))
+
         if not d in files and remove_opposite:
-            os.remove(os.path.join(folder, d))
+            # os.remove(os.path.join(folder, d))
             removed += 1
 
         if d in files and not remove_opposite:

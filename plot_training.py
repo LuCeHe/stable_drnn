@@ -50,7 +50,7 @@ one_exp_curves = False
 pandas_means = True
 show_per_tasknet = True
 make_latex = False
-missing_exps = False
+missing_exps = True
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -152,10 +152,10 @@ if plot_losses:
     df['comments'] = df['comments'].str.replace('allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_', '')
 
     plot_metric = 'rec_norms list'
-    # plot_metric = 'val_perplexity list'
+    plot_metric = 'val_ppl list'
     # plot_metric = 'val_^acc list'
     # plot_metric = 'LSC list'
-    plot_metric = 'norms dec layer 1 list'  # enc depth rec dec
+    # plot_metric = 'norms dec layer 1 list'  # enc depth rec dec
     tasks = df['task'].unique()
     nets = df['net'].unique()
     comments = df['comments'].unique()
@@ -318,20 +318,25 @@ if pandas_means:
                     print('-===-' * 30)
                     print(task, net, stack)
 
+
                     idf = xdf[
                         xdf['task'].eq(task)
                         & xdf['net'].eq(net)
                         & xdf['stack'].eq(stack)
                         ]
 
-                    if not 'wordptb' in task:
+                    cols = idf.columns
+                    if not 'PTB' in task:
                         idf = idf.sort_values(by='mean_' + metric, ascending=False)
+                        cols = [c for c in cols if not 'ppl' in c]
                     else:
                         idf = idf.sort_values(by='mean_v_ppl', ascending=True)
+                        cols = [c for c in cols if not 'acc' in c]
 
                     # new_column_names = {c_name: shorten_losses(c_name) for c_name in idf.columns}
                     # print(new_column_names)
                     idf.rename(columns=new_column_names, inplace=True)
+                    idf = idf[cols]
 
                     print(idf.to_string())
 
@@ -986,13 +991,6 @@ if remove_incomplete:
 
     # remove LSC that didn't record LSC norms
 
-    print('remove old settings')
-    # rdf = plotdf[plotdf['comments'].eq('allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC')]
-    rdf = plotdf[
-        plotdf['comments'].str.contains('onlypretrain')
-    ]
-    # rdfs.append(rdf)
-    # print(rdf.shape)
 
     # remove repeated
     # remove one seed from those that have more than 4 seeds
