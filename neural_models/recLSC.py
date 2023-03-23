@@ -219,6 +219,9 @@ def get_pretrained_file(comments, s, net_name, task_name, ostack):
         c += '_randlsc'
     if 'lscshuffw' in comments:
         c += '_lscshuffw'
+    if 'gausslsc' in comments:
+        c += '_gausslsc'
+
     lsct = get_lsctype(comments)
     return f"pretrained_s{s}_{net_name}_{lsct}_{task_name}_stack{str(stack).replace(':', 'c')}{c}.h5"
 
@@ -266,6 +269,19 @@ def remove_pretrained_extra(experiments, remove_opposite=True, folder=None):
     for f in which_is_missing:
         print(f)
 
+def load_LSC_model(path):
+    model = tf.keras.models.load_model(
+        path,
+        custom_objects={
+            'maLSNN': maLSNN, 'maLSNNb': maLSNNb, 'RateVoltageRegularization': RateVoltageRegularization,
+            'AddLossLayer': AddLossLayer, 'AddMetricsLayer': AddMetricsLayer,
+            'SparseCategoricalCrossentropy': tf.keras.losses.SparseCategoricalCrossentropy,
+            'AdamW': AdamW2, 'DummyConstantSchedule': DummyConstantSchedule,
+            'SymbolAndPositionEmbedding': SymbolAndPositionEmbedding,
+
+        }
+    )
+    return model
 
 def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, steps_per_epoch=2, es_epsilon=.08,
               patience=5, rec_norm=True, depth_norm=True, encoder_norm=False, decoder_norm=True, learn=True,
@@ -339,17 +355,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
         if os.path.exists(path_pretrained):
             print('Loading pretrained lsc weights')
             try:
-                model = tf.keras.models.load_model(
-                    path_pretrained,
-                    custom_objects={
-                        'maLSNN': maLSNN, 'maLSNNb': maLSNNb, 'RateVoltageRegularization': RateVoltageRegularization,
-                        'AddLossLayer': AddLossLayer, 'AddMetricsLayer': AddMetricsLayer,
-                        'SparseCategoricalCrossentropy': tf.keras.losses.SparseCategoricalCrossentropy,
-                        'AdamW': AdamW2, 'DummyConstantSchedule': DummyConstantSchedule,
-                        'SymbolAndPositionEmbedding': SymbolAndPositionEmbedding,
-
-                    }
-                )
+                model = load_LSC_model(path_pretrained)
             except Exception as e:
                 model = build_model(**model_args)
                 print(e)
@@ -399,6 +405,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
         if 'gausslsc' in comments:
             batch = [tf.random.normal(b.shape) for b in batch[0]],
+            batch[0][1] = tf.convert_to_tensor(np.random.choice(gen_train.vocab_size, size=batch[0][1].shape))
 
         elif 'berlsc' in comments:
             batch = [tf.math.greater(tf.random.uniform(b.shape), .5) for b in batch[0]],
@@ -588,7 +595,10 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                     weights = model.get_weights()
                     if 'lscshuffw' in comments:
                         for w in weights:
+                            oshape = w.shape
+                            w = w.reshape(-1)
                             np.random.shuffle(w)
+                            w = w.reshape(oshape)
 
                 tf.keras.backend.clear_session()
                 tf.keras.backend.clear_session()
@@ -668,17 +678,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
     if os.path.exists(path_pretrained):
         print('Loading pretrained lsc weights')
         try:
-            model = tf.keras.models.load_model(
-                path_pretrained,
-                custom_objects={
-                    'maLSNN': maLSNN, 'maLSNNb': maLSNNb, 'RateVoltageRegularization': RateVoltageRegularization,
-                    'AddLossLayer': AddLossLayer, 'AddMetricsLayer': AddMetricsLayer,
-                    'SparseCategoricalCrossentropy': tf.keras.losses.SparseCategoricalCrossentropy,
-                    'AdamW': AdamW2, 'DummyConstantSchedule': DummyConstantSchedule,
-                    'SymbolAndPositionEmbedding': SymbolAndPositionEmbedding,
-
-                }
-            )
+            model = load_LSC_model(path_pretrained)
             weights = model.get_weights()
 
         except Exception as e:

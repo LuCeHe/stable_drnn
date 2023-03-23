@@ -15,7 +15,7 @@ from GenericTools.stay_organized.mpl_tools import load_plot_settings
 from GenericTools.stay_organized.pandardize import experiments_to_pandas, complete_missing_exps
 from GenericTools.stay_organized.standardize_strings import shorten_losses
 from GenericTools.stay_organized.utils import str2val
-from alif_sg.neural_models.recLSC import remove_pretrained_extra
+from alif_sg.neural_models.recLSC import remove_pretrained_extra, load_LSC_model
 from alif_sg.tools.plot_tools import *
 from sg_design_lif.neural_models import maLSNN
 
@@ -55,6 +55,7 @@ plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
 plot_weights = False
+plot_pretrained_weights = False
 plot_init_lrs = False
 plot_lrs = False
 plot_bars = False
@@ -147,6 +148,55 @@ if chain_norms:
         )
 
 print(list(df.columns))
+
+if plot_pretrained_weights:
+    n_bins = 50
+    cols = 5
+    wspace, hspace = .1, 1.1
+    pretrained_path = r'D:\work\alif_sg\good_experiments\pmodels'
+    models_files = [f for f in os.listdir(pretrained_path) if f.endswith('.h5')]
+    plots_path = r'D:\work\alif_sg\good_experiments\plots'
+    os.makedirs(plots_path, exist_ok=True)
+    for mf in tqdm(models_files):
+        plot_filename = os.path.join(plots_path, mf.replace('.h5', '.png'))
+        if not os.path.exists(plot_filename):
+
+            path_pretrained = os.path.join(pretrained_path, mf)
+            model = load_LSC_model(path_pretrained)
+
+            weights = model.get_weights()
+            weight_names = [weight.name for layer in model.layers for weight in layer.weights]
+            # print(weight_names)
+            fig, axs = plt.subplots(
+                int(len(weights) / cols + 1), cols, gridspec_kw={'wspace': wspace, 'hspace': hspace},
+                figsize=(10, 3)
+            )
+            for i, ax in zip(range(len(weights)), axs.reshape(-1)):
+                w = weights[i]
+                wn = weight_names[i]
+                counts, bins = np.histogram(w.flatten(), bins=n_bins)
+
+                highest = max(counts) / sum(counts) / (bins[1] - bins[0])
+
+                ax.hist(bins[:-1], bins, weights=counts)
+
+                if highest > 100:
+                    ax.set_ylim([0, 20])
+                ax.set_xlabel(clean_weight_name(wn), fontsize=12)
+                ax.locator_params(axis='x', nbins=2)
+
+            for i, ax in enumerate(axs.reshape(-1)):
+                for pos in ['right', 'left', 'bottom', 'top']:
+                    ax.spines[pos].set_visible(False)
+
+                if i >= len(weights):
+                    ax.set_visible(False)  # to remove last plot
+
+            axs[0, 0].set_ylabel('Density', fontsize=12)
+
+            plt.suptitle(f"{mf}", y=1.01, fontsize=16)
+            fig.savefig(plot_filename, bbox_inches='tight')
+            # plt.show()
 
 if plot_losses:
     df['comments'] = df['comments'].str.replace('allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_', '')
@@ -317,7 +367,6 @@ if pandas_means:
                 for net in nets:
                     print('-===-' * 30)
                     print(task, net, stack)
-
 
                     idf = xdf[
                         xdf['task'].eq(task)
@@ -991,7 +1040,6 @@ if remove_incomplete:
 
     # remove LSC that didn't record LSC norms
 
-
     # remove repeated
     # remove one seed from those that have more than 4 seeds
     brdf = mdf[mdf['counts'] > 4]
@@ -1100,6 +1148,14 @@ if missing_exps:
         # incomplete_comments + f'findLSC_supsubnpsd_deslice',
     ]
 
+
+    all_comments_2 = [
+        incomplete_comments + f'findLSC_radius' + add_flag,
+        incomplete_comments + f'findLSC_radius_targetnorm:.5' + add_flag,
+        # incomplete_comments + f'findLSC_radius_targetnorm:.5_lscshuffw' + add_flag,
+        # incomplete_comments + f'findLSC_radius_targetnorm:.5_lscshuffw_gausslsc' + add_flag,
+    ]
+
     nets = ['LSTM', 'maLSNN', 'maLSNNb']
     tasks = ['heidelberg', 'sl_mnist', 'wordptb']
     experiment = {
@@ -1112,7 +1168,7 @@ if missing_exps:
     experiment = {
         'task': ['heidelberg'],
         'net': nets, 'seed': seeds, 'stack': ['1', '3', '5', '7'],
-        'comments': all_comments,
+        'comments': all_comments_2,
     }
     experiments.append(experiment)
 
