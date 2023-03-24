@@ -1025,7 +1025,7 @@ if remove_incomplete:
     print('-=***=-' * 10)
     print('Eliminate if not close enough to target norm')
     # from LSC_norms final column, select those that are epsilon away from 1
-    epsilon = 0.09
+    epsilon = 0.03
     # epsilon = 0.2
     # make a column target equal to .5 if targetnorm:.5 is in comments else 1 if findLSC is in comments
     # else nan
@@ -1152,8 +1152,8 @@ if missing_exps:
     all_comments_2 = [
         incomplete_comments + f'findLSC_radius' + add_flag,
         incomplete_comments + f'findLSC_radius_targetnorm:.5' + add_flag,
-        # incomplete_comments + f'findLSC_radius_targetnorm:.5_lscshuffw' + add_flag,
-        # incomplete_comments + f'findLSC_radius_targetnorm:.5_lscshuffw_gausslsc' + add_flag,
+        incomplete_comments + f'findLSC_radius_targetnorm:.5_lscshuffw' + add_flag,
+        incomplete_comments + f'findLSC_radius_targetnorm:.5_lscshuffw_gausslsc' + add_flag,
     ]
 
     nets = ['LSTM', 'maLSNN', 'maLSNNb']
