@@ -1025,7 +1025,7 @@ if remove_incomplete:
     print('-=***=-' * 10)
     print('Eliminate if not close enough to target norm')
     # from LSC_norms final column, select those that are epsilon away from 1
-    epsilon = 0.03
+    epsilon = 0.02
     # epsilon = 0.2
     # make a column target equal to .5 if targetnorm:.5 is in comments else 1 if findLSC is in comments
     # else nan
@@ -1129,7 +1129,7 @@ if missing_exps:
     sdf['comments'] = sdf['comments'].str.replace('_timerepeat:2', '_timerepeat:2_pretrained')
     # sdf['comments'] = sdf['comments'].str.replace('_onlypretrain', '')
 
-    add_flag = '_onlyloadpretrained'  # _onlyloadpretrained _onlypretrain
+    add_flag = '_onlypretrain'  # _onlyloadpretrained _onlypretrain
     seed = 0
     n_seeds = 4
     seeds = [l + seed for l in range(n_seeds)]
