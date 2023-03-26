@@ -421,6 +421,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
             shapes = [b.shape for b in batch[0]]
             batch = [tf.constant(np.random.choice(gen_train.vocab_size, size=s)) for s in shapes],
 
+        batch[0][1] = tf.convert_to_tensor(np.random.choice(gen_train.vocab_size, size=batch[0][1].shape))
+
         ts = batch[0][0].shape[1] if time_steps is None else time_steps
         pbar2 = tqdm(total=ts, position=0)
 

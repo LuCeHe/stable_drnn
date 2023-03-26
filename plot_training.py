@@ -50,7 +50,7 @@ one_exp_curves = False
 pandas_means = True
 show_per_tasknet = True
 make_latex = False
-missing_exps = False
+missing_exps = True
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -1151,6 +1151,8 @@ if missing_exps:
 
     all_comments_2 = [
         incomplete_comments + f'findLSC_radius' + add_flag,
+        incomplete_comments + f'findLSC_radius_lscshuffw' + add_flag,
+        incomplete_comments + f'findLSC_radius_lscshuffw_gausslsc' + add_flag,
         incomplete_comments + f'findLSC_radius_targetnorm:.5' + add_flag,
         incomplete_comments + f'findLSC_radius_targetnorm:.5_lscshuffw' + add_flag,
         incomplete_comments + f'findLSC_radius_targetnorm:.5_lscshuffw_gausslsc' + add_flag,

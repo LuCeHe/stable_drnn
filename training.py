@@ -45,7 +45,7 @@ def config():
     # task and net
     # ps_mnist heidelberg s_mnist
     # wordptb sl_mnist
-    task = 'heidelberg'
+    task = 'wordptb'
 
     # test configuration
     epochs = 2
@@ -202,7 +202,8 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
             print(json.dumps(new_model_args, indent=4, cls=NumpyEncoder))
             # lsclr = 3.14e-4 if not net_name == 'LSTM' else 3.14e-3
             # lsclr = 1e-2
-            lsclr = 3.14e-2
+            # lsclr = 3.14e-2
+            lsclr = 3.14e-3
             if 'supsubnpsd' in comments:
                 lsclr = 1e-5
 
