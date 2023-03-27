@@ -45,7 +45,7 @@ def config():
     # task and net
     # ps_mnist heidelberg s_mnist
     # wordptb sl_mnist
-    task = 'wordptb'
+    task = 'heidelberg'
 
     # test configuration
     epochs = 2
@@ -54,7 +54,7 @@ def config():
 
     # net
     # maLSNN cLSTM LSTM maLSNNb
-    net = 'LSTM'
+    net = 'maLSNNb'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
     stack = '4:3'
     n_neurons = 3
@@ -67,6 +67,7 @@ def config():
     comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_test_onlypretrain_lscshuffw_gausslsc'
     comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2'
     comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_test_onlypretrain_lscshuffw_gausslsc'
+    comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain'
 
     # optimizer properties
     lr = None  # 7e-4 None
@@ -93,6 +94,9 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
          lr_schedule, weight_decay, clipnorm, initializer, stop_time, _log):
     task_name = task
     net_name = net
+
+    if 'findLSC' in comments:
+        comments += '_dampf:.5'
 
     stack, batch_size, embedding, n_neurons, lr = default_config(
         stack, batch_size, embedding, n_neurons, lr, task_name, net_name, setting='LSC'

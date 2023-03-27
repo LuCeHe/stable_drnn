@@ -1038,6 +1038,14 @@ if remove_incomplete:
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
 
+    rdf = plotdf[
+        plotdf['comments'].str.contains('findLSC')
+        & (plotdf['LSC f'].isna())
+        ]
+    print(rdf.to_string())
+    print(rdf.shape, df.shape)
+    rdfs.append(rdf)
+
     # remove LSC that didn't record LSC norms
 
     # remove repeated
@@ -1122,14 +1130,12 @@ if missing_exps:
     sdf.loc[df['net'].str.contains('ALIFb'), 'net'] = 'maLSNNb'
     sdf.loc[df['net'].str.contains('ALIF'), 'net'] = 'maLSNN'
 
-    # sdf['lr'] = sdf['lr i']
-
     sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
     # substitute the string _timerepeat:2 by _timerepeat:2_pretrained_ in the comments column
     sdf['comments'] = sdf['comments'].str.replace('_timerepeat:2', '_timerepeat:2_pretrained')
     # sdf['comments'] = sdf['comments'].str.replace('_onlypretrain', '')
 
-    add_flag = '_onlypretrain'  # _onlyloadpretrained _onlypretrain
+    add_flag = '_onlyloadpretrained'  # _onlyloadpretrained _onlypretrain
     seed = 0
     n_seeds = 4
     seeds = [l + seed for l in range(n_seeds)]
@@ -1147,7 +1153,6 @@ if missing_exps:
         # incomplete_comments + f'findLSC_radius_targetnorm:.5_randlsc',
         # incomplete_comments + f'findLSC_supsubnpsd_deslice',
     ]
-
 
     all_comments_2 = [
         incomplete_comments + f'findLSC_radius' + add_flag,
@@ -1179,14 +1184,10 @@ if missing_exps:
     experiments_left = complete_missing_exps(sdf, ds, coi)
     np.random.shuffle(experiments_left)
     experiments = experiments_left
-    # experiments = []
-    # for e in experiments_left:
-    #     e['comments'] = [e['comments'][0] + '_onlypretrain']
-    #     print(e)
-    #     experiments.append(e)
 
     print(experiments)
     print(len(experiments))
+
 
     # experiments_1 = [e for e in experiments_left if e['stack'][0] in ['7', '5']]
     # experiments_2 = [e for e in experiments_left if not e['stack'][0] in ['7', '5']]
