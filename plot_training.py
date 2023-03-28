@@ -50,7 +50,7 @@ one_exp_curves = False
 pandas_means = True
 show_per_tasknet = True
 make_latex = False
-missing_exps = False
+missing_exps = True
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -1135,7 +1135,7 @@ if missing_exps:
     sdf['comments'] = sdf['comments'].str.replace('_timerepeat:2', '_timerepeat:2_pretrained')
     # sdf['comments'] = sdf['comments'].str.replace('_onlypretrain', '')
 
-    add_flag = '_onlyloadpretrained'  # _onlyloadpretrained _onlypretrain
+    add_flag = '_onlypretrain'  # _onlyloadpretrained _onlypretrain
     seed = 0
     n_seeds = 4
     seeds = [l + seed for l in range(n_seeds)]
