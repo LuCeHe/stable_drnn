@@ -50,14 +50,14 @@ def config():
     # test configuration
     epochs = 2
     steps_per_epoch = 2
-    batch_size = None
+    batch_size = 16
 
     # net
     # maLSNN cLSTM LSTM maLSNNb
-    net = 'maLSNNb'
+    net = 'maLSNN'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
-    stack = '4:3'
-    n_neurons = 3
+    stack = None #'4:3'
+    n_neurons = None
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task in language_tasks else False
     comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_findLSC_supsubnpsd_test_pretrained_deslice'
@@ -96,8 +96,8 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
     task_name = task
     net_name = net
 
-    if 'findLSC' in comments:
-        comments += '_dampf:.5'
+    if 'findLSC' in comments and not 'dampf' in comments:
+        comments += '_dampf:.2'
 
     stack, batch_size, embedding, n_neurons, lr = default_config(
         stack, batch_size, embedding, n_neurons, lr, task_name, net_name, setting='LSC'
