@@ -98,7 +98,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
     net_name = net
 
     if 'findLSC' in comments and not 'dampf' in comments:
-        comments += '_dampf:.02_sharpn:1.1_originalpseudod'
+        comments += '_dampf:.5'
 
     stack, batch_size, embedding, n_neurons, lr = default_config(
         stack, batch_size, embedding, n_neurons, lr, task_name, net_name, setting='LSC'
