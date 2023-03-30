@@ -269,6 +269,7 @@ def remove_pretrained_extra(experiments, remove_opposite=True, folder=None):
     for f in which_is_missing:
         print(f)
 
+
 def load_LSC_model(path):
     model = tf.keras.models.load_model(
         path,
@@ -282,6 +283,7 @@ def load_LSC_model(path):
         }
     )
     return model
+
 
 def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, steps_per_epoch=2, es_epsilon=.08,
               patience=5, rec_norm=True, depth_norm=True, encoder_norm=False, decoder_norm=True, learn=True,
@@ -324,7 +326,6 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
     if net_name == 'GRU':
         hi, ci = 0, None
         n_states = 1
-
 
     for width in stack:
         for _ in range(n_states):
@@ -433,8 +434,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
         for t in range(ts):
             iterations += 1
 
-            if True:
-            # try:
+            # if True:
+            try:
                 bt = batch[0][0][:, t, :][:, None]
                 wt = batch[0][1][:, t][:, None]
 
@@ -486,7 +487,6 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                             ct = states[i * n_states + ci]
                             stp1.append(ctp1)
                             st.append(ct)
-
 
                         if randlsc:
                             r1, r2, r3, r4 = np.random.rand(4)
@@ -607,7 +607,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                 tf.keras.backend.clear_session()
                 tf.keras.backend.clear_session()
 
-                if time.perf_counter() - time_start > 60 * 60 * 15:# 17h
+                if time.perf_counter() - time_start > 60 * 60 * 15:  # 17h
                     time_over = True
                     break
 
@@ -644,12 +644,12 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                     f"loss {str(show_loss)}/{li}; "
                     f"mean params {str(round(prms, round_to))}/{pi}; "
                     f"mean norms {show_norm}/{ni} (best {str(np.array(best_norm).round(round_to))}); "
-                    f"fail rate {failures / iterations * 100:.2f}%; "
+                    f"fail rate {failures / iterations * 100:.1f}%; "
                 )
 
-            # except Exception as e:
-            #     failures += 1
-            #     print(e)
+            except Exception as e:
+                failures += 1
+                print(e)
 
         del batch
 
@@ -691,7 +691,10 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
         for nt in n_types:
             save_norms[f'batch {last_step} {nt} layer {i}'].append(best_individual_norms[f'{nt} layer {i}'])
 
-    results.update(LSC_losses=str(losses), LSC_norms=str(all_norms), save_norms=save_norms, all_naswot=str(all_naswot))
+    results.update(
+        LSC_losses=str(losses), LSC_norms=str(all_norms), save_norms=save_norms, all_naswot=str(all_naswot),
+        fail_rate=failures / iterations
+    )
 
     return weights, results
 

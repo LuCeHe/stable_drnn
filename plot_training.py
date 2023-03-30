@@ -44,13 +44,13 @@ GEXPERIMENTS = [
 expsid = 'als'  # effnet als ffnandcnns
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
-check_for_new = True
+check_for_new = False
 plot_losses = False
 one_exp_curves = False
 pandas_means = True
 show_per_tasknet = True
 make_latex = False
-missing_exps = False
+missing_exps = True
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -107,6 +107,7 @@ df = experiments_to_pandas(
 )
 # df = df[~df['comments'].str.contains('randlsc')]
 
+print(df.to_string())
 df = df[~df['stack'].str.contains('4:3', na=False)]
 df['stack'] = df['stack'].fillna(-1).astype(int)
 df = df.replace(-1, 'None')
@@ -1145,7 +1146,7 @@ if missing_exps:
     experiments = []
 
     all_comments = [
-        # incomplete_comments,
+        incomplete_comments,
         # incomplete_comments + f'findLSC',
         # incomplete_comments + f'findLSC_supsubnpsd',
         incomplete_comments + f'findLSC_radius' + add_flag,
@@ -1156,12 +1157,9 @@ if missing_exps:
 
     all_comments_2 = [
         incomplete_comments + f'findLSC_radius' + add_flag,
-        incomplete_comments + f'findLSC_radius_lscshuffw' + add_flag,
-        incomplete_comments + f'findLSC_radius_lscshuffw_gausslsc' + add_flag,
         incomplete_comments + f'findLSC_radius_targetnorm:.5' + add_flag,
-        incomplete_comments + f'findLSC_radius_targetnorm:.5_lscshuffw' + add_flag,
-        incomplete_comments + f'findLSC_radius_targetnorm:.5_lscshuffw_gausslsc' + add_flag,
     ]
+    all_comments_2 = all_comments
 
     nets = ['LSTM', 'GRU', 'maLSNN', 'maLSNNb']
     tasks = ['heidelberg', 'sl_mnist', 'wordptb']
