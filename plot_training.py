@@ -1163,7 +1163,7 @@ if missing_exps:
         incomplete_comments + f'findLSC_radius_targetnorm:.5_lscshuffw_gausslsc' + add_flag,
     ]
 
-    nets = ['LSTM', 'maLSNN', 'maLSNNb']
+    nets = ['LSTM', 'GRU', 'maLSNN', 'maLSNNb']
     tasks = ['heidelberg', 'sl_mnist', 'wordptb']
     experiment = {
         'task': tasks,

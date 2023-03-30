@@ -321,6 +321,10 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
     # the else is valid for the LSTM
     hi, ci = (1, 2) if 'LSNN' in net_name else (0, 1)
     n_states = 4 if 'LSNN' in net_name else 2
+    if net_name == 'GRU':
+        hi, ci = 0, None
+        n_states = 1
+
 
     for width in stack:
         for _ in range(n_states):
@@ -429,8 +433,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
         for t in range(ts):
             iterations += 1
 
-            # if True:
-            try:
+            if True:
+            # try:
                 bt = batch[0][0][:, t, :][:, None]
                 wt = batch[0][1][:, t][:, None]
 
@@ -474,15 +478,22 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
                         htp1 = states_p1[i * n_states + hi]
                         ht = states[i * n_states + hi]
-                        ctp1 = states_p1[i * n_states + ci]
-                        ct = states[i * n_states + ci]
+                        stp1 = [htp1]
+                        st = [ht]
+                        ct, ctp1 = None, None
+                        if not ci is None:
+                            ctp1 = states_p1[i * n_states + ci]
+                            ct = states[i * n_states + ci]
+                            stp1.append(ctp1)
+                            st.append(ct)
+
 
                         if randlsc:
                             r1, r2, r3, r4 = np.random.rand(4)
 
                         if rec_norm and r1 < .5:
-                            rnorm, loss, naswot_score = get_norms(tape=tape, lower_states=[ht, ct],
-                                                                  upper_states=[htp1, ctp1],
+                            rnorm, loss, naswot_score = get_norms(tape=tape, lower_states=st,
+                                                                  upper_states=stp1,
                                                                   n_samples=n_samples, norm_pow=norm_pow, naswot=naswot,
                                                                   comments=comments, target_norm=target_norm)
 
@@ -493,16 +504,9 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                             mean_loss += l() * loss
 
                         if encoder_norm and i == 0 and r2 < .5:
-                            # nodes = [n.name for n in tf.get_default_graph().as_graph_def().node]
-                            # print(nodes)
-                            # print(tf.contrib.graph_editor.get_tensors(tf.get_default_graph()))
-
                             lower_states = [bflat]
-
-                            # norms, loss, naswot_score = get_norms(tape=tape, lower_states=[bt[:, 0, :]],
-                            # norms, loss, naswot_score = get_norms(tape=tape, lower_states=[bflat],
                             norms, loss, naswot_score = get_norms(tape=tape, lower_states=lower_states,
-                                                                  upper_states=[htp1, ctp1],
+                                                                  upper_states=stp1,
                                                                   n_samples=n_samples, norm_pow=norm_pow, naswot=naswot,
                                                                   comments=comments, target_norm=target_norm)
                             save_norms[f'batch {step} enc layer {i}'].append(tf.reduce_mean(norms).numpy())
@@ -510,13 +514,14 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                             some_norms.append(tf.reduce_mean(norms))
                             mean_loss += l() * loss
 
-                        hl = htp1
-                        cl = ctp1
+                        sl = stp1
+                        # hl = htp1
+                        # cl = ctp1
                         if depth_norm and r3 < .5:
                             if not state_below is None:
-                                hlm1, clm1 = state_below
-                                norms, loss, naswot_score = get_norms(tape=tape, lower_states=[hlm1, clm1],
-                                                                      upper_states=[hl, cl],
+                                # hlm1, clm1 = state_below
+                                norms, loss, naswot_score = get_norms(tape=tape, lower_states=state_below,
+                                                                      upper_states=sl,
                                                                       n_samples=n_samples, norm_pow=norm_pow,
                                                                       naswot=naswot,
                                                                       comments=comments, target_norm=target_norm)
@@ -525,18 +530,14 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                                 some_norms.append(tf.reduce_mean(norms))
                                 mean_loss += l() * loss
 
-                        state_below = (hl, cl)
-                        del hl, cl
+                        state_below = sl
+                        del sl
 
                         if decoder_norm and i == len(stack) - 1 and r4 < .5:
                             output = outputs[0][:, 0, :]
 
                             if not output.shape[-1] > 100:
-                                if tf.math.greater(output.shape[-1], htp1.shape[-1] + ctp1.shape[-1]):
-                                    max_dim = htp1.shape[-1] + ctp1.shape[-1]
-                                    output = sample_axis(output, max_dim=max_dim, axis=1)
-
-                                norms, loss, naswot_score = get_norms(tape=tape, lower_states=[htp1, ctp1],
+                                norms, loss, naswot_score = get_norms(tape=tape, lower_states=stp1,
                                                                       upper_states=[output],
                                                                       n_samples=n_samples, norm_pow=norm_pow,
                                                                       naswot=naswot,
@@ -646,9 +647,9 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                     f"fail rate {failures / iterations * 100:.2f}%; "
                 )
 
-            except Exception as e:
-                failures += 1
-                print(e)
+            # except Exception as e:
+            #     failures += 1
+            #     print(e)
 
         del batch
 
