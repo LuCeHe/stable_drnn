@@ -61,7 +61,7 @@ plot_lrs = False
 plot_bars = False
 chain_norms = False
 
-remove_incomplete = False
+remove_incomplete = True
 truely_remove = False
 truely_remove_pretrained = False
 remove_saved_model = False
@@ -107,8 +107,8 @@ df = experiments_to_pandas(
 )
 # df = df[~df['comments'].str.contains('randlsc')]
 
-print(df.to_string())
-df = df[~df['stack'].str.contains('4:3', na=False)]
+# print(df.to_string())
+# df = df[~df['stack'].str.contains('4:3', na=False)]
 df['stack'] = df['stack'].fillna(-1).astype(int)
 df = df.replace(-1, 'None')
 df['stack'] = df['stack'].astype(str)
@@ -1146,7 +1146,7 @@ if missing_exps:
     experiments = []
 
     all_comments = [
-        incomplete_comments,
+        # incomplete_comments,
         # incomplete_comments + f'findLSC',
         # incomplete_comments + f'findLSC_supsubnpsd',
         incomplete_comments + f'findLSC_radius' + add_flag,
