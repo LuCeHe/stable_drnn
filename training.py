@@ -165,7 +165,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
             final_epochs = 25
 
     for _ in range(relsc):
-        if 'findLSC' in comments:
+        if 'findLSC' in comments or 'onlyloadpretrained' in comments:
             import time
             time_start = time.perf_counter()
             print('Finding the LSC...')

@@ -147,6 +147,9 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
         norms = e_norm / x_norm
         norms = tf.reduce_max(norms, axis=-1)
 
+    else:
+        norms = tf.math.reduce_max(tf.abs(tf.linalg.eigvals(std)), axis=-1)
+
     loss += well_loss(min_value=target_norm, max_value=target_norm, walls_type='relu', axis='all')(norms)
 
     naswot_score = None

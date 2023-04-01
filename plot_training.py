@@ -44,7 +44,7 @@ GEXPERIMENTS = [
 expsid = 'als'  # effnet als ffnandcnns
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
-check_for_new = False
+check_for_new = True
 plot_losses = False
 one_exp_curves = False
 pandas_means = True
@@ -61,7 +61,7 @@ plot_lrs = False
 plot_bars = False
 chain_norms = False
 
-remove_incomplete = True
+remove_incomplete = False
 truely_remove = False
 truely_remove_pretrained = False
 remove_saved_model = False
@@ -118,6 +118,12 @@ df['comments'] = df['comments'].astype(str)
 
 new_column_names = {c_name: shorten_losses(c_name) for c_name in df.columns}
 df.rename(columns=new_column_names, inplace=True)
+
+for c in   ['t_ppl', 't_^acc', 'v_ppl', 'v_^acc']:
+    # if column doesn't exist, create a NaN column
+    if c not in df.columns:
+        df[c] = np.nan
+
 
 for cname in ['net', 'task']:
     if isinstance(df[cname], pd.DataFrame):
@@ -253,7 +259,7 @@ if 'task' in df.columns:
     df.loc[df['task'].str.contains('wordptb'), 'task'] = 'PTB'
 
 # eps column stays eps if not equal to None else it becomes the content of v_mode_acc len
-df.loc[df['eps'].isnull(), 'eps'] = df.loc[df['eps'].isnull(), f'{metric} len']
+# df.loc[df['eps'].isnull(), 'eps'] = df.loc[df['eps'].isnull(), f'{metric} len']
 
 if 'v_^acc len' in df.columns:
     # # FIXME: 14 experiments got nans in the heidelberg task validation, plot them anyway?
@@ -334,8 +340,7 @@ if one_exp_curves:
 if pandas_means:
     # group_cols = ['net', 'task', 'comments', 'stack', 'lr']
     group_cols = ['net', 'task', 'comments', 'stack']
-    df['lr'] = df['lr i']
-    # group_cols = ['net', 'task', 'comments', 'stack', 'lr i']
+
     counts = df.groupby(group_cols).size().reset_index(name='counts')
     stats = ['mean']  # ['mean', 'std']
     metrics_oi = [shorten_losses(m) for m in metrics_oi]
@@ -356,6 +361,7 @@ if pandas_means:
     tasks = sorted(np.unique(mdf['task']))
     nets = sorted(np.unique(mdf['net']))
     stacks = sorted(np.unique(mdf['stack']))
+
 
     mdf['comments'] = mdf['comments'].str.replace('__', '_', regex=True)
     print(mdf.to_string())
@@ -1047,6 +1053,13 @@ if remove_incomplete:
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
 
+    rdf = plotdf[
+        ~plotdf['comments'].str.contains('findLSC')
+    ]
+    print(rdf.to_string())
+    print(rdf.shape, df.shape)
+    rdfs.append(rdf)
+
     # remove LSC that didn't record LSC norms
 
     # remove repeated
@@ -1115,6 +1128,7 @@ if remove_incomplete:
                     shutil.rmtree(exps_path)
                 if os.path.exists(gexp_path):
                     os.remove(gexp_path)
+        os.remove(h5path)
 
 if missing_exps:
     # columns of interest
@@ -1136,32 +1150,33 @@ if missing_exps:
     sdf['comments'] = sdf['comments'].str.replace('_timerepeat:2', '_timerepeat:2_pretrained')
     # sdf['comments'] = sdf['comments'].str.replace('_onlypretrain', '')
 
-    add_flag = '_onlypretrain'  # _onlyloadpretrained _onlypretrain
+    add_flag = '_onlyloadpretrained'  # _onlyloadpretrained _onlypretrain
     seed = 0
     n_seeds = 4
     seeds = [l + seed for l in range(n_seeds)]
 
-    incomplete_comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_'
+    incomplete_comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained'
 
     experiments = []
 
     all_comments = [
-        # incomplete_comments,
+        incomplete_comments + add_flag,
         # incomplete_comments + f'findLSC',
         # incomplete_comments + f'findLSC_supsubnpsd',
-        incomplete_comments + f'findLSC_radius' + add_flag,
-        incomplete_comments + f'findLSC_radius_targetnorm:.5' + add_flag,
+        incomplete_comments + f'_findLSC_radius' + add_flag,
+        incomplete_comments + f'_findLSC_radius_targetnorm:.5' + add_flag,
         # incomplete_comments + f'findLSC_radius_targetnorm:.5_randlsc',
         # incomplete_comments + f'findLSC_supsubnpsd_deslice',
     ]
 
     all_comments_2 = [
-        incomplete_comments + f'findLSC_radius' + add_flag,
-        incomplete_comments + f'findLSC_radius_targetnorm:.5' + add_flag,
+        incomplete_comments + f'_findLSC_radius' + add_flag,
+        incomplete_comments + f'_findLSC_radius_targetnorm:.5' + add_flag,
     ]
     all_comments_2 = all_comments
 
     nets = ['LSTM', 'GRU', 'maLSNN', 'maLSNNb']
+    nets = ['LSTM', 'GRU']
     tasks = ['heidelberg', 'sl_mnist', 'wordptb']
     experiment = {
         'task': tasks,
@@ -1185,7 +1200,6 @@ if missing_exps:
 
     print(experiments)
     print(len(experiments))
-
 
     # experiments_1 = [e for e in experiments_left if e['stack'][0] in ['7', '5']]
     # experiments_2 = [e for e in experiments_left if not e['stack'][0] in ['7', '5']]
