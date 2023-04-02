@@ -50,7 +50,7 @@ one_exp_curves = False
 pandas_means = True
 show_per_tasknet = True
 make_latex = False
-missing_exps = True
+missing_exps = False
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -58,7 +58,7 @@ plot_weights = False
 plot_pretrained_weights = False
 plot_init_lrs = False
 plot_lrs = False
-plot_bars = False
+plot_bars = True
 chain_norms = False
 
 remove_incomplete = False
@@ -594,11 +594,12 @@ if plot_bars:
     lrs = np.unique(idf['lr'])
     idf = idf.sort_values(by='lr')
 
-    # nets = ['LSTM', 'ALIF', 'ALIFb']
+    nets = ['LSTM', 'GRU']
 
     fig, axs = plt.subplots(len(nets), len(tasks), gridspec_kw={'wspace': .2, 'hspace': 0.8}, figsize=(14, 3))
     if len(nets) == 1:
         axs = np.array([axs])
+
     if len(tasks) == 1:
         axs = np.array([axs]).T
 
@@ -632,7 +633,7 @@ if plot_bars:
         for pos in ['right', 'left', 'bottom', 'top']:
             ax.spines[pos].set_visible(False)
 
-    legend_elements = [Line2D([0], [0], color=lsc_colors[n], lw=4, label=n) for n in comments]
+    legend_elements = [Line2D([0], [0], color=lsc_colors(n), lw=4, label=n) for n in comments]
     plt.legend(ncol=3, handles=legend_elements, loc='lower center')  # , bbox_to_anchor=(-.1, -1.))
 
     plot_filename = f'experiments/bars.pdf'
