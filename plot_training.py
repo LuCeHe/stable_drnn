@@ -50,7 +50,7 @@ one_exp_curves = False
 pandas_means = True
 show_per_tasknet = True
 make_latex = False
-missing_exps = False
+missing_exps = True
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -1038,29 +1038,17 @@ if remove_incomplete:
     # else nan
     plotdf['target'] = plotdf['comments'].apply(
         lambda x: 0.5 if 'targetnorm:.5' in x else 1 if 'findLSC' in x else np.nan)
+    plotdf['diff_target'] = abs(plotdf['LSC f'] - plotdf['target'])
+    plotdf['vs_epsilon'] = plotdf['diff_target'] > epsilon
     rdf = plotdf[
-        abs(plotdf['LSC f'] - plotdf['target']) > epsilon
+        (
+            plotdf['net'].str.contains('ALIF')
+        )
+        & plotdf['vs_epsilon']
         ]
     print(rdf.to_string())
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
-
-    rdf = plotdf[
-        plotdf['comments'].str.contains('findLSC')
-        & (plotdf['LSC f'].isna())
-        ]
-    print(rdf.to_string())
-    print(rdf.shape, df.shape)
-    rdfs.append(rdf)
-
-    rdf = plotdf[
-        ~plotdf['comments'].str.contains('findLSC')
-    ]
-    print(rdf.to_string())
-    print(rdf.shape, df.shape)
-    rdfs.append(rdf)
-
-    # remove LSC that didn't record LSC norms
 
     # remove repeated
     # remove one seed from those that have more than 4 seeds
@@ -1150,7 +1138,7 @@ if missing_exps:
     sdf['comments'] = sdf['comments'].str.replace('_timerepeat:2', '_timerepeat:2_pretrained')
     # sdf['comments'] = sdf['comments'].str.replace('_onlypretrain', '')
 
-    add_flag = '_onlyloadpretrained'  # _onlyloadpretrained _onlypretrain
+    add_flag = '_onlypretrain'  # _onlyloadpretrained _onlypretrain
     seed = 0
     n_seeds = 4
     seeds = [l + seed for l in range(n_seeds)]
@@ -1160,7 +1148,7 @@ if missing_exps:
     experiments = []
 
     all_comments = [
-        incomplete_comments + add_flag,
+        # incomplete_comments + add_flag,
         # incomplete_comments + f'findLSC',
         # incomplete_comments + f'findLSC_supsubnpsd',
         incomplete_comments + f'_findLSC_radius' + add_flag,
@@ -1176,7 +1164,7 @@ if missing_exps:
     all_comments_2 = all_comments
 
     nets = ['LSTM', 'GRU', 'maLSNN', 'maLSNNb']
-    nets = ['LSTM', 'GRU']
+    nets = ['maLSNN', 'maLSNNb']
     tasks = ['heidelberg', 'sl_mnist', 'wordptb']
     experiment = {
         'task': tasks,
@@ -1189,6 +1177,16 @@ if missing_exps:
         'task': ['heidelberg'],
         'net': nets, 'seed': seeds, 'stack': ['1', '3', '5', '7'],
         'comments': all_comments_2,
+    }
+    experiments.append(experiment)
+
+    experiment = {
+        'task': ['wordptb'],
+        'net': ['maLSNN', 'maLSNNb'], 'seed': seeds, 'stack': ['None'],
+        'comments': [
+            incomplete_comments + f'_learnsharp_learndamp_findLSC_radius' + add_flag,
+            incomplete_comments + f'_learnsharp_learndamp_findLSC_radius_targetnorm:.5' + add_flag,
+        ],
     }
     experiments.append(experiment)
 

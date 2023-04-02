@@ -67,7 +67,7 @@ def config():
     comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_test_onlypretrain_lscshuffw_gausslsc'
     comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2'
     comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_test_onlypretrain_lscshuffw_gausslsc'
-    comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain'
+    comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain_learnsharp_learndamp'
     # comments = ''
 
     # optimizer properties
@@ -97,7 +97,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
     task_name = task
     net_name = net
 
-    if 'findLSC' in comments and not 'dampf' in comments:
+    if 'findLSC' in comments and not 'dampf' in comments and not 'learndamp' in comments:
         comments += '_dampf:.5'
 
     stack, batch_size, embedding, n_neurons, lr = default_config(

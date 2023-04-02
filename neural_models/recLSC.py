@@ -218,12 +218,21 @@ def get_pretrained_file(comments, s, net_name, task_name, ostack):
     c = ''
     if 'targetnorm' in comments:
         c += f'_tn{str(target_norm).replace(".", "p")}'
+
     if 'randlsc' in comments:
         c += '_randlsc'
+
     if 'lscshuffw' in comments:
         c += '_lscshuffw'
+
     if 'gausslsc' in comments:
         c += '_gausslsc'
+
+    if 'learnsharp' in comments:
+        c += '_ls'
+
+    if 'learndamp' in comments:
+        c += '_ld'
 
     lsct = get_lsctype(comments)
     return f"pretrained_s{s}_{net_name}_{lsct}_{task_name}_stack{str(stack).replace(':', 'c')}{c}.h5"
@@ -257,7 +266,7 @@ def remove_pretrained_extra(experiments, remove_opposite=True, folder=None):
         shutil.copy(os.path.join(folder, d), os.path.join(safety_folder, d))
 
         if not d in files and remove_opposite:
-            # os.remove(os.path.join(folder, d))
+            os.remove(os.path.join(folder, d))
             removed += 1
 
         if d in files and not remove_opposite:
