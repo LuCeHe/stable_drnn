@@ -335,7 +335,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
     # the else is valid for the LSTM
     hi, ci = (1, 2) if 'LSNN' in net_name else (0, 1)
     n_states = 4 if 'LSNN' in net_name else 2
-    if net_name == 'GRU':
+    if net_name in ['GRU', 'indrnn', 'LMU']:
         hi, ci = 0, None
         n_states = 1
 

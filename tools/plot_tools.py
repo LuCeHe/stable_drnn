@@ -193,6 +193,7 @@ lsc_colors_dict = {
 
 def lsc_colors(name):
     name  = name.replace('_onlypretrain', '')
+    name  = name.replace('_onlyloadpretrained', '')
     if name in lsc_colors_dict.keys():
         return lsc_colors_dict[name]
     else:
@@ -213,6 +214,7 @@ def lsc_clean_comments(c):
 
     if c == '':
         c = 'Glorot'
+        c = 'default'
 
     if c == 'heinit':
         c = 'He'

@@ -45,19 +45,19 @@ def config():
     # task and net
     # ps_mnist heidelberg s_mnist
     # wordptb sl_mnist
-    task = 'heidelberg'
+    task = 'wordptb'
 
     # test configuration
     epochs = 2
     steps_per_epoch = 2
-    batch_size = 16
+    batch_size = 13
 
     # net
-    # maLSNN cLSTM LSTM maLSNNb GRU
-    net = 'maLSNN'
+    # maLSNN cLSTM LSTM maLSNNb GRU indrnn LMU
+    net = 'indrnn'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
-    stack = '4:3'
-    n_neurons = 3
+    stack = None
+    n_neurons = None
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task in language_tasks else False
     comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_findLSC_supsubnpsd_test_pretrained_deslice'
@@ -68,7 +68,7 @@ def config():
     comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2'
     comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_test_onlypretrain_lscshuffw_gausslsc'
     comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain_learnsharp_learndamp'
-    # comments = ''
+    comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2'
 
     # optimizer properties
     lr = None  # 7e-4 None

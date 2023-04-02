@@ -50,7 +50,7 @@ one_exp_curves = False
 pandas_means = True
 show_per_tasknet = True
 make_latex = False
-missing_exps = False
+missing_exps = True
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -58,7 +58,8 @@ plot_weights = False
 plot_pretrained_weights = False
 plot_init_lrs = False
 plot_lrs = False
-plot_bars = True
+plot_bars = False
+plot_new_bars = False
 chain_norms = False
 
 remove_incomplete = False
@@ -119,11 +120,10 @@ df['comments'] = df['comments'].astype(str)
 new_column_names = {c_name: shorten_losses(c_name) for c_name in df.columns}
 df.rename(columns=new_column_names, inplace=True)
 
-for c in   ['t_ppl', 't_^acc', 'v_ppl', 'v_^acc']:
+for c in ['t_ppl', 't_^acc', 'v_ppl', 'v_^acc']:
     # if column doesn't exist, create a NaN column
     if c not in df.columns:
         df[c] = np.nan
-
 
 for cname in ['net', 'task']:
     if isinstance(df[cname], pd.DataFrame):
@@ -342,9 +342,9 @@ if pandas_means:
     group_cols = ['net', 'task', 'comments', 'stack']
 
     counts = df.groupby(group_cols).size().reset_index(name='counts')
-    stats = ['mean']  # ['mean', 'std']
+    stats = ['mean', 'std']
     metrics_oi = [shorten_losses(m) for m in metrics_oi]
-    stats_oi = ['mean']  # ['mean', 'std']
+    stats_oi = ['mean', 'std']
     mdf = df.groupby(
         group_cols, as_index=False
     ).agg({m: stats_oi for m in metrics_oi})
@@ -361,7 +361,6 @@ if pandas_means:
     tasks = sorted(np.unique(mdf['task']))
     nets = sorted(np.unique(mdf['net']))
     stacks = sorted(np.unique(mdf['stack']))
-
 
     mdf['comments'] = mdf['comments'].str.replace('__', '_', regex=True)
     print(mdf.to_string())
@@ -576,6 +575,77 @@ if plot_lrs:
     plot_filename = f'experiments/lrs.pdf'
     fig.savefig(plot_filename, bbox_inches='tight')
 
+    plt.show()
+
+if plot_new_bars:
+    type_plot = 'layers'  # layers tasks
+    idf = mdf.copy()
+
+    nets = ['LSTM', 'GRU']
+    tasks = ['sl-MNIST', 'SHD', 'PTB']
+
+    if type_plot == 'tasks':
+        idf = idf[idf['stack'].eq('None')]
+        subplots = tasks
+        col_id = 'task'
+        bbox_to_anchor = (-.9, -.5)
+
+    elif type_plot == 'layers':
+        idf = idf[~idf['stack'].eq('None')]
+        subplots = sorted(idf['stack'].unique())
+        col_id = 'stack'
+        print(subplots)
+        bbox_to_anchor = (-1.1, -.5)
+    else:
+        raise NotImplementedError
+    idf = idf[idf['comments'].str.contains('_onlyloadpretrained')]
+    idf['comments'] = idf['comments'].str.replace('allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_', '')
+    idf['comments'] = idf['comments'].str.replace('_onlyloadpretrained', '')
+    idf['comments'] = idf['comments'].str.replace('onlyloadpretrained', '')
+    comments = idf['comments'].unique()
+    shift = (len(comments) + 1) / 2 - 1
+
+    data_split = 't_'  # 'v_'
+    # metric = data_split + '^acc'  # 'v_^acc'
+
+    fig, axs = plt.subplots(1, len(subplots), figsize=(6, 3), gridspec_kw={'wspace': .4, 'hspace': .1})
+    X = np.arange(len(nets))
+    w = 1 / (len(comments) + 1)
+
+    for j, t in enumerate(subplots):
+        for i, c in enumerate(comments):
+            metric = data_split + '^acc' if not t == 'PTB' else data_split + 'ppl'
+            iidf = idf[idf[col_id].eq(t) & idf['comments'].eq(c)]
+            # sort net column anti alphabetically
+            iidf = iidf.sort_values(by='net', ascending=False)
+            print(iidf.to_string())
+            data = iidf[f'mean_{metric}'].values
+            error = iidf[f'std_{metric}'].values / 2
+            axs[j].bar(X + i * w, data, yerr=error, width=w, color=lsc_colors(c), label=lsc_clean_comments(c))
+
+        axs[j].set_xticks([r + shift * w for r in range(len(nets))], nets, rotation=10)
+        axs[j].set_title(t + (r' $\downarrow$' if t == 'PTB' else (r' $\uparrow$' if t in ['sl-MNIST', 'SHD'] else '')),
+                         weight='bold')
+        axs[j].locator_params(axis='y', nbins=3)
+        # axs[j].xaxis.set_major_locator(plt.MaxNLocator(3))
+
+        if t == 'PTB':
+            axs[j].set_ylim(75, 125)
+        elif t == 'sl-MNIST':
+            axs[j].set_ylim(0.93, 0.975)
+        else:
+            axs[j].set_ylim(0.82, 0.97)
+
+    for ax in axs.reshape(-1):
+        for pos in ['right', 'left', 'bottom', 'top']:
+            ax.spines[pos].set_visible(False)
+
+    legend_elements = [Line2D([0], [0], color=lsc_colors(n), lw=4, label=lsc_clean_comments(n)) for n in comments]
+    plt.legend(ncol=len(comments), handles=legend_elements, loc='lower center', bbox_to_anchor=bbox_to_anchor)
+
+    plot_filename = f'experiments/{expsid}_{type_plot}.pdf'
+    fig.savefig(plot_filename, bbox_inches='tight')
+    plt.show()
     plt.show()
 
 if plot_bars:
@@ -1042,10 +1112,15 @@ if remove_incomplete:
     plotdf['diff_target'] = abs(plotdf['LSC f'] - plotdf['target'])
     plotdf['vs_epsilon'] = plotdf['diff_target'] > epsilon
     rdf = plotdf[
-        (
-            plotdf['net'].str.contains('ALIF')
-        )
-        & plotdf['vs_epsilon']
+            plotdf['vs_epsilon']
+        ]
+    print(rdf.to_string())
+    print(rdf.shape, df.shape)
+    rdfs.append(rdf)
+
+
+    rdf = plotdf[
+            plotdf['net'].str.contains('GRU')
         ]
     print(rdf.to_string())
     print(rdf.shape, df.shape)
@@ -1165,7 +1240,8 @@ if missing_exps:
     all_comments_2 = all_comments
 
     nets = ['LSTM', 'GRU', 'maLSNN', 'maLSNNb']
-    nets = ['maLSNN', 'maLSNNb']
+    nets = ['LSTM', 'GRU', 'indrnn']
+    # nets = ['maLSNN', 'maLSNNb']
     tasks = ['heidelberg', 'sl_mnist', 'wordptb']
     experiment = {
         'task': tasks,
@@ -1181,15 +1257,15 @@ if missing_exps:
     }
     experiments.append(experiment)
 
-    experiment = {
-        'task': ['wordptb'],
-        'net': ['maLSNN', 'maLSNNb'], 'seed': seeds, 'stack': ['None'],
-        'comments': [
-            incomplete_comments + f'_learnsharp_learndamp_findLSC_radius' + add_flag,
-            incomplete_comments + f'_learnsharp_learndamp_findLSC_radius_targetnorm:.5' + add_flag,
-        ],
-    }
-    experiments.append(experiment)
+    # experiment = {
+    #     'task': ['wordptb'],
+    #     'net': ['maLSNN', 'maLSNNb'], 'seed': seeds, 'stack': ['None'],
+    #     'comments': [
+    #         incomplete_comments + f'_learnsharp_learndamp_findLSC_radius' + add_flag,
+    #         incomplete_comments + f'_learnsharp_learndamp_findLSC_radius_targetnorm:.5' + add_flag,
+    #     ],
+    # }
+    # experiments.append(experiment)
 
     ds = dict2iter(experiments)
     print(ds[0])
