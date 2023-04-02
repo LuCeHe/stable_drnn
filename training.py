@@ -210,8 +210,8 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
             # lsclr = 1e-2
             # lsclr = 3.14e-2
             lsclr = 3.14e-3
-            if 'supsubnpsd' in comments:
-                lsclr = 1e-5
+            if 'LSNN' in net_name:
+                lsclr = 3.14e-4
 
             if 'deslice' in comments:
                 from GenericTools.keras_tools.esoteric_optimizers.AdamW import AdamW as AdamW2
