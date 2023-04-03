@@ -50,7 +50,7 @@ one_exp_curves = False
 pandas_means = True
 show_per_tasknet = True
 make_latex = False
-missing_exps = True
+missing_exps = False
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -342,9 +342,9 @@ if pandas_means:
     group_cols = ['net', 'task', 'comments', 'stack']
 
     counts = df.groupby(group_cols).size().reset_index(name='counts')
-    stats = ['mean', 'std']
+    # stats = ['mean', 'std']
     metrics_oi = [shorten_losses(m) for m in metrics_oi]
-    stats_oi = ['mean', 'std']
+    stats_oi = ['mean'] # ['mean', 'std']
     mdf = df.groupby(
         group_cols, as_index=False
     ).agg({m: stats_oi for m in metrics_oi})
