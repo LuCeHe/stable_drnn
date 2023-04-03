@@ -50,7 +50,7 @@ one_exp_curves = False
 pandas_means = True
 show_per_tasknet = True
 make_latex = False
-missing_exps = False
+missing_exps = True
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -66,6 +66,8 @@ remove_incomplete = False
 truely_remove = False
 truely_remove_pretrained = False
 remove_saved_model = False
+
+
 
 task = 'ps_mnist'  # heidelberg wordptb sl_mnist all ps_mnist
 incomplete_comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_pretrained_'
@@ -344,7 +346,7 @@ if pandas_means:
     counts = df.groupby(group_cols).size().reset_index(name='counts')
     # stats = ['mean', 'std']
     metrics_oi = [shorten_losses(m) for m in metrics_oi]
-    stats_oi = ['mean'] # ['mean', 'std']
+    stats_oi = ['mean']  # ['mean', 'std']
     mdf = df.groupby(
         group_cols, as_index=False
     ).agg({m: stats_oi for m in metrics_oi})
@@ -1112,15 +1114,8 @@ if remove_incomplete:
     plotdf['diff_target'] = abs(plotdf['LSC f'] - plotdf['target'])
     plotdf['vs_epsilon'] = plotdf['diff_target'] > epsilon
     rdf = plotdf[
-            plotdf['vs_epsilon']
-        ]
-    print(rdf.to_string())
-    print(rdf.shape, df.shape)
-    rdfs.append(rdf)
-
-
-    rdf = plotdf[
-            plotdf['net'].str.contains('GRU')
+        plotdf['comments'].str.contains('findLSC')
+        & plotdf['vs_epsilon']
         ]
     print(rdf.to_string())
     print(rdf.shape, df.shape)
@@ -1239,8 +1234,8 @@ if missing_exps:
     ]
     all_comments_2 = all_comments
 
-    nets = ['LSTM', 'GRU', 'maLSNN', 'maLSNNb']
-    nets = ['LSTM', 'GRU', 'indrnn']
+    nets = ['LSTM', 'GRU', 'maLSNN', 'maLSNNb', 'indrnn']
+    # nets = ['LSTM', 'GRU', 'indrnn']
     # nets = ['maLSNN', 'maLSNNb']
     tasks = ['heidelberg', 'sl_mnist', 'wordptb']
     experiment = {
@@ -1257,15 +1252,15 @@ if missing_exps:
     }
     experiments.append(experiment)
 
-    # experiment = {
-    #     'task': ['wordptb'],
-    #     'net': ['maLSNN', 'maLSNNb'], 'seed': seeds, 'stack': ['None'],
-    #     'comments': [
-    #         incomplete_comments + f'_learnsharp_learndamp_findLSC_radius' + add_flag,
-    #         incomplete_comments + f'_learnsharp_learndamp_findLSC_radius_targetnorm:.5' + add_flag,
-    #     ],
-    # }
-    # experiments.append(experiment)
+    experiment = {
+        'task': ['wordptb'],
+        'net': ['maLSNN', 'maLSNNb'], 'seed': seeds, 'stack': ['None'],
+        'comments': [
+            incomplete_comments + f'_learnsharp_learndamp_findLSC_radius' + add_flag,
+            incomplete_comments + f'_learnsharp_learndamp_findLSC_radius_targetnorm:.5' + add_flag,
+        ],
+    }
+    experiments.append(experiment)
 
     ds = dict2iter(experiments)
     print(ds[0])
