@@ -45,7 +45,7 @@ def config():
     # task and net
     # ps_mnist heidelberg s_mnist
     # wordptb sl_mnist
-    task = 'sl_mnist'
+    task = 'wordptb'
 
     # test configuration
     epochs = 2
@@ -53,8 +53,8 @@ def config():
     batch_size = 13
 
     # net
-    # maLSNN cLSTM LSTM maLSNNb GRU indrnn LMU
-    net = 'LMU'
+    # maLSNN cLSTM LSTM maLSNNb GRU indrnn LMU simplernn
+    net = 'rsimplernn'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
     stack = None
     n_neurons = None
@@ -69,7 +69,7 @@ def config():
     comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_test_onlypretrain_lscshuffw_gausslsc'
     comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain_learnsharp_learndamp'
     comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2'
-    comments = ''
+    # comments = ''
 
     # optimizer properties
     lr = None  # 7e-4 None

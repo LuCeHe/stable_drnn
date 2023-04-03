@@ -36,7 +36,7 @@ os.makedirs(GEXPERIMENTS, exist_ok=True)
 
 
 def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, norm_pow=2, naswot=0, comments='',
-              log_epsilon=1e-8, target_norm=1., n_s=2, test=False):
+              log_epsilon=1e-8, target_norm=1., n_s=16, test=False):
     if tape is None and lower_states is None and upper_states is None and test == False:
         raise ValueError('No input data given!')
 
@@ -333,9 +333,18 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
     li, pi, ni = None, None, None
 
     # the else is valid for the LSTM
-    hi, ci = (1, 2) if 'LSNN' in net_name else (0, 1)
-    n_states = 4 if 'LSNN' in net_name else 2
-    if net_name in ['GRU', 'indrnn', 'LMU']:
+    # hi, ci = (1, 2) if 'LSNN' in net_name else (0, 1)
+    # n_states = 4 if 'LSNN' in net_name else 2
+
+    if 'LSNN' in net_name:
+        hi, ci = 1, 2
+        n_states = 4
+
+    elif 'LSTM' in net_name:
+        hi, ci = 0, 1
+        n_states = 2
+
+    else:
         hi, ci = 0, None
         n_states = 1
 

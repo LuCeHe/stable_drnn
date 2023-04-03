@@ -1221,22 +1221,24 @@ if missing_exps:
     all_comments = [
         # incomplete_comments + add_flag,
         # incomplete_comments + f'findLSC',
-        # incomplete_comments + f'findLSC_supsubnpsd',
-        incomplete_comments + f'_findLSC_radius' + add_flag,
-        incomplete_comments + f'_findLSC_radius_targetnorm:.5' + add_flag,
+        incomplete_comments + f'findLSC_supsubnpsd',
+        # incomplete_comments + f'_findLSC_radius' + add_flag,
+        # incomplete_comments + f'_findLSC_radius_targetnorm:.5' + add_flag,
         # incomplete_comments + f'findLSC_radius_targetnorm:.5_randlsc',
         # incomplete_comments + f'findLSC_supsubnpsd_deslice',
     ]
 
-    all_comments_2 = [
-        incomplete_comments + f'_findLSC_radius' + add_flag,
-        incomplete_comments + f'_findLSC_radius_targetnorm:.5' + add_flag,
-    ]
+    # all_comments_2 = [
+    #     incomplete_comments + f'_findLSC_radius' + add_flag,
+    #     incomplete_comments + f'_findLSC_radius_targetnorm:.5' + add_flag,
+    # ]
     all_comments_2 = all_comments
 
     nets = ['LSTM', 'GRU', 'maLSNN', 'maLSNNb', 'indrnn']
-    # nets = ['LSTM', 'GRU', 'indrnn']
+    nets = ['LSTM', 'GRU', 'indrnn']
     # nets = ['maLSNN', 'maLSNNb']
+    # nets = ['rsimplernn', 'ssimplernn']
+
     tasks = ['heidelberg', 'sl_mnist', 'wordptb']
     experiment = {
         'task': tasks,
@@ -1252,19 +1254,19 @@ if missing_exps:
     }
     experiments.append(experiment)
 
-    experiment = {
-        'task': ['wordptb'],
-        'net': ['maLSNN', 'maLSNNb'], 'seed': seeds, 'stack': ['None'],
-        'comments': [
-            incomplete_comments + f'_learnsharp_learndamp_findLSC_radius' + add_flag,
-            incomplete_comments + f'_learnsharp_learndamp_findLSC_radius_targetnorm:.5' + add_flag,
-        ],
-    }
-    experiments.append(experiment)
+    # experiment = {
+    #     'task': ['wordptb'],
+    #     'net': ['maLSNN', 'maLSNNb'], 'seed': seeds, 'stack': ['None'],
+    #     'comments': [
+    #         incomplete_comments + f'_learnsharp_learndamp_findLSC_radius' + add_flag,
+    #         incomplete_comments + f'_learnsharp_learndamp_findLSC_radius_targetnorm:.5' + add_flag,
+    #     ],
+    # }
+    # experiments.append(experiment)
 
     ds = dict2iter(experiments)
     print(ds[0])
-    experiments_left = complete_missing_exps(sdf, ds, coi)
+    ldf, experiments_left = complete_missing_exps(sdf, ds, coi)
     np.random.shuffle(experiments_left)
     experiments = experiments_left
 
