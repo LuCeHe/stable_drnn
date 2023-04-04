@@ -1221,7 +1221,7 @@ if missing_exps:
     all_comments = [
         # incomplete_comments + add_flag,
         # incomplete_comments + f'findLSC',
-        incomplete_comments + f'findLSC_supsubnpsd',
+        incomplete_comments + f'findLSC_supsubnpsd' + add_flag,
         # incomplete_comments + f'_findLSC_radius' + add_flag,
         # incomplete_comments + f'_findLSC_radius_targetnorm:.5' + add_flag,
         # incomplete_comments + f'findLSC_radius_targetnorm:.5_randlsc',
