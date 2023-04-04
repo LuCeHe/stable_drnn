@@ -44,13 +44,15 @@ GEXPERIMENTS = [
 expsid = 'als'  # effnet als ffnandcnns
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
+lsc_epsilon = 0.02
+
 check_for_new = True
 plot_losses = False
 one_exp_curves = False
 pandas_means = True
 show_per_tasknet = True
 make_latex = False
-missing_exps = False
+missing_exps = True
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -1105,14 +1107,12 @@ if remove_incomplete:
     print('-=***=-' * 10)
     print('Eliminate if not close enough to target norm')
     # from LSC_norms final column, select those that are epsilon away from 1
-    epsilon = 0.02
-    # epsilon = 0.2
     # make a column target equal to .5 if targetnorm:.5 is in comments else 1 if findLSC is in comments
     # else nan
     plotdf['target'] = plotdf['comments'].apply(
         lambda x: 0.5 if 'targetnorm:.5' in x else 1 if 'findLSC' in x else np.nan)
     plotdf['diff_target'] = abs(plotdf['LSC f'] - plotdf['target'])
-    plotdf['vs_epsilon'] = plotdf['diff_target'] > epsilon
+    plotdf['vs_epsilon'] = plotdf['diff_target'] > lsc_epsilon
     rdf = plotdf[
         plotdf['comments'].str.contains('findLSC')
         & plotdf['vs_epsilon']
@@ -1219,13 +1219,14 @@ if missing_exps:
     sdf.loc[df['task'].str.contains('PTB'), 'task'] = 'wordptb'
     sdf.loc[df['net'].str.contains('ALIFb'), 'net'] = 'maLSNNb'
     sdf.loc[df['net'].str.contains('ALIF'), 'net'] = 'maLSNN'
+    sdf['comments'] = sdf['comments'].str.replace('_timerepeat:2', '_timerepeat:2_pretrained')
+    fsdf = sdf.copy()
 
     sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
     # substitute the string _timerepeat:2 by _timerepeat:2_pretrained_ in the comments column
-    sdf['comments'] = sdf['comments'].str.replace('_timerepeat:2', '_timerepeat:2_pretrained')
     # sdf['comments'] = sdf['comments'].str.replace('_onlypretrain', '')
 
-    add_flag = '_onlypretrain'  # _onlyloadpretrained _onlypretrain
+    add_flag = '_onlyloadpretrained'  # _onlyloadpretrained _onlypretrain
     seed = 0
     n_seeds = 4
     seeds = [l + seed for l in range(n_seeds)]
@@ -1250,8 +1251,8 @@ if missing_exps:
     # ]
     all_comments_2 = all_comments
 
-    nets = ['LSTM', 'GRU', 'maLSNN', 'maLSNNb', 'indrnn']
-    nets = ['LSTM', 'GRU', 'indrnn']
+    nets = ['LSTM', 'GRU', 'maLSNN', 'maLSNNb', 'indrnn', 'rsimplernn', 'ssimplernn']
+    # nets = ['LSTM', 'GRU', 'indrnn']
     # nets = ['maLSNN', 'maLSNNb']
     # nets = ['rsimplernn', 'ssimplernn']
 
@@ -1270,15 +1271,15 @@ if missing_exps:
     }
     experiments.append(experiment)
 
-    # experiment = {
-    #     'task': ['wordptb'],
-    #     'net': ['maLSNN', 'maLSNNb'], 'seed': seeds, 'stack': ['None'],
-    #     'comments': [
-    #         incomplete_comments + f'_learnsharp_learndamp_findLSC_radius' + add_flag,
-    #         incomplete_comments + f'_learnsharp_learndamp_findLSC_radius_targetnorm:.5' + add_flag,
-    #     ],
-    # }
-    # experiments.append(experiment)
+    experiment = {
+        'task': ['wordptb'],
+        'net': ['maLSNN', 'maLSNNb'], 'seed': seeds, 'stack': ['None'],
+        'comments': [
+            incomplete_comments + f'_learnsharp_learndamp_findLSC_radius' + add_flag,
+            incomplete_comments + f'_learnsharp_learndamp_findLSC_radius_targetnorm:.5' + add_flag,
+        ],
+    }
+    experiments.append(experiment)
 
     ds = dict2iter(experiments)
     print(ds[0])
@@ -1288,6 +1289,53 @@ if missing_exps:
 
     print(experiments)
     print(len(experiments))
+
+    if '_onlyloadpretrained' in add_flag:
+        fsdf = fsdf[fsdf['comments'].str.contains('onlypretrain')]
+        fsdf['comments'] = fsdf['comments'].str.replace('onlypretrain', 'onlyloadpretrained')
+
+        print('in')
+        print(fsdf.shape)
+        fsdf['target'] = fsdf['comments'].apply(
+            lambda x: 0.5 if 'targetnorm:.5' in x else 1 if 'findLSC' in x else np.nan)
+        fsdf['diff_target'] = abs(fsdf['LSC f'] - fsdf['target'])
+        fsdf['vs_epsilon'] = fsdf['diff_target'] < lsc_epsilon
+
+        fsdf = fsdf[fsdf['vs_epsilon']]
+        fsdf.drop([c for c in fsdf.columns if c not in coi], axis=1, inplace=True)
+
+        print(fsdf.shape, ldf.shape)
+
+        print('here!')
+        print('fsdf.shape, ldf.shape, intersection.shape')
+
+        # intersection = fsdf[fsdf == ldf].dropna()
+        intersection = pd.concat([ldf, fsdf], ignore_index=True)
+        intersection = intersection[intersection.duplicated()]
+        # intersection = pd.merge(fsdf, ldf, on=coi, how="inner")
+        print(fsdf.shape, ldf.shape, intersection.shape)
+
+        # concatenate intersection and fsdf
+        print('ndf.shape, intersection.shape, fsdf.shape')
+        ndf = pd.concat([intersection, fsdf], ignore_index=True)
+        # remove duplicates
+        print(ndf.shape, intersection.shape, fsdf.shape)
+        ndf.drop_duplicates(inplace=True)
+        print(ndf.shape, intersection.shape, fsdf.shape)
+
+        # do the same for ldf
+        print('ndf.shape, intersection.shape, ldf.shape')
+        ndf = pd.concat([intersection, ldf], ignore_index=True)
+        print(ndf.shape, intersection.shape, ldf.shape)
+        ndf.drop_duplicates(inplace=True)
+        print(ndf.shape, intersection.shape, ldf.shape)
+
+        ldf, experiments_left = complete_missing_exps(sdf, intersection, coi)
+        np.random.shuffle(experiments_left)
+        experiments = experiments_left
+
+        print(experiments)
+        print(len(experiments))
 
     # experiments_1 = [e for e in experiments_left if e['stack'][0] in ['7', '5']]
     # experiments_2 = [e for e in experiments_left if not e['stack'][0] in ['7', '5']]
