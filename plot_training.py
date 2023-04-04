@@ -50,7 +50,7 @@ one_exp_curves = False
 pandas_means = True
 show_per_tasknet = True
 make_latex = False
-missing_exps = True
+missing_exps = False
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -1121,6 +1121,22 @@ if remove_incomplete:
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
 
+    print('supsubnpsd')
+    rdf = plotdf[
+        plotdf['comments'].str.contains('supsubnpsd')
+        ]
+    print(rdf.to_string())
+    print(rdf.shape, df.shape)
+    rdfs.append(rdf)
+
+    print('Na LSC')
+    rdf = plotdf[
+        plotdf['LSC f'].isna()
+        ]
+    print(rdf.to_string())
+    print(rdf.shape, df.shape)
+    rdfs.append(rdf)
+
     # remove repeated
     # remove one seed from those that have more than 4 seeds
     brdf = mdf[mdf['counts'] > 4]
@@ -1221,9 +1237,9 @@ if missing_exps:
     all_comments = [
         # incomplete_comments + add_flag,
         # incomplete_comments + f'findLSC',
-        incomplete_comments + f'findLSC_supsubnpsd' + add_flag,
-        # incomplete_comments + f'_findLSC_radius' + add_flag,
-        # incomplete_comments + f'_findLSC_radius_targetnorm:.5' + add_flag,
+        # incomplete_comments + f'findLSC_supsubnpsd' + add_flag,
+        incomplete_comments + f'_findLSC_radius' + add_flag,
+        incomplete_comments + f'_findLSC_radius_targetnorm:.5' + add_flag,
         # incomplete_comments + f'findLSC_radius_targetnorm:.5_randlsc',
         # incomplete_comments + f'findLSC_supsubnpsd_deslice',
     ]

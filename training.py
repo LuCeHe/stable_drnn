@@ -211,7 +211,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
             # lsclr = 1e-2
             # lsclr = 3.14e-2
             lsclr = 3.14e-3
-            if 'LSNN' in net_name:
+            if 'LSNN' in net_name and not 'learnsharp_learndamp' in comments:
                 lsclr = 3.14e-4
 
             if 'deslice' in comments:
