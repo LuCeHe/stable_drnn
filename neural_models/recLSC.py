@@ -270,7 +270,7 @@ def remove_pretrained_extra(experiments, remove_opposite=True, folder=None):
             removed += 1
 
         if d in files and not remove_opposite:
-            # os.remove(os.path.join(folder, d))
+            os.remove(os.path.join(folder, d))
             removed += 1
 
         pbar.update(1)

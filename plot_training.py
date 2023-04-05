@@ -1170,13 +1170,13 @@ if remove_incomplete:
 
         # sdf = pd.read_hdf(h5path, 'df')
         sdf = allrdfs.copy()
+        print(sdf.head().to_string())
+        sdf.loc[sdf['task'].str.contains('SHD'), 'task'] = 'heidelberg'
+        sdf.loc[sdf['task'].str.contains('sl-MNIST'), 'task'] = 'sl_mnist'
+        sdf.loc[sdf['task'].str.contains('PTB'), 'task'] = 'wordptb'
 
-        sdf.loc[df['task'].str.contains('SHD'), 'task'] = 'heidelberg'
-        sdf.loc[df['task'].str.contains('sl-MNIST'), 'task'] = 'sl_mnist'
-        sdf.loc[df['task'].str.contains('PTB'), 'task'] = 'wordptb'
-
-        sdf.loc[df['net'].str.contains('ALIFb'), 'net'] = 'maLSNNb'
-        sdf.loc[df['net'].str.contains('ALIF'), 'net'] = 'maLSNN'
+        sdf.loc[sdf['net'].str.contains('ALIFb'), 'net'] = 'maLSNNb'
+        sdf.loc[sdf['net'].str.contains('ALIF'), 'net'] = 'maLSNN'
 
         coi = ['seed', 'task', 'net', 'comments', 'stack']
         experiments = []
@@ -1227,6 +1227,7 @@ if missing_exps:
     # sdf['comments'] = sdf['comments'].str.replace('_onlypretrain', '')
 
     add_flag = '_onlyloadpretrained'  # _onlyloadpretrained _onlypretrain
+    only_if_good_lsc = False
     seed = 0
     n_seeds = 4
     seeds = [l + seed for l in range(n_seeds)]
@@ -1237,21 +1238,17 @@ if missing_exps:
 
     all_comments = [
         # incomplete_comments + add_flag,
-        # incomplete_comments + f'findLSC',
-        # incomplete_comments + f'findLSC_supsubnpsd' + add_flag,
-        incomplete_comments + f'_findLSC_radius' + add_flag,
-        incomplete_comments + f'_findLSC_radius_targetnorm:.5' + add_flag,
-        # incomplete_comments + f'findLSC_radius_targetnorm:.5_randlsc',
-        # incomplete_comments + f'findLSC_supsubnpsd_deslice',
+        # incomplete_comments + f'_findLSC_radius' + add_flag,
+        # incomplete_comments + f'_findLSC_radius_targetnorm:.5' + add_flag,
     ]
 
-    # all_comments_2 = [
-    #     incomplete_comments + f'_findLSC_radius' + add_flag,
-    #     incomplete_comments + f'_findLSC_radius_targetnorm:.5' + add_flag,
-    # ]
+    if '_onlyloadpretrained' in add_flag:
+        all_comments.append(incomplete_comments + add_flag)
+
+
     all_comments_2 = all_comments
 
-    nets = ['LSTM', 'GRU', 'maLSNN', 'maLSNNb', 'indrnn', 'rsimplernn', 'ssimplernn']
+    nets = ['LSTM', 'GRU', 'indrnn', 'rsimplernn', 'ssimplernn']
     # nets = ['LSTM', 'GRU', 'indrnn']
     # nets = ['maLSNN', 'maLSNNb']
     # nets = ['rsimplernn', 'ssimplernn']
@@ -1271,15 +1268,15 @@ if missing_exps:
     }
     experiments.append(experiment)
 
-    experiment = {
-        'task': ['wordptb'],
-        'net': ['maLSNN', 'maLSNNb'], 'seed': seeds, 'stack': ['None'],
-        'comments': [
-            incomplete_comments + f'_learnsharp_learndamp_findLSC_radius' + add_flag,
-            incomplete_comments + f'_learnsharp_learndamp_findLSC_radius_targetnorm:.5' + add_flag,
-        ],
-    }
-    experiments.append(experiment)
+    # experiment = {
+    #     'task': ['heidelberg', 'wordptb'],
+    #     'net': ['maLSNN', 'maLSNNb'], 'seed': seeds, 'stack': ['None'],
+    #     'comments': [
+    #         incomplete_comments + f'_learnsharp_learndamp_findLSC_radius' + add_flag,
+    #         incomplete_comments + f'_learnsharp_learndamp_findLSC_radius_targetnorm:.5' + add_flag,
+    #     ],
+    # }
+    # experiments.append(experiment)
 
     ds = dict2iter(experiments)
     print(ds[0])
@@ -1290,7 +1287,7 @@ if missing_exps:
     print(experiments)
     print(len(experiments))
 
-    if '_onlyloadpretrained' in add_flag:
+    if '_onlyloadpretrained' in add_flag and only_if_good_lsc:
         fsdf = fsdf[fsdf['comments'].str.contains('onlypretrain')]
         fsdf['comments'] = fsdf['comments'].str.replace('onlypretrain', 'onlyloadpretrained')
 
