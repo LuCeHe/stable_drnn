@@ -52,7 +52,7 @@ one_exp_curves = False
 pandas_means = True
 show_per_tasknet = True
 make_latex = False
-missing_exps = False
+missing_exps = True
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -1121,13 +1121,17 @@ if remove_incomplete:
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
 
-    print('supsubnpsd')
+
+    print('remove simple rnns')
     rdf = plotdf[
-        plotdf['comments'].str.contains('supsubnpsd')
+        plotdf['net'].str.contains('simplernn')
+        | plotdf['net'].str.contains('indrnn')
         ]
     print(rdf.to_string())
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
+
+
 
     print('Na LSC')
     rdf = plotdf[
@@ -1237,7 +1241,6 @@ if missing_exps:
     experiments = []
 
     all_comments = [
-        # incomplete_comments + add_flag,
         # incomplete_comments + f'_findLSC_radius' + add_flag,
         # incomplete_comments + f'_findLSC_radius_targetnorm:.5' + add_flag,
     ]
@@ -1249,6 +1252,7 @@ if missing_exps:
     all_comments_2 = all_comments
 
     nets = ['LSTM', 'GRU', 'indrnn', 'rsimplernn', 'ssimplernn']
+    nets = ['LSTM', 'GRU', 'indrnn', 'rsimplernn', 'ssimplernn', 'maLSNN', 'maLSNNb']
     # nets = ['LSTM', 'GRU', 'indrnn']
     # nets = ['maLSNN', 'maLSNNb']
     # nets = ['rsimplernn', 'ssimplernn']
