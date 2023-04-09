@@ -1122,17 +1122,6 @@ if remove_incomplete:
     rdfs.append(rdf)
 
 
-    print('remove simple rnns')
-    rdf = plotdf[
-        plotdf['net'].str.contains('simplernn')
-        | plotdf['net'].str.contains('indrnn')
-        ]
-    print(rdf.to_string())
-    print(rdf.shape, df.shape)
-    rdfs.append(rdf)
-
-
-
     print('Na LSC')
     rdf = plotdf[
         plotdf['LSC f'].isna()
@@ -1227,8 +1216,6 @@ if missing_exps:
     fsdf = sdf.copy()
 
     sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
-    # substitute the string _timerepeat:2 by _timerepeat:2_pretrained_ in the comments column
-    # sdf['comments'] = sdf['comments'].str.replace('_onlypretrain', '')
 
     add_flag = '_onlyloadpretrained'  # _onlyloadpretrained _onlypretrain
     only_if_good_lsc = False
