@@ -52,7 +52,7 @@ one_exp_curves = False
 pandas_means = True
 show_per_tasknet = True
 make_latex = False
-missing_exps = True
+missing_exps = False
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -384,6 +384,13 @@ if pandas_means:
                         & xdf['stack'].eq(stack)
                         ]
 
+
+                    fdf = df[
+                        df['task'].eq(task)
+                        & df['net'].eq(net)
+                        & df['stack'].eq(stack)
+                        ]
+
                     cols = idf.columns
                     if not 'PTB' in task:
                         idf = idf.sort_values(by='mean_' + metric, ascending=False)
@@ -397,7 +404,12 @@ if pandas_means:
                     idf.rename(columns=new_column_names, inplace=True)
                     idf = idf[cols]
 
+                    fcols = [c.replace('mean_', '') for c in cols if not 'count' in c]
+                    fdf.rename(columns=new_column_names, inplace=True)
+                    fdf = fdf[fcols]
+
                     print(idf.to_string())
+                    print(fdf.to_string())
 
     print('-===-' * 30)
     print(mdf[mdf['counts'] > 4].to_string())
@@ -1122,7 +1134,16 @@ if remove_incomplete:
     rdfs.append(rdf)
 
 
-    print('Na LSC')
+
+    print('Remove learnsharp_learndamp')
+
+    rdf = plotdf[
+        plotdf['comments'].str.contains('learnsharp_learndamp')
+        ]
+    print(rdf.to_string())
+    print(rdf.shape, df.shape)
+    rdfs.append(rdf)
+
     rdf = plotdf[
         plotdf['LSC f'].isna()
         ]
