@@ -98,8 +98,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
     task_name = task
     net_name = net
 
-    if 'findLSC' in comments and not 'dampf' in comments and not 'learndamp' in comments:
-        comments += '_dampf:.5'
+    comments += '_dampf:.5'
 
     stack, batch_size, embedding, n_neurons, lr = default_config(
         stack, batch_size, embedding, n_neurons, lr, task_name, net_name, setting='LSC'

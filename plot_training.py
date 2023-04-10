@@ -52,7 +52,7 @@ one_exp_curves = False
 pandas_means = True
 show_per_tasknet = True
 make_latex = False
-missing_exps = False
+missing_exps = True
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -68,8 +68,6 @@ remove_incomplete = False
 truely_remove = False
 truely_remove_pretrained = False
 remove_saved_model = False
-
-
 
 task = 'ps_mnist'  # heidelberg wordptb sl_mnist all ps_mnist
 incomplete_comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_pretrained_'
@@ -384,12 +382,11 @@ if pandas_means:
                         & xdf['stack'].eq(stack)
                         ]
 
-
-                    fdf = df[
-                        df['task'].eq(task)
-                        & df['net'].eq(net)
-                        & df['stack'].eq(stack)
-                        ]
+                    # fdf = df[
+                    #     df['task'].eq(task)
+                    #     & df['net'].eq(net)
+                    #     & df['stack'].eq(stack)
+                    #     ]
 
                     cols = idf.columns
                     if not 'PTB' in task:
@@ -404,12 +401,12 @@ if pandas_means:
                     idf.rename(columns=new_column_names, inplace=True)
                     idf = idf[cols]
 
-                    fcols = [c.replace('mean_', '') for c in cols if not 'count' in c]
-                    fdf.rename(columns=new_column_names, inplace=True)
-                    fdf = fdf[fcols]
+                    # fcols = [c.replace('mean_', '') for c in cols if not 'count' in c]
+                    # fdf.rename(columns=new_column_names, inplace=True)
+                    # fdf = fdf[fcols]
 
                     print(idf.to_string())
-                    print(fdf.to_string())
+                    # print(fdf.to_string())
 
     print('-===-' * 30)
     print(mdf[mdf['counts'] > 4].to_string())
@@ -1133,20 +1130,29 @@ if remove_incomplete:
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
 
-
-
-    print('Remove learnsharp_learndamp')
+    print('Remove lsnn with dampf different from .5')
 
     rdf = plotdf[
-        plotdf['comments'].str.contains('learnsharp_learndamp')
+        ~plotdf['comments'].str.contains('findLSC')
+        & plotdf['net'].str.contains('ALIF')
         ]
     print(rdf.to_string())
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
 
+    print('Remove learnsharp_learndamp')
+
+    rdf = plotdf[
+        plotdf['comments'].str.contains('learnsharp_learndamp')
+    ]
+    print(rdf.to_string())
+    print(rdf.shape, df.shape)
+    rdfs.append(rdf)
+
+    print('Remove lsc na')
     rdf = plotdf[
         plotdf['LSC f'].isna()
-        ]
+    ]
     print(rdf.to_string())
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
@@ -1256,39 +1262,38 @@ if missing_exps:
     if '_onlyloadpretrained' in add_flag:
         all_comments.append(incomplete_comments + add_flag)
 
+    # all_comments_2 = all_comments
 
-    all_comments_2 = all_comments
-
-    nets = ['LSTM', 'GRU', 'indrnn', 'rsimplernn', 'ssimplernn']
-    nets = ['LSTM', 'GRU', 'indrnn', 'rsimplernn', 'ssimplernn', 'maLSNN', 'maLSNNb']
+    # nets = ['LSTM', 'GRU', 'indrnn', 'rsimplernn', 'ssimplernn']
+    # nets = ['LSTM', 'GRU', 'indrnn', 'rsimplernn', 'ssimplernn', 'maLSNN', 'maLSNNb']
     # nets = ['LSTM', 'GRU', 'indrnn']
     # nets = ['maLSNN', 'maLSNNb']
     # nets = ['rsimplernn', 'ssimplernn']
-
-    tasks = ['heidelberg', 'sl_mnist', 'wordptb']
-    experiment = {
-        'task': tasks,
-        'net': nets, 'seed': seeds, 'stack': ['None'],
-        'comments': all_comments,
+    net_types = {
+        'nolsnns': ['LSTM', 'GRU', 'indrnn', 'rsimplernn', 'ssimplernn'],
+        'lsnns': ['maLSNN', 'maLSNNb'],
     }
-    experiments.append(experiment)
 
-    experiment = {
-        'task': ['heidelberg'],
-        'net': nets, 'seed': seeds, 'stack': ['1', '3', '5', '7'],
-        'comments': all_comments_2,
-    }
-    experiments.append(experiment)
+    for nt, nets in net_types.items():
+        if nt == 'lsnns':
+            comments = [c for c in all_comments if not 'targetnorm:.5' in c]
+        else:
+            comments = all_comments
 
-    # experiment = {
-    #     'task': ['heidelberg', 'wordptb'],
-    #     'net': ['maLSNN', 'maLSNNb'], 'seed': seeds, 'stack': ['None'],
-    #     'comments': [
-    #         incomplete_comments + f'_learnsharp_learndamp_findLSC_radius' + add_flag,
-    #         incomplete_comments + f'_learnsharp_learndamp_findLSC_radius_targetnorm:.5' + add_flag,
-    #     ],
-    # }
-    # experiments.append(experiment)
+        tasks = ['heidelberg', 'sl_mnist', 'wordptb']
+        experiment = {
+            'task': tasks,
+            'net': nets, 'seed': seeds, 'stack': ['None'],
+            'comments': comments,
+        }
+        experiments.append(experiment)
+
+        experiment = {
+            'task': ['heidelberg'],
+            'net': nets, 'seed': seeds, 'stack': ['1', '3', '5', '7'],
+            'comments': comments,
+        }
+        experiments.append(experiment)
 
     ds = dict2iter(experiments)
     print(ds[0])
