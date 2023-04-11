@@ -48,16 +48,16 @@ def config():
     task = 'wordptb'
 
     # test configuration
-    epochs = 2
+    epochs = 4
     steps_per_epoch = 2
     batch_size = 13
 
     # net
-    # maLSNN cLSTM LSTM maLSNNb GRU indrnn LMU simplernn
-    net = 'rsimplernn'
+    # maLSNN cLSTM LSTM maLSNNb GRU indrnn LMU ssimplernn rsimplernn
+    net = 'maLSNN'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
-    stack = None
-    n_neurons = None
+    stack = '4:3'
+    n_neurons = 3
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task in language_tasks else False
     comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_findLSC_supsubnpsd_test_pretrained_deslice'
@@ -67,7 +67,8 @@ def config():
     comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_test_onlypretrain_lscshuffw_gausslsc'
     comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2'
     comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_test_onlypretrain_lscshuffw_gausslsc'
-    comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain_learnsharp_learndamp'
+    comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain'
+    # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlyloadpretrained'
     comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2'
     # comments = ''
 
@@ -273,6 +274,11 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
             tf.keras.callbacks.CSVLogger(history_path),
             tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=10, restore_best_weights=True)
         ]
+
+        if stack in [5, 7]:
+            callbacks.append(
+                ClearMemory(end_of_batch=False, verbose=1),
+            )
 
         if 'tenb' in comments:
             val_data = gen_val.__getitem__()

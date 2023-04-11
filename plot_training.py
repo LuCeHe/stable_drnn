@@ -50,8 +50,9 @@ check_for_new = True
 plot_losses = False
 one_exp_curves = False
 pandas_means = True
-show_per_tasknet = True
+show_per_tasknet = False
 make_latex = False
+make_good_latex = False
 missing_exps = True
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
@@ -346,7 +347,7 @@ if pandas_means:
     counts = df.groupby(group_cols).size().reset_index(name='counts')
     # stats = ['mean', 'std']
     metrics_oi = [shorten_losses(m) for m in metrics_oi]
-    stats_oi = ['mean']  # ['mean', 'std']
+    stats_oi = ['mean', 'std']
     mdf = df.groupby(
         group_cols, as_index=False
     ).agg({m: stats_oi for m in metrics_oi})
@@ -407,9 +408,6 @@ if pandas_means:
 
                     print(idf.to_string())
                     # print(fdf.to_string())
-
-    print('-===-' * 30)
-    print(mdf[mdf['counts'] > 4].to_string())
 
     if make_latex:
 
@@ -478,6 +476,41 @@ if pandas_means:
         # print(pdf.to_string())
 
         print(pdf.to_latex(index=True, escape=False))
+
+if make_good_latex:
+
+    tab_types = {
+        'tasks':  ['sl-MNIST', 'SHD', 'PTB'],
+        'depths': [1, 3, 5, 7]
+    }
+    net_types = {
+        'nolsnns': ['LSTM', 'GRU', 'indrnn', 'rsimplernn', 'ssimplernn'],
+        'lsnns': ['maLSNN', 'maLSNNb'],
+    }
+    ntype = 'nolsnns'
+    ttype = 'tasks'
+
+    idf = mdf[mdf['comments'].str.contains('onlyloadpretrained')]
+
+    # select only rows that have any of the models above in the net column
+    idf = idf[idf['net'].isin(net_types[ntype])]
+
+    metrics_cols = [c for c in idf.columns if 'ppl' in c or 'acc' in c]
+    for m in metrics_cols:
+        mode = 'max' if 'acc' in m and not 'std' in m else 'min'
+        idf[f'best_{m}'] = idf.groupby(['task'])[m].transform(mode)
+        idf[m] = idf.apply(bolden_best(m), axis=1)
+
+    idf['ppl'] = idf.apply(compactify_metrics('ppl min'), axis=1)
+    idf['acc'] = idf.apply(compactify_metrics('mode_acc max'), axis=1)
+    idf['metric'] = idf.apply(choose_metric, axis=1)
+
+    print(idf.to_string())
+
+    # make a table that has a column net, followed by a column comments and a column for each task
+
+    # idf = idf[['net', 'comments', 'sl-MNIST', 'SHD', 'PTB']]
+
 
 if plot_init_lrs:
     idf = mdf
@@ -1130,28 +1163,38 @@ if remove_incomplete:
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
 
-    print('Remove lsnn with dampf different from .5')
-
+    print('Remove lsc na')
     rdf = plotdf[
-        ~plotdf['comments'].str.contains('findLSC')
-        & plotdf['net'].str.contains('ALIF')
-        ]
-    print(rdf.to_string())
-    print(rdf.shape, df.shape)
-    rdfs.append(rdf)
-
-    print('Remove learnsharp_learndamp')
-
-    rdf = plotdf[
-        plotdf['comments'].str.contains('learnsharp_learndamp')
+        plotdf['LSC f'].isna()
     ]
     print(rdf.to_string())
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
 
-    print('Remove lsc na')
+
+    print('Remove no findLSC')
     rdf = plotdf[
-        plotdf['LSC f'].isna()
+        ~plotdf['comments'].str.contains('findLSC')
+    ]
+    print(rdf.to_string())
+    print(rdf.shape, df.shape)
+    rdfs.append(rdf)
+
+
+    print('Remove ppl and acc na and inf')
+    rdf = plotdf[
+        plotdf['comments'].str.contains('onlyloadpretrained')
+        & (
+            plotdf['t_ppl'].isna()
+            | plotdf['v_ppl'].isna()
+            | plotdf['t_^acc'].isna()
+            | plotdf['v_^acc'].isna()
+            # or is infinity
+            | plotdf['t_ppl'].eq(np.inf)
+            | plotdf['v_ppl'].eq(np.inf)
+            | plotdf['t_^acc'].eq(np.inf)
+            | plotdf['v_^acc'].eq(np.inf)
+        )
     ]
     print(rdf.to_string())
     print(rdf.shape, df.shape)
@@ -1245,7 +1288,7 @@ if missing_exps:
     sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
 
     add_flag = '_onlyloadpretrained'  # _onlyloadpretrained _onlypretrain
-    only_if_good_lsc = False
+    only_if_good_lsc = True
     seed = 0
     n_seeds = 4
     seeds = [l + seed for l in range(n_seeds)]
@@ -1254,10 +1297,13 @@ if missing_exps:
 
     experiments = []
 
-    all_comments = [
-        # incomplete_comments + f'_findLSC_radius' + add_flag,
-        # incomplete_comments + f'_findLSC_radius_targetnorm:.5' + add_flag,
-    ]
+    if only_if_good_lsc:
+        all_comments = [
+            incomplete_comments + f'_findLSC_radius' + add_flag,
+            incomplete_comments + f'_findLSC_radius_targetnorm:.5' + add_flag,
+        ]
+    else:
+        all_comments = []
 
     if '_onlyloadpretrained' in add_flag:
         all_comments.append(incomplete_comments + add_flag)

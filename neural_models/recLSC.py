@@ -377,7 +377,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
     pretrained_file = get_pretrained_file(comments, s, net_name, task_name, ostack)
     path_pretrained = os.path.join(GEXPERIMENTS, pretrained_file)
 
-    if 'pretrained' in comments:
+    if 'pretrained' in comments and 'findLSC' in comments:
         if os.path.exists(path_pretrained):
             print('Loading pretrained lsc weights')
             try:
