@@ -45,7 +45,7 @@ def config():
     # task and net
     # ps_mnist heidelberg s_mnist
     # wordptb sl_mnist
-    task = 'wordptb'
+    task = 'heidelberg'
 
     # test configuration
     epochs = 4
@@ -56,7 +56,7 @@ def config():
     # maLSNN cLSTM LSTM maLSNNb GRU indrnn LMU ssimplernn rsimplernn
     net = 'maLSNN'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
-    stack = '4:3'
+    stack = 3
     n_neurons = 3
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task in language_tasks else False
@@ -70,6 +70,7 @@ def config():
     comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain'
     # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlyloadpretrained'
     comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2'
+    comments = 'allns_36_simplereadout_nogradreset_dropout:.3_timerepeat:2_pretrained_onlyloadpretrained'
     # comments = ''
 
     # optimizer properties
@@ -277,7 +278,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
 
         if stack in [5, 7]:
             callbacks.append(
-                ClearMemory(end_of_batch=False, verbose=1),
+                ClearMemory(end_of_batch=False, verbose=1, show_gpu=False),
             )
 
         if 'tenb' in comments:
