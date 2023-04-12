@@ -52,8 +52,8 @@ one_exp_curves = False
 pandas_means = True
 show_per_tasknet = False
 make_latex = False
-make_good_latex = False
-missing_exps = True
+make_good_latex = True
+missing_exps = False
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -480,17 +480,24 @@ if pandas_means:
 if make_good_latex:
 
     tab_types = {
-        'tasks':  ['sl-MNIST', 'SHD', 'PTB'],
-        'depths': [1, 3, 5, 7]
+        'task':  ['sl-MNIST', 'SHD', 'PTB'],
+        'stack': [1, 3, 5, 7]
     }
     net_types = {
         'nolsnns': ['LSTM', 'GRU', 'indrnn', 'rsimplernn', 'ssimplernn'],
         'lsnns': ['maLSNN', 'maLSNNb'],
     }
     ntype = 'nolsnns'
-    ttype = 'tasks'
+    ttype = 'stack'
+    data_split = 'val' # test val
 
-    idf = mdf[mdf['comments'].str.contains('onlyloadpretrained')]
+    idf = mdf.copy()
+    idf = idf[idf['comments'].str.contains('onlyloadpretrained')]
+    # print(idf[].to_string())
+    if ttype == 'task':
+        idf = idf[idf['stack'].eq('None')]
+    else:
+        idf = idf[~idf['stack'].eq('None')]
 
     # select only rows that have any of the models above in the net column
     idf = idf[idf['net'].isin(net_types[ntype])]
@@ -498,18 +505,36 @@ if make_good_latex:
     metrics_cols = [c for c in idf.columns if 'ppl' in c or 'acc' in c]
     for m in metrics_cols:
         mode = 'max' if 'acc' in m and not 'std' in m else 'min'
-        idf[f'best_{m}'] = idf.groupby(['task'])[m].transform(mode)
+        idf[f'best_{m}'] = idf.groupby([ttype, 'net'])[m].transform(mode)
         idf[m] = idf.apply(bolden_best(m), axis=1)
 
-    idf['ppl'] = idf.apply(compactify_metrics('ppl min'), axis=1)
-    idf['acc'] = idf.apply(compactify_metrics('mode_acc max'), axis=1)
+    idf['ppl'] = idf.apply(compactify_metrics('ppl', data_split=data_split), axis=1)
+    idf['acc'] = idf.apply(compactify_metrics('^acc', data_split=data_split), axis=1)
     idf['metric'] = idf.apply(choose_metric, axis=1)
 
+    coi = ['net', ttype, 'comments', 'metric']
+    idf = idf[coi]
     print(idf.to_string())
 
-    # make a table that has a column net, followed by a column comments and a column for each task
+    # clean comments
+    idf['comments'] = idf['comments'].str.replace('allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_', '')
+    idf['comments'] = idf['comments'].str.replace('_onlyloadpretrained', '')
 
-    # idf = idf[['net', 'comments', 'sl-MNIST', 'SHD', 'PTB']]
+    # make a table that has a column net, followed by a column comments and a column for each task
+    # for that you need to pivot since idf now has a task column
+    idf = pd.pivot_table(idf, values='metric', index=['net', 'comments'], columns=[ttype], aggfunc=np.sum)
+    idf = idf.replace([0], '-')
+    idf = idf.reset_index()
+
+    # drop the index
+
+    # idf = idf.drop(columns=[ttype])
+    print(idf.to_string())
+    print(idf.columns)
+
+    # as latex
+    print(idf.to_latex(index=False, escape=False))
+
 
 
 if plot_init_lrs:
