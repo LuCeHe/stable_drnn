@@ -83,21 +83,22 @@ def clean_nid(norm_id):
         raise ValueError('norm_id not in [None, 1, 2, -1]')
 
 
-def compactify_metrics(metric='ppl', data_split='test'):
+def compactify_metrics(metric='ppl', data_split='test', round_to=2):
+    # assert data_split in [None, 'test', 'val', 't_', 'v_']
     def cm(row):
         print(row.keys())
-        mt = row[f'mean_t_{metric}']
-        st = row[f'std_t_{metric}']
-        mv = row[f'mean_v_{metric}']
-        sv = row[f'std_v_{metric}']
         if data_split is None:
+            mt = row[f'mean_t_{metric}']
+            st = row[f'std_t_{metric}']
+            mv = row[f'mean_v_{metric}']
+            sv = row[f'std_v_{metric}']
+
             output = f"${str(mv)}\pm{str(sv)}$/${str(mt)}\pm{str(st)}$"
-        elif data_split == 'test':
-            output = f"${str(mt)}\pm{str(st)}$"
-        elif data_split == 'val':
-            output = f"${str(mv)}\pm{str(sv)}$"
         else:
-            raise ValueError(f'data_split {data_split} not in [None, test, val]')
+            m = row[f'mean_{data_split}{metric}']
+            s = row[f'std_{data_split}{metric}']
+            output = f"${str(m)}\pm{str(s)}$"
+
         return output
 
     return cm

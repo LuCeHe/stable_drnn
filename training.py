@@ -54,10 +54,10 @@ def config():
 
     # net
     # maLSNN cLSTM LSTM maLSNNb GRU indrnn LMU ssimplernn rsimplernn
-    net = 'maLSNN'
+    net = 'maLSNNb'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
     stack = 3
-    n_neurons = 3
+    n_neurons = None
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task in language_tasks else False
     comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_findLSC_supsubnpsd_test_pretrained_deslice'

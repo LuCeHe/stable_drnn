@@ -1,4 +1,4 @@
-import os, json, copy, time, shutil
+import os, json, copy, time, shutil, math
 
 from GenericTools.keras_tools.esoteric_layers import AddLossLayer, AddMetricsLayer
 from GenericTools.keras_tools.esoteric_layers.rate_voltage_reg import RateVoltageRegularization
@@ -119,6 +119,8 @@ df['stack'] = df['stack'].astype(str)
 df['batch_size'] = df['batch_size'].astype(str)
 df['comments'] = df['comments'].str.replace('_pretrained', '')
 df['comments'] = df['comments'].astype(str)
+df.replace(['nan'], np.nan, inplace=True)
+
 
 new_column_names = {c_name: shorten_losses(c_name) for c_name in df.columns}
 df.rename(columns=new_column_names, inplace=True)
@@ -133,6 +135,7 @@ for cname in ['net', 'task']:
         c = df[cname].iloc[:, 0].fillna(df[cname].iloc[:, 1])
         df = df.drop([cname], axis=1)
         df[cname] = c
+
 if 'net' in df.columns: df['net'] = df['net'].astype(str)
 if 'task' in df.columns: df['task'] = df['task'].astype(str)
 
@@ -269,17 +272,22 @@ if 'v_^acc len' in df.columns:
     print(list(df.columns))
     print('v_mode_acc nans:', df['v_^acc len'].isna().sum())
     print('t_ppl nans:', df['t_ppl list'].isna().sum())
-    # df['v_ppl argm'] = df['v_ppl argm'].astype(int)
-    # df['v_^acc argM'] = df['v_^acc argM'].astype(int)
 
     df['v_ppl'] = df['v_ppl m']
-    # df['t_ppl'] = df.apply(lambda row: row['t_ppl list'][row['v_ppl argm']], axis=1)
+
+    df['t_ppl'] = df.apply(
+        lambda row: row['t_ppl list'][int(row['v_ppl argm'])] if isinstance(row['t_ppl list'], list) else np.nan,
+        axis=1
+    )
     df['v_^acc'] = df['v_^acc M']
-    # df['t_^acc'] = df.apply(lambda row: row['t_^acc list'][row['v_^acc argM']], axis=1)
+    df['t_^acc'] = df.apply(
+        lambda row: row['t_^acc list'][int(row['v_^acc argM'])] if isinstance(row['t_^acc list'], list) else np.nan,
+        axis=1
+    )
 
     # FIXME: following is incorrect, correct it as soon as you get rid of the NaNs
-    df['t_ppl'] = df['t_ppl m']
-    df['t_^acc'] = df['t_^acc M']
+    # df['t_ppl'] = df['t_ppl m']
+    # df['t_^acc'] = df['t_^acc M']
 
 for c_name in columns_to_remove:
     df = df[df.columns.drop(list(df.filter(regex=c_name)))]
@@ -479,20 +487,27 @@ if pandas_means:
 
 if make_good_latex:
 
+
     tab_types = {
-        'task':  ['sl-MNIST', 'SHD', 'PTB'],
+        'task': ['sl-MNIST', 'SHD', 'PTB'],
         'stack': [1, 3, 5, 7]
     }
+    # indrnn
     net_types = {
-        'nolsnns': ['LSTM', 'GRU', 'indrnn', 'rsimplernn', 'ssimplernn'],
+        'all': ['ssimplernn', 'rsimplernn', 'GRU', 'LSTM', 'ALIF', 'ALIFb'],
+        'nolsnns': ['ssimplernn', 'rsimplernn', 'GRU', 'LSTM'],
         'lsnns': ['maLSNN', 'maLSNNb'],
     }
-    ntype = 'nolsnns'
-    ttype = 'stack'
-    data_split = 'val' # test val
+    ntype = 'all'
+    ttype = 'task' # stack task
+    data_split = 't_'  # t_ v_
+    display = 'lsc' # metric lsc
 
     idf = mdf.copy()
     idf = idf[idf['comments'].str.contains('onlyloadpretrained')]
+    idf['net'] = pd.Categorical(idf['net'], categories=net_types['all'], ordered=True)
+    idf['task'] = pd.Categorical(idf['task'], categories=tab_types['task'], ordered=True)
+
     # print(idf[].to_string())
     if ttype == 'task':
         idf = idf[idf['stack'].eq('None')]
@@ -510,31 +525,100 @@ if make_good_latex:
 
     idf['ppl'] = idf.apply(compactify_metrics('ppl', data_split=data_split), axis=1)
     idf['acc'] = idf.apply(compactify_metrics('^acc', data_split=data_split), axis=1)
+
+    idf = idf.round({'mean_LSC f': 3, 'std_LSC f': 3})
+    idf['lsc'] = idf.apply(compactify_metrics('LSC f', data_split=''), axis=1)
     idf['metric'] = idf.apply(choose_metric, axis=1)
 
-    coi = ['net', ttype, 'comments', 'metric']
+    coi = ['net', ttype, 'comments', 'metric', 'lsc']
     idf = idf[coi]
     print(idf.to_string())
 
     # clean comments
     idf['comments'] = idf['comments'].str.replace('allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_', '')
     idf['comments'] = idf['comments'].str.replace('_onlyloadpretrained', '')
+    idf['comments'] = idf['comments'].str.replace('allns_36_simplereadout_nogradreset_dropout:.3_timerepeat:2', 'none')
+    idf['comments'] = idf['comments'].str.replace('allns_36_embproj_nogradreset_dropout:.3_timerepeat:2', 'none')
+    idf['comments'] = idf['comments'].str.replace('radius_targetnorm:.5', '$\rho_t=0.5$')
+    idf['comments'] = idf['comments'].str.replace('radius', '$\rho_t=1$')
 
-    # make a table that has a column net, followed by a column comments and a column for each task
-    # for that you need to pivot since idf now has a task column
-    idf = pd.pivot_table(idf, values='metric', index=['net', 'comments'], columns=[ttype], aggfunc=np.sum)
-    idf = idf.replace([0], '-')
-    idf = idf.reset_index()
+    # Make a table that has a column net, followed by a column comments and a column for each task.
+    # For that, you need to pivot since idf now has a task column.
+    df = idf.copy()
 
-    # drop the index
+    # reshape dataframe
+    df = pd.melt(df, id_vars=['net', ttype, 'comments'], value_vars=['metric', 'lsc'], var_name='type')
+    df = df.pivot_table(values='value', index=['net', 'comments', 'type'], columns=ttype, aggfunc=np.sum)
+    df = df.rename_axis(columns=None).reset_index().rename_axis(index=None)
 
-    # idf = idf.drop(columns=[ttype])
-    print(idf.to_string())
-    print(idf.columns)
+    # reorder 'type' column
+    df['type'] = pd.Categorical(df['type'], categories=['metric', 'lsc'], ordered=True)
+    df = df.sort_values(['net', 'comments', 'type'])
+    # df = df[~(df['net'].eq('ALIFb') & df['comments'].eq(r'$\rho_t=0.5$'))]
 
-    # as latex
-    print(idf.to_latex(index=False, escape=False))
+    # group by 'net' and 'comments'
+    df.rename(columns={'comments': 'LSC'}, inplace=True)
+    df = df.set_index(['net', 'LSC', 'type'])
+    df.columns.names = [ttype]
 
+    print(df.to_string())
+
+    print('\n\n\n')
+    lls = ''.join('l'* len(tab_types[ttype]))
+    ccs = ''.join('c'* len(tab_types[ttype]))
+    latex_df = df.to_latex(index=True, escape=False).replace('{lll' + lls, '{lll' + ccs)
+
+    import re
+    latex_df = re.sub(' +', ' ', latex_df)
+
+    latex_df = latex_df.replace('\midrule \n\midrule', '\midrule')
+    latex_df = latex_df.replace('\midrule\n\midrule', '\midrule')
+
+    for net in net_types['all']:
+        if net == 'ALIF':
+            latex_df = latex_df.replace(net + ' ', r'\midrule\midrule' + '\n ' + net)
+
+        elif net == 'ssimplernn':
+            latex_df = latex_df.replace('\\midrule\n' + net, r'\\ \toprule\midrule' + ' \n ' + net)
+
+        else:
+            latex_df = latex_df.replace(net, r'\midrule' + '\n ' + net)
+
+
+    latex_df = latex_df.replace(r'\bottomrule', r'\midrule\bottomrule')
+    latex_df = latex_df.replace('lsc', r'$\rho$')
+
+    latex_df = latex_df.replace('ssimplernn', 'RNN $\sigma$')
+    latex_df = latex_df.replace('rsimplernn', 'RNN $ReLU$')
+    latex_df = latex_df.replace('sl-MNIST', r'sl-MNIST $\uparrow$')
+    latex_df = latex_df.replace('SHD', r'SHD $\uparrow$')
+    latex_df = latex_df.replace('PTB', r'PTB $\downarrow$')
+    latex_df = latex_df.replace('stack', 'depth')
+
+    for task in ['sl-MNIST', 'SHD', 'PTB', 'net', 'LSC', 'type', ttype]:
+        latex_df = latex_df.replace(task, r'\textbf{' + task + '}')
+
+    # loop over the lines of the latex table
+    ref_line = 1000000
+    new_latex_df = ''
+    net_name = None
+    for i, line in enumerate(latex_df.split('\n')):
+        if 'ALIF' in line:
+            ref_line = i
+            if 'ALIFb' in line:
+                net_name = 'ALIFb'
+            else:
+                net_name = 'ALIF'
+
+        elif i == ref_line + 2:
+            new_latex_df +=  net_name + line + '\n'
+
+        elif not i == ref_line + 1:
+
+            new_latex_df += line + '\n'
+
+
+    print(new_latex_df)
 
 
 if plot_init_lrs:
@@ -1196,32 +1280,30 @@ if remove_incomplete:
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
 
-
     print('Remove test in comments or 4:3 in stack')
     rdf = plotdf[
         plotdf['comments'].str.contains('_test')
         | plotdf['stack'].eq('4:3')
-    ]
+        ]
     print(rdf.to_string())
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
-
 
     print('Remove ppl and acc na and inf')
     rdf = plotdf[
         plotdf['comments'].str.contains('onlyloadpretrained')
         & (
-            plotdf['t_ppl'].isna()
-            | plotdf['v_ppl'].isna()
-            | plotdf['t_^acc'].isna()
-            | plotdf['v_^acc'].isna()
-            # or is infinity
-            | plotdf['t_ppl'].eq(np.inf)
-            | plotdf['v_ppl'].eq(np.inf)
-            | plotdf['t_^acc'].eq(np.inf)
-            | plotdf['v_^acc'].eq(np.inf)
+                plotdf['t_ppl'].isna()
+                | plotdf['v_ppl'].isna()
+                | plotdf['t_^acc'].isna()
+                | plotdf['v_^acc'].isna()
+                # or is infinity
+                | plotdf['t_ppl'].eq(np.inf)
+                | plotdf['v_ppl'].eq(np.inf)
+                | plotdf['t_^acc'].eq(np.inf)
+                | plotdf['v_^acc'].eq(np.inf)
         )
-    ]
+        ]
     print(rdf.to_string())
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
@@ -1318,7 +1400,7 @@ if missing_exps:
     seeds = [l + seed for l in range(n_seeds)]
 
     net_types = {
-        'nolsnns': ['LSTM', 'GRU', 'indrnn', 'rsimplernn', 'ssimplernn'],
+        'nolsnns': ['LSTM', 'GRU', 'rsimplernn', 'ssimplernn'],  # 'indrnn',
         'lsnns': ['maLSNN', 'maLSNNb'],
     }
     tasks = ['heidelberg', 'sl_mnist', 'wordptb']
@@ -1340,16 +1422,16 @@ if missing_exps:
             else:
                 all_comments = []
 
-            if '_onlyloadpretrained' in add_flag:
+            if '_onlyloadpretrained' in add_flag and not only_if_good_lsc:
                 all_comments.append(incomplete_comments + add_flag)
 
+            experiments = []
             for nt, nets in net_types.items():
                 if nt == 'lsnns':
                     comments = [c for c in all_comments if not 'targetnorm:.5' in c]
                 else:
                     comments = all_comments
 
-                experiments = []
                 experiment = {
                     'task': tasks,
                     'net': nets, 'seed': seeds, 'stack': ['None'],
@@ -1368,7 +1450,6 @@ if missing_exps:
             ldf, experiments_left = complete_missing_exps(sdf, ds, coi)
             np.random.shuffle(experiments_left)
             experiments = experiments_left
-
 
             if '_onlyloadpretrained' in add_flag and only_if_good_lsc:
                 fsdf = fsdf[fsdf['comments'].str.contains('onlypretrain')]
@@ -1407,9 +1488,7 @@ if missing_exps:
                 np.random.shuffle(experiments_left)
                 experiments = experiments_left
 
-                print(experiments)
-                print(len(experiments))
-            else:
-                print(experiments)
-                print(len(experiments))
 
+            print(add_flag, only_if_good_lsc)
+            print(experiments)
+            print(len(experiments))
