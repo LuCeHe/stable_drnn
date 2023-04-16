@@ -93,11 +93,11 @@ def compactify_metrics(metric='ppl', data_split='test', round_to=2):
             mv = row[f'mean_v_{metric}']
             sv = row[f'std_v_{metric}']
 
-            output = f"${str(mv)}\pm{str(sv)}$/${str(mt)}\pm{str(st)}$"
+            output = f"${str(mv)}\pm {str(sv)}$/${str(mt)}\pm {str(st)}$"
         else:
             m = row[f'mean_{data_split}{metric}']
             s = row[f'std_{data_split}{metric}']
-            output = f"${str(m)}\pm{str(s)}$"
+            output = f"${str(m)}\pm {str(s)}$"
 
         return output
 

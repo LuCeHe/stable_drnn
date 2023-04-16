@@ -50,7 +50,7 @@ check_for_new = True
 plot_losses = False
 one_exp_curves = False
 pandas_means = True
-show_per_tasknet = True
+show_per_tasknet = False
 make_latex = False
 make_good_latex = False
 missing_exps = True
@@ -116,6 +116,7 @@ df = df[~df['stack'].str.contains('4:3', na=False)]
 df['stack'] = df['stack'].fillna(-1).astype(int)
 df = df.replace(-1, 'None')
 df['stack'] = df['stack'].astype(str)
+df['comments'] = df['comments'].str.replace('simplereadout', 'embproj')
 df['batch_size'] = df['batch_size'].astype(str)
 df['comments'] = df['comments'].str.replace('_pretrained', '')
 df['comments'] = df['comments'].astype(str)
@@ -1308,6 +1309,20 @@ if remove_incomplete:
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
 
+
+    print('Remove strange GRU')
+    rdf = plotdf[
+        plotdf['net'].str.contains('GRU')
+        & plotdf['task'].str.contains('SHD')
+        & plotdf['comments'].str.contains('radius')
+        & plotdf['stack'].str.contains('None')
+        & ~plotdf['comments'].str.contains('target')
+        ]
+    print(rdf.to_string())
+    print(rdf.shape, df.shape)
+    rdfs.append(rdf)
+
+
     print('-=***=-' * 10)
     print('Count > 4')
 
@@ -1393,8 +1408,8 @@ if missing_exps:
 
     sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
 
-    add_flag = '_onlyloadpretrained'  # _onlyloadpretrained _onlypretrain
-    only_if_good_lsc = True
+    # add_flag = '_onlyloadpretrained'  # _onlyloadpretrained _onlypretrain
+    # only_if_good_lsc = True
     seed = 0
     n_seeds = 4
     seeds = [l + seed for l in range(n_seeds)]
