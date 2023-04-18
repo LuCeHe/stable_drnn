@@ -52,8 +52,8 @@ one_exp_curves = False
 pandas_means = True
 show_per_tasknet = False
 make_latex = False
-make_good_latex = False
-missing_exps = True
+make_good_latex = True
+missing_exps = False
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -594,10 +594,11 @@ if make_good_latex:
     latex_df = latex_df.replace('sl-MNIST', r'sl-MNIST $\uparrow$')
     latex_df = latex_df.replace('SHD', r'SHD $\uparrow$')
     latex_df = latex_df.replace('PTB', r'PTB $\downarrow$')
-    latex_df = latex_df.replace('stack', 'depth')
 
     for task in ['sl-MNIST', 'SHD', 'PTB', 'net', 'LSC', 'type', ttype]:
         latex_df = latex_df.replace(task, r'\textbf{' + task + '}')
+
+    latex_df = latex_df.replace('stack', 'depth')
 
     # loop over the lines of the latex table
     ref_line = 1000000
