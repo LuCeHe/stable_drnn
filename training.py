@@ -276,10 +276,10 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
             tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=10, restore_best_weights=True)
         ]
 
-        if stack in [5, 7]:
-            callbacks.append(
-                ClearMemory(end_of_batch=False, verbose=1, show_gpu=False),
-            )
+        # if stack in [5, 7]:
+        #     callbacks.append(
+        #         ClearMemory(end_of_batch=False, verbose=1, show_gpu=False),
+        #     )
 
         if 'tenb' in comments:
             val_data = gen_val.__getitem__()

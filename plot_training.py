@@ -52,8 +52,8 @@ one_exp_curves = False
 pandas_means = True
 show_per_tasknet = False
 make_latex = False
-make_good_latex = True
-missing_exps = False
+make_good_latex = False
+missing_exps = True
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -121,7 +121,6 @@ df['batch_size'] = df['batch_size'].astype(str)
 df['comments'] = df['comments'].str.replace('_pretrained', '')
 df['comments'] = df['comments'].astype(str)
 df.replace(['nan'], np.nan, inplace=True)
-
 
 new_column_names = {c_name: shorten_losses(c_name) for c_name in df.columns}
 df.rename(columns=new_column_names, inplace=True)
@@ -488,7 +487,6 @@ if pandas_means:
 
 if make_good_latex:
 
-
     tab_types = {
         'task': ['sl-MNIST', 'SHD', 'PTB'],
         'stack': [1, 3, 5, 7]
@@ -500,9 +498,9 @@ if make_good_latex:
         'lsnns': ['maLSNN', 'maLSNNb'],
     }
     ntype = 'all'
-    ttype = 'task' # stack task
+    ttype = 'stack'  # stack task
     data_split = 't_'  # t_ v_
-    display = 'lsc' # metric lsc
+    display = 'lsc'  # metric lsc
 
     idf = mdf.copy()
     idf = idf[idf['comments'].str.contains('onlyloadpretrained')]
@@ -565,11 +563,12 @@ if make_good_latex:
     print(df.to_string())
 
     print('\n\n\n')
-    lls = ''.join('l'* len(tab_types[ttype]))
-    ccs = ''.join('c'* len(tab_types[ttype]))
+    lls = ''.join('l' * len(tab_types[ttype]))
+    ccs = ''.join('c' * len(tab_types[ttype]))
     latex_df = df.to_latex(index=True, escape=False).replace('{lll' + lls, '{lll' + ccs)
 
     import re
+
     latex_df = re.sub(' +', ' ', latex_df)
 
     latex_df = latex_df.replace('\midrule \n\midrule', '\midrule')
@@ -584,7 +583,6 @@ if make_good_latex:
 
         else:
             latex_df = latex_df.replace(net, r'\midrule' + '\n ' + net)
-
 
     latex_df = latex_df.replace(r'\bottomrule', r'\midrule\bottomrule')
     latex_df = latex_df.replace('lsc', r'$\rho$')
@@ -613,15 +611,13 @@ if make_good_latex:
                 net_name = 'ALIF'
 
         elif i == ref_line + 2:
-            new_latex_df +=  net_name + line + '\n'
+            new_latex_df += net_name + line + '\n'
 
         elif not i == ref_line + 1:
 
             new_latex_df += line + '\n'
 
-
     print(new_latex_df)
-
 
 if plot_init_lrs:
     idf = mdf
@@ -1306,23 +1302,80 @@ if remove_incomplete:
                 | plotdf['v_^acc'].eq(np.inf)
         )
         ]
+    infrdf = rdf.copy()
     print(rdf.to_string())
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
 
+    print('Remove pretrain that gave ppl and acc na and inf')
+    for _, row in infrdf.iterrows():
 
-    print('Remove strange GRU')
+        net = row['net']
+        task = row['task']
+        seed = row['seed']
+        stack = row['stack']
+        comments = row['comments'].replace('onlyloadpretrained', 'onlypretrain')
+        print(net, task, seed, stack, comments)
+        rdf = plotdf[
+            plotdf['net'].eq(net)
+            & plotdf['task'].eq(task)
+            & plotdf['seed'].eq(seed)
+            & plotdf['stack'].eq(stack)
+            & plotdf['comments'].eq(comments)
+            ]
+        print(rdf.to_string())
+        print(rdf.shape, df.shape)
+        rdfs.append(rdf)
+
+    print('Remove strange models')
     rdf = plotdf[
-        plotdf['net'].str.contains('GRU')
-        & plotdf['task'].str.contains('SHD')
-        & plotdf['comments'].str.contains('radius')
-        & plotdf['stack'].str.contains('None')
-        & ~plotdf['comments'].str.contains('target')
+        (
+                plotdf['net'].str.contains('rsimplernn')
+                & plotdf['task'].str.contains('SHD')
+                & plotdf['comments'].str.contains('radius')
+                & plotdf['stack'].str.contains('7')
+                & ~plotdf['comments'].str.contains('target')
+        )
+        | (
+                plotdf['net'].str.contains('GRU')
+                & plotdf['task'].str.contains('SHD')
+                & plotdf['comments'].str.contains('radius')
+                & plotdf['stack'].str.contains('None')
+                & plotdf['comments'].str.contains('target')
+                & plotdf['seed'].eq(0)
+        )
+        | (
+                plotdf['net'].str.contains('GRU')
+                & plotdf['task'].str.contains('sl-MNIST')
+                & plotdf['comments'].str.contains('radius')
+                & plotdf['stack'].str.contains('None')
+                & plotdf['comments'].str.contains('target')
+                & plotdf['seed'].eq(3)
+        )
+        | (
+                plotdf['net'].str.contains('GRU')
+                & plotdf['task'].str.contains('sl-MNIST')
+                & plotdf['comments'].str.contains('radius')
+                & plotdf['stack'].str.contains('None')
+                & ~plotdf['comments'].str.contains('target')
+                & plotdf['seed'].eq(1)
+        )
+        | (
+                plotdf['net'].eq('ALIF')
+                & plotdf['task'].str.contains('PTB')
+                & plotdf['comments'].str.contains('radius')
+                & ~plotdf['comments'].str.contains('target')
+                & plotdf['seed'].eq(0)
+        )
+        # | (
+        #         plotdf['net'].eq('rsimplernn')
+        #         & plotdf['task'].str.contains('SHD')
+        #         & plotdf['comments'].str.contains('findLSC')
+        # )
         ]
     print(rdf.to_string())
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
-
 
     print('-=***=-' * 10)
     print('Count > 4')
@@ -1503,7 +1556,6 @@ if missing_exps:
                 ldf, experiments_left = complete_missing_exps(sdf, intersection, coi)
                 np.random.shuffle(experiments_left)
                 experiments = experiments_left
-
 
             print(add_flag, only_if_good_lsc)
             print(experiments)
