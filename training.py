@@ -45,7 +45,7 @@ def config():
     # task and net
     # ps_mnist heidelberg s_mnist
     # wordptb sl_mnist
-    task = 'heidelberg'
+    task = 'wordptb'
 
     # test configuration
     epochs = 4
@@ -54,7 +54,7 @@ def config():
 
     # net
     # maLSNN cLSTM LSTM maLSNNb GRU indrnn LMU ssimplernn rsimplernn
-    net = 'maLSNNb'
+    net = 'maLSNNc'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
     stack = 3
     n_neurons = None
@@ -105,6 +105,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
     stack, batch_size, embedding, n_neurons, lr = default_config(
         stack, batch_size, embedding, n_neurons, lr, task_name, net_name, setting='LSC'
     )
+    print('watch!', stack)
 
     exp_dir = os.path.join(CDIR, ex.observers[0].basedir)
     comments += '_**folder:' + exp_dir + '**_'

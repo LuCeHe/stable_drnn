@@ -1501,19 +1501,33 @@ if missing_exps:
                 else:
                     comments = all_comments
 
+                # experiment = {
+                #     'task': tasks,
+                #     'net': nets, 'seed': seeds, 'stack': ['None'],
+                #     'comments': comments,
+                # }
+                # experiments.append(experiment)
+                #
+                # experiment = {
+                #     'task': ['heidelberg'],
+                #     'net': nets, 'seed': seeds, 'stack': ['1', '3', '5', '7'],
+                #     'comments': comments,
+                # }
+                # experiments.append(experiment)
+
                 experiment = {
-                    'task': tasks,
-                    'net': nets, 'seed': seeds, 'stack': ['None'],
+                    'task': ['wordptb', 'sl_mnist'],
+                    'net': nets, 'seed': seeds, 'stack': ['5', '7'],
                     'comments': comments,
                 }
                 experiments.append(experiment)
 
-                experiment = {
-                    'task': ['heidelberg'],
-                    'net': nets, 'seed': seeds, 'stack': ['1', '3', '5', '7'],
-                    'comments': comments,
-                }
-                experiments.append(experiment)
+            experiment = {
+                'task': tasks,
+                'net': ['maLSNNc'], 'seed': seeds, 'stack': ['None'],
+                'comments': all_comments,
+            }
+            experiments.append(experiment)
 
             ds = dict2iter(experiments)
             ldf, experiments_left = complete_missing_exps(sdf, ds, coi)
@@ -1557,6 +1571,7 @@ if missing_exps:
                 np.random.shuffle(experiments_left)
                 experiments = experiments_left
 
+            np.random.shuffle(experiments)
             print(add_flag, only_if_good_lsc)
             print(experiments)
             print(len(experiments))
