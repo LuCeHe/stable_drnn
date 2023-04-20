@@ -219,15 +219,37 @@ def lsc_clean_comments(c):
         c = r'sub ($\rho_{1/2}$)'
 
     if 'radius' in c:
-        c = r'sub ($\rho$)'
+        c = r'up ($\rho$)'
+
+
 
     if c == '':
         c = 'Glorot'
-        c = 'default'
+        # c = 'default'
 
     if c == 'heinit':
         c = 'He'
 
     c = c.replace('npsd', '')
     # c = c.replace('2', '')
+
+
+    if 'supsub' in c:
+        c = 'up-low'
+    if 'sup' in c:
+        c = 'low'
     return c
+
+
+def clean_title(c):
+    t = ''
+    if 'ppl' in c:
+        t = 'Perplexity'
+    if 'acc' in c:
+        t = 'Accuracy'
+    if 'loss' in c:
+        t = 'Loss'
+
+    if 'val' in c:
+        t = 'Validation ' + t
+    return t

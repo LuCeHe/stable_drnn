@@ -1,7 +1,6 @@
-import time
 
 from GenericTools.stay_organized.submit_jobs import dict2iter
-from alif_sg.tools.plot_tools import lsc_colors, lsc_clean_comments, lsc_color
+from alif_sg.tools.plot_tools import lsc_colors, lsc_clean_comments, clean_title
 
 import os
 import numpy as np
@@ -11,21 +10,6 @@ import matplotlib.pyplot as plt
 from GenericTools.stay_organized.pandardize import experiments_to_pandas, complete_missing_exps
 from GenericTools.stay_organized.standardize_strings import shorten_losses
 
-
-def clean_title(c):
-    t = ''
-    if 'ppl' in c:
-        t = 'Perplexity'
-    if 'acc' in c:
-        t = 'Accuracy'
-    if 'loss' in c:
-        t = 'Loss'
-
-    if 'val' in c:
-        t = 'Validation ' + t
-    return t
-
-
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
 EXPERIMENTS = os.path.join(CDIR, 'experiments')
@@ -33,29 +17,44 @@ EXPERIMENTS = r'D:\work\alif_sg\experiments'
 GEXPERIMENTS = [
     # os.path.join(CDIR, 'good_experiments', '2022-12-16--ffn'),
     # os.path.join(CDIR, 'good_experiments'),
-    # r'D:\work\alif_sg\good_experiments\2022-12-16--ffn'
-    r'D:\work\alif_sg\good_experiments\2023-01-01--effnet',
-    r'D:\work\alif_sg\good_experiments\2023-01-15--transf',
+    r'D:\work\alif_sg\good_experiments\2022-12-16--ffn'
+    # r'D:\work\alif_sg\good_experiments\2023-01-01--effnet',
+    # r'D:\work\alif_sg\good_experiments\2023-01-15--transf',
 ]
 
 plot_norms_evol = False
 plot_norms_evol_1 = False
-lrs_plot = False
+lrs_plot = True
 bar_plot = False
-plot_losses = True
+plot_losses = False
 missing_exps = False
 remove_incomplete = False
 truely_remove = False
 
 metric = 'val_acc M'  # 'val_acc M'   'val_loss m'
-expsid = 'transf'  # effnet als ffnandcnns transf
+expsid = 'ffnandcnns'  # effnet als ffnandcnns transf
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 force_keep_column = ['LSC_norms list', 'val_sparse_categorical_accuracy list', 'val_loss list',
                      'encoder_norm list', 'decoder_norm list']
+columns_to_remove = [
+    '_var', '_mean', 'sparse_categorical_crossentropy', 'bpc', 'artifacts',
+    'experiment_dependencies', 'experiment_sources', 'experiment_repositories', 'host_os',
+
+    # 'sparse_categorical_accuracy', 'loss',
+    'LSC_losses', 'rec_norms', 'fail_trace', 'list']
+# force_keep_column = [
+#     'LSC_norms list', 'batch ',
+#     'val_sparse_mode_accuracy list', 'val_perplexity list',
+#     'v_sparse_mode_accuracy list', 'v_perplexity list',
+#     't_sparse_mode_accuracy list', 't_perplexity list',
+# ]
+force_keep_column = ['LSC_norms list', 'val_sparse_categorical_accuracy list', 'val_loss list',
+                     'encoder_norm list', 'decoder_norm list']
+# force_keep_column = []
 
 df = experiments_to_pandas(
     h5path=h5path, zips_folder=GEXPERIMENTS, unzips_folder=EXPERIMENTS, experiments_identifier=expsid,
-    exclude_files=['cout.txt'], exclude_columns=['_mean ', '_var ', ' list'], check_for_new=True,
+    exclude_files=['cout.txt'], exclude_columns=columns_to_remove, check_for_new=True,
     force_keep_column=force_keep_column
 )
 
@@ -206,9 +205,10 @@ if 'ffnandcnns' in expsid:
         'seed', 'lr', 'comments',
         'val_acc M', 'val_loss m', 'test_acc M', 'test_loss m',
         # 'acc max','loss min',
-        'LSC_norms i', 'LSC_norms f',
+        'LSC i', 'LSC f',
         'ep M', 'time_elapsed', 'hostname', 'path',
     ]
+
 elif 'effnet' in expsid:
     metrics_oi = ['val_acc M', 'test_acc M', 'LSC_norms i', 'LSC_norms f']
     plot_only = [
@@ -292,16 +292,17 @@ if lrs_plot:
 
     mdf = mdf.sort_values(by='lr')
 
-    comments = mdf['comments'].unique()
-    activations = sorted(mdf['act'].unique())
     if 'ffnandcnns' in expsid:
         activations = ['relu', 'sin', 'cos']
         ncol = 3
         bbox_to_anchor = (-.7, -1.)
+
+        mdf = mdf[~mdf['comments'].eq('findLSC')]
     elif 'effnet' in expsid or 'transf' in expsid:
         ncol = 4
         bbox_to_anchor = (-.3, -.4)
 
+    activations = sorted(mdf['act'].unique())
     datasets = sorted(mdf['dataset'].unique())
     comments = sorted(mdf['comments'].unique())
 
@@ -332,8 +333,8 @@ if lrs_plot:
                 ys = idf['mean_' + metric].values
                 yerrs = idf['std_' + metric].values
                 xs = idf['lr'].values
-                axs[i, j].plot(xs, ys, color=lsc_colors[c], label=lsc_clean_comments(c), linewidth=linewidth)
-                axs[i, j].fill_between(xs, ys - yerrs / 2, ys + yerrs / 2, alpha=0.5, color=lsc_colors[c])
+                axs[i, j].plot(xs, ys, color=lsc_colors(c), label=lsc_clean_comments(c), linewidth=linewidth)
+                axs[i, j].fill_between(xs, ys - yerrs / 2, ys + yerrs / 2, alpha=0.5, color=lsc_colors(c))
 
             if not i == len(datasets) - 1:
                 axs[i, j].tick_params(axis='x', which='both', bottom=False, top=False, labelbottom=False)
@@ -345,7 +346,9 @@ if lrs_plot:
     axs[-1, -1].set_xlabel('Learning rate', fontsize=fontsize)
     axs[0, 0].set_ylabel(clean_title(metric), fontsize=fontsize)
 
-    legend_elements = [Line2D([0], [0], color=lsc_colors[n], lw=4, label=lsc_clean_comments(n))
+    comments = ['', 'heinit', 'findLSC_radius', 'findLSC_supnpsd2', 'findLSC_supsubnpsd', ]
+
+    legend_elements = [Line2D([0], [0], color=lsc_colors(n), lw=4, label=lsc_clean_comments(n))
                        for n in comments]
     plt.legend(ncol=ncol, handles=legend_elements, loc='lower center', bbox_to_anchor=bbox_to_anchor)
 
@@ -366,7 +369,7 @@ if lrs_plot:
         ax.set_xscale('log')
 
     plt.show()
-    plot_filename = f'experiments/{expsid}_relu.pdf'
+    plot_filename = os.path.join(EXPERIMENTS, f'{expsid}_relu.pdf')
     fig.savefig(plot_filename, bbox_inches='tight')
 
 if bar_plot:
@@ -422,9 +425,9 @@ if bar_plot:
 
             data.append(iidf['mean_' + metric].values[0])
             error.append(iidf['std_' + metric].values[0])
-        axs[0].bar(X + i * w, data, yerr=error, width=w, color=lsc_colors[c], label=lsc_clean_comments(c))
+        axs[0].bar(X + i * w, data, yerr=error, width=w, color=lsc_colors(c), label=lsc_clean_comments(c))
 
-    legend_elements = [Line2D([0], [0], color=lsc_colors[n], lw=4, label=lsc_clean_comments(n))
+    legend_elements = [Line2D([0], [0], color=lsc_colors(n), lw=4, label=lsc_clean_comments(n))
                        for n in comments]
     plt.legend(ncol=4, handles=legend_elements, loc='lower center')
 
