@@ -257,6 +257,7 @@ if plot_losses:
 if 'net' in df.columns:
     df.loc[df['comments'].str.contains('noalif'), 'net'] = 'LIF'
     df.loc[df['net'].str.contains('maLSNNb'), 'net'] = 'ALIFb'
+    df.loc[df['net'].str.contains('maLSNNc'), 'net'] = 'ALIFc'
     df.loc[df['net'].str.contains('maLSNN'), 'net'] = 'ALIF'
 
 if 'task' in df.columns:
@@ -512,6 +513,7 @@ if make_good_latex:
         idf = idf[idf['stack'].eq('None')]
     else:
         idf = idf[~idf['stack'].eq('None')]
+        idf = idf[idf['task'].eq('SHD')]
 
     # select only rows that have any of the models above in the net column
     idf = idf[idf['net'].isin(net_types[ntype])]
@@ -617,7 +619,10 @@ if make_good_latex:
 
             new_latex_df += line + '\n'
 
-    print(new_latex_df)
+    latex_df = new_latex_df
+    latex_df = latex_df.replace('ALIFb', 'ALIF$_{\pm}$')
+    latex_df = latex_df.replace('ALIF ', 'ALIF$_{+}$ ')
+    print(latex_df)
 
 if plot_init_lrs:
     idf = mdf
@@ -1274,6 +1279,14 @@ if remove_incomplete:
     rdf = plotdf[
         plotdf['LSC f'].isna()
     ]
+    # print(rdf.to_string())
+    # print(rdf.shape, df.shape)
+    # rdfs.append(rdf)
+
+    print('Remove indrnn')
+    rdf = plotdf[
+        plotdf['net'].eq('indrnn')
+    ]
     print(rdf.to_string())
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
@@ -1283,9 +1296,9 @@ if remove_incomplete:
         plotdf['comments'].str.contains('_test')
         | plotdf['stack'].eq('4:3')
         ]
-    print(rdf.to_string())
-    print(rdf.shape, df.shape)
-    rdfs.append(rdf)
+    # print(rdf.to_string())
+    # print(rdf.shape, df.shape)
+    # rdfs.append(rdf)
 
     print('Remove ppl and acc na and inf')
     rdf = plotdf[
@@ -1303,9 +1316,9 @@ if remove_incomplete:
         )
         ]
     infrdf = rdf.copy()
-    print(rdf.to_string())
-    print(rdf.shape, df.shape)
-    rdfs.append(rdf)
+    # print(rdf.to_string())
+    # print(rdf.shape, df.shape)
+    # rdfs.append(rdf)
 
     print('Remove pretrain that gave ppl and acc na and inf')
     for _, row in infrdf.iterrows():
@@ -1323,65 +1336,15 @@ if remove_incomplete:
             & plotdf['stack'].eq(stack)
             & plotdf['comments'].eq(comments)
             ]
-        print(rdf.to_string())
-        print(rdf.shape, df.shape)
-        rdfs.append(rdf)
-
-    print('Remove strange models')
-    rdf = plotdf[
-        (
-                plotdf['net'].str.contains('rsimplernn')
-                & plotdf['task'].str.contains('SHD')
-                & plotdf['comments'].str.contains('radius')
-                & plotdf['stack'].str.contains('7')
-                & ~plotdf['comments'].str.contains('target')
-        )
-        | (
-                plotdf['net'].str.contains('GRU')
-                & plotdf['task'].str.contains('SHD')
-                & plotdf['comments'].str.contains('radius')
-                & plotdf['stack'].str.contains('None')
-                & plotdf['comments'].str.contains('target')
-                & plotdf['seed'].eq(0)
-        )
-        | (
-                plotdf['net'].str.contains('GRU')
-                & plotdf['task'].str.contains('sl-MNIST')
-                & plotdf['comments'].str.contains('radius')
-                & plotdf['stack'].str.contains('None')
-                & plotdf['comments'].str.contains('target')
-                & plotdf['seed'].eq(3)
-        )
-        | (
-                plotdf['net'].str.contains('GRU')
-                & plotdf['task'].str.contains('sl-MNIST')
-                & plotdf['comments'].str.contains('radius')
-                & plotdf['stack'].str.contains('None')
-                & ~plotdf['comments'].str.contains('target')
-                & plotdf['seed'].eq(1)
-        )
-        | (
-                plotdf['net'].eq('ALIF')
-                & plotdf['task'].str.contains('PTB')
-                & plotdf['comments'].str.contains('radius')
-                & ~plotdf['comments'].str.contains('target')
-                & plotdf['seed'].eq(0)
-        )
-        # | (
-        #         plotdf['net'].eq('rsimplernn')
-        #         & plotdf['task'].str.contains('SHD')
-        #         & plotdf['comments'].str.contains('findLSC')
-        # )
-        ]
-    print(rdf.to_string())
-    print(rdf.shape, df.shape)
-    rdfs.append(rdf)
+        # print(rdf.to_string())
+        # print(rdf.shape, df.shape)
+        # rdfs.append(rdf)
 
     print('-=***=-' * 10)
     print('Count > 4')
 
     brdf = mdf[mdf['counts'] > 4]
-    print(brdf.to_string())
+    # print(brdf.to_string())
 
     for _, row in brdf.iterrows():
         srdf = plotdf[
@@ -1397,8 +1360,8 @@ if remove_incomplete:
 
         # remainder
         rdf = srdf[~srdf.apply(tuple, 1).isin(gsrdf.apply(tuple, 1))]
-        print(rdf.shape)
-        rdfs.append(rdf)
+        # print(rdf.shape)
+        # rdfs.append(rdf)
 
     allrdfs = pd.concat(rdfs)
     allrdfs = allrdfs.drop_duplicates()
@@ -1414,6 +1377,7 @@ if remove_incomplete:
         sdf.loc[sdf['task'].str.contains('PTB'), 'task'] = 'wordptb'
 
         sdf.loc[sdf['net'].str.contains('ALIFb'), 'net'] = 'maLSNNb'
+        sdf.loc[sdf['net'].str.contains('ALIFc'), 'net'] = 'maLSNNc'
         sdf.loc[sdf['net'].str.contains('ALIF'), 'net'] = 'maLSNN'
 
         coi = ['seed', 'task', 'net', 'comments', 'stack']
@@ -1456,6 +1420,7 @@ if missing_exps:
     sdf.loc[df['task'].str.contains('sl-MNIST'), 'task'] = 'sl_mnist'
     sdf.loc[df['task'].str.contains('PTB'), 'task'] = 'wordptb'
     sdf.loc[df['net'].str.contains('ALIFb'), 'net'] = 'maLSNNb'
+    sdf.loc[df['net'].str.contains('ALIFc'), 'net'] = 'maLSNNc'
     sdf.loc[df['net'].str.contains('ALIF'), 'net'] = 'maLSNN'
     sdf['comments'] = sdf['comments'].str.replace('_timerepeat:2', '_timerepeat:2_pretrained')
     fsdf = sdf.copy()
@@ -1476,7 +1441,7 @@ if missing_exps:
 
     incomplete_comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained'
 
-    for add_flag in ['_onlyloadpretrained', '_onlypretrain']:
+    for add_flag in ['_onlypretrain']: # ['_onlyloadpretrained', '_onlypretrain']:
         if add_flag == '_onlyloadpretrained':
             good_lsc_options = [True, False]
         else:
@@ -1501,23 +1466,23 @@ if missing_exps:
                 else:
                     comments = all_comments
 
-                # experiment = {
-                #     'task': tasks,
-                #     'net': nets, 'seed': seeds, 'stack': ['None'],
-                #     'comments': comments,
-                # }
-                # experiments.append(experiment)
-                #
-                # experiment = {
-                #     'task': ['heidelberg'],
-                #     'net': nets, 'seed': seeds, 'stack': ['1', '3', '5', '7'],
-                #     'comments': comments,
-                # }
-                # experiments.append(experiment)
+                experiment = {
+                    'task': tasks,
+                    'net': nets, 'seed': seeds, 'stack': ['None'],
+                    'comments': comments,
+                }
+                experiments.append(experiment)
+
+                experiment = {
+                    'task': ['heidelberg'],
+                    'net': nets, 'seed': seeds, 'stack': ['1', '3', '5', '7'],
+                    'comments': comments,
+                }
+                experiments.append(experiment)
 
                 experiment = {
                     'task': ['wordptb', 'sl_mnist'],
-                    'net': nets, 'seed': seeds, 'stack': ['5', '7'],
+                    'net': nets, 'seed': seeds, 'stack': ['5'], # ['5', '7'],
                     'comments': comments,
                 }
                 experiments.append(experiment)
