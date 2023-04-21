@@ -1279,13 +1279,24 @@ if remove_incomplete:
     rdf = plotdf[
         plotdf['LSC f'].isna()
     ]
-    # print(rdf.to_string())
-    # print(rdf.shape, df.shape)
-    # rdfs.append(rdf)
+    print(rdf.to_string())
+    print(rdf.shape, df.shape)
+    rdfs.append(rdf)
 
-    print('Remove indrnn')
+    print('Remove rsimplernn and PTB')
     rdf = plotdf[
-        plotdf['net'].eq('indrnn')
+        plotdf['net'].eq('rsimplernn')
+        & plotdf['task'].eq('PTB')
+        & plotdf['comments'].str.contains('onlypretrain')
+    ]
+    print(rdf.to_string())
+    print(rdf.shape, df.shape)
+    rdfs.append(rdf)
+
+
+    print('Remove ALIFc')
+    rdf = plotdf[
+        plotdf['net'].eq('ALIFc')
     ]
     print(rdf.to_string())
     print(rdf.shape, df.shape)
@@ -1316,9 +1327,9 @@ if remove_incomplete:
         )
         ]
     infrdf = rdf.copy()
-    # print(rdf.to_string())
-    # print(rdf.shape, df.shape)
-    # rdfs.append(rdf)
+    print(rdf.to_string())
+    print(rdf.shape, df.shape)
+    rdfs.append(rdf)
 
     print('Remove pretrain that gave ppl and acc na and inf')
     for _, row in infrdf.iterrows():
@@ -1336,9 +1347,9 @@ if remove_incomplete:
             & plotdf['stack'].eq(stack)
             & plotdf['comments'].eq(comments)
             ]
-        # print(rdf.to_string())
-        # print(rdf.shape, df.shape)
-        # rdfs.append(rdf)
+        print(rdf.to_string())
+        print(rdf.shape, df.shape)
+        rdfs.append(rdf)
 
     print('-=***=-' * 10)
     print('Count > 4')
@@ -1360,8 +1371,8 @@ if remove_incomplete:
 
         # remainder
         rdf = srdf[~srdf.apply(tuple, 1).isin(gsrdf.apply(tuple, 1))]
-        # print(rdf.shape)
-        # rdfs.append(rdf)
+        print(rdf.shape)
+        rdfs.append(rdf)
 
     allrdfs = pd.concat(rdfs)
     allrdfs = allrdfs.drop_duplicates()
@@ -1441,7 +1452,7 @@ if missing_exps:
 
     incomplete_comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained'
 
-    for add_flag in ['_onlypretrain']: # ['_onlyloadpretrained', '_onlypretrain']:
+    for add_flag in ['_onlyloadpretrained', '_onlypretrain']:
         if add_flag == '_onlyloadpretrained':
             good_lsc_options = [True, False]
         else:
@@ -1465,7 +1476,7 @@ if missing_exps:
                     comments = [c for c in all_comments if not 'targetnorm:.5' in c]
                 else:
                     comments = all_comments
-
+                print(nt, comments)
                 experiment = {
                     'task': tasks,
                     'net': nets, 'seed': seeds, 'stack': ['None'],
@@ -1487,19 +1498,15 @@ if missing_exps:
                 }
                 experiments.append(experiment)
 
-            experiment = {
-                'task': tasks,
-                'net': ['maLSNNc'], 'seed': seeds, 'stack': ['None'],
-                'comments': all_comments,
-            }
-            experiments.append(experiment)
-
             ds = dict2iter(experiments)
             ldf, experiments_left = complete_missing_exps(sdf, ds, coi)
             np.random.shuffle(experiments_left)
             experiments = experiments_left
 
-            if '_onlyloadpretrained' in add_flag and only_if_good_lsc:
+            # print('experiments_left', experiments_left)
+            # print(len(experiments_left))
+
+            if '_onlyloadpretrained' in add_flag and only_if_good_lsc and False:
                 fsdf = fsdf[fsdf['comments'].str.contains('onlypretrain')]
                 fsdf['comments'] = fsdf['comments'].str.replace('onlypretrain', 'onlyloadpretrained')
 

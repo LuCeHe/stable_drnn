@@ -321,7 +321,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
         stack = ostack
 
     s = model_args["seed"]
-    optimizer = AdamW(learning_rate=lr, weight_decay=1e-4)
+    weight_decay = 1e-3 if net_name == 'rsimplernn' and task_name == 'wordptb' else 1e-4
+    optimizer = AdamW(learning_rate=lr, weight_decay=weight_decay)
 
     states = []
 
