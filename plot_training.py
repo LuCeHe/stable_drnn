@@ -52,8 +52,8 @@ one_exp_curves = False
 pandas_means = True
 show_per_tasknet = False
 make_latex = False
-make_good_latex = False
-missing_exps = True
+make_good_latex = True
+missing_exps = False
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -501,7 +501,6 @@ if make_good_latex:
     ntype = 'all'
     ttype = 'stack'  # stack task
     data_split = 't_'  # t_ v_
-    display = 'lsc'  # metric lsc
 
     idf = mdf.copy()
     idf = idf[idf['comments'].str.contains('onlyloadpretrained')]
@@ -510,7 +509,8 @@ if make_good_latex:
 
     # print(idf[].to_string())
     if ttype == 'task':
-        idf = idf[idf['stack'].eq('None')]
+        # idf = idf[idf['stack'].eq('None')]
+        idf = idf[idf['stack'].eq('5')]
     else:
         idf = idf[~idf['stack'].eq('None')]
         idf = idf[idf['task'].eq('SHD')]

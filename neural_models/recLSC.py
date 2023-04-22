@@ -210,6 +210,8 @@ def get_pretrained_file(comments, s, net_name, task_name, ostack):
     target_norm = str2val(comments, 'targetnorm', float, default=1)
     if ostack == 'None':
         ostack = None
+    elif ostack in ['1', '3', '5', '7']:
+        ostack = int(ostack)
 
     stack, batch_size, embedding, n_neurons, lr = default_config(
         ostack, None, None, None, .1, task_name, net_name, setting='LSC'

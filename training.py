@@ -101,7 +101,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
     net_name = net
 
     comments += '_dampf:.5'
-
+    ostack = stack
     stack, batch_size, embedding, n_neurons, lr = default_config(
         stack, batch_size, embedding, n_neurons, lr, task_name, net_name, setting='LSC'
     )
@@ -277,7 +277,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
             tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=10, restore_best_weights=True)
         ]
 
-        if stack in [5, 7]:
+        if ostack in [5, 7]:
             callbacks.append(
                 ClearMemory(end_of_batch=False, verbose=1, show_gpu=False),
             )
