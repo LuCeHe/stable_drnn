@@ -23,7 +23,7 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     from matplotlib.lines import Line2D
 
-    L = 10
+    L = 2 # 10
     batch_size = 6
     dl = L
     T = 100
@@ -55,6 +55,8 @@ if __name__ == '__main__':
         # plot different samples of the output with different reds
         oranges = plt.get_cmap('Oranges')
         blues = plt.get_cmap('Blues')
+        greens = plt.get_cmap('Greens')
+        g = greens(.6)
         for i in range(batch_size):
             co = oranges(.3 + i / (batch_size - 1) * .3)
             cb = blues(.4 + i / (batch_size - 1) * .4)
@@ -64,7 +66,11 @@ if __name__ == '__main__':
 
         if target_norm == 1.:
             bin = sp.binom(n, k)
-            ax.plot(bin + 2e12, label='$\\binom{\,L + \\Delta t - 1}{\,\\Delta l}$', color='g', linewidth=2)
+            epsilon = 2e12 if L == 10 else 0
+            ax.plot(bin + epsilon, label='$\\binom{\,L + \\Delta t - 1}{\,\\Delta l}$', color='g', linewidth=2)
+        elif target_norm == .5:
+            # horizontal line of darker green
+            ax.plot([0, T], [1.05, 1.05], color=g, linewidth=2)
 
         ax.set_title(f'$\\rho_p = {target_norm}$', fontsize=14, y=1.2)
         ax.set_xlabel('t')
@@ -74,12 +80,13 @@ if __name__ == '__main__':
     legend_elements = [
         Line2D([0], [0], color=c, lw=4, label=n)
         for c, n in [
-            ['g', '$\\binom{\,L + \\Delta t - 1}{\,\\Delta l}$'],
+            [g, '1.'],
+            ['g', '$\\binom{\,L + \\Delta t}{\,\\Delta l}$'],
             [oranges(.6), 'dy/dx'],
             [blues(.6), 'y = PascalRNN$_{\\rho_p}$(x)'],
         ]
     ]
-    plt.legend(ncols=3, handles=legend_elements, loc='lower center', bbox_to_anchor=(-0.3, -.4))
+    plt.legend(ncols=2, handles=legend_elements, loc='lower center', bbox_to_anchor=(-0.3, -.5))
 
     plot_filename = f'../experiments/pascal.pdf'
     fig.savefig(plot_filename, bbox_inches='tight')

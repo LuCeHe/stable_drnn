@@ -52,8 +52,8 @@ one_exp_curves = False
 pandas_means = True
 show_per_tasknet = False
 make_latex = False
-make_good_latex = False
-missing_exps = True
+make_good_latex = True
+missing_exps = False
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -488,6 +488,11 @@ if pandas_means:
 
 if make_good_latex:
 
+    mdf['target'] = mdf['comments'].apply(
+        lambda x: 0.5 if 'targetnorm:.5' in x else 1 if 'findLSC' in x else np.nan)
+    mdf['diff_target'] = abs(mdf['mean_LSC f'] - mdf['target'])
+    mdf['vs_epsilon'] = mdf['diff_target'] > lsc_epsilon
+
     tab_types = {
         'task': ['sl-MNIST', 'SHD', 'PTB'],
         'stack': [1, 3, 5, 7]
@@ -507,10 +512,9 @@ if make_good_latex:
     idf['net'] = pd.Categorical(idf['net'], categories=net_types['all'], ordered=True)
     idf['task'] = pd.Categorical(idf['task'], categories=tab_types['task'], ordered=True)
 
-    # print(idf[].to_string())
     if ttype == 'task':
-        # idf = idf[idf['stack'].eq('None')]
-        idf = idf[idf['stack'].eq('5')]
+        idf = idf[idf['stack'].eq('None')]
+        # idf = idf[idf['stack'].eq('5')]
     else:
         idf = idf[~idf['stack'].eq('None')]
         idf = idf[idf['task'].eq('SHD')]

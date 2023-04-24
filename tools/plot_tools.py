@@ -98,6 +98,9 @@ def compactify_metrics(metric='ppl', data_split='test', round_to=2):
             m = row[f'mean_{data_split}{metric}']
             s = row[f'std_{data_split}{metric}']
             output = f"${str(m)}\pm {str(s)}$"
+            if row['vs_epsilon']:
+                # strike through the output
+                output = r'\sout{' + output + '}'
 
         return output
 
