@@ -504,7 +504,7 @@ if make_good_latex:
         'lsnns': ['maLSNN', 'maLSNNb'],
     }
     ntype = 'all'
-    ttype = 'stack'  # stack task
+    ttype = 'task'  # stack task
     data_split = 't_'  # t_ v_
 
     idf = mdf.copy()
@@ -513,8 +513,8 @@ if make_good_latex:
     idf['task'] = pd.Categorical(idf['task'], categories=tab_types['task'], ordered=True)
 
     if ttype == 'task':
-        idf = idf[idf['stack'].eq('None')]
-        # idf = idf[idf['stack'].eq('5')]
+        # idf = idf[idf['stack'].eq('None')]
+        idf = idf[idf['stack'].eq('5')]
     else:
         idf = idf[~idf['stack'].eq('None')]
         idf = idf[idf['task'].eq('SHD')]
@@ -1279,6 +1279,12 @@ if remove_incomplete:
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
 
+    print('Remove onlypretrain of the onlyloadpretrained that didnot satisfy the lsc')
+    rdf['comments'] = rdf['comments'].str.replace('onlyloadpretrained', 'onlypretrain')
+    print(rdf.to_string())
+    print(rdf.shape, df.shape)
+    rdfs.append(rdf)
+
     print('Remove lsc na')
     rdf = plotdf[
         plotdf['LSC f'].isna()
@@ -1287,30 +1293,12 @@ if remove_incomplete:
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
 
-    print('Remove rsimplernn and PTB')
-    rdf = plotdf[
-        plotdf['net'].eq('rsimplernn')
-        & plotdf['task'].eq('PTB')
-        & plotdf['comments'].str.contains('onlypretrain')
-    ]
-    print(rdf.to_string())
-    print(rdf.shape, df.shape)
-    rdfs.append(rdf)
-
-
-    print('Remove ALIFc')
-    rdf = plotdf[
-        plotdf['net'].eq('ALIFc')
-    ]
-    print(rdf.to_string())
-    print(rdf.shape, df.shape)
-    rdfs.append(rdf)
-
-    print('Remove test in comments or 4:3 in stack')
-    rdf = plotdf[
-        plotdf['comments'].str.contains('_test')
-        | plotdf['stack'].eq('4:3')
-        ]
+    # print('Remove rsimplernn and PTB')
+    # rdf = plotdf[
+    #     plotdf['net'].eq('rsimplernn')
+    #     & plotdf['task'].eq('PTB')
+    #     & plotdf['comments'].str.contains('onlypretrain')
+    # ]
     # print(rdf.to_string())
     # print(rdf.shape, df.shape)
     # rdfs.append(rdf)
@@ -1449,17 +1437,14 @@ if missing_exps:
     seeds = [l + seed for l in range(n_seeds)]
 
     net_types = {
-        # 'nolsnns': ['LSTM', 'GRU', 'rsimplernn', 'ssimplernn'],  # 'indrnn',
-        # 'lsnns': ['maLSNN', 'maLSNNb'],
-        'nolsnns': ['rsimplernn'],  # 'indrnn',
-        'lsnns': [],
+        'nolsnns': ['LSTM', 'GRU', 'rsimplernn', 'ssimplernn'],  # 'indrnn',
+        'lsnns': ['maLSNN', 'maLSNNb'],
     }
-    # tasks = ['heidelberg', 'sl_mnist', 'wordptb']
-    tasks = ['wordptb']
+    tasks = ['heidelberg', 'sl_mnist', 'wordptb']
 
     incomplete_comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained'
 
-    for add_flag in ['_onlypretrain']: # ['_onlyloadpretrained', '_onlypretrain']:
+    for add_flag in ['_onlyloadpretrained', '_onlypretrain']:
         if add_flag == '_onlyloadpretrained':
             good_lsc_options = [True, False]
         else:
