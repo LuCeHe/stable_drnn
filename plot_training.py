@@ -504,7 +504,7 @@ if make_good_latex:
         'lsnns': ['maLSNN', 'maLSNNb'],
     }
     ntype = 'all'
-    ttype = 'task'  # stack task
+    ttype = 'stack'  # stack task
     data_split = 't_'  # t_ v_
 
     idf = mdf.copy()
@@ -1279,11 +1279,11 @@ if remove_incomplete:
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
 
-    print('Remove onlypretrain of the onlyloadpretrained that didnot satisfy the lsc')
-    rdf['comments'] = rdf['comments'].str.replace('onlyloadpretrained', 'onlypretrain')
-    print(rdf.to_string())
-    print(rdf.shape, df.shape)
-    rdfs.append(rdf)
+    # print('Remove onlypretrain of the onlyloadpretrained that didnot satisfy the lsc')
+    # rdf['comments'] = rdf['comments'].str.replace('onlyloadpretrained', 'onlypretrain')
+    # print(rdf.to_string())
+    # print(rdf.shape, df.shape)
+    # rdfs.append(rdf)
 
     print('Remove lsc na')
     rdf = plotdf[
@@ -1293,15 +1293,24 @@ if remove_incomplete:
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
 
-    # print('Remove rsimplernn and PTB')
-    # rdf = plotdf[
-    #     plotdf['net'].eq('rsimplernn')
-    #     & plotdf['task'].eq('PTB')
-    #     & plotdf['comments'].str.contains('onlypretrain')
-    # ]
-    # print(rdf.to_string())
-    # print(rdf.shape, df.shape)
-    # rdfs.append(rdf)
+    print('Remove rsimplernn and PTB, no LSC')
+    rdf = plotdf[
+        plotdf['net'].eq('rsimplernn')
+        & plotdf['task'].eq('PTB')
+        & ~plotdf['comments'].str.contains('findLSC')
+    ]
+    print(rdf.to_string())
+    print(rdf.shape, df.shape)
+    rdfs.append(rdf)
+
+    print('Remove PTB, stack 5')
+    rdf = plotdf[
+        plotdf['task'].eq('PTB')
+        & plotdf['stack'].str.contains('5')
+    ]
+    print(rdf.to_string())
+    print(rdf.shape, df.shape)
+    rdfs.append(rdf)
 
     print('Remove ppl and acc na and inf')
     rdf = plotdf[
@@ -1483,11 +1492,19 @@ if missing_exps:
                 experiments.append(experiment)
 
                 experiment = {
-                    'task': ['wordptb', 'sl_mnist'],
-                    'net': nets, 'seed': seeds, 'stack': ['5'], # ['5', '7'],
+                    'task': ['sl_mnist'],
+                    'net': nets, 'seed': seeds, 'stack': ['5'],
                     'comments': comments,
                 }
                 experiments.append(experiment)
+
+                if not 'onlyloadpretrained' in add_flag:
+                    experiment = {
+                        'task': ['wordptb'],
+                        'net': nets, 'seed': seeds, 'stack': ['5'],
+                        'comments': comments,
+                    }
+                    experiments.append(experiment)
 
             ds = dict2iter(experiments)
             ldf, experiments_left = complete_missing_exps(sdf, ds, coi)

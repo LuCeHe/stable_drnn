@@ -56,7 +56,7 @@ def config():
     # maLSNN cLSTM LSTM maLSNNb GRU indrnn LMU ssimplernn rsimplernn
     net = 'rsimplernn'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
-    stack = 2
+    stack = 5
     n_neurons = 2
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task in language_tasks else False
