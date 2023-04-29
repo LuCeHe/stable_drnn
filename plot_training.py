@@ -50,10 +50,10 @@ check_for_new = True
 plot_losses = False
 one_exp_curves = False
 pandas_means = True
-show_per_tasknet = False
+show_per_tasknet = True
 make_latex = False
-make_good_latex = True
-missing_exps = False
+make_good_latex = False
+missing_exps = True
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -256,9 +256,8 @@ if plot_losses:
 
 if 'net' in df.columns:
     df.loc[df['comments'].str.contains('noalif'), 'net'] = 'LIF'
-    df.loc[df['net'].str.contains('maLSNNb'), 'net'] = 'ALIFb'
-    df.loc[df['net'].str.contains('maLSNNc'), 'net'] = 'ALIFc'
-    df.loc[df['net'].str.contains('maLSNN'), 'net'] = 'ALIF'
+    df.loc[df['net'].eq('maLSNNb'), 'net'] = 'ALIFb'
+    df.loc[df['net'].eq('maLSNN'), 'net'] = 'ALIF'
 
 if 'task' in df.columns:
     df.loc[df['task'].str.contains('heidelberg'), 'task'] = 'SHD'
@@ -501,10 +500,10 @@ if make_good_latex:
     net_types = {
         'all': ['ssimplernn', 'rsimplernn', 'GRU', 'LSTM', 'ALIF', 'ALIFb'],
         'nolsnns': ['ssimplernn', 'rsimplernn', 'GRU', 'LSTM'],
-        'lsnns': ['maLSNN', 'maLSNNb'],
+        'lsnns': ['ALIF', 'ALIFb'],
     }
     ntype = 'all'
-    ttype = 'stack'  # stack task
+    ttype = 'task'  # stack task
     data_split = 't_'  # t_ v_
 
     idf = mdf.copy()
@@ -513,8 +512,8 @@ if make_good_latex:
     idf['task'] = pd.Categorical(idf['task'], categories=tab_types['task'], ordered=True)
 
     if ttype == 'task':
-        # idf = idf[idf['stack'].eq('None')]
-        idf = idf[idf['stack'].eq('5')]
+        idf = idf[idf['stack'].eq('None')]
+        # idf = idf[idf['stack'].eq('5')]
     else:
         idf = idf[~idf['stack'].eq('None')]
         idf = idf[idf['task'].eq('SHD')]
@@ -1293,25 +1292,6 @@ if remove_incomplete:
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
 
-    print('Remove rsimplernn and PTB, no LSC')
-    rdf = plotdf[
-        plotdf['net'].eq('rsimplernn')
-        & plotdf['task'].eq('PTB')
-        & ~plotdf['comments'].str.contains('findLSC')
-    ]
-    print(rdf.to_string())
-    print(rdf.shape, df.shape)
-    rdfs.append(rdf)
-
-    print('Remove PTB, stack 5')
-    rdf = plotdf[
-        plotdf['task'].eq('PTB')
-        & plotdf['stack'].str.contains('5')
-    ]
-    print(rdf.to_string())
-    print(rdf.shape, df.shape)
-    rdfs.append(rdf)
-
     print('Remove ppl and acc na and inf')
     rdf = plotdf[
         plotdf['comments'].str.contains('onlyloadpretrained')
@@ -1356,7 +1336,7 @@ if remove_incomplete:
     print('Count > 4')
 
     brdf = mdf[mdf['counts'] > 4]
-    # print(brdf.to_string())
+    print(brdf.to_string())
 
     for _, row in brdf.iterrows():
         srdf = plotdf[
@@ -1388,9 +1368,8 @@ if remove_incomplete:
         sdf.loc[sdf['task'].str.contains('sl-MNIST'), 'task'] = 'sl_mnist'
         sdf.loc[sdf['task'].str.contains('PTB'), 'task'] = 'wordptb'
 
-        sdf.loc[sdf['net'].str.contains('ALIFb'), 'net'] = 'maLSNNb'
-        sdf.loc[sdf['net'].str.contains('ALIFc'), 'net'] = 'maLSNNc'
-        sdf.loc[sdf['net'].str.contains('ALIF'), 'net'] = 'maLSNN'
+        sdf.loc[sdf['net'].eq('ALIFb'), 'net'] = 'maLSNNb'
+        sdf.loc[sdf['net'].eq('ALIF'), 'net'] = 'maLSNN'
 
         coi = ['seed', 'task', 'net', 'comments', 'stack']
         experiments = []
@@ -1431,12 +1410,12 @@ if missing_exps:
     sdf.loc[df['task'].str.contains('SHD'), 'task'] = 'heidelberg'
     sdf.loc[df['task'].str.contains('sl-MNIST'), 'task'] = 'sl_mnist'
     sdf.loc[df['task'].str.contains('PTB'), 'task'] = 'wordptb'
-    sdf.loc[df['net'].str.contains('ALIFb'), 'net'] = 'maLSNNb'
-    sdf.loc[df['net'].str.contains('ALIFc'), 'net'] = 'maLSNNc'
-    sdf.loc[df['net'].str.contains('ALIF'), 'net'] = 'maLSNN'
+    sdf.loc[df['net'].eq('ALIFb'), 'net'] = 'maLSNNb'
+    sdf.loc[df['net'].eq('ALIF'), 'net'] = 'maLSNN'
     sdf['comments'] = sdf['comments'].str.replace('_timerepeat:2', '_timerepeat:2_pretrained')
     fsdf = sdf.copy()
-
+    print('here')
+    print(fsdf.head().to_string())
     sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
 
     # add_flag = '_onlyloadpretrained'  # _onlyloadpretrained _onlypretrain
@@ -1455,7 +1434,7 @@ if missing_exps:
 
     for add_flag in ['_onlyloadpretrained', '_onlypretrain']:
         if add_flag == '_onlyloadpretrained':
-            good_lsc_options = [True, False]
+            good_lsc_options =  [True, False]
         else:
             good_lsc_options = [True]
 
@@ -1552,6 +1531,10 @@ if missing_exps:
                 experiments = experiments_left
 
             np.random.shuffle(experiments)
-            print(add_flag, only_if_good_lsc)
-            print(experiments)
-            print(len(experiments))
+            # print(add_flag, only_if_good_lsc)
+            print(f'experiments{add_flag}_{str(only_if_good_lsc)} =', experiments)
+            print('#', len(experiments))
+
+            # for e in experiments:
+            #     if e['net'] == ['maLSNN']:
+            #         print(e)
