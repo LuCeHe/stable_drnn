@@ -14,7 +14,7 @@ from keras_tools.esoteric_initializers.out_initializer import OutInitializer
 # from sg_design_lif.neural_models.full_model import build_model
 from stochastic_spiking.generate_data.task_redirection import language_tasks
 
-mpl = load_plot_settings(mpl=mpl, pd=None)
+# mpl = load_plot_settings(mpl=mpl, pd=None)
 
 from alif_sg.neural_models.lsnn import aLSNN
 from stochastic_spiking.visualization_tools.training_tests import get_test_model
@@ -238,6 +238,8 @@ def initialization_tests():
 
     if plot_binomial:
 
+        fontsize = 18
+        linewidth = 2
         fig, axs = plt.subplots(1, 3, gridspec_kw={'wspace': .5, 'hspace': .1}, figsize=(6, 3))
 
         T = 10000
@@ -246,42 +248,42 @@ def initialization_tests():
         ts = np.linspace(1, T, 1000)
         y = bound(dL, ts)
 
-        axs[0].plot(ts, y, color='#018E32')
-        axs[0].set_xlabel(r'$T$')
+        axs[0].plot(ts, y, color='#018E32', linewidth=linewidth)
+        axs[0].set_xlabel(r'$T$', fontsize=18)
 
         T = 5
-        dL = 1000
+        dL = 100
 
         ls = np.linspace(1, dL, 1000)
         y = bound(ls, T)
 
-        axs[1].plot(ls, y, color='#018E32')
-        axs[1].set_xlabel(r'$\Delta l$')
+        axs[1].plot(ls, y, color='#018E32', linewidth=linewidth)
+        axs[1].set_xlabel(r'$\Delta l$', fontsize=fontsize)
 
         T = 10000
         ts = np.linspace(1, T, 1000)
         y = bound(ts / 100, ts)
 
-        axs[2].plot(ts, y, color='#018E32')
-        axs[2].set_xlabel(r'$100\Delta l=T$')
+        axs[2].plot(ts, y, color='#018E32', linewidth=linewidth)
+        axs[2].set_xlabel(r'$100\Delta l=T$', fontsize=fontsize)
 
-        axs[0].set_ylabel(r'$\frac{1}{T}\binom{T + \Delta l +2}{T}$', fontsize=24)
+        axs[0].set_ylabel(r'$\frac{1}{T}\binom{T + \Delta l +2}{T}$', fontsize=fontsize + 6)
 
         axs[0].set_yscale('log')
         axs[1].set_yscale('log')
         axs[2].set_yscale('log')
 
-        tickers = []
-        for i in range(4):
-            tickers += np.linspace(10 ** (4 * i + 3), 10 ** (4 * (i + 1) + 3), 50).tolist()
-        y_minor = mpl.ticker.FixedLocator(tickers)
-        axs[0].yaxis.set_minor_locator(y_minor)
+        # tickers = []
+        # for i in range(4):
+        #     tickers += np.linspace(10 ** (4 * i + 3), 10 ** (4 * (i + 1) + 3), 50).tolist()
+        # y_minor = mpl.ticker.FixedLocator(tickers)
+        # axs[0].yaxis.set_minor_locator(y_minor)
 
-        tickers = []
-        for i in range(3):
-            tickers += np.linspace(10 ** (3 * i + 3), 10 ** (3 * (i + 1) + 3), 50).tolist()
-        y_minor = mpl.ticker.FixedLocator(tickers)
-        axs[1].yaxis.set_minor_locator(y_minor)
+        # tickers = []
+        # for i in range(3):
+        #     tickers += np.linspace(10 ** (3 * i + 3), 10 ** (3 * (i + 1) + 3), 50).tolist()
+        # y_minor = mpl.ticker.FixedLocator(tickers)
+        # axs[1].yaxis.set_minor_locator(y_minor)
 
         #
         # tickers = []
@@ -290,16 +292,23 @@ def initialization_tests():
         # y_minor = mpl.ticker.FixedLocator(tickers)
         # axs[2].yaxis.set_minor_locator(y_minor)
 
-        axs[0].yaxis.set_minor_formatter(mpl.ticker.NullFormatter())
-        axs[1].yaxis.set_minor_formatter(mpl.ticker.NullFormatter())
+        # axs[0].yaxis.set_minor_formatter(mpl.ticker.NullFormatter())
+        # axs[1].yaxis.set_minor_formatter(mpl.ticker.NullFormatter())
         # axs[2].yaxis.set_minor_formatter(mpl.ticker.NullFormatter())
 
         for ax in axs.reshape(-1):
             for pos in ['right', 'left', 'bottom', 'top']:
                 ax.spines[pos].set_visible(False)
 
-            xlabels = [f'{int(x / 1000)}K' if not x == 0 else int(x) for x in ax.get_xticks()]
+            xlabels = [f'{int(x / 1000)}K' if x > 1000 else int(x) for x in ax.get_xticks()]
             ax.set_xticklabels(xlabels)
+            ax.minorticks_off()
+            ax.tick_params(axis='both', which='major', labelsize=fontsize * .9)
+            ax.yaxis.tick_right()
+
+        axs[0].set_yticks([1e10, 1e20])
+        axs[1].set_yticks([1e4, 1e7])
+        axs[2].set_yticks([1e110, 1e220])
 
         # axs[0].tick_params(axis='y', which='minor')
         pathplot = os.path.join(CDIR, 'experiments', 'subexp.pdf')
@@ -369,8 +378,8 @@ def plot_matrix_norms():
     batch_size = 1
     n = 1000
     ns = np.linspace(10, 1000, 20)
-    norm_pows =  [1, 2, -1, 0]
-    data = {k:[] for k in norm_pows}
+    norm_pows = [1, 2, -1, 0]
+    data = {k: [] for k in norm_pows}
 
     for n in tqdm(ns):
         n = int(n)
@@ -396,7 +405,6 @@ def plot_matrix_norms():
     # print(tf.reduce_mean(td), tf.math.reduce_variance(td))
 
 
-
 class GetNorm(tf.keras.layers.Layer):
     def __init__(self, init_tensor, norm_pow, target_norm=1, **kwargs):
         super().__init__(**kwargs)
@@ -406,10 +414,10 @@ class GetNorm(tf.keras.layers.Layer):
 
     def build(self, input_shape):
         self.w = self.add_weight(
-                    name='w', shape=self.init_tensor.shape,
-                    initializer=OutInitializer(init_tensor=self.init_tensor),
-                    trainable=True
-                )
+            name='w', shape=self.init_tensor.shape,
+            initializer=OutInitializer(init_tensor=self.init_tensor),
+            trainable=True
+        )
 
         self.built = True
 
@@ -434,7 +442,7 @@ def plot_matrix_norms_2():
     outs = layer(ins)
     model = tf.keras.Model(inputs=ins, outputs=outs)
 
-    optimizer  = tf.keras.optimizers.Adam(learning_rate=0.01)
+    optimizer = tf.keras.optimizers.Adam(learning_rate=0.01)
     model.compile(loss=None, optimizer=optimizer)
 
     fake_data = tf.random.normal((2, 2))
@@ -447,18 +455,5 @@ def plot_matrix_norms_2():
     plt.show()
 
 
-
-
 if __name__ == '__main__':
-    # plot_matrix_norms_2()
-
-    batch_size = 1
-    n = 1000
-
-    # td = tf.random.normal((n, n))
-    td = tf.random.uniform((n, n), minval=-np.sqrt(3), maxval=np.sqrt(3))
-    tdt = tf.transpose(td)
-    print(tf.reduce_mean(td), tf.math.reduce_variance(td))
-    print(tf.reduce_mean(td@tdt), tf.math.reduce_variance(td@tdt))
-    print(tf.reduce_mean(td@tdt@td), tf.math.reduce_variance(td@tdt@td))
-    print(tf.reduce_mean(td@tdt@td@tdt), tf.math.reduce_variance(td@tdt@td@tdt))
+    initialization_tests()

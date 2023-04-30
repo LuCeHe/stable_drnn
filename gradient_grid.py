@@ -3,60 +3,65 @@ import matplotlib as mpl
 
 from GenericTools.stay_organized.mpl_tools import load_plot_settings
 
-mpl = load_plot_settings(mpl=mpl)
+# mpl = load_plot_settings(mpl=mpl)
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
 
 # Fixing random state for reproducibility
-np.random.seed(7)
-fig, axs = plt.subplots(nrows=1, figsize=(7, 4))
+np.random.seed(17) # 12
+fig, axs = plt.subplots(nrows=1, figsize=(7, 5))
 
-Nx = 8
+Nx = 6
 Ny = 4
-# base = np.linspace(0, 1, Nx)
-ys = np.linspace(0, 1, (Nx - Ny + 1))
-xs = np.linspace(0, 1, Nx)
-y = ys.tolist() * Nx
-x = np.repeat(xs, (Nx - Ny + 1))
+
 colors = 'k'
-area = 100  # (30 * np.random.rand(N))**2  # 0 to 15 point radii
+area = 50  # (30 * np.random.rand(N))**2  # 0 to 15 point radii
+fontsize = 20
 
+x, y = np.meshgrid(np.linspace(0, 1, Nx), np.linspace(0, 1, Ny))
+x = x.flatten()
+y = y.flatten()
+xs = np.unique(x)
+ys = np.unique(y)
 axs.scatter(x, y, s=area, c=colors, alpha=1., facecolors='none')
+n_moves = 3
 
-# zero means move down, 1 means move left
-moves_1 = [0] * (Ny - 1) + [1] * (Nx - Ny)
-moves_2 = [0] * (Ny - 1) + [1] * (Nx - Ny)
+colors = plt.get_cmap('tab20')
+for nm in range(n_moves):
+    # zero means move down, 1 means move left
+    moves = [0] * (Ny - 1) + [1] * (Nx - Ny)
+    np.random.shuffle(moves)
 
-np.random.shuffle(moves_1)
-np.random.shuffle(moves_2)
-
-for c, moves in zip(['#E08108', '#049A25'], [moves_1, moves_2]):
+    c = colors(.4 + nm / (n_moves - 1) * .4)
     xi, yi = -1, -1
     for move in moves:
-        nxi, nyi = (xi - 1, yi) if move == 0 else (xi - 1, yi - 1)
-
-        if move == 0:
-            x_tail, y_tail, x_head, y_head = (xs[xi] - 1 / Nx / 8, ys[yi], xs[nxi] + 1 / Nx / 8, ys[nyi])
+        nxi, nyi = (xi - 1, yi) if not move == 0 else (xi - 1, yi - 1)
+        print(move, ':', xi, yi, nxi, nyi)
+        if move == 1:
+            x_tail, y_tail, x_head, y_head = (
+                xs[xi] - 1 / Nx / 8, ys[yi], xs[nxi] + 1 / Nx / 8, ys[nyi]
+            )
         else:
             x_tail, y_tail, x_head, y_head = (
-                xs[xi] - 1 / Nx / 8, ys[yi] - 1 / Nx / 8, xs[nxi] + 1 / Nx / 8, ys[nyi] + 1 / Nx / 8)
+                xs[xi] - 1 / Nx / 8, ys[yi] - 1 / Nx / 8, xs[nxi] + 1 / Nx / 8, ys[nyi] + 1 / Nx / 8
+            )
 
         arrow = mpatches.FancyArrowPatch((x_tail, y_tail), (x_head, y_head), mutation_scale=10, color=c)
         axs.add_patch(arrow)
         xi, yi = nxi, nyi
 
-plt.text(1 + 1 / Nx / 2, 1 - 1 / Ny / 8, 'L', fontsize=14, rotation=0)
-plt.text(1 + 1 / Nx / 2, 0 / Ny - 1 / Ny / 6, 'l', fontsize=14, rotation=0)
-plt.text(1 + 1 / Nx / 2, 1 / Ny - 1 / Ny / 8, 'l + 1', fontsize=14, rotation=0)
+plt.text(1 + .5 / Nx / 2, 1 - 1 / Ny / 8, 'L', fontsize=fontsize, rotation=0)
+plt.text(1 + .5 / Nx / 2, 0 / Ny - .5 / Ny / 6, 'l', fontsize=fontsize, rotation=0)
+plt.text(1 + .5 / Nx / 2, 1 / Ny + 1.5 / Ny / 6, 'l + 1', fontsize=fontsize, rotation=0)
 
-plt.text(1 - 1 / Nx / 10, 1 + 1 / Ny / 2, 't', fontsize=14, rotation=0)
-plt.text(0 / Nx - 0 / Nx / 5, 1 + 1 / Ny / 2, "t'", fontsize=14, rotation=0)
-plt.text(1 / Nx - 1 / Nx / 5, 1 + 1 / Ny / 2, "t' + 1", fontsize=14, rotation=0)
+plt.text(1 - 1 / Nx / 10, 1 + .5 / Ny / 2, 't', fontsize=fontsize, rotation=0)
+plt.text(0 / Nx - .3 / Nx / 5, 1 + .5 / Ny / 2, "t'", fontsize=fontsize, rotation=0)
+plt.text(1 / Nx - 1 / Nx / 5, 1 + .5 / Ny / 2, "t' + 1", fontsize=fontsize, rotation=0)
 
-plt.text(1 / Nx + .8 / Nx / 8, 1 / Ny / 4 + 1.1 / Ny, r"$\frac{\partial h_{t'+2, l+1}}{\partial h_{t'+1, l+1}}$",
-         fontsize=18, rotation=0)
+plt.text(.3 / Nx - 2 / Nx / 8, 1 / Ny / 4 + 1.5 / Ny, r"$\frac{\partial h_{t'+2, l+2}}{\partial h_{t'+1, l+1}}$",
+         fontsize=fontsize+4, rotation=0)
 
 plt.axis('off')
 

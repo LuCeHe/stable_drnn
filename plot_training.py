@@ -50,10 +50,10 @@ check_for_new = True
 plot_losses = False
 one_exp_curves = False
 pandas_means = True
-show_per_tasknet = True
+show_per_tasknet = False
 make_latex = False
-make_good_latex = False
-missing_exps = True
+make_good_latex = True
+missing_exps = False
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -503,7 +503,7 @@ if make_good_latex:
         'lsnns': ['ALIF', 'ALIFb'],
     }
     ntype = 'all'
-    ttype = 'task'  # stack task
+    ttype = 'stack'  # stack task
     data_split = 't_'  # t_ v_
 
     idf = mdf.copy()
