@@ -85,7 +85,8 @@ metrics_oi = [
 ]
 metrics_oi = [shorten_losses(m) for m in metrics_oi]
 
-plot_only = ['eps', 'net', 'task', 'n_params', 'stack', 'comments', 'path', 'lr', 'seed', 'host_hostname'] + metrics_oi
+plot_only = ['eps', 'net', 'task', 'n_params', 'stack', 'comments', 'path', 'lr', 'seed', 'host_hostname',
+             'v_ppl argm', 'v_ppl len'] + metrics_oi
 columns_to_remove = [
     'heaviside', '_test', 'weight', 'sLSTM_factor', 'save_model', 'clipnorm', 'GPU', 'batch_size',
     'continue_training', 'embedding', 'lr_schedule', 'loss_name', 'seed', 'stack', 'stop_time',
@@ -508,9 +509,8 @@ if make_good_latex:
     idf['net'] = pd.Categorical(idf['net'], categories=net_types['all'], ordered=True)
     idf['task'] = pd.Categorical(idf['task'], categories=tab_types['task'], ordered=True)
 
-
     ntype = 'all'
-    ttype = 'stack'  # stack task
+    ttype = 'task'  # stack task
     data_split = 't_'  # t_ v_
     if ttype == 'task':
         # idf = idf[idf['stack'].eq('None')]
@@ -1285,6 +1285,18 @@ if remove_incomplete:
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
 
+    print('Remove if it didnt converge')
+    print(list(plotdf.columns))
+    plotdf['conveps'] = plotdf['v_ppl len'] - plotdf['v_ppl argm']
+    print(plotdf['conveps'].head().to_string())
+    rdf = plotdf[
+        plotdf['conveps'] < 8
+        ]
+
+    print(rdf.to_string())
+    print(rdf.shape, df.shape)
+    rdfs.append(rdf)
+
     print('Remove lsc na')
     rdf = plotdf[
         plotdf['LSC f'].isna()
@@ -1315,7 +1327,6 @@ if remove_incomplete:
 
     print('Remove pretrain that gave ppl and acc na and inf')
     for _, row in infrdf.iterrows():
-
         net = row['net']
         task = row['task']
         seed = row['seed']
@@ -1435,7 +1446,7 @@ if missing_exps:
 
     for add_flag in ['_onlyloadpretrained', '_onlypretrain']:
         if add_flag == '_onlyloadpretrained':
-            good_lsc_options =  [True, False]
+            good_lsc_options = [True, False]
         else:
             good_lsc_options = [True]
 
@@ -1477,7 +1488,6 @@ if missing_exps:
                     'comments': comments,
                 }
                 experiments.append(experiment)
-
 
             ds = dict2iter(experiments)
             ldf, experiments_left = complete_missing_exps(sdf, ds, coi)
