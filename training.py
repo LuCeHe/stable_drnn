@@ -211,9 +211,9 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
             # lsclr = 3.14e-4 if not net_name == 'LSTM' else 3.14e-3
             # lsclr = 1e-2
             # lsclr = 3.14e-2
-            lsclr = 1e-3 # 3.14e-3
+            lsclr = 1e-2 # 3.14e-3
             if 'LSNN' in net_name:
-                lsclr = 1e-4 # 3.14e-4
+                lsclr = 1e-3 # 3.14e-4
 
             if 'deslice' in comments:
                 from GenericTools.keras_tools.esoteric_optimizers.AdamW import AdamW as AdamW2

@@ -52,8 +52,8 @@ one_exp_curves = False
 pandas_means = True
 show_per_tasknet = False
 make_latex = False
-make_good_latex = True
-missing_exps = False
+make_good_latex = False
+missing_exps = True
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -615,7 +615,7 @@ if make_good_latex:
                 and not 'depth' in line and not 'net' in line:
             line = line.replace('&', r'& \scriptsize')
 
-        line = re.sub(' +', ' ', line)
+        line = re.sub(' +', '', line)
 
         if 'ALIF' in line:
             ref_line = i
