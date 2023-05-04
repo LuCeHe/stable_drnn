@@ -23,6 +23,7 @@ from scipy import special as sp
 from scipy.optimize import curve_fit
 
 bound = lambda l, t: sp.binom(t + l + 2, t) / t
+bound = lambda l, t: sp.binom(t + l, t)
 
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
@@ -240,63 +241,47 @@ def initialization_tests():
 
         fontsize = 18
         linewidth = 2
-        fig, axs = plt.subplots(1, 3, gridspec_kw={'wspace': .5, 'hspace': .1}, figsize=(6, 3))
+        # fig, axs = plt.subplots(1, 3, gridspec_kw={'wspace': .5, 'hspace': .1}, figsize=(6, 3))
+        fig, axs = plt.subplot_mosaic([['i)', 'ii)', 'iii)']], layout='constrained', figsize=(6, 3))
 
-        T = 10000
-        dL = 5
+        for label, ax in axs.items():
+            ax.set_title(label, fontfamily='serif', loc='left', fontsize=fontsize)
+            ax.set_yscale('log')
 
-        ts = np.linspace(1, T, 1000)
-        y = bound(dL, ts)
+            if label == 'i)':
+                T, dL = 10000, 5
 
-        axs[0].plot(ts, y, color='#018E32', linewidth=linewidth)
-        axs[0].set_xlabel(r'$T$', fontsize=18)
+                ts = np.linspace(1, T, 1000)
+                y = bound(dL, ts)
 
-        T = 5
-        dL = 100
+                ax.plot(ts, y, color='#018E32', linewidth=linewidth)
+                ax.set_xlabel(r'$T$', fontsize=fontsize)
+                ax.set_yticks([1e8, 1e16])
 
-        ls = np.linspace(1, dL, 1000)
-        y = bound(ls, T)
+                # axs[0].set_ylabel(r'$\frac{1}{T}\binom{T + \Delta l +2}{T}$', fontsize=fontsize + 6)
+                ax.set_ylabel('Number of descent paths\nin rectangular grid', fontsize=fontsize * 1.1, labelpad=20)
 
-        axs[1].plot(ls, y, color='#018E32', linewidth=linewidth)
-        axs[1].set_xlabel(r'$\Delta l$', fontsize=fontsize)
+            elif label == 'ii)':
 
-        T = 10000
-        ts = np.linspace(1, T, 1000)
-        y = bound(ts / 100, ts)
+                T, dL = 5, 100
 
-        axs[2].plot(ts, y, color='#018E32', linewidth=linewidth)
-        axs[2].set_xlabel(r'$100\Delta l=T$', fontsize=fontsize)
+                ls = np.linspace(1, dL, 1000)
+                y = bound(ls, T)
 
-        axs[0].set_ylabel(r'$\frac{1}{T}\binom{T + \Delta l +2}{T}$', fontsize=fontsize + 6)
+                ax.plot(ls, y, color='#018E32', linewidth=linewidth)
+                ax.set_xlabel(r'$\Delta l$', fontsize=fontsize)
+                ax.set_yticks([1e4, 1e7])
 
-        axs[0].set_yscale('log')
-        axs[1].set_yscale('log')
-        axs[2].set_yscale('log')
+            elif label == 'iii)':
 
-        # tickers = []
-        # for i in range(4):
-        #     tickers += np.linspace(10 ** (4 * i + 3), 10 ** (4 * (i + 1) + 3), 50).tolist()
-        # y_minor = mpl.ticker.FixedLocator(tickers)
-        # axs[0].yaxis.set_minor_locator(y_minor)
+                T = 10000
+                ts = np.linspace(1, T, 1000)
+                y = bound(ts / 100, ts)
 
-        # tickers = []
-        # for i in range(3):
-        #     tickers += np.linspace(10 ** (3 * i + 3), 10 ** (3 * (i + 1) + 3), 50).tolist()
-        # y_minor = mpl.ticker.FixedLocator(tickers)
-        # axs[1].yaxis.set_minor_locator(y_minor)
+                ax.plot(ts, y, color='#018E32', linewidth=linewidth)
+                ax.set_xlabel(r'$100\Delta l=T$', fontsize=fontsize)
+                ax.set_yticks([1e110, 1e220])
 
-        #
-        # tickers = []
-        # for i in range(4):
-        #     tickers += np.linspace(10**(44*i+33), 10**(44*(i+1)+33), 50).tolist()
-        # y_minor = mpl.ticker.FixedLocator(tickers)
-        # axs[2].yaxis.set_minor_locator(y_minor)
-
-        # axs[0].yaxis.set_minor_formatter(mpl.ticker.NullFormatter())
-        # axs[1].yaxis.set_minor_formatter(mpl.ticker.NullFormatter())
-        # axs[2].yaxis.set_minor_formatter(mpl.ticker.NullFormatter())
-
-        for ax in axs.reshape(-1):
             for pos in ['right', 'left', 'bottom', 'top']:
                 ax.spines[pos].set_visible(False)
 
@@ -305,10 +290,6 @@ def initialization_tests():
             ax.minorticks_off()
             ax.tick_params(axis='both', which='major', labelsize=fontsize * .9)
             ax.yaxis.tick_right()
-
-        axs[0].set_yticks([1e10, 1e20])
-        axs[1].set_yticks([1e4, 1e7])
-        axs[2].set_yticks([1e110, 1e220])
 
         # axs[0].tick_params(axis='y', which='minor')
         pathplot = os.path.join(CDIR, 'experiments', 'subexp.pdf')

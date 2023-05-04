@@ -52,8 +52,8 @@ one_exp_curves = False
 pandas_means = True
 show_per_tasknet = False
 make_latex = False
-make_good_latex = False
-missing_exps = True
+make_good_latex = True
+missing_exps = False
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -571,7 +571,7 @@ if make_good_latex:
     print('\n\n\n')
     lls = ''.join('l' * len(tab_types[ttype]))
     ccs = ''.join('c' * len(tab_types[ttype]))
-    latex_df = df.to_latex(index=True, escape=False).replace('{lll' + lls, '{lll' + ccs)
+    latex_df = df.to_latex(index=True, escape=False).replace('{lll' + lls, '{llr' + ccs)
 
     import re
 
@@ -598,6 +598,7 @@ if make_good_latex:
     latex_df = latex_df.replace('sl-MNIST', r'sl-MNIST $\uparrow$')
     latex_df = latex_df.replace('SHD', r'SHD $\uparrow$')
     latex_df = latex_df.replace('PTB', r'PTB $\downarrow$')
+    latex_df = latex_df.replace('type', '')
 
     for task in ['sl-MNIST', 'SHD', 'PTB', 'net', 'LSC', 'type', ttype]:
         latex_df = latex_df.replace(task, r'\textbf{' + task + '}')
@@ -609,6 +610,13 @@ if make_good_latex:
     new_latex_df = ''
     net_name = None
     for i, line in enumerate(latex_df.split('\n')):
+
+        if not 'metric' in line and not 'task' in line and not 'rule' in line \
+                and not 'depth' in line and not 'net' in line:
+            line = line.replace('&', r'& \scriptsize')
+
+        line = re.sub(' +', ' ', line)
+
         if 'ALIF' in line:
             ref_line = i
             if 'ALIFb' in line:
@@ -622,6 +630,8 @@ if make_good_latex:
         elif not i == ref_line + 1:
 
             new_latex_df += line + '\n'
+
+
 
     latex_df = new_latex_df
     latex_df = latex_df.replace('ALIFb', 'ALIF$_{\pm}$')

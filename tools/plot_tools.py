@@ -85,6 +85,11 @@ def clean_nid(norm_id):
 
 def compactify_metrics(metric='ppl', data_split='test', round_to=2):
     # assert data_split in [None, 'test', 'val', 't_', 'v_']
+
+    if 'acc' in metric or 'ppl' in metric:
+        round_to = '{0:.2f}'
+    else:
+        round_to = '{0:.3f}'
     def cm(row):
         print(row.keys())
         if data_split is None:
@@ -95,9 +100,14 @@ def compactify_metrics(metric='ppl', data_split='test', round_to=2):
 
             output = f"${str(mv)}\pm {str(sv)}$/${str(mt)}\pm {str(st)}$"
         else:
+            print(row[f'mean_{data_split}{metric}'])
+            print(type(row[f'mean_{data_split}{metric}']))
             m = row[f'mean_{data_split}{metric}']
             s = row[f'std_{data_split}{metric}']
-            output = f"${str(m)}\pm {str(s)}$"
+            if not isinstance(m, str):
+                m = round_to.format(m)
+                s = round_to.format(s)
+            output = f"${m}\pm {s}$"
             if row['vs_epsilon']:
                 # strike through the output
                 output = r'\sout{' + output + '}'
@@ -116,6 +126,12 @@ def choose_metric(row):
 
 
 def bolden_best(metric='mean_t_ppl'):
+
+    if 'acc' in metric or 'ppl' in metric:
+        round_to = '{0:.2f}'
+    else:
+        round_to = '{0:.3f}'
+
     c = 1
     if 'acc' in metric:
         c = 100
@@ -129,9 +145,9 @@ def bolden_best(metric='mean_t_ppl'):
 
         value = round(c * value, 2)
         if bolden:
-            value = r'\textbf{' + str(value) + '}'
+            value = r'\textbf{' + round_to.format(value) + '}'
         else:
-            value = f'{value}'
+            value = round_to.format(value)
         return value
 
     return bb

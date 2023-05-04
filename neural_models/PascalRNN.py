@@ -172,7 +172,7 @@ if __name__ == '__main__':
         Line2D([0], [0], color=c, lw=4, label=n)
         for c, n in [
             [g, '$c_1$'],
-            ['g', '$c_1\\binom{\,L + \\Delta t}{\,\\Delta l}+c_2$'],
+            ['g', '$c_1\\binom{\,L + \\Delta t}{\,\\Delta t}+c_2$'],
             [oranges(.6), 'dy/dx'],
             [blues(.6), 'y = Net(x)'],
         ]
