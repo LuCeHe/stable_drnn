@@ -53,7 +53,7 @@ pandas_means = True
 show_per_tasknet = False
 make_latex = False
 make_good_latex = False
-missing_exps = False
+missing_exps = True
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -65,7 +65,7 @@ plot_bars = False
 plot_new_bars = False
 chain_norms = False
 
-remove_incomplete = True
+remove_incomplete = False
 truely_remove = False
 truely_remove_pretrained = False
 remove_saved_model = False
@@ -1285,9 +1285,9 @@ if remove_incomplete:
         plotdf['comments'].str.contains('findLSC')
         & plotdf['vs_epsilon']
         ]
-    print(rdf.to_string())
-    print(rdf.shape, df.shape)
-    rdfs.append(rdf)
+    # print(rdf.to_string())
+    # print(rdf.shape, df.shape)
+    # rdfs.append(rdf)
 
     print('Remove onlypretrain of the onlyloadpretrained that did not satisfy the lsc')
     rdf['comments'] = rdf['comments'].str.replace('onlyloadpretrained', 'onlypretrain')
@@ -1296,16 +1296,14 @@ if remove_incomplete:
     rdfs.append(rdf)
 
     print('Remove if it didnt converge')
-    print(list(plotdf.columns))
     plotdf['conveps'] = plotdf['v_ppl len'] - plotdf['v_ppl argm']
-    print(plotdf['conveps'].head().to_string())
     rdf = plotdf[
         plotdf['conveps'] < 8
         ]
 
-    print(rdf.to_string())
-    print(rdf.shape, df.shape)
-    rdfs.append(rdf)
+    # print(rdf.to_string())
+    # print(rdf.shape, df.shape)
+    # rdfs.append(rdf)
 
     print('Remove lsc na')
     rdf = plotdf[
