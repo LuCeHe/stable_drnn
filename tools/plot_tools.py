@@ -107,7 +107,7 @@ def compactify_metrics(metric='ppl', data_split='test', round_to=2):
             if not isinstance(m, str):
                 m = round_to.format(m)
                 s = round_to.format(s)
-            output = f"${m}\pm {s}$"
+            output = f"${m}~\pm~{s}$"
             if row['vs_epsilon']:
                 # strike through the output
                 output = r'\sout{' + output + '}'

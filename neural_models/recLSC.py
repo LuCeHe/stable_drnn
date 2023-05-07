@@ -3,7 +3,7 @@ import numpy as np
 import warnings
 import tensorflow as tf
 import tensorflow_probability as tfp
-from tensorflow_addons.optimizers import AdamW
+import tensorflow_addons as tfa
 from GenericTools.keras_tools.esoteric_optimizers.AdamW import AdamW as AdamW2
 
 from GenericTools.keras_tools.convenience_operations import sample_axis
@@ -324,7 +324,10 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
     s = model_args["seed"]
     weight_decay = 1e-3 if net_name == 'rsimplernn' else 1e-4
-    optimizer = AdamW(learning_rate=lr, weight_decay=weight_decay)
+    # optimizer = AdamW(learning_rate=lr, weight_decay=weight_decay)
+    # adabelief = tfa.optimizers.AdaBelief()
+    adabelief = tfa.optimizers.AdaBelief(lr=lr, weight_decay=weight_decay)
+    optimizer = tfa.optimizers.Lookahead(adabelief, sync_period=6, slow_step_size=0.5)
 
     states = []
 

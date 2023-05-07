@@ -45,7 +45,7 @@ def config():
     # task and net
     # ps_mnist heidelberg s_mnist
     # wordptb sl_mnist
-    task = 'wordptb'
+    task = 'heidelberg'
 
     # test configuration
     epochs = 4
@@ -75,7 +75,7 @@ def config():
 
     # optimizer properties
     lr = None  # 7e-4 None
-    optimizer_name = 'AdamW'  # AdaBelief AdamW SWAAdaBelief
+    optimizer_name = 'AdaBeliefLA'  # AdaBelief AdamW SWAAdaBelief AdaBeliefLA
     lr_schedule = ''  # 'warmup_cosine_restarts'
     weight_decay_prop_lr = None
     weight_decay = .0 if not 'mnist' in task else 0.  # weight_decay_prop_lr * lr

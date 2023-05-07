@@ -44,7 +44,7 @@ GEXPERIMENTS = [
 expsid = 'als'  # effnet als ffnandcnns
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
-lsc_epsilon = 0.02
+lsc_epsilon = 0.05 #0.02
 
 check_for_new = True
 plot_losses = False
@@ -53,7 +53,7 @@ pandas_means = True
 show_per_tasknet = False
 make_latex = False
 make_good_latex = False
-missing_exps = True
+missing_exps = False
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -65,7 +65,7 @@ plot_bars = False
 plot_new_bars = False
 chain_norms = False
 
-remove_incomplete = False
+remove_incomplete = True
 truely_remove = False
 truely_remove_pretrained = False
 remove_saved_model = False
@@ -510,7 +510,7 @@ if make_good_latex:
     idf['task'] = pd.Categorical(idf['task'], categories=tab_types['task'], ordered=True)
 
     ntype = 'all'
-    ttype = 'task'  # stack task
+    ttype = 'stack'  # stack task
     data_split = 't_'  # t_ v_
     if ttype == 'task':
         # idf = idf[idf['stack'].eq('None')]
@@ -1285,9 +1285,9 @@ if remove_incomplete:
         plotdf['comments'].str.contains('findLSC')
         & plotdf['vs_epsilon']
         ]
-    # print(rdf.to_string())
-    # print(rdf.shape, df.shape)
-    # rdfs.append(rdf)
+    print(rdf.to_string())
+    print(rdf.shape, df.shape)
+    rdfs.append(rdf)
 
     print('Remove onlypretrain of the onlyloadpretrained that did not satisfy the lsc')
     rdf['comments'] = rdf['comments'].str.replace('onlyloadpretrained', 'onlypretrain')
@@ -1301,9 +1301,21 @@ if remove_incomplete:
         plotdf['conveps'] < 8
         ]
 
-    # print(rdf.to_string())
-    # print(rdf.shape, df.shape)
-    # rdfs.append(rdf)
+    print(rdf.to_string())
+    print(rdf.shape, df.shape)
+    rdfs.append(rdf)
+
+    print('Eliminate rsimplernn PTB depth 5')
+    rdf = plotdf[
+        plotdf['comments'].str.contains('findLSC')
+        & plotdf['net'].eq('rsimplernn')
+        & plotdf['stack'].eq('5')
+        & plotdf['task'].eq('PTB')
+        ]
+    print(rdf.to_string())
+    print(rdf.shape, df.shape)
+    rdfs.append(rdf)
+
 
     print('Remove lsc na')
     rdf = plotdf[
@@ -1372,8 +1384,8 @@ if remove_incomplete:
 
         # remainder
         rdf = srdf[~srdf.apply(tuple, 1).isin(gsrdf.apply(tuple, 1))]
-        print(rdf.shape)
-        rdfs.append(rdf)
+        # print(rdf.shape)
+        # rdfs.append(rdf)
 
     allrdfs = pd.concat(rdfs)
     allrdfs = allrdfs.drop_duplicates()
