@@ -270,5 +270,5 @@ def clean_title(c):
         t = 'Loss'
 
     if 'val' in c:
-        t = 'Validation ' + t
+        t = 'Validation\n' + t
     return t

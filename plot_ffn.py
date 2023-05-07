@@ -24,7 +24,8 @@ GEXPERIMENTS = [
 
 plot_norms_evol = False
 plot_norms_evol_1 = False
-lrs_plot = True
+lrs_plot = False
+lrs_plot_2 = True
 bar_plot = False
 plot_losses = False
 missing_exps = False
@@ -371,6 +372,98 @@ if lrs_plot:
     plt.show()
     plot_filename = os.path.join(EXPERIMENTS, f'{expsid}_relu.pdf')
     fig.savefig(plot_filename, bbox_inches='tight')
+
+if lrs_plot_2:
+    from matplotlib.lines import Line2D
+
+    mdf = mdf.sort_values(by='lr')
+
+    if 'ffnandcnns' in expsid:
+        activations = ['relu', 'sin', 'cos']
+        ncol = 5
+        bbox_to_anchor = (-3.1, -.6)
+
+        mdf = mdf[~mdf['comments'].eq('findLSC')]
+    elif 'effnet' in expsid or 'transf' in expsid:
+        ncol = 4
+        bbox_to_anchor = (-.3, -.4)
+
+    activations = sorted(mdf['act'].unique())
+    datasets = sorted(mdf['dataset'].unique())
+    comments = sorted(mdf['comments'].unique())
+
+    # comments = ['', 'heinit', 'findLSC', 'findLSC_radius', 'findLSC_supnpsd2', 'findLSC_supsubnpsd']
+
+    print(comments)
+
+    fig, axs = plt.subplots(
+        1, len(datasets)*len(activations), figsize=(8, 2), sharey='row',
+        gridspec_kw={'wspace': .4, 'hspace': .1},
+    )
+    fontsize = 12
+    linewidth = 1
+
+    if len(datasets) == 1:
+        axs = np.array([axs])
+    if len(activations) == 1:
+        axs = np.array([axs]).T
+
+    import itertools
+    # itertool all combinations of datasets and activations
+    datacts = itertools.product(datasets, activations)
+    print(datacts)
+
+
+
+    for i, (dataset, a) in enumerate(datacts):
+        ddf = mdf[mdf['dataset'] == dataset]
+        # for j, a in enumerate(activations):
+        adf = ddf[ddf['act'] == a]
+        title = a if not 'relu' in a else 'ReLU'
+        axs[i].set_title(title, weight='bold', fontsize=fontsize)
+        for c in comments:
+            idf = adf[adf['comments'] == c]
+            ys = idf['mean_' + metric].values
+            yerrs = idf['std_' + metric].values
+            xs = idf['lr'].values
+            axs[i].plot(xs, ys, color=lsc_colors(c), label=lsc_clean_comments(c), linewidth=linewidth)
+            axs[i].fill_between(xs, ys - yerrs / 2, ys + yerrs / 2, alpha=0.5, color=lsc_colors(c))
+
+        # if not i == len(datasets) - 1:
+        #     axs[i, j].tick_params(axis='x', which='both', bottom=False, top=False, labelbottom=False)
+        #
+        if not i == 0:
+            axs[i].tick_params(axis='y', which='both', left=False, right=False, labelleft=False)
+
+                # x axis log scale
+    axs[-1].set_xlabel('Learning rate', fontsize=fontsize)
+    axs[0].set_ylabel(clean_title(metric), fontsize=fontsize)
+
+    comments = ['', 'heinit', 'findLSC_radius', 'findLSC_supnpsd2', 'findLSC_supsubnpsd', ]
+
+    legend_elements = [Line2D([0], [0], color=lsc_colors(n), lw=4, label=lsc_clean_comments(n))
+                       for n in comments]
+    plt.legend(ncol=ncol, handles=legend_elements, loc='lower center', bbox_to_anchor=bbox_to_anchor)
+
+    if len(datasets) > 1:
+        # add a vertical text to the plot, to indicate the dataset, one for each row
+        for i, dataset in enumerate(datasets):
+            fig.text(0.277 + i * .4, 1.15, dataset, va='center',weight='bold', fontsize=.8*fontsize)
+
+    else:
+        fig.text(-0.03, 0.5, datasets[0], va='center', rotation='vertical', weight='bold')
+
+    # plt.legend()
+
+    for ax in axs.reshape(-1):
+        for pos in ['right', 'left', 'bottom', 'top']:
+            ax.spines[pos].set_visible(False)
+        ax.locator_params(axis='y', nbins=5)
+        ax.set_xscale('log')
+
+    plot_filename = os.path.join(EXPERIMENTS, f'{expsid}_relu.pdf')
+    fig.savefig(plot_filename, bbox_inches='tight')
+    plt.show()
 
 if bar_plot:
     from matplotlib.lines import Line2D
