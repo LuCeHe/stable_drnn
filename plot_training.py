@@ -44,7 +44,7 @@ GEXPERIMENTS = [
 expsid = 'als'  # effnet als ffnandcnns
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
-lsc_epsilon = 0.05 #0.02
+lsc_epsilon = 0.05  # 0.02
 
 check_for_new = True
 plot_losses = False
@@ -53,7 +53,7 @@ pandas_means = True
 show_per_tasknet = False
 make_latex = False
 make_good_latex = False
-missing_exps = False
+missing_exps = True
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -65,7 +65,7 @@ plot_bars = False
 plot_new_bars = False
 chain_norms = False
 
-remove_incomplete = True
+remove_incomplete = False
 truely_remove = False
 truely_remove_pretrained = False
 remove_saved_model = False
@@ -630,8 +630,6 @@ if make_good_latex:
         elif not i == ref_line + 1:
 
             new_latex_df += line + '\n'
-
-
 
     latex_df = new_latex_df
     latex_df = latex_df.replace('ALIFb', 'ALIF$_{\pm}$')
@@ -1289,11 +1287,15 @@ if remove_incomplete:
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
 
+    # 105
+
     print('Remove onlypretrain of the onlyloadpretrained that did not satisfy the lsc')
     rdf['comments'] = rdf['comments'].str.replace('onlyloadpretrained', 'onlypretrain')
     print(rdf.to_string())
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
+
+    # 105
 
     print('Remove if it didnt converge')
     plotdf['conveps'] = plotdf['v_ppl len'] - plotdf['v_ppl argm']
@@ -1305,6 +1307,8 @@ if remove_incomplete:
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
 
+    # 86
+
     print('Eliminate rsimplernn PTB depth 5')
     rdf = plotdf[
         plotdf['comments'].str.contains('findLSC')
@@ -1315,7 +1319,6 @@ if remove_incomplete:
     print(rdf.to_string())
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
-
 
     print('Remove lsc na')
     rdf = plotdf[
@@ -1464,7 +1467,7 @@ if missing_exps:
 
     incomplete_comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained'
 
-    for add_flag in ['_onlypretrain']: # ['_onlyloadpretrained', '_onlypretrain']:
+    for add_flag in ['_onlyloadpretrained', '_onlypretrain']:
         if add_flag == '_onlyloadpretrained':
             good_lsc_options = [True, False]
         else:
