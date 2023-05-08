@@ -44,7 +44,7 @@ GEXPERIMENTS = [
 expsid = 'als'  # effnet als ffnandcnns
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
-lsc_epsilon = 0.05  # 0.02
+lsc_epsilon = 0.02  # 0.02
 
 check_for_new = True
 plot_losses = False
@@ -261,9 +261,9 @@ if 'net' in df.columns:
     df.loc[df['net'].eq('maLSNN'), 'net'] = 'ALIF'
 
 if 'task' in df.columns:
-    df.loc[df['task'].str.contains('heidelberg'), 'task'] = 'SHD'
-    df.loc[df['task'].str.contains('sl_mnist'), 'task'] = 'sl-MNIST'
-    df.loc[df['task'].str.contains('wordptb'), 'task'] = 'PTB'
+    df.loc[df['task'].eq('heidelberg'), 'task'] = 'SHD'
+    df.loc[df['task'].eq('sl_mnist'), 'task'] = 'sl-MNIST'
+    df.loc[df['task'].eq('wordptb'), 'task'] = 'PTB'
 
 # eps column stays eps if not equal to None else it becomes the content of v_mode_acc len
 # df.loc[df['eps'].isnull(), 'eps'] = df.loc[df['eps'].isnull(), f'{metric} len']
@@ -1283,9 +1283,9 @@ if remove_incomplete:
         plotdf['comments'].str.contains('findLSC')
         & plotdf['vs_epsilon']
         ]
-    print(rdf.to_string())
-    print(rdf.shape, df.shape)
-    rdfs.append(rdf)
+    # print(rdf.to_string())
+    # print(rdf.shape, df.shape)
+    # rdfs.append(rdf)
 
     # 105
 
@@ -1303,9 +1303,9 @@ if remove_incomplete:
         plotdf['conveps'] < 8
         ]
 
-    print(rdf.to_string())
-    print(rdf.shape, df.shape)
-    rdfs.append(rdf)
+    # print(rdf.to_string())
+    # print(rdf.shape, df.shape)
+    # rdfs.append(rdf)
 
     # 86
 
@@ -1316,17 +1316,17 @@ if remove_incomplete:
         & plotdf['stack'].eq('5')
         & plotdf['task'].eq('PTB')
         ]
-    print(rdf.to_string())
-    print(rdf.shape, df.shape)
-    rdfs.append(rdf)
+    # print(rdf.to_string())
+    # print(rdf.shape, df.shape)
+    # rdfs.append(rdf)
 
     print('Remove lsc na')
     rdf = plotdf[
         plotdf['LSC f'].isna()
     ]
-    print(rdf.to_string())
-    print(rdf.shape, df.shape)
-    rdfs.append(rdf)
+    # print(rdf.to_string())
+    # print(rdf.shape, df.shape)
+    # rdfs.append(rdf)
 
     print('Remove ppl and acc na and inf')
     rdf = plotdf[
@@ -1344,9 +1344,9 @@ if remove_incomplete:
         )
         ]
     infrdf = rdf.copy()
-    print(rdf.to_string())
-    print(rdf.shape, df.shape)
-    rdfs.append(rdf)
+    # print(rdf.to_string())
+    # print(rdf.shape, df.shape)
+    # rdfs.append(rdf)
 
     print('Remove pretrain that gave ppl and acc na and inf')
     for _, row in infrdf.iterrows():
@@ -1363,9 +1363,9 @@ if remove_incomplete:
             & plotdf['stack'].eq(stack)
             & plotdf['comments'].eq(comments)
             ]
-        print(rdf.to_string())
-        print(rdf.shape, df.shape)
-        rdfs.append(rdf)
+        # print(rdf.to_string())
+        # print(rdf.shape, df.shape)
+        # rdfs.append(rdf)
 
     print('-=***=-' * 10)
     print('Count > 4')
@@ -1393,6 +1393,8 @@ if remove_incomplete:
     allrdfs = pd.concat(rdfs)
     allrdfs = allrdfs.drop_duplicates()
     print(f'Remove {allrdfs.shape} of {plotdf.shape}')
+    trueallrdfs = allrdfs.drop_duplicates(subset=['seed', 'task', 'net', 'comments', 'stack'])
+    print(f'Remove actually {trueallrdfs.shape} of {plotdf.shape}')
 
     if truely_remove_pretrained:
 
@@ -1442,16 +1444,17 @@ if missing_exps:
     # sdf = pd.read_hdf(h5path, 'df')
     sdf = df.copy()
 
-    sdf.loc[df['task'].str.contains('SHD'), 'task'] = 'heidelberg'
-    sdf.loc[df['task'].str.contains('sl-MNIST'), 'task'] = 'sl_mnist'
-    sdf.loc[df['task'].str.contains('PTB'), 'task'] = 'wordptb'
+    sdf.loc[df['task'].eq('SHD'), 'task'] = 'heidelberg'
+    sdf.loc[df['task'].eq('sl-MNIST'), 'task'] = 'sl_mnist'
+    sdf.loc[df['task'].eq('PTB'), 'task'] = 'wordptb'
     sdf.loc[df['net'].eq('ALIFb'), 'net'] = 'maLSNNb'
     sdf.loc[df['net'].eq('ALIF'), 'net'] = 'maLSNN'
     sdf['comments'] = sdf['comments'].str.replace('_timerepeat:2', '_timerepeat:2_pretrained')
     fsdf = sdf.copy()
-    print('here')
-    print(fsdf.head().to_string())
+
     sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
+    print('Existing exps')
+    print(sdf.to_string())
 
     # add_flag = '_onlyloadpretrained'  # _onlyloadpretrained _onlypretrain
     # only_if_good_lsc = True
@@ -1467,7 +1470,7 @@ if missing_exps:
 
     incomplete_comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained'
 
-    for add_flag in ['_onlyloadpretrained', '_onlypretrain']:
+    for add_flag in ['_onlypretrain']: # ['_onlyloadpretrained', '_onlypretrain']:
         if add_flag == '_onlyloadpretrained':
             good_lsc_options = [True, False]
         else:
