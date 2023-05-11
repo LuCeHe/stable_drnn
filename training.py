@@ -45,7 +45,7 @@ def config():
     # task and net
     # ps_mnist heidelberg s_mnist
     # wordptb sl_mnist
-    task = 'heidelberg'
+    task = 'wordptb'
 
     # test configuration
     epochs = 4
@@ -54,7 +54,7 @@ def config():
 
     # net
     # maLSNN cLSTM LSTM maLSNNb GRU indrnn LMU ssimplernn rsimplernn
-    net = 'rsimplernn'
+    net = 'maLSNN'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
     stack = 5
     n_neurons = 2
@@ -66,11 +66,9 @@ def config():
     # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_targetnorm:.5_test'
     comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_test_onlypretrain_lscshuffw_gausslsc'
     comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2'
-    comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_test_onlypretrain_lscshuffw_gausslsc'
-    comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain'
-    # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlyloadpretrained'
-    # comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2'
-    # comments = 'allns_36_simplereadout_nogradreset_dropout:.3_timerepeat:2_pretrained_onlyloadpretrained'
+    # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_test_onlypretrain_lscshuffw_gausslsc'
+    # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain'
+    comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlyloadpretrained'
     # comments = ''
 
     # optimizer properties

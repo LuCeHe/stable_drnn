@@ -344,7 +344,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
     if 'LSNN' in net_name:
         hi, ci = 1, 2
-        n_states = 4
+        n_states = 3
 
     elif 'LSTM' in net_name:
         hi, ci = 0, 1

@@ -52,8 +52,8 @@ one_exp_curves = False
 pandas_means = True
 show_per_tasknet = False
 make_latex = False
-make_good_latex = False
-missing_exps = True
+make_good_latex = True
+missing_exps = False
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -510,11 +510,11 @@ if make_good_latex:
     idf['task'] = pd.Categorical(idf['task'], categories=tab_types['task'], ordered=True)
 
     ntype = 'all'
-    ttype = 'stack'  # stack task
+    ttype = 'task'  # stack task
     data_split = 't_'  # t_ v_
     if ttype == 'task':
-        # idf = idf[idf['stack'].eq('None')]
-        idf = idf[idf['stack'].eq('5')]
+        idf = idf[idf['stack'].eq('None')]
+        # idf = idf[idf['stack'].eq('5')]
     else:
         idf = idf[~idf['stack'].eq('None')]
         idf = idf[idf['task'].eq('SHD')]
@@ -614,6 +614,10 @@ if make_good_latex:
         if not 'metric' in line and not 'task' in line and not 'rule' in line \
                 and not 'depth' in line and not 'net' in line:
             line = line.replace('&', r'& \scriptsize')
+        if r'\rho_t=0.5' in line:
+            line = line.replace(r'$\textbf{', r'$\cellcolor{NiceGreen!25}\textbf{')
+        if r'\rho_t=1' in line:
+            line = line.replace(r'$\textbf{', r'$\cellcolor{NiceOrange!25}\textbf{')
 
         line = re.sub(' +', '', line)
 
@@ -1283,9 +1287,9 @@ if remove_incomplete:
         plotdf['comments'].str.contains('findLSC')
         & plotdf['vs_epsilon']
         ]
-    # print(rdf.to_string())
-    # print(rdf.shape, df.shape)
-    # rdfs.append(rdf)
+    print(rdf.to_string())
+    print(rdf.shape, df.shape)
+    rdfs.append(rdf)
 
     # 105
 
@@ -1303,30 +1307,20 @@ if remove_incomplete:
         plotdf['conveps'] < 8
         ]
 
-    # print(rdf.to_string())
-    # print(rdf.shape, df.shape)
-    # rdfs.append(rdf)
+    print(rdf.to_string())
+    print(rdf.shape, df.shape)
+    rdfs.append(rdf)
 
     # 86
 
-    print('Eliminate rsimplernn PTB depth 5')
-    rdf = plotdf[
-        plotdf['comments'].str.contains('findLSC')
-        & plotdf['net'].eq('rsimplernn')
-        & plotdf['stack'].eq('5')
-        & plotdf['task'].eq('PTB')
-        ]
-    # print(rdf.to_string())
-    # print(rdf.shape, df.shape)
-    # rdfs.append(rdf)
 
     print('Remove lsc na')
     rdf = plotdf[
         plotdf['LSC f'].isna()
     ]
-    # print(rdf.to_string())
-    # print(rdf.shape, df.shape)
-    # rdfs.append(rdf)
+    print(rdf.to_string())
+    print(rdf.shape, df.shape)
+    rdfs.append(rdf)
 
     print('Remove ppl and acc na and inf')
     rdf = plotdf[
@@ -1344,9 +1338,9 @@ if remove_incomplete:
         )
         ]
     infrdf = rdf.copy()
-    # print(rdf.to_string())
-    # print(rdf.shape, df.shape)
-    # rdfs.append(rdf)
+    print(rdf.to_string())
+    print(rdf.shape, df.shape)
+    rdfs.append(rdf)
 
     print('Remove pretrain that gave ppl and acc na and inf')
     for _, row in infrdf.iterrows():
@@ -1363,9 +1357,9 @@ if remove_incomplete:
             & plotdf['stack'].eq(stack)
             & plotdf['comments'].eq(comments)
             ]
-        # print(rdf.to_string())
-        # print(rdf.shape, df.shape)
-        # rdfs.append(rdf)
+        print(rdf.to_string())
+        print(rdf.shape, df.shape)
+        rdfs.append(rdf)
 
     print('-=***=-' * 10)
     print('Count > 4')
@@ -1387,8 +1381,8 @@ if remove_incomplete:
 
         # remainder
         rdf = srdf[~srdf.apply(tuple, 1).isin(gsrdf.apply(tuple, 1))]
-        # print(rdf.shape)
-        # rdfs.append(rdf)
+        print(rdf.shape)
+        rdfs.append(rdf)
 
     allrdfs = pd.concat(rdfs)
     allrdfs = allrdfs.drop_duplicates()
