@@ -6,6 +6,8 @@ from GenericTools.keras_tools.silence_tensorflow import silence_tf
 silence_tf()
 
 import tensorflow as tf
+import tensorflow_addons as tfa
+
 import pandas as pd
 
 from sklearn.model_selection import train_test_split
@@ -217,10 +219,15 @@ def main(args):
     callbacks = [
         TimeStopping(args.stop_time, 1),
         tf.keras.callbacks.CSVLogger(history_path),
+        tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=10, restore_best_weights=True),
     ]
 
     loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-    optimizer = tf.keras.optimizers.Adam(learning_rate=args.lr)
+    if 'adabelief' in args.comments:
+        adabelief = tfa.optimizers.AdaBelief(lr=args.lr, weight_decay=1e-4)
+        optimizer = tfa.optimizers.Lookahead(adabelief, sync_period=6, slow_step_size=0.5)
+    else:
+        optimizer = tf.keras.optimizers.Adam(learning_rate=args.lr)
     model.compile(optimizer, loss, metrics=['sparse_categorical_accuracy', 'sparse_categorical_crossentropy'])
     steps_per_epoch = args.steps_per_epoch if args.steps_per_epoch > 0 else None
     model.fit(

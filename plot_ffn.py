@@ -25,7 +25,7 @@ GEXPERIMENTS = [
 plot_norms_evol = False
 plot_norms_evol_1 = False
 lrs_plot = False
-lrs_plot_2 = True
+lrs_plot_2 = False
 bar_plot = False
 plot_losses = False
 missing_exps = False
@@ -71,6 +71,10 @@ if expsid == 'effnet':
 
 # select only rows with width 10
 df['time_elapsed'] = pd.to_timedelta(df['time_elapsed'], unit='s')
+# df['val_loss argm'] = df['val_loss list'].apply(np.argmin)
+# df['conveps'] = df['val_loss len'] - df['val_loss argm']
+df['val_acc argM'] = df['val_sparse_categorical_accuracy list'].apply(np.argmax)
+df['conveps'] = df['val_sparse_categorical_accuracy len'] - df['val_acc argM']
 
 if plot_norms_evol:
     for _, row in df.iterrows():
@@ -195,7 +199,7 @@ odf = df.copy()
 print(list(odf.columns))
 df = df.rename(columns={'test_loss': 'test_loss m', 'test_acc': 'test_acc M'})
 
-metrics_oi = ['val_acc M', 'test_acc M', 'val_loss m', 'test_loss m', 'LSC_norms i', 'LSC_norms f']
+metrics_oi = ['val_acc M', 'test_acc M', 'val_loss m', 'test_loss m', 'LSC_norms i', 'LSC_norms f', 'conveps']
 stats_oi = ['mean', 'std']  # ['mean', 'std']
 group_cols = ['lr', 'comments', 'act', 'dataset']
 bn = 1
@@ -207,6 +211,7 @@ if 'ffnandcnns' in expsid:
         'val_acc M', 'val_loss m', 'test_acc M', 'test_loss m',
         # 'acc max','loss min',
         'LSC i', 'LSC f',
+        'conveps',
         'ep M', 'time_elapsed', 'hostname', 'path',
     ]
 

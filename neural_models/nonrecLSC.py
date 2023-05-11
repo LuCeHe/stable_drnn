@@ -1,4 +1,6 @@
 import tensorflow as tf
+import tensorflow_addons as tfa
+
 import time, os
 import numpy as np
 from tensorflow_addons.optimizers import AdamW
@@ -51,7 +53,12 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
     li, pi, ni = None, None, None
 
     lr = learning_rate[0] if isinstance(learning_rate,tuple) else learning_rate
-    optimizer = AdamW(learning_rate=lr, weight_decay=1e-4)
+
+    if 'adabelief' in comments:
+        adabelief = tfa.optimizers.AdaBelief(lr=lr, weight_decay=1e-4)
+        optimizer = tfa.optimizers.Lookahead(adabelief, sync_period=6, slow_step_size=0.5)
+    else:
+        optimizer = AdamW(learning_rate=lr, weight_decay=1e-4)
 
     all_norms = []
     all_losses = []
