@@ -99,6 +99,8 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
     net_name = net
 
     comments += '_dampf:.5'
+    if 'maLSNN' in net and 'targetnorm:.5' in comments:
+        comments += '_learnsharp_learndamp'
     ostack = stack
     stack, batch_size, embedding, n_neurons, lr = default_config(
         stack, batch_size, embedding, n_neurons, lr, task_name, net_name, setting='LSC'

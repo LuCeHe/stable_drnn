@@ -52,8 +52,8 @@ one_exp_curves = False
 pandas_means = True
 show_per_tasknet = False
 make_latex = False
-make_good_latex = True
-missing_exps = False
+make_good_latex = False
+missing_exps = True
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -1307,12 +1307,11 @@ if remove_incomplete:
         plotdf['conveps'] < 8
         ]
 
-    print(rdf.to_string())
-    print(rdf.shape, df.shape)
-    rdfs.append(rdf)
+    # print(rdf.to_string())
+    # print(rdf.shape, df.shape)
+    # rdfs.append(rdf)
 
     # 86
-
 
     print('Remove lsc na')
     rdf = plotdf[
@@ -1464,7 +1463,7 @@ if missing_exps:
 
     incomplete_comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained'
 
-    for add_flag in ['_onlypretrain']: # ['_onlyloadpretrained', '_onlypretrain']:
+    for add_flag in ['_onlyloadpretrained', '_onlypretrain']:
         if add_flag == '_onlyloadpretrained':
             good_lsc_options = [True, False]
         else:
@@ -1508,6 +1507,15 @@ if missing_exps:
                     'comments': comments,
                 }
                 experiments.append(experiment)
+
+                if add_flag == '_onlypretrain' and nt == 'lsnns':
+                    experiment = {
+                        'task': ['wordptb'],
+                        'net': nets, 'seed': seeds, 'stack': ['None'],
+                        'comments':
+                            [incomplete_comments + f'_findLSC_radius_targetnorm:.5' + add_flag],
+                    }
+                    experiments.append(experiment)
 
             ds = dict2iter(experiments)
             ldf, experiments_left = complete_missing_exps(sdf, ds, coi)
