@@ -43,7 +43,7 @@ def get_argparse():
     parser.add_argument("--resize", default=32, type=int, help="Resize images", choices=[224, 128, 64, 32])
     parser.add_argument("--width", default=128, type=int, help="Layer width")
     parser.add_argument("--lr", default=.001, type=float, help="Learning rate")
-    parser.add_argument("--comments", default='findLSC', type=str, help="String to activate extra behaviors")
+    parser.add_argument("--comments", default='heinit', type=str, help="String to activate extra behaviors")
     parser.add_argument("--dataset", default='cifar10', type=str,
                         choices=['cifar10', 'cifar100', 'mnist'])
     parser.add_argument("--net_type", default='ffn', type=str, choices=['ffn', 'cnn'])
