@@ -217,6 +217,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
             lsclr = 7.2e-4 # 3.14e-3
             # if 'LSNN' in net_name:
             #     lsclr = 3.14e-4
+            lsclr = str2val(comments, 'lsclr', float, default=lsclr)
 
             if 'deslice' in comments:
                 from GenericTools.keras_tools.esoteric_optimizers.AdamW import AdamW as AdamW2
