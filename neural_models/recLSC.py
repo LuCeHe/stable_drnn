@@ -415,7 +415,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
     if 'onlyloadpretrained' in comments:
         steps_per_epoch = 1
 
-        time_steps = 10 if not 'test' in comments else 4
+        time_steps = 10 if not 'test' in comments else 10
         time_steps = str2val(comments, 'tsteps', int, default=time_steps)
 
         learn = False
