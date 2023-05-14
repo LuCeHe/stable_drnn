@@ -579,7 +579,12 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                 best_count += 1
                 mean_norm = tf.reduce_mean(some_norms)
                 if not best_norm is None:
+                    print(0)
+                    print(np.abs(mean_norm.numpy() - target_norm) )
+                    print(np.abs(best_norm - target_norm))
+                    print(np.abs(mean_norm.numpy() - target_norm) < np.abs(best_norm - target_norm))
                     if np.abs(mean_norm.numpy() - target_norm) < np.abs(best_norm - target_norm):
+                        print(1)
                         best_norm = mean_norm.numpy()
                         best_loss = mean_loss.numpy()
 

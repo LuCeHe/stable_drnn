@@ -60,8 +60,9 @@ plt.text(1 - 1 / Nx / 10, 1 + .5 / Ny / 2, 't', fontsize=fontsize, rotation=0)
 plt.text(0 / Nx - .3 / Nx / 5, 1 + .5 / Ny / 2, "t'", fontsize=fontsize, rotation=0)
 plt.text(1 / Nx - 1 / Nx / 5, 1 + .5 / Ny / 2, "t' + 1", fontsize=fontsize, rotation=0)
 
-plt.text(.3 / Nx - 2 / Nx / 8, 1 / Ny / 4 + 1.5 / Ny, r"$\frac{\partial h_{t'+2, l+2}}{\partial h_{t'+1, l+1}}$",
-         fontsize=fontsize+4, rotation=0)
+# plt.text(.3 / Nx - 2 / Nx / 8, 1 / Ny / 4 + 1.5 / Ny, r"$\frac{\partial h_{t'+2, l+2}}{\partial h_{t'+1, l+1}}$",
+#          fontsize=fontsize+4, rotation=0)
+plt.text(.95 / Nx , 1 / Ny / 4 + 1.5 / Ny, r"$M_k$", fontsize=fontsize+4, rotation=0)
 
 plt.axis('off')
 

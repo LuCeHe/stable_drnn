@@ -159,21 +159,30 @@ if __name__ == '__main__':
             elif i == len(nets) - 1:
                 ax.set_xlabel('t')
 
+            if j == 0:
+                ax.set_ylabel('amplitude')
+
+
             for pos in ['right', 'left', 'bottom', 'top']:
                 ax.spines[pos].set_visible(False)
+
+    fig.align_ylabels(axs[:, 0])
 
     # write the names of the nets on the left side and rotated vertically
     for i, net_name in enumerate(nets):
         ax = axs[i, 0]
-        ax.text(-0.5, 0.5, net_name.replace('pascal','PascalRNN'),
+        ax.text(-0.65, 0.5, net_name.replace('pascal','PascalRNN'),
                 fontsize=14, transform=ax.transAxes, rotation=90, va='center', ha='center')
+
+    line = plt.Line2D([-.05,.9],[.46,.46], transform=fig.transFigure, color="black", linewidth=.5)
+    fig.add_artist(line)
 
     legend_elements = [
         Line2D([0], [0], color=c, lw=4, label=n)
         for c, n in [
             [g, '$c_1$'],
             ['g', '$c_1\\binom{\,L + \\Delta t}{\,\\Delta t}+c_2$'],
-            [oranges(.6), 'dy/dx'],
+            [oranges(.6), '|dy/dx|'],
             [blues(.6), 'y = Net(x)'],
         ]
     ]
