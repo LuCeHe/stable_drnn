@@ -1,4 +1,3 @@
-
 from GenericTools.stay_organized.submit_jobs import dict2iter
 from alif_sg.tools.plot_tools import lsc_colors, lsc_clean_comments, clean_title
 
@@ -25,14 +24,14 @@ GEXPERIMENTS = [
 plot_norms_evol = False
 plot_norms_evol_1 = False
 lrs_plot = False
-lrs_plot_2 = False
+lrs_plot_2 = True
 bar_plot = False
 plot_losses = False
 missing_exps = False
-remove_incomplete = False
+remove_incomplete = True
 truely_remove = False
 
-metric = 'val_acc M'  # 'val_acc M'   'val_loss m'
+metric = 'test_acc M'  # 'val_acc M'   'val_loss m' test_acc
 expsid = 'ffnandcnns'  # effnet als ffnandcnns transf
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 force_keep_column = ['LSC_norms list', 'val_sparse_categorical_accuracy list', 'val_loss list',
@@ -381,12 +380,15 @@ if lrs_plot:
 if lrs_plot_2:
     from matplotlib.lines import Line2D
 
+    mdf = mdf[~mdf['comments'].str.contains('adabelief')]
+    mdf['comments'] = mdf['comments'].str.replace('_adabelief', '')
     mdf = mdf.sort_values(by='lr')
+    print(mdf.to_string())
 
     if 'ffnandcnns' in expsid:
         activations = ['relu', 'sin', 'cos']
         ncol = 5
-        bbox_to_anchor = (-3.1, -.6)
+        bbox_to_anchor = (-3.1, -.8)
 
         mdf = mdf[~mdf['comments'].eq('findLSC')]
     elif 'effnet' in expsid or 'transf' in expsid:
@@ -402,9 +404,10 @@ if lrs_plot_2:
     print(comments)
 
     fig, axs = plt.subplots(
-        1, len(datasets)*len(activations), figsize=(8, 2), sharey='row',
+        1, len(datasets) * len(activations), figsize=(8, 1.5), sharey='row',
         gridspec_kw={'wspace': .4, 'hspace': .1},
     )
+
     fontsize = 12
     linewidth = 1
 
@@ -414,18 +417,17 @@ if lrs_plot_2:
         axs = np.array([axs]).T
 
     import itertools
+
     # itertool all combinations of datasets and activations
     datacts = itertools.product(datasets, activations)
     print(datacts)
-
-
 
     for i, (dataset, a) in enumerate(datacts):
         ddf = mdf[mdf['dataset'] == dataset]
         # for j, a in enumerate(activations):
         adf = ddf[ddf['act'] == a]
         title = a if not 'relu' in a else 'ReLU'
-        axs[i].set_title(title, weight='bold', fontsize=fontsize)
+        axs[i].set_title(title, fontsize=fontsize)
         for c in comments:
             idf = adf[adf['comments'] == c]
             ys = idf['mean_' + metric].values
@@ -440,7 +442,7 @@ if lrs_plot_2:
         if not i == 0:
             axs[i].tick_params(axis='y', which='both', left=False, right=False, labelleft=False)
 
-                # x axis log scale
+            # x axis log scale
     axs[-1].set_xlabel('Learning rate', fontsize=fontsize)
     axs[0].set_ylabel(clean_title(metric), fontsize=fontsize)
 
@@ -453,18 +455,22 @@ if lrs_plot_2:
     if len(datasets) > 1:
         # add a vertical text to the plot, to indicate the dataset, one for each row
         for i, dataset in enumerate(datasets):
-            fig.text(0.277 + i * .4, 1.15, dataset, va='center',weight='bold', fontsize=.8*fontsize)
+            fig.text(0.265 + i * .456, 1.15, dataset, va='center', weight='bold', fontsize=1.1 * fontsize)
 
     else:
         fig.text(-0.03, 0.5, datasets[0], va='center', rotation='vertical', weight='bold')
 
     # plt.legend()
 
-    for ax in axs.reshape(-1):
+    for i, ax in enumerate(axs.reshape(-1)):
         for pos in ['right', 'left', 'bottom', 'top']:
             ax.spines[pos].set_visible(False)
         ax.locator_params(axis='y', nbins=5)
         ax.set_xscale('log')
+
+        pos = ax.get_position()
+        dx = 0 if i < 3 else .06
+        ax.set_position([pos.x0 + dx, pos.y0, pos.width, pos.height])
 
     plot_filename = os.path.join(EXPERIMENTS, f'{expsid}_relu.pdf')
     fig.savefig(plot_filename, bbox_inches='tight')
@@ -572,38 +578,31 @@ print('Maximal time elapsed is: {}'.format(df['time_elapsed'].max()))
 print('Minimal time elapsed is: {}'.format(df['time_elapsed'].min()))
 
 if remove_incomplete:
+    rdfs = []
     import shutil
 
-    # df = odf
-    ids = [
-        'findLSC_supn',
-        'findLSC_logradius',
-        'findLSC'
-    ]
-    rdfs = []
-    for c in ids:
-        rdf = df[df['comments'].str.contains(c)]
-        # print(rdf.shape)
-        # rdfs.append(rdf)
-
-    rdf = df[
-        df['batch_normalization'].eq(0)
-        & df['act'].eq('tanh')
-        & df['comments'].str.contains('findLSC')
-        ]
-    rdfs.append(rdf)
-
-    print(rdf.to_string())
-    print(rdf.shape, odf.shape)
+    print('here')
+    print(df.head().to_string())
+    df = df[df['comments'].str.contains('adabelief')]
+    # odf = odf[odf['comments'].str.contains('adabelief')]
+    print(df.head())
 
     # from LSC_norms final column, select those that are epsilon away from 1
     epsilon = 0.09
-    epsilon = 2.
-    rdf = df[abs(df['LSC_norms f'] - 1) > epsilon]
-    # print(rdf.to_string())
-    # print(rdf.shape, odf.shape)
+    # epsilon = 2.
+    print(list(df.columns))
+    rdf = df[abs(df['LSC f'] - 1) > epsilon]
+    print(rdf.to_string())
+    print(rdf.shape, odf.shape, df.shape)
 
-    # rdfs.append(rdf)
+    rdfs.append(rdf)
+
+    print('Remove if it didnt converge')
+    rdf = df[df['conveps'] < 8]
+
+    print(rdf.to_string())
+    print(rdf.shape, df.shape)
+    rdfs.append(rdf)
 
     # remove one seed from those that have more than 4 seeds
     brdf = mdf[mdf['counts'] > 4]
@@ -624,11 +623,14 @@ if remove_incomplete:
         # remainder
         rdf = srdf[~srdf.apply(tuple, 1).isin(gsrdf.apply(tuple, 1))]
         print(rdf.shape, odf.shape)
-        # print(rdf.to_string())
-        # rdfs.append(rdf)
+        print(rdf.to_string())
+        rdfs.append(rdf)
 
-    rdf = df[df['eps'] < 50]
-    # rdfs.append(rdf)
+    allrdfs = pd.concat(rdfs)
+    allrdfs = allrdfs.drop_duplicates()
+    print(f'Remove {allrdfs.shape} of {df.shape}')
+    # trueallrdfs = allrdfs.drop_duplicates(subset=['seed', 'task', 'net', 'comments', 'stack'])
+    # print(f'Remove actually {trueallrdfs.shape} of {df.shape}')
 
     if truely_remove:
         for rdf in rdfs:
@@ -653,14 +655,14 @@ if missing_exps:
     experiments = []
     if 'ffnandcnns' in expsid:
         coi = ['seed', 'activation', 'lr', 'comments', 'dataset', 'epochs', 'steps_per_epoch']
+        all_comments = ['', 'findLSC_supsubnpsd', 'findLSC_supnpsd2', 'findLSC_radius', 'heinit', ]
+        all_comments = [c + '_adabelief' for c in all_comments]
 
         experiment = {
-            'comments': [
-                '', 'findLSC', 'findLSC_supsubnpsd', 'findLSC_supnpsd2', 'findLSC_radius', 'heinit',
-            ],
+            'comments': all_comments,
             'activation': ['sin', 'relu', 'cos'], 'dataset': ['cifar10', 'cifar100'],
             'layers': [30], 'width': [128], 'lr': [1e-3, 3.16e-4, 1e-4, 3.16e-5, 1e-5],
-            'epochs': [50], 'steps_per_epoch': [-1], 'pretrain_epochs': [30], 'seed': list(range(4)),
+            'epochs': [50], 'steps_per_epoch': [-1], 'pretrain_epochs': [30], 'seed': [0, 1],  # list(range(4)),
         }
         experiments.append(experiment)
 

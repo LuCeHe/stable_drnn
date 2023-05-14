@@ -53,7 +53,7 @@ pandas_means = True
 show_per_tasknet = False
 make_latex = False
 make_good_latex = False
-missing_exps = True
+missing_exps = False
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -65,7 +65,7 @@ plot_bars = False
 plot_new_bars = False
 chain_norms = False
 
-remove_incomplete = False
+remove_incomplete = True
 truely_remove = False
 truely_remove_pretrained = False
 remove_saved_model = False
@@ -302,6 +302,15 @@ if not plot_only is None:
     # plotdf = plotdf[plotdf['task'].str.contains('PTB')]
     print(plotdf.to_string())
 
+    print('\n\n\n')
+    adf = plotdf[
+        plotdf['task'].str.contains('PTB')
+        & plotdf['net'].str.contains('ALIF')
+        & plotdf['comments'].str.contains('target')
+    ]
+    print(adf.to_string())
+
+
 if one_exp_curves:
     for _ in range(6):
         plt.close()
@@ -513,8 +522,8 @@ if make_good_latex:
     ttype = 'task'  # stack task
     data_split = 't_'  # t_ v_
     if ttype == 'task':
-        idf = idf[idf['stack'].eq('None')]
-        # idf = idf[idf['stack'].eq('5')]
+        # idf = idf[idf['stack'].eq('None')]
+        idf = idf[idf['stack'].eq('5')]
     else:
         idf = idf[~idf['stack'].eq('None')]
         idf = idf[idf['task'].eq('SHD')]
@@ -593,8 +602,8 @@ if make_good_latex:
     latex_df = latex_df.replace(r'\bottomrule', r'\midrule\bottomrule')
     latex_df = latex_df.replace('lsc', r'$\rho$')
 
-    latex_df = latex_df.replace('ssimplernn', 'RNN $\sigma$')
-    latex_df = latex_df.replace('rsimplernn', 'RNN $ReLU$')
+    latex_df = latex_df.replace('ssimplernn', 'RNN \, $\sigma$')
+    latex_df = latex_df.replace('rsimplernn', 'RNN \, $ReLU$')
     latex_df = latex_df.replace('sl-MNIST', r'sl-MNIST $\uparrow$')
     latex_df = latex_df.replace('SHD', r'SHD $\uparrow$')
     latex_df = latex_df.replace('PTB', r'PTB $\downarrow$')
