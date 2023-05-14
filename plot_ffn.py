@@ -24,11 +24,11 @@ GEXPERIMENTS = [
 plot_norms_evol = False
 plot_norms_evol_1 = False
 lrs_plot = False
-lrs_plot_2 = True
+lrs_plot_2 = False
 bar_plot = False
 plot_losses = False
-missing_exps = False
-remove_incomplete = True
+missing_exps = True
+remove_incomplete = False
 truely_remove = False
 
 metric = 'test_acc M'  # 'val_acc M'   'val_loss m' test_acc
@@ -647,6 +647,8 @@ if remove_incomplete:
                     shutil.rmtree(exps_path)
                 if os.path.exists(gexp_path):
                     os.remove(gexp_path)
+        os.remove(h5path)
+
 
 if missing_exps:
     # columns of interest
@@ -654,15 +656,15 @@ if missing_exps:
     # print(sdf.to_string())
     experiments = []
     if 'ffnandcnns' in expsid:
-        coi = ['seed', 'activation', 'lr', 'comments', 'dataset', 'epochs', 'steps_per_epoch']
+        coi = ['seed', 'act', 'lr', 'comments', 'dataset', 'eps', 'spe']
         all_comments = ['', 'findLSC_supsubnpsd', 'findLSC_supnpsd2', 'findLSC_radius', 'heinit', ]
         all_comments = [c + '_adabelief' for c in all_comments]
 
         experiment = {
             'comments': all_comments,
-            'activation': ['sin', 'relu', 'cos'], 'dataset': ['cifar10', 'cifar100'],
+            'act': ['sin', 'relu', 'cos'], 'dataset': ['cifar10', 'cifar100'],
             'layers': [30], 'width': [128], 'lr': [1e-3, 3.16e-4, 1e-4, 3.16e-5, 1e-5],
-            'epochs': [50], 'steps_per_epoch': [-1], 'pretrain_epochs': [30], 'seed': [0, 1],  # list(range(4)),
+            'eps': [50], 'spe': [-1], 'pretrain_epochs': [30], 'seed': [0, 1],  # list(range(4)),
         }
         experiments.append(experiment)
 
@@ -687,6 +689,20 @@ if missing_exps:
 
     ds = dict2iter(experiments)
     sdf = odf
+    print(sdf.head().to_string())
     sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
+    print(sdf.head().to_string())
+    df, experiments = complete_missing_exps(sdf, ds, coi)
+    new_exps = []
+    for e in experiments:
+        ne = e.copy()
+        ne.update({'pretrain_epochs': [50]})
+        ne.update({'epochs': [int(e['eps'][0])]})
+        ne.update({'steps_per_epoch': [int(e['spe'][0])]})
+        ne.update({'activation': e['act']})
+        del ne['act'], ne['eps'], ne['spe']
+        # print(ne)
+        new_exps.append(ne)
 
-    complete_missing_exps(sdf, ds, coi)
+    print('experiments = ', new_exps)
+    print(len(new_exps))
