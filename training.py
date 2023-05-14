@@ -189,7 +189,9 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
             new_batch_size = batch_size
 
             if 'ptb' in task_name:
+
                 new_batch_size = 8 if not 'maLSNN' in net_name else 3
+                new_batch_size = str2val(comments, 'nbs', int, default=new_batch_size)
                 new_comments = str2val(new_comments, 'batchsize', replace=new_batch_size)
 
             if 'heidelberg' in task_name and 'maLSNN' in net_name:
