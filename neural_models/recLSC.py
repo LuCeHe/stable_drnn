@@ -465,6 +465,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
             iterations += 1
 
             # if True:
+            # flaggedtry()
             try:
                 bt = batch[0][0][:, t, :][:, None]
                 wt = batch[0][1][:, t][:, None]
