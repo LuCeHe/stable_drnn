@@ -414,10 +414,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
     if 'onlyloadpretrained' in comments:
         steps_per_epoch = 1
-
-        time_steps = 10 if not 'test' in comments else 10
-        time_steps = str2val(comments, 'tsteps', int, default=time_steps)
-
+        time_steps = 10 if not 'test' in comments else time_steps
         learn = False
 
     if 'randlambda' in comments:
@@ -783,6 +780,7 @@ def test_1():
     weights, losses, all_norms = apply_LSC(gen_train, model_args, norm_pow, n_samples)
     plt.plot(losses)
     plt.show()
+
 
 
 def test_slogdet():
