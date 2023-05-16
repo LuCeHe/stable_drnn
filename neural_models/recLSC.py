@@ -461,9 +461,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
         for t in range(ts):
             iterations += 1
 
-            # if True:
-            # flaggedtry()
-            try:
+            if True:
+            # try:
                 bt = batch[0][0][:, t, :][:, None]
                 wt = batch[0][1][:, t][:, None]
 
@@ -645,7 +644,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                             # add noise to w with its shape
                             print(weights[0][0][0])
                             for w in weights:
-                                w += 10*tf.random.normal(w.shape)*tf.math.reduce_std(w)
+                                noise = tf.random.normal(w.shape)*tf.math.reduce_std(w)
+                                w += noise.numpy()
                                 new_weights.append(w)
                             weights = new_weights
                             print(weights[0][0][0])
@@ -694,9 +694,9 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                     f"fail rate {failures / iterations * 100:.1f}%; "
                 )
 
-            except Exception as e:
-                failures += 1
-                print(e)
+            # except Exception as e:
+            #     failures += 1
+            #     print(e)
 
         del batch
 
