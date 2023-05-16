@@ -68,7 +68,8 @@ def config():
     comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2'
     # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_test_onlypretrain_lscshuffw_gausslsc'
     # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain'
-    comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain_pretrained_lsclr:0.0001_nbs:1'
+    comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain_pretrained_lsclr:0.0001_nbs:16'
+    comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain_pretrained_lsclr:0.0001_nbs:16_targetnorm:.5'
     # comments = ''
 
 
@@ -189,11 +190,22 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
             new_comments = new_model_args['comments'] + '_reoldspike'
             new_batch_size = batch_size
 
+            # lsclr = 3.14e-4 if not net_name == 'LSTM' else 3.14e-3
+            # lsclr = 1e-2
+            # lsclr = 3.14e-2
+            lsclr = 7.2e-4 # 3.14e-3
+            # if 'LSNN' in net_name:
+            #     lsclr = 3.14e-4
+
             if 'ptb' in task_name:
 
                 new_batch_size = 8 if not 'maLSNN' in net_name else 3
+                if 'simplernn' in net_name:
+                    new_batch_size = 16
+                    lsclr = 0.001
                 new_batch_size = str2val(comments, 'nbs', int, default=new_batch_size)
                 new_comments = str2val(new_comments, 'batchsize', replace=new_batch_size)
+
 
             if 'heidelberg' in task_name and 'maLSNN' in net_name:
                 new_batch_size = 100
@@ -212,12 +224,6 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
             time_steps = str2val(comments, 'tsteps', int, default=2) if 'test' in comments else None
 
             print(json.dumps(new_model_args, indent=4, cls=NumpyEncoder))
-            # lsclr = 3.14e-4 if not net_name == 'LSTM' else 3.14e-3
-            # lsclr = 1e-2
-            # lsclr = 3.14e-2
-            lsclr = 7.2e-4 # 3.14e-3
-            # if 'LSNN' in net_name:
-            #     lsclr = 3.14e-4
             lsclr = str2val(comments, 'lsclr', float, default=lsclr)
 
             if 'deslice' in comments:

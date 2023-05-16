@@ -629,7 +629,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                 if not np.isnan(mean_loss.numpy()):
                     del weights
                     weights = model.get_weights()
-                    if 'lscshuffw' in comments:
+                    if 'lscshuffw' in comments or 'shuffwsometimes' in comments:
                         for w in weights:
                             oshape = w.shape
                             w = w.reshape(-1)
