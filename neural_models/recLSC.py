@@ -630,18 +630,24 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                     del weights
                     weights = model.get_weights()
                     if 'lscshuffw' in comments or 'shuffwsometimes' in comments:
+                        new_weights = []
                         for w in weights:
                             oshape = w.shape
                             w = w.reshape(-1)
                             np.random.shuffle(w)
                             w = w.reshape(oshape)
+                            new_weights.append(w)
+                        weights = new_weights
 
                         if 'shuffwsometimes' in comments:
                             print('adding noise!')
+                            new_weights = []
                             # add noise to w with its shape
                             print(weights[0][0])
                             for w in weights:
                                 w += 10*tf.random.normal(w.shape)*tf.math.reduce_std(w)
+                                new_weights.append(w)
+                            weights = new_weights
                             print(weights[0][0])
 
                 tf.keras.backend.clear_session()
