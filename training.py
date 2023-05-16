@@ -40,7 +40,7 @@ logger = logging.getLogger('alif_sg')
 def config():
     # environment properties
     GPU = None
-    seed = 41
+    seed = 43
 
     # task and net
     # ps_mnist heidelberg s_mnist
@@ -56,7 +56,7 @@ def config():
     # maLSNN cLSTM LSTM maLSNNb GRU indrnn LMU ssimplernn rsimplernn
     net = 'maLSNN'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
-    stack = 5
+    stack = None
     n_neurons = None
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task in language_tasks else False
@@ -68,8 +68,9 @@ def config():
     comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2'
     # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_test_onlypretrain_lscshuffw_gausslsc'
     # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain'
-    comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain_pretrained_lsclr:0.0001_nbs:16'
-    comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain_pretrained_lsclr:0.0001_nbs:16_targetnorm:.5'
+    comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain_pretrained_lsclr:0.0001_nbs:16_tsteps:10_shuffwsometimes'
+    # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain_pretrained_lsclr:0.0001_nbs:16_tsteps:10'
+    # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain_pretrained_lsclr:0.0001_nbs:16_targetnorm:.5'
     # comments = ''
 
 
@@ -203,6 +204,10 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
                 if 'simplernn' in net_name:
                     new_batch_size = 16
                     lsclr = 0.001
+
+                if 'maLSNN' in net_name:
+                    comments = comments + '_shuffwsometimes'
+
                 new_batch_size = str2val(comments, 'nbs', int, default=new_batch_size)
                 new_comments = str2val(new_comments, 'batchsize', replace=new_batch_size)
 

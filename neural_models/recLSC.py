@@ -462,7 +462,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
             iterations += 1
 
             if True:
-            # try:
+                # try:
                 bt = batch[0][0][:, t, :][:, None]
                 wt = batch[0][1][:, t][:, None]
 
@@ -578,11 +578,14 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
                 best_count += 1
                 mean_norm = tf.reduce_mean(some_norms)
+                lower_than_target = True
                 if not best_norm is None:
+                    lower_than_target = mean_norm.numpy() < target_norm
                     print(0)
-                    print(np.abs(mean_norm.numpy() - target_norm) )
+                    print(np.abs(mean_norm.numpy() - target_norm))
                     print(np.abs(best_norm - target_norm))
                     print(np.abs(mean_norm.numpy() - target_norm) < np.abs(best_norm - target_norm))
+                    print('lower', lower_than_target)
                     if np.abs(mean_norm.numpy() - target_norm) < np.abs(best_norm - target_norm):
                         print(1)
                         best_norm = mean_norm.numpy()
@@ -628,7 +631,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                 if not np.isnan(mean_loss.numpy()):
                     del weights
                     weights = model.get_weights()
-                    if 'lscshuffw' in comments or 'shuffwsometimes' in comments:
+                    if 'lscshuffw' in comments:
                         new_weights = []
                         for w in weights:
                             oshape = w.shape
@@ -638,17 +641,20 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                             new_weights.append(w)
                         weights = new_weights
 
-                        if 'shuffwsometimes' in comments:
-                            print('adding noise!')
-                            new_weights = []
-                            # add noise to w with its shape
-                            print(weights[0][0][0])
-                            for w in weights:
-                                noise = tf.random.normal(w.shape)*tf.math.reduce_std(w)
-                                w += noise.numpy()
-                                new_weights.append(w)
-                            weights = new_weights
-                            print(weights[0][0][0])
+                    if 'shuffwsometimes' in comments and lower_than_target:
+                        # multiplier = 1.1 if lower_than_target else 0.9
+                        # multiplier = 0.9 if lower_than_target else 1.1
+                        # print('multiplier!', multiplier)
+                        new_weights = []
+                        # add noise to w with its shape
+                        print(weights[0][0][0])
+                        for w in weights:
+                            noise = tf.random.uniform(w.shape, -1, 1) * tf.math.reduce_std(w)
+                            w += noise.numpy()
+                            # w = w * multiplier
+                            new_weights.append(w)
+                        weights = new_weights
+                        print(weights[0][0][0])
 
                 tf.keras.backend.clear_session()
                 tf.keras.backend.clear_session()
@@ -794,7 +800,6 @@ def test_1():
     weights, losses, all_norms = apply_LSC(gen_train, model_args, norm_pow, n_samples)
     plt.plot(losses)
     plt.show()
-
 
 
 def test_slogdet():
