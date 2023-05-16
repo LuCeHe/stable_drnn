@@ -641,7 +641,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                             # add noise to w with its shape
                             print(weights[0][0])
                             for w in weights:
-                                w += tf.random.normal(w.shape)*tf.math.reduce_std(w)
+                                w += 10*tf.random.normal(w.shape)*tf.math.reduce_std(w)
                             print(weights[0][0])
 
                 tf.keras.backend.clear_session()
