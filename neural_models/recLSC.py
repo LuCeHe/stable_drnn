@@ -637,9 +637,10 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                             w = w.reshape(oshape)
 
                         if 'shuffwsometimes' in comments:
+                            print('adding noise!')
                             # add noise to w with its shape
                             for w in weights:
-                                w += tf.random.normal(w.shape)*tf.math.reduce_std(w)/4
+                                w += tf.random.normal(w.shape)*tf.math.reduce_std(w)
 
                 tf.keras.backend.clear_session()
                 tf.keras.backend.clear_session()
