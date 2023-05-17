@@ -27,11 +27,11 @@ lrs_plot = False
 lrs_plot_2 = False
 bar_plot = False
 plot_losses = False
-missing_exps = True
-remove_incomplete = False
+missing_exps = False
+remove_incomplete = True
 truely_remove = False
 
-metric = 'test_acc M'  # 'val_acc M'   'val_loss m' test_acc
+metric = 'val_acc M'  # 'val_acc M'   'val_loss m' test_acc
 expsid = 'ffnandcnns'  # effnet als ffnandcnns transf
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 force_keep_column = ['LSC_norms list', 'val_sparse_categorical_accuracy list', 'val_loss list',
@@ -380,7 +380,7 @@ if lrs_plot:
 if lrs_plot_2:
     from matplotlib.lines import Line2D
 
-    mdf = mdf[~mdf['comments'].str.contains('adabelief')]
+    mdf = mdf[mdf['comments'].str.contains('adabelief')]
     mdf['comments'] = mdf['comments'].str.replace('_adabelief', '')
     mdf = mdf.sort_values(by='lr')
     print(mdf.to_string())
@@ -591,6 +591,7 @@ if remove_incomplete:
     epsilon = 0.09
     # epsilon = 2.
     print(list(df.columns))
+    print('Remove if too far from target radius')
     rdf = df[abs(df['LSC f'] - 1) > epsilon]
     print(rdf.to_string())
     print(rdf.shape, odf.shape, df.shape)

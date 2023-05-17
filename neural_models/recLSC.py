@@ -461,8 +461,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
         for t in range(ts):
             iterations += 1
 
-            if True:
-                # try:
+            # if True:
+            try:
                 bt = batch[0][0][:, t, :][:, None]
                 wt = batch[0][1][:, t][:, None]
 
@@ -631,7 +631,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                 if not np.isnan(mean_loss.numpy()):
                     del weights
                     weights = model.get_weights()
-                    if 'lscshuffw' in comments:
+                    if 'lscshuffw' in comments and learn:
                         new_weights = []
                         for w in weights:
                             oshape = w.shape
@@ -641,7 +641,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                             new_weights.append(w)
                         weights = new_weights
 
-                    if 'shuffwsometimes' in comments and lower_than_target:
+                    if 'shuffwsometimes' in comments and lower_than_target and learn:
                         # multiplier = 1.1 if lower_than_target else 0.9
                         # multiplier = 0.9 if lower_than_target else 1.1
                         # print('multiplier!', multiplier)
@@ -700,9 +700,9 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                     f"fail rate {failures / iterations * 100:.1f}%; "
                 )
 
-            # except Exception as e:
-            #     failures += 1
-            #     print(e)
+            except Exception as e:
+                failures += 1
+                print(e)
 
         del batch
 
