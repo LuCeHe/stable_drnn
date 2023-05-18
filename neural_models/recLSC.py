@@ -473,7 +473,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                 tf.keras.backend.clear_session()
                 model, tape = None, None
                 tf.keras.backend.clear_session()
-
+                print(0)
                 with tf.GradientTape(persistent=True, watch_accessed_variables=True) as tape:
                     tape.watch(wt)
                     tape.watch(bt)
@@ -483,6 +483,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                         model = build_model(**model_args)
                     else:
                         model, noemb_model, embedding_model = build_model(**model_args, get_embedding=True, timesteps=1)
+                    print(1)
 
                     if not any([np.isnan(w.mean()) for w in weights]):
                         model.set_weights(weights)
@@ -521,6 +522,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
                         if randlsc:
                             r1, r2, r3, r4 = np.random.rand(4)
+                        print(2)
 
                         if rec_norm and r1 < .5:
                             rnorm, loss, naswot_score = get_norms(tape=tape, lower_states=st,
@@ -533,6 +535,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                             if not naswot_score is None:
                                 all_naswot.append(tf.reduce_mean(naswot_score))
                             mean_loss += l() * loss
+
+                        print(3)
 
                         if encoder_norm and i == 0 and r2 < .5:
                             lower_states = [bflat]
@@ -548,6 +552,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                         sl = stp1
                         # hl = htp1
                         # cl = ctp1
+                        print(4)
+
                         if depth_norm and r3 < .5:
                             if not state_below is None:
                                 # hlm1, clm1 = state_below
@@ -563,6 +569,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
                         state_below = sl
                         del sl
+
+                        print(5)
 
                         if decoder_norm and i == len(stack) - 1 and r4 < .5:
                             output = outputs[0][:, 0, :]
@@ -619,6 +627,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                                 best_individual_norms[f'{nt} layer {i}'] = a[-1]
                             else:
                                 best_individual_norms[f'{nt} layer {i}'] = -1
+                print(6)
 
                 if learn:
                     grads = tape.gradient(mean_loss, model.trainable_weights)
@@ -663,6 +672,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                 tf.keras.backend.clear_session()
                 tf.keras.backend.clear_session()
                 tf.keras.backend.clear_session()
+                print(7)
 
                 if time.perf_counter() - time_start > 60 * 60 * 17:  # 17h
                     time_over = True
