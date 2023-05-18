@@ -665,7 +665,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                             if len(w.shape) >= 2:
                                 noise = tf.random.uniform(w.shape, -1, 1) * tf.math.reduce_std(w)
                                 print(type(noise), type(w))
-                                w += noise.numpy
+                                w += noise.numpy()
                             # w = w * multiplier
                             new_weights.append(w)
                         weights = new_weights
