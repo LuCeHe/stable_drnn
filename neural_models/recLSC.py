@@ -466,7 +466,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
             iterations += 1
 
             if True:
-            # try:
+                # try:
                 bt = batch[0][0][:, t, :][:, None]
                 wt = batch[0][1][:, t][:, None]
 
@@ -662,7 +662,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                         # add noise to w with its shape
                         print(weights[0][0][0])
                         for w in weights:
-                            if len(w.shape)>=2:
+                            if len(w.shape) >= 2:
                                 noise = tf.random.uniform(w.shape, -1, 1) * tf.math.reduce_std(w)
                                 w += noise
                             # w = w * multiplier
