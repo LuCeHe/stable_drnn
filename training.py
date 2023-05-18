@@ -205,8 +205,8 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
                     new_batch_size = 16
                     lsclr = 0.001
 
-                # if 'maLSNN' in net_name:
-                #     comments = comments + '_shuffwsometimes'
+                if 'maLSNN' in net_name:
+                    comments = comments + '_shuffwsometimes'
 
                 new_batch_size = str2val(comments, 'nbs', int, default=new_batch_size)
                 new_comments = str2val(new_comments, 'batchsize', replace=new_batch_size)
