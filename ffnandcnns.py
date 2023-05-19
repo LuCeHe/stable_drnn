@@ -37,7 +37,7 @@ def get_argparse():
     parser.add_argument("--batch_size", default=32, type=int, help="Batch size")
     parser.add_argument("--seed", default=0, type=int, help="Random seed")
     parser.add_argument("--epochs", default=1, type=int, help="Training Epochs")
-    parser.add_argument("--pretrain_epochs", default=40, type=int, help="Pretraining Epochs")  # 20
+    parser.add_argument("--pretrain_epochs", default=2, type=int, help="Pretraining Epochs")  # 20
     parser.add_argument("--steps_per_epoch", default=2, type=int, help="Batch size")  # -1
     parser.add_argument("--layers", default=30, type=int, help="Number of layers")
     parser.add_argument("--resize", default=32, type=int, help="Resize images", choices=[224, 128, 64, 32])
@@ -232,8 +232,14 @@ def main(args):
         optimizer = tf.keras.optimizers.Adam(learning_rate=args.lr)
     model.compile(optimizer, loss, metrics=['sparse_categorical_accuracy', 'sparse_categorical_crossentropy'])
     steps_per_epoch = args.steps_per_epoch if args.steps_per_epoch > 0 else None
+    epochs = args.epochs if args.epochs > 0 else None
+
+    if 'onlypretrain' in args.comments:
+        epochs = 0
+        steps_per_epoch = 0
+
     model.fit(
-        x_train, y_train, epochs=args.epochs, batch_size=args.batch_size, validation_data=(x_val, y_val),
+        x_train, y_train, epochs=epochs, batch_size=args.batch_size, validation_data=(x_val, y_val),
         callbacks=callbacks, steps_per_epoch=steps_per_epoch
     )
 

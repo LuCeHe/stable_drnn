@@ -48,6 +48,8 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
     np.random.seed(seed)
     tf.random.set_seed(seed)
 
+
+
     assert callable(build_model)
     round_to = 4
     li, pi, ni = None, None, None
@@ -111,16 +113,26 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                 model = None
                 print(e)
 
+    time_steps = generator.steps_per_epoch
+    epochs = generator.epochs
+    learn = True
+
+    if 'onlyloadpretrained' in comments:
+        time_steps = 10 if not 'test' in comments else time_steps
+        epochs = 1
+        learn = False
+
     time_start = time.perf_counter()
     time_over = False
+    best_norm = None
 
-    for epoch in range(generator.epochs):
+    for epoch in range(epochs):
         pbar = tqdm(total=generator.steps_per_epoch)
         if time_over:
             break
 
         generator.on_epoch_end()
-        for step in range(generator.steps_per_epoch):
+        for step in range(time_steps):
             tf.keras.backend.clear_session()
             tf.compat.v1.reset_default_graph()
 
@@ -348,11 +360,21 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                 all_norms.append(norm.numpy())
                 all_losses.append(loss.numpy())
 
-                grads = tape.gradient(loss, intermodel.trainable_weights)
-                # print([g.shape if not g is None else g for g in grads if len(g.shape) == 1])
-                # print('g shapes', [g.shape if not g is None else g for g in grads])
-                # print('w names ', [w.name for w in intermodel.trainable_weights])
-                optimizer.apply_gradients(zip(grads, intermodel.trainable_weights))
+                print(best_norm)
+
+                if 'pretrained' in comments and not model is None and not best_norm is None:
+                    if np.abs(float(norm) - 1) < np.abs(float(best_norm) - 1):
+                        try:
+                            model.save(path_pretrained)
+                        except Exception as e:
+                            print(e)
+                elif best_norm is None:
+                    best_norm = norm.numpy()
+
+                print(best_norm)
+                if learn:
+                    grads = tape.gradient(loss, intermodel.trainable_weights)
+                    optimizer.apply_gradients(zip(grads, intermodel.trainable_weights))
                 del intermodel
                 tf.keras.backend.clear_session()
                 tf.keras.backend.clear_session()

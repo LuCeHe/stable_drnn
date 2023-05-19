@@ -588,7 +588,7 @@ if remove_incomplete:
     print(df.head())
 
     # from LSC_norms final column, select those that are epsilon away from 1
-    epsilon = 0.09
+    epsilon = 0.02
     # epsilon = 2.
     print(list(df.columns))
     print('Remove if too far from target radius')
@@ -630,8 +630,8 @@ if remove_incomplete:
     allrdfs = pd.concat(rdfs)
     allrdfs = allrdfs.drop_duplicates()
     print(f'Remove {allrdfs.shape} of {df.shape}')
-    # trueallrdfs = allrdfs.drop_duplicates(subset=['seed', 'task', 'net', 'comments', 'stack'])
-    # print(f'Remove actually {trueallrdfs.shape} of {df.shape}')
+    trueallrdfs = allrdfs.drop_duplicates(subset=['seed', 'task', 'net', 'comments', 'stack'])
+    print(f'Remove actually {trueallrdfs.shape} of {df.shape}')
 
     if truely_remove:
         for rdf in rdfs:
