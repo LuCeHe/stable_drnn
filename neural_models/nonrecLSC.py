@@ -365,9 +365,11 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
 
                 if 'pretrained' in comments and not model is None and not best_norm is None:
                     if np.abs(float(norm) - 1) < np.abs(float(best_norm) - 1):
+                        print('Saving pretrained lsc weights with best norms')
                         model.save(path_pretrained)
                 elif best_norm is None:
-                    best_norm = norm.numpy()
+                    best_norm = norm.numpy().mean()
+                    print('Saving pretrained lsc weights with best norms')
                     model.save(path_pretrained)
 
                 print(best_norm)

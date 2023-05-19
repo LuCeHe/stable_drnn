@@ -201,7 +201,7 @@ def main(args):
 
         weights, lsc_results = apply_LSC_no_time(
             bm, generator=gen_val, max_dim=max_dim, norm_pow=2, forward_lsc=flsc,
-            nlayerjump=2, net_name='ffn',
+            nlayerjump=2, net_name='ffn',task_name=args.dataset,activation=args.activation,
             # layer_min=4, layer_max=None,  fanin=fanin,
             comments=args.comments
         )
