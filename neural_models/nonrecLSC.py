@@ -102,7 +102,8 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
 
     lsct = get_lsctype(comments)
     path_pretrained = os.path.join(
-        EXPERIMENTS, f"pretrained_s{seed}_{net_name}_{task_name}_{activation}_{lsct}.h5")
+        EXPERIMENTS, f"pretrained_s{seed}_{net_name}_{task_name}_{activation}_{lsct}.h5"
+    )
     if 'pretrained' in comments:
         if os.path.exists(path_pretrained):
             try:
@@ -364,12 +365,10 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
 
                 if 'pretrained' in comments and not model is None and not best_norm is None:
                     if np.abs(float(norm) - 1) < np.abs(float(best_norm) - 1):
-                        try:
-                            model.save(path_pretrained)
-                        except Exception as e:
-                            print(e)
+                        model.save(path_pretrained)
                 elif best_norm is None:
                     best_norm = norm.numpy()
+                    model.save(path_pretrained)
 
                 print(best_norm)
                 if learn:
