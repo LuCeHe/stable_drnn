@@ -27,8 +27,8 @@ lrs_plot = False
 lrs_plot_2 = False
 bar_plot = False
 plot_losses = False
-missing_exps = False
-remove_incomplete = True
+missing_exps = True
+remove_incomplete = False
 truely_remove = False
 
 metric = 'val_acc M'  # 'val_acc M'   'val_loss m' test_acc
@@ -630,8 +630,6 @@ if remove_incomplete:
     allrdfs = pd.concat(rdfs)
     allrdfs = allrdfs.drop_duplicates()
     print(f'Remove {allrdfs.shape} of {df.shape}')
-    trueallrdfs = allrdfs.drop_duplicates(subset=['seed', 'task', 'net', 'comments', 'stack'])
-    print(f'Remove actually {trueallrdfs.shape} of {df.shape}')
 
     if truely_remove:
         for rdf in rdfs:
@@ -649,7 +647,6 @@ if remove_incomplete:
                 if os.path.exists(gexp_path):
                     os.remove(gexp_path)
         os.remove(h5path)
-
 
 if missing_exps:
     # columns of interest
@@ -701,6 +698,7 @@ if missing_exps:
         ne.update({'epochs': [int(e['eps'][0])]})
         ne.update({'steps_per_epoch': [int(e['spe'][0])]})
         ne.update({'activation': e['act']})
+        ne.update({'comments': [e['comments'][0] + '_onlypretrain']})
         del ne['act'], ne['eps'], ne['spe']
         # print(ne)
         new_exps.append(ne)
