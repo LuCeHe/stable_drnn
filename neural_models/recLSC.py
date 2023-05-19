@@ -483,7 +483,6 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                         model = build_model(**model_args)
                     else:
                         model, noemb_model, embedding_model = build_model(**model_args, get_embedding=True, timesteps=1)
-                    print(1)
 
                     if not any([np.isnan(w.mean()) for w in weights]):
                         model.set_weights(weights)
@@ -522,7 +521,6 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
                         if randlsc:
                             r1, r2, r3, r4 = np.random.rand(4)
-                        print(2)
 
                         if rec_norm and r1 < .5:
                             rnorm, loss, naswot_score = get_norms(tape=tape, lower_states=st,
@@ -536,7 +534,6 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                                 all_naswot.append(tf.reduce_mean(naswot_score))
                             mean_loss += l() * loss
 
-                        print(3)
 
                         if encoder_norm and i == 0 and r2 < .5:
                             lower_states = [bflat]
@@ -552,7 +549,6 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                         sl = stp1
                         # hl = htp1
                         # cl = ctp1
-                        print(4)
 
                         if depth_norm and r3 < .5:
                             if not state_below is None:
@@ -570,7 +566,6 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                         state_below = sl
                         del sl
 
-                        print(5)
 
                         if decoder_norm and i == len(stack) - 1 and r4 < .5:
                             output = outputs[0][:, 0, :]
@@ -593,13 +588,12 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                 lower_than_target = True
                 if not best_norm is None:
                     lower_than_target = mean_norm.numpy() < target_norm
-                    print(0)
+
                     print(np.abs(mean_norm.numpy() - target_norm))
                     print(np.abs(best_norm - target_norm))
                     print(np.abs(mean_norm.numpy() - target_norm) < np.abs(best_norm - target_norm))
                     print('lower', lower_than_target)
                     if np.abs(mean_norm.numpy() - target_norm) < np.abs(best_norm - target_norm):
-                        print(1)
                         best_norm = mean_norm.numpy()
                         best_loss = mean_loss.numpy()
 
@@ -627,7 +621,6 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                                 best_individual_norms[f'{nt} layer {i}'] = a[-1]
                             else:
                                 best_individual_norms[f'{nt} layer {i}'] = -1
-                print(6)
 
                 if learn:
                     grads = tape.gradient(mean_loss, model.trainable_weights)
@@ -655,6 +648,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                         weights = new_weights
 
                     if 'shuffwsometimes' in comments and lower_than_target and learn:
+                        print('adding noise to weights!')
                         # multiplier = 1.1 if lower_than_target else 0.9
                         # multiplier = 0.9 if lower_than_target else 1.1
                         # print('multiplier!', multiplier)
@@ -664,7 +658,6 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                         for w in weights:
                             if len(w.shape) >= 2:
                                 noise = tf.random.uniform(w.shape, -1, 1) * tf.math.reduce_std(w)
-                                print(type(noise), type(w))
                                 w += noise.numpy()
                             # w = w * multiplier
                             new_weights.append(w)
@@ -674,7 +667,6 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                 tf.keras.backend.clear_session()
                 tf.keras.backend.clear_session()
                 tf.keras.backend.clear_session()
-                print(7)
 
                 if time.perf_counter() - time_start > 60 * 60 * 17:  # 17h
                     time_over = True

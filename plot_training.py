@@ -522,7 +522,7 @@ if make_good_latex:
     ttype = 'task'  # stack task
     data_split = 't_'  # t_ v_
     if ttype == 'task':
-        # idf = idf[idf['stack'].eq('None')]
+    #     idf = idf[idf['stack'].eq('None')]
         idf = idf[idf['stack'].eq('5')]
     else:
         idf = idf[~idf['stack'].eq('None')]
@@ -1296,9 +1296,9 @@ if remove_incomplete:
         plotdf['comments'].str.contains('findLSC')
         & plotdf['vs_epsilon']
         ]
-    # print(rdf.to_string())
-    # print(rdf.shape, df.shape)
-    # rdfs.append(rdf)
+    print(rdf.to_string())
+    print(rdf.shape, df.shape)
+    rdfs.append(rdf)
 
     # 105
 
@@ -1482,7 +1482,7 @@ if missing_exps:
 
     incomplete_comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained'
 
-    for add_flag in ['_onlypretrain']: # ['_onlyloadpretrained', '_onlypretrain']:
+    for add_flag in ['_onlyloadpretrained', '_onlypretrain']:
         if add_flag == '_onlyloadpretrained':
             good_lsc_options = [True, False]
         else:
