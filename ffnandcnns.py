@@ -244,12 +244,14 @@ def main(args):
         callbacks=callbacks, steps_per_epoch=steps_per_epoch
     )
 
-    evaluation = model.evaluate(x_test, y_test, return_dict=True, verbose=True, steps=steps_per_epoch,
+    if epochs > 0:
+        evaluation = model.evaluate(x_test, y_test, return_dict=True, verbose=True, steps=steps_per_epoch,
                                 batch_size=args.batch_size)
-    for k in evaluation.keys():
-        results['test_' + k] = evaluation[k]
+        for k in evaluation.keys():
+            results['test_' + k] = evaluation[k]
 
-    if args.epochs > 0:
+
+    if epochs > 0:
         history_df = pd.read_csv(history_path)
 
         history_dict = {k: history_df[k].tolist() for k in history_df.columns.tolist()}
