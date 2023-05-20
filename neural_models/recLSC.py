@@ -534,7 +534,6 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                                 all_naswot.append(tf.reduce_mean(naswot_score))
                             mean_loss += l() * loss
 
-
                         if encoder_norm and i == 0 and r2 < .5:
                             lower_states = [bflat]
                             norms, loss, naswot_score = get_norms(tape=tape, lower_states=lower_states,
@@ -565,7 +564,6 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
                         state_below = sl
                         del sl
-
 
                         if decoder_norm and i == len(stack) - 1 and r4 < .5:
                             output = outputs[0][:, 0, :]
@@ -657,7 +655,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                         print(weights[0][0][0])
                         for w in weights:
                             if len(w.shape) >= 2:
-                                noise = tf.random.uniform(w.shape, -1, 1) * tf.math.reduce_std(w)
+                                noise = 2 * tf.random.uniform(w.shape, -1, 1) * tf.math.reduce_std(w)
                                 w += noise.numpy()
                             # w = w * multiplier
                             new_weights.append(w)

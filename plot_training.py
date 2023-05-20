@@ -1482,7 +1482,7 @@ if missing_exps:
 
     incomplete_comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained'
 
-    for add_flag in ['_onlyloadpretrained', '_onlypretrain']:
+    for add_flag in ['_onlypretrain']: #['_onlyloadpretrained', '_onlypretrain']:
         if add_flag == '_onlyloadpretrained':
             good_lsc_options = [True, False]
         else:
@@ -1537,6 +1537,15 @@ if missing_exps:
                     experiments.append(experiment)
 
             ds = dict2iter(experiments)
+            # ssdf = sdf.copy()[
+            #     sdf['comments'].str.contains(add_flag)
+            #     & sdf['comments'].str.contains('findLSC')
+            # ]
+            # ssdf = ssdf.astype({'stack': 'string'})
+            # ssdf = ssdf.drop_duplicates(keep=False)
+            #
+            # print('ssdf', ssdf.head().to_string())
+            # print(len(ds), 'ssdf', ssdf.shape)
             ldf, experiments_left = complete_missing_exps(sdf, ds, coi)
             np.random.shuffle(experiments_left)
             experiments = experiments_left
@@ -1587,5 +1596,5 @@ if missing_exps:
             print('#', len(experiments))
 
             # for e in experiments:
-            #     if e['net'] == ['maLSNN']:
-            #         print(e)
+                # if e['net'] == ['maLSNN']:
+                # print(e)
