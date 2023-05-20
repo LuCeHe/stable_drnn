@@ -293,8 +293,8 @@ def load_LSC_model(path):
             'SparseCategoricalCrossentropy': tf.keras.losses.SparseCategoricalCrossentropy,
             'AdamW': AdamW2, 'DummyConstantSchedule': DummyConstantSchedule,
             'SymbolAndPositionEmbedding': SymbolAndPositionEmbedding,
-
-        }
+        },
+        compile = False
     )
     return model
 
@@ -609,6 +609,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
                         if 'pretrained' in comments and not model is None and learn:
                             print('Saving pretrained lsc weights with best norms')
+                            for i in range(len(model.weights)):
+                                model.weights[i]._handle_name = model.weights[i].name + "_" + str(i)
                             model.save(path_pretrained)
                 else:
 
