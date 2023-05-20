@@ -654,8 +654,10 @@ if missing_exps:
     # print(sdf.to_string())
     experiments = []
     if 'ffnandcnns' in expsid:
-        coi = ['seed', 'act', 'lr', 'comments', 'dataset', 'eps', 'spe']
-        all_comments = ['', 'findLSC_supsubnpsd', 'findLSC_supnpsd2', 'findLSC_radius', 'heinit', ]
+        # coi = ['seed', 'act', 'lr', 'comments', 'dataset', 'eps', 'spe']
+        coi = ['seed', 'act', 'comments', 'dataset', 'eps', 'spe']
+        # all_comments = ['', 'findLSC_supsubnpsd', 'findLSC_supnpsd2', 'findLSC_radius', 'heinit', ]
+        all_comments = ['findLSC_supsubnpsd', 'findLSC_supnpsd2', 'findLSC_radius', ]
         all_comments = [c + '_adabelief' for c in all_comments]
 
         experiment = {
