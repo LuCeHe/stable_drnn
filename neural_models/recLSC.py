@@ -647,7 +647,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                             new_weights.append(w)
                         weights = new_weights
 
-                    if 'shuffwsometimes' in comments and lower_than_target and learn:
+                    if 'waddnoise' in comments and lower_than_target and learn:
                         print('adding noise to weights!')
                         # multiplier = 1.1 if lower_than_target else 0.9
                         # multiplier = 0.9 if lower_than_target else 1.1

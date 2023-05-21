@@ -27,8 +27,8 @@ lrs_plot = False
 lrs_plot_2 = False
 bar_plot = False
 plot_losses = False
-missing_exps = True
-remove_incomplete = False
+missing_exps = False
+remove_incomplete = True
 truely_remove = False
 
 metric = 'val_acc M'  # 'val_acc M'   'val_loss m' test_acc
@@ -594,7 +594,7 @@ if remove_incomplete:
     print('Remove if too far from target radius')
     rdf = df[abs(df['LSC f'] - 1) > epsilon]
     print(rdf.to_string())
-    print(rdf.shape, odf.shape, df.shape)
+    print(rdf.shape, odf.shape, df.shape, df[df['comments'].str.contains('pretrain')].shape)
 
     rdfs.append(rdf)
 

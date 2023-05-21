@@ -52,8 +52,8 @@ one_exp_curves = False
 pandas_means = True
 show_per_tasknet = False
 make_latex = False
-make_good_latex = False
-missing_exps = True
+make_good_latex = True
+missing_exps = False
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -65,7 +65,7 @@ plot_bars = False
 plot_new_bars = False
 chain_norms = False
 
-remove_incomplete = False
+remove_incomplete = True
 truely_remove = False
 truely_remove_pretrained = False
 remove_saved_model = False
@@ -519,10 +519,10 @@ if make_good_latex:
     idf['task'] = pd.Categorical(idf['task'], categories=tab_types['task'], ordered=True)
 
     ntype = 'all'
-    ttype = 'task'  # stack task
+    ttype = 'stack'  # stack task
     data_split = 't_'  # t_ v_
     if ttype == 'task':
-    #     idf = idf[idf['stack'].eq('None')]
+        # idf = idf[idf['stack'].eq('None')]
         idf = idf[idf['stack'].eq('5')]
     else:
         idf = idf[~idf['stack'].eq('None')]
@@ -1301,12 +1301,38 @@ if remove_incomplete:
     rdfs.append(rdf)
 
     # 105
-
     print('Remove onlypretrain of the onlyloadpretrained that did not satisfy the lsc')
-    rdf['comments'] = rdf['comments'].str.replace('onlyloadpretrained', 'onlypretrain')
+    nrdf = rdf[rdf['comments'].str.contains('onlyloadpretrained')].copy()
+    # rdf['comments'] = rdf['comments'].str.replace('onlyloadpretrained', 'onlypretrain')
+    for _, row in nrdf.iterrows():
+        net = row['net']
+        task = row['task']
+        seed = row['seed']
+        stack = row['stack']
+        comments = row['comments'].replace('onlyloadpretrained', 'onlypretrain')
+        # print(net, task, seed, stack, comments)
+        rdf = plotdf[
+            plotdf['net'].eq(net)
+            & plotdf['task'].eq(task)
+            & plotdf['seed'].eq(seed)
+            & plotdf['stack'].eq(stack)
+            & plotdf['comments'].eq(comments)
+            ]
+        # print(rdf.to_string())
+        # print(row.to_string())
+        print(rdf.shape, df.shape)
+        rdfs.append(rdf)
+
+
+
+
     print(rdf.to_string())
     print(rdf.shape, df.shape)
-    rdfs.append(rdf)
+
+
+
+
+    # rdfs.append(rdf)
 
     # 105
 
@@ -1334,11 +1360,13 @@ if remove_incomplete:
     print('Check state of .5 maLSNN')
     rdf = plotdf[
         plotdf['comments'].str.contains('targetnorm:.5')
-        & plotdf['net'].str.contains('maLSNN')
-        & plotdf['task'].str.contains('wordptb')
+        & plotdf['net'].str.contains('ALIF')
+        & plotdf['task'].str.contains('PTB')
     ]
     print(rdf.to_string())
     print(rdf.shape, df.shape)
+    rdfs.append(rdf)
+
 
     print('Remove ppl and acc na and inf')
     rdf = plotdf[
@@ -1527,25 +1555,8 @@ if missing_exps:
                 }
                 experiments.append(experiment)
 
-                if add_flag == '_onlypretrain' and nt == 'lsnns':
-                    experiment = {
-                        'task': ['wordptb'],
-                        'net': nets, 'seed': seeds, 'stack': ['None'],
-                        'comments':
-                            [incomplete_comments + f'_findLSC_radius_targetnorm:.5' + add_flag],
-                    }
-                    experiments.append(experiment)
 
             ds = dict2iter(experiments)
-            # ssdf = sdf.copy()[
-            #     sdf['comments'].str.contains(add_flag)
-            #     & sdf['comments'].str.contains('findLSC')
-            # ]
-            # ssdf = ssdf.astype({'stack': 'string'})
-            # ssdf = ssdf.drop_duplicates(keep=False)
-            #
-            # print('ssdf', ssdf.head().to_string())
-            # print(len(ds), 'ssdf', ssdf.shape)
             ldf, experiments_left = complete_missing_exps(sdf, ds, coi)
             np.random.shuffle(experiments_left)
             experiments = experiments_left

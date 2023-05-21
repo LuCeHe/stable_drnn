@@ -198,15 +198,15 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
             # if 'LSNN' in net_name:
             #     lsclr = 3.14e-4
 
+            if 'maLSNN' in net_name or 'simplernn' in net_name:
+                comments = comments + '_waddnoise'
+
             if 'ptb' in task_name:
 
                 new_batch_size = 8 if not 'maLSNN' in net_name else 3
                 if 'simplernn' in net_name:
                     new_batch_size = 16
                     lsclr = 0.001
-
-                if 'maLSNN' in net_name:
-                    comments = comments + '_shuffwsometimes'
 
                 new_batch_size = str2val(comments, 'nbs', int, default=new_batch_size)
                 new_comments = str2val(new_comments, 'batchsize', replace=new_batch_size)
