@@ -52,8 +52,8 @@ one_exp_curves = False
 pandas_means = True
 show_per_tasknet = False
 make_latex = False
-make_good_latex = True
-missing_exps = False
+make_good_latex = False
+missing_exps = True
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -307,9 +307,8 @@ if not plot_only is None:
         plotdf['task'].str.contains('PTB')
         & plotdf['net'].str.contains('ALIF')
         & plotdf['comments'].str.contains('target')
-    ]
+        ]
     print(adf.to_string())
-
 
 if one_exp_curves:
     for _ in range(6):
@@ -1323,14 +1322,8 @@ if remove_incomplete:
         print(rdf.shape, df.shape)
         rdfs.append(rdf)
 
-
-
-
     print(rdf.to_string())
     print(rdf.shape, df.shape)
-
-
-
 
     # rdfs.append(rdf)
 
@@ -1356,17 +1349,15 @@ if remove_incomplete:
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
 
-
     print('Check state of .5 maLSNN')
     rdf = plotdf[
         plotdf['comments'].str.contains('targetnorm:.5')
         & plotdf['net'].str.contains('ALIF')
         & plotdf['task'].str.contains('PTB')
-    ]
+        ]
     print(rdf.to_string())
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
-
 
     print('Remove ppl and acc na and inf')
     rdf = plotdf[
@@ -1510,7 +1501,7 @@ if missing_exps:
 
     incomplete_comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained'
 
-    for add_flag in ['_onlypretrain']: #['_onlyloadpretrained', '_onlypretrain']:
+    for add_flag in ['_onlypretrain']:  # ['_onlyloadpretrained', '_onlypretrain']:
         if add_flag == '_onlyloadpretrained':
             good_lsc_options = [True, False]
         else:
@@ -1554,7 +1545,6 @@ if missing_exps:
                     'comments': comments,
                 }
                 experiments.append(experiment)
-
 
             ds = dict2iter(experiments)
             ldf, experiments_left = complete_missing_exps(sdf, ds, coi)
@@ -1607,5 +1597,5 @@ if missing_exps:
             print('#', len(experiments))
 
             # for e in experiments:
-                # if e['net'] == ['maLSNN']:
-                # print(e)
+            # if e['net'] == ['maLSNN']:
+            # print(e)
