@@ -27,8 +27,8 @@ lrs_plot = False
 lrs_plot_2 = False
 bar_plot = False
 plot_losses = False
-missing_exps = False
-remove_incomplete = True
+missing_exps = True
+remove_incomplete = False
 truely_remove = False
 
 metric = 'val_acc M'  # 'val_acc M'   'val_loss m' test_acc
@@ -658,7 +658,7 @@ if missing_exps:
         coi = ['seed', 'act', 'comments', 'dataset', 'eps', 'spe']
         # all_comments = ['', 'findLSC_supsubnpsd', 'findLSC_supnpsd2', 'findLSC_radius', 'heinit', ]
         all_comments = ['findLSC_supsubnpsd', 'findLSC_supnpsd2', 'findLSC_radius', ]
-        all_comments = [c + '_adabelief' for c in all_comments]
+        all_comments = [c + '_adabelief_onlypretrain' for c in all_comments]
 
         experiment = {
             'comments': all_comments,
@@ -689,6 +689,9 @@ if missing_exps:
 
     ds = dict2iter(experiments)
     sdf = odf
+    # add string pretrain to comments if it's not there
+    sdf['comments'] = sdf['comments'].apply(lambda x: x + '_onlypretrain' if 'onlypretrain' not in x else x)
+
     print(sdf.head().to_string())
     sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
     print(sdf.head().to_string())
@@ -696,11 +699,11 @@ if missing_exps:
     new_exps = []
     for e in experiments:
         ne = e.copy()
-        ne.update({'pretrain_epochs': [50]})
+        ne.update({'pretrain_epochs': [100]})
         ne.update({'epochs': [int(e['eps'][0])]})
         ne.update({'steps_per_epoch': [int(e['spe'][0])]})
         ne.update({'activation': e['act']})
-        ne.update({'comments': [e['comments'][0] + '_onlypretrain']})
+        # ne.update({'comments': [e['comments'][0] + '_onlypretrain']})
         del ne['act'], ne['eps'], ne['spe']
         # print(ne)
         new_exps.append(ne)

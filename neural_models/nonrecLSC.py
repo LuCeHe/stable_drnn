@@ -104,7 +104,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
     path_pretrained = os.path.join(
         EXPERIMENTS, f"pretrained_s{seed}_{net_name}_{task_name}_{activation}_{lsct}.h5"
     )
-    if 'pretrained' in comments:
+    if 'pretrained' in comments or 'onlypretrain' in comments:
         if os.path.exists(path_pretrained):
             try:
                 print('Loading pretrained lsc weights')
