@@ -46,8 +46,8 @@ def remove_nonrec_pretrained_extra(experiments, remove_opposite=True, folder=Non
     for exp in experiments:
         lsct = get_lsctype(exp['comments'][0])
         file = os.path.join(
-        GEXPERIMENTS, f"pretrained_s{exp['seed'][0]}_{exp['net'][0]}"
-                     f"_{exp['task'][0]}_{exp['activation'][0]}_{lsct}.h5"
+        GEXPERIMENTS, f"pretrained_s{exp['seed'][0]}_ffn"
+                     f"_{exp['dataset'][0]}_{exp['activation'][0]}_{lsct}.h5"
     )
         print(file)
         files.append(file)
