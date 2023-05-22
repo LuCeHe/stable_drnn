@@ -1,7 +1,7 @@
 import tensorflow as tf
 import tensorflow_addons as tfa
 
-import time, os
+import time, os, shutil
 import numpy as np
 from tensorflow_addons.optimizers import AdamW
 from tqdm import tqdm
@@ -13,8 +13,10 @@ from alif_sg.neural_models.recLSC import get_norms, get_lsctype
 
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
-EXPERIMENTS = os.path.abspath(os.path.join(CDIR, '..', 'good_experiments'))
-os.makedirs(EXPERIMENTS, exist_ok=True)
+# EXPERIMENTS = os.path.abspath(os.path.join(CDIR, '..', 'good_experiments'))
+# os.makedirs(EXPERIMENTS, exist_ok=True)
+GEXPERIMENTS = os.path.abspath(os.path.join(CDIR, '..', 'good_experiments'))
+os.makedirs(GEXPERIMENTS, exist_ok=True)
 
 os.environ["TF_GPU_ALLOCATOR"] = "cuda_malloc_async"
 
@@ -36,6 +38,48 @@ def get_weights_statistics(results, weight_names, weights):
         results[f'{n}_var'].append(v)
 
     return results
+
+
+def remove_nonrec_pretrained_extra(experiments, remove_opposite=True, folder=None):
+    files = []
+    print('Desired:')
+    for exp in experiments:
+        lsct = get_lsctype(exp['comments'][0])
+        file = os.path.join(
+        GEXPERIMENTS, f"pretrained_s{exp['seed'][0]}_{exp['net'][0]}"
+                     f"_{exp['task'][0]}_{exp['activation'][0]}_{lsct}.h5"
+    )
+        print(file)
+        files.append(file)
+
+    if folder is None:
+        folder = GEXPERIMENTS
+
+    safety_folder = os.path.abspath(os.path.join(folder, '..', 'safety'))
+    os.makedirs(safety_folder, exist_ok=True)
+
+    existing_pretrained = [d for d in os.listdir(folder) if 'pretrained_' in d and '.h5' in d and '_ffn_' in d]
+    pbar = tqdm(total=len(existing_pretrained))
+    removed = 0
+    for d in existing_pretrained:
+        # copy d file to safety folder
+        shutil.copy(os.path.join(folder, d), os.path.join(safety_folder, d))
+
+        if not d in files and remove_opposite:
+            # os.remove(os.path.join(folder, d))
+            removed += 1
+
+        if d in files and not remove_opposite:
+            # os.remove(os.path.join(folder, d))
+            removed += 1
+
+        pbar.update(1)
+        pbar.set_description(f"Removed {removed} of {len(existing_pretrained)}")
+
+    which_is_missing = [f for f in files if not f in existing_pretrained]
+    print('Missing:')
+    for f in which_is_missing:
+        print(f)
 
 
 def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_pow=2, forward_lsc=False,
@@ -102,7 +146,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
 
     lsct = get_lsctype(comments)
     path_pretrained = os.path.join(
-        EXPERIMENTS, f"pretrained_s{seed}_{net_name}_{task_name}_{activation}_{lsct}.h5"
+        GEXPERIMENTS, f"pretrained_s{seed}_{net_name}_{task_name}_{activation}_{lsct}.h5"
     )
     if 'pretrained' in comments or 'onlypretrain' in comments:
         if os.path.exists(path_pretrained):

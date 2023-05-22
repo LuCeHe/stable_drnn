@@ -1492,8 +1492,8 @@ if missing_exps:
     fsdf = sdf.copy()
 
     sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
-    print('Existing exps')
-    print(sdf.to_string())
+    # print('Existing exps')
+    # print(sdf.to_string())
 
     # add_flag = '_onlyloadpretrained'  # _onlyloadpretrained _onlypretrain
     # only_if_good_lsc = True
