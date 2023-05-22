@@ -664,7 +664,7 @@ if missing_exps:
             'comments': all_comments,
             'act': ['sin', 'relu', 'cos'], 'dataset': ['cifar10', 'cifar100'],
             'layers': [30], 'width': [128], 'lr': [1e-3, 3.16e-4, 1e-4, 3.16e-5, 1e-5],
-            'eps': [50], 'spe': [-1], 'pretrain_epochs': [30], 'seed': [0, 1],  # list(range(4)),
+            'eps': [50], 'spe': [-1], 'pretrain_epochs': [30], 'seed': list(range(4)),
         }
         experiments.append(experiment)
 
