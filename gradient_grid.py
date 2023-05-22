@@ -34,6 +34,9 @@ for nm in range(n_moves):
     np.random.shuffle(moves)
 
     c = colors(.4 + nm / (n_moves - 1) * .4)
+    pos = np.array([0.27, 0.25]) if nm == 0 else np.array([.1, .1]) if nm == 1 else np.array([.08, -.08])
+    plt.text(*pos, f"$c_{nm}$", fontsize=fontsize, rotation=0, color=c)
+
     xi, yi = -1, -1
     for move in moves:
         nxi, nyi = (xi - 1, yi) if not move == 0 else (xi - 1, yi - 1)
@@ -65,6 +68,9 @@ plt.text(1 / Nx - 1 / Nx / 5, 1 + .5 / Ny / 2, "t' + 1", fontsize=fontsize, rota
 # plt.text(.3 / Nx - 2 / Nx / 8, 1 / Ny / 4 + 1.5 / Ny, r"$\frac{\partial h_{t'+2, l+2}}{\partial h_{t'+1, l+1}}$",
 #          fontsize=fontsize+4, rotation=0)
 plt.text(.95 / Nx, 1 / Ny / 4 + 1.5 / Ny, r"$M_k$", fontsize=fontsize + 4, rotation=0)
+# make a nice dark blue
+color = (0, 0, 1, .5)
+plt.text(.8, 1.1, r"$J^{T,L}_{t',l}$", fontsize=fontsize, rotation=0, color=color)
 
 plt.axis('off')
 
