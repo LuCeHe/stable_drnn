@@ -46,9 +46,9 @@ def remove_nonrec_pretrained_extra(experiments, remove_opposite=True, folder=Non
     for exp in experiments:
         lsct = get_lsctype(exp['comments'][0])
         file = os.path.join(
-        GEXPERIMENTS, f"pretrained_s{exp['seed'][0]}_ffn"
-                     f"_{exp['dataset'][0]}_{exp['activation'][0]}_{lsct}.h5"
-    )
+            GEXPERIMENTS, f"pretrained_s{exp['seed'][0]}_ffn"
+                          f"_{exp['dataset'][0]}_{exp['activation'][0]}_{lsct}.h5"
+        )
         print(file)
         files.append(file)
 
@@ -58,7 +58,9 @@ def remove_nonrec_pretrained_extra(experiments, remove_opposite=True, folder=Non
     safety_folder = os.path.abspath(os.path.join(folder, '..', 'safety'))
     os.makedirs(safety_folder, exist_ok=True)
 
-    existing_pretrained = [d for d in os.listdir(folder) if 'pretrained_' in d and '.h5' in d and '_ffn_' in d]
+    existing_pretrained = [os.path.join(folder, d)
+                           for d in os.listdir(folder)
+                           if 'pretrained_' in d and '.h5' in d and '_ffn_' in d]
 
     which_is_missing = [f for f in files if not f in existing_pretrained]
     print('Missing:')
@@ -72,9 +74,9 @@ def remove_nonrec_pretrained_extra(experiments, remove_opposite=True, folder=Non
         # print(d)
         # copy d file to safety folder
         shutil.copy(os.path.join(folder, d), os.path.join(safety_folder, d))
-        print(os.path.join(folder, d))
-        print(d in files)
-        print(os.path.join(folder, d) in files)
+        # print(os.path.join(folder, d))
+        # print(d in files)
+        # print(os.path.join(folder, d) in files)
 
         if not d in files and remove_opposite:
             # os.remove(os.path.join(folder, d))
@@ -88,7 +90,6 @@ def remove_nonrec_pretrained_extra(experiments, remove_opposite=True, folder=Non
         pbar.set_description(f"Removed {removed} of {len(existing_pretrained)}")
 
 
-
 def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_pow=2, forward_lsc=False,
                       nlayerjump=None, comments='', epsilon=.06, patience=20, learning_rate=1.e-3,
                       subsample_axis=False,
@@ -99,13 +100,11 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
     np.random.seed(seed)
     tf.random.set_seed(seed)
 
-
-
     assert callable(build_model)
     round_to = 4
     li, pi, ni = None, None, None
 
-    lr = learning_rate[0] if isinstance(learning_rate,tuple) else learning_rate
+    lr = learning_rate[0] if isinstance(learning_rate, tuple) else learning_rate
 
     if 'adabelief' in comments:
         adabelief = tfa.optimizers.AdaBelief(lr=lr, weight_decay=1e-4)
@@ -244,9 +243,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                     else:
                         premodel, intermodel = split_model(model, pairs)
 
-
                     # print('letssee', batch.shape)
-
 
                     preinter = premodel(batch)
                     del premodel
@@ -255,7 +252,6 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                     if isinstance(allpreinter, list):
                         preinter = allpreinter[0]
                     tape.watch(preinter)
-
 
                     if 'deflect' in comments:
                         target_shape = preinter.shape[1:]
@@ -285,7 +281,6 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                         # so the derivative will be taken correctly
                         shuffinp, reminder, indices = sample_axis(flat_inp, max_dim=max_dim,
                                                                   return_deshuffling=True)
-
 
                         defhuffledinp = desample_axis(shuffinp, reminder, indices)
 
@@ -446,7 +441,6 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
             except Exception as e:
                 print(e)
                 n_failures += 1
-
 
             if li is None:
                 li = show_loss
