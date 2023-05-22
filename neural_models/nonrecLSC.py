@@ -61,7 +61,9 @@ def remove_nonrec_pretrained_extra(experiments, remove_opposite=True, folder=Non
     existing_pretrained = [d for d in os.listdir(folder) if 'pretrained_' in d and '.h5' in d and '_ffn_' in d]
     pbar = tqdm(total=len(existing_pretrained))
     removed = 0
+    print('\nRemoving:')
     for d in existing_pretrained:
+        print(d)
         # copy d file to safety folder
         shutil.copy(os.path.join(folder, d), os.path.join(safety_folder, d))
 
