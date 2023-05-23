@@ -8,6 +8,8 @@ from alif_sg.tools.config import default_eff_lr
 silence_tf()
 
 import tensorflow as tf
+import tensorflow_addons as tfa
+
 import pandas as pd
 
 from sklearn.model_selection import train_test_split
@@ -48,7 +50,8 @@ def get_argparse():
     parser.add_argument("--lr", default=-1, type=float, help="Learning rate")
     parser.add_argument("--batch_normalization", default=0, type=int, help="Batch normalization")
     parser.add_argument("--comments",
-                        default='newarch_deflect_truersplit_pretrained_findLSC_preprocessinput_meanaxis_uniform',
+                        default='newarch_lscvar',
+                        # default='newarch',
                         # default='newarch_pretrained_deslice_findLSC_onlyprem_preprocessinput_meanaxis',
                         # default='newarch_pretrained_deslice_findLSC_truersplit_preprocessinput',
                         type=str, help="String to activate extra behaviors")
@@ -142,6 +145,29 @@ def main(args):
 
         results.update(lsc_results)
         results.update(lsclr=lsclr)
+    elif 'lscvar' in args.comments:
+        model = build_model(args, input_shape, classes)
+        loss = lambda x, y: 0
+        lsclr = str2val(args.comments, 'lsclr', float, default=1.0e-3)
+        adabelief = tfa.optimizers.AdaBelief(lr=lsclr, weight_decay=1e-4)
+        optimizer = tfa.optimizers.Lookahead(adabelief, sync_period=6, slow_step_size=0.5)
+        model.compile(optimizer, loss)
+        steps_per_epoch = args.steps_per_epoch if args.steps_per_epoch > 0 else None
+        lsc_history = model.fit(
+            x_train, y_train, epochs=2, batch_size=args.batch_size, validation_data=(x_val, y_val),
+            callbacks=[], steps_per_epoch=steps_per_epoch
+        )
+        print(args.comments)
+        args.comments = args.comments.replace('_lscvar', '')
+        print(args.comments)
+        weights = model.get_weights()
+        model = build_model(args, input_shape, classes)
+        model.set_weights(weights)
+        print(lsc_history.history)
+        results.update(LSC_losses=np.array(lsc_history.history['val_loss']) / 18,
+                       LSC_norms=np.array(lsc_history.history['val_loss']) / 18 + 1)
+
+
     else:
         model = build_model(args, input_shape, classes)
     model.summary()

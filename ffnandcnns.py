@@ -166,8 +166,8 @@ def main(args):
 
     if args.net_type == 'effnet':
         # make mnist grayscale -> rgb
-        x_train = x_train if x_train.shape[-1] == 3 else tf.image.resize(x_train[..., None], [32, 32]).numpy().repeat(3,
-                                                                                                                      -1)
+        x_train = x_train if x_train.shape[-1] == 3 else \
+            tf.image.resize(x_train[..., None], [32, 32]).numpy().repeat(3, -1)
         x_test = x_test if x_test.shape[-1] == 3 else tf.image.resize(x_test[..., None], [32, 32]).numpy().repeat(3, -1)
 
     x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=0.10, random_state=42)
@@ -202,7 +202,7 @@ def main(args):
 
         weights, lsc_results = apply_LSC_no_time(
             bm, generator=gen_val, max_dim=max_dim, norm_pow=2, forward_lsc=flsc,
-            nlayerjump=2, net_name='ffn', task_name=args.dataset,activation=act_name, seed=args.seed,
+            nlayerjump=2, net_name='ffn', task_name=args.dataset, activation=act_name, seed=args.seed,
             # layer_min=4, layer_max=None,  fanin=fanin,
             comments=args.comments
         )
@@ -246,10 +246,9 @@ def main(args):
 
     if epochs > 0:
         evaluation = model.evaluate(x_test, y_test, return_dict=True, verbose=True, steps=steps_per_epoch,
-                                batch_size=args.batch_size)
+                                    batch_size=args.batch_size)
         for k in evaluation.keys():
             results['test_' + k] = evaluation[k]
-
 
     if epochs > 0:
         history_df = pd.read_csv(history_path)

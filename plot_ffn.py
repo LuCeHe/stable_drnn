@@ -16,23 +16,23 @@ EXPERIMENTS = r'D:\work\alif_sg\experiments'
 GEXPERIMENTS = [
     # os.path.join(CDIR, 'good_experiments', '2022-12-16--ffn'),
     # os.path.join(CDIR, 'good_experiments'),
-    r'D:\work\alif_sg\good_experiments\2022-12-16--ffn'
-    # r'D:\work\alif_sg\good_experiments\2023-01-01--effnet',
+    # r'D:\work\alif_sg\good_experiments\2022-12-16--ffn'
+    r'D:\work\alif_sg\good_experiments\2023-01-01--effnet',
     # r'D:\work\alif_sg\good_experiments\2023-01-15--transf',
 ]
 
 plot_norms_evol = False
 plot_norms_evol_1 = False
-lrs_plot = False
+lrs_plot = True
 lrs_plot_2 = False
 bar_plot = False
 plot_losses = False
-missing_exps = True
+missing_exps = False
 remove_incomplete = False
 truely_remove = False
 
 metric = 'val_acc M'  # 'val_acc M'   'val_loss m' test_acc
-expsid = 'ffnandcnns'  # effnet als ffnandcnns transf
+expsid = 'effnet'  # effnet als ffnandcnns transf
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 force_keep_column = ['LSC_norms list', 'val_sparse_categorical_accuracy list', 'val_loss list',
                      'encoder_norm list', 'decoder_norm list']
@@ -215,12 +215,12 @@ if 'ffnandcnns' in expsid:
     ]
 
 elif 'effnet' in expsid:
-    metrics_oi = ['val_acc M', 'test_acc M', 'LSC_norms i', 'LSC_norms f']
+    metrics_oi = ['val_acc M', 'test_acc M', 'LSC i', 'LSC f']
     plot_only = [
         'act', 'eps', 'dataset', 'batch_normalization',
         'seed', 'lr', 'comments',
         'val_acc M', 'val_loss m', 'test_acc M', 'test_loss m',
-        'LSC_norms i', 'LSC_norms f',
+        'LSC i', 'LSC f',
         'ep M', 'time_elapsed', 'hostname', 'path',
     ]
     group_cols = ['lr', 'comments', 'act', 'dataset', 'batch_normalization']

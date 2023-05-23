@@ -29,12 +29,14 @@ from tensorflow.python.keras import backend
 # from tensorflow.python.keras.applications import imagenet_utils
 from tensorflow.python.keras.engine import training
 # from tensorflow.python.keras.layers import VersionAwareLayers
-import tensorflow.keras.layers as layers
+import keras.layers as layers
 from tensorflow.python.keras.utils import data_utils
 from tensorflow.python.keras.utils import layer_utils
 from tensorflow.python.lib.io import file_io
 from tensorflow.python.util.tf_export import keras_export
 import tensorflow as tf
+
+from keras_tools.esoteric_regularizers.general_regularizer import GeneralActivityRegularization
 
 BASE_WEIGHTS_PATH = 'https://storage.googleapis.com/keras-applications/'
 
@@ -205,6 +207,10 @@ BASE_DOCSTRING = """Instantiates the {name} architecture.
 """
 
 
+def act_reg(activity):
+    return tf.math.abs(tf.math.reduce_variance(activity) - 1)
+
+
 def EfficientNet(
         width_coefficient,
         depth_coefficient,
@@ -333,6 +339,8 @@ def EfficientNet(
             padding=imagenet_utils.correct_pad(x, 3),
             name='stem_conv_pad')(x)
 
+    reg = None if not 'lscvar' in comments else act_reg
+
     x = layers.Conv2D(
         round_filters(32),
         3,
@@ -340,6 +348,7 @@ def EfficientNet(
         padding='valid',
         use_bias=False,
         kernel_initializer=CONV_KERNEL_INITIALIZER,
+        activity_regularizer=reg,
         name='stem_conv')(x)
     if batch_normalization:
         x = layers.BatchNormalization(axis=bn_axis, name='stem_bn')(x)
@@ -380,6 +389,7 @@ def EfficientNet(
         padding='same',
         use_bias=False,
         kernel_initializer=CONV_KERNEL_INITIALIZER,
+        activity_regularizer=reg,
         name='top_conv')(x)
 
     if batch_normalization:
@@ -552,6 +562,9 @@ def block(
             x = layers.Dropout(
                 drop_rate, noise_shape=(None, 1, 1, 1), name=name + 'drop')(x)
         x = layers.add([x, inputs], name=name + 'add')
+
+    if 'lscvar' in comments:
+        x = GeneralActivityRegularization(act_reg)(x)
     return x
 
 
