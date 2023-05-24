@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 from GenericTools.keras_tools.convenience_operations import sample_axis, desample_axis
 from GenericTools.keras_tools.expose_latent import split_model, truer_split_model
-from GenericTools.stay_organized.utils import flaggedtry
+from GenericTools.stay_organized.utils import flaggedtry, str2val
 from alif_sg.neural_models.recLSC import get_norms, get_lsctype
 
 FILENAME = os.path.realpath(__file__)
@@ -92,7 +92,7 @@ def remove_nonrec_pretrained_extra(experiments, remove_opposite=True, folder=Non
 
 
 def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_pow=2, forward_lsc=False,
-                      nlayerjump=None, comments='', epsilon=.06, patience=20, learning_rate=1.e-4,
+                      nlayerjump=None, comments='', epsilon=.02, patience=20, learning_rate=1.e-4,
                       subsample_axis=False,
                       skip_in_layers=[], skip_out_layers=[],
                       keep_in_layers=None, keep_out_layers=None,
@@ -150,6 +150,8 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
     show_loss, show_norm, show_avw, show_factor = None, None, None, None
     n_failures = 0
     loss, model = None, None
+    target_norm = str2val(comments, 'targetnorm', float, default=1)
+
 
     lsct = get_lsctype(comments)
     path_pretrained = os.path.join(
@@ -192,7 +194,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                 time_over = True
                 break
 
-            if not ma_norm is None and abs(ma_norm - 1.) < epsilon:
+            if not ma_norm is None and abs(ma_norm - target_norm) < epsilon:
                 epsilon_steps += 1
             else:
                 epsilon_steps = 0
@@ -389,7 +391,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                         oup = sample_axis(reoup, max_dim=max_dim)
                         norms, iloss, naswot_score = get_norms(tape, [inp], [oup], n_samples=n_samples,
                                                                norm_pow=norm_pow, comments=comments)
-                        if (norms.numpy() == 1).all():
+                        if (norms.numpy() == target_norm).all():
                             raise ValueError('Norms are all 1, since the input and output are the same. '
                                              'This happens because the architecture is complex and now '
                                              'we are not able to find a path from the input to the output '
@@ -410,12 +412,14 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
 
                 print(best_norm)
 
+                lower_than_target = norm.numpy().mean() < target_norm
                 if 'pretrained' in comments and not model is None and not best_norm is None:
-                    if np.abs(float(norm) - 1) < np.abs(float(best_norm) - 1):
+                    if np.abs(float(norm) - target_norm) < np.abs(float(best_norm) - target_norm):
                         print('Saving pretrained lsc weights with best norms')
                         model.save(path_pretrained)
                 elif best_norm is None:
                     best_norm = norm.numpy().mean()
+
                     print('Saving pretrained lsc weights with best norms')
                     model.save(path_pretrained)
 
@@ -427,12 +431,21 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                 tf.keras.backend.clear_session()
                 tf.keras.backend.clear_session()
 
+
                 new_weights = model.get_weights()
                 av_weights = tf.reduce_mean([tf.reduce_mean(tf.cast(t, tf.float32)) for t in new_weights])
                 if not tf.math.is_nan(av_weights):
                     weights = new_weights
 
-                # results = get_weights_statistics(results, weight_names, weights)
+                    if 'waddnoise' in comments and lower_than_target and learn:
+                        print('adding noise to weights!')
+                        new_weights = []
+                        for w in weights:
+                            if len(w.shape) >= 2:
+                                noise = 4 * tf.random.uniform(w.shape, -1, 1) * tf.math.reduce_std(w)
+                                w += noise.numpy()
+                            new_weights.append(w)
+                        weights = new_weights
 
                 # show_factor = str(np.array(ma_factor).round(3))
                 show_loss = str(ma_loss.numpy().round(round_to))
@@ -467,7 +480,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
     fail_rate = n_failures / generator.epochs / generator.steps_per_epoch
 
     if 'pretrained' in comments and not model is None:
-        if (float(show_norm) - 1) < (float(ni) - 1):
+        if (float(show_norm) - target_norm) < (float(ni) - target_norm):
             try:
                 model.save(path_pretrained)
             except Exception as e:
