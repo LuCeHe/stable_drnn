@@ -53,7 +53,7 @@ pandas_means = True
 show_per_tasknet = False
 make_latex = False
 make_good_latex = False
-missing_exps = True
+missing_exps = False
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -65,7 +65,7 @@ plot_bars = False
 plot_new_bars = False
 chain_norms = False
 
-remove_incomplete = False
+remove_incomplete = True
 truely_remove = False
 truely_remove_pretrained = False
 remove_saved_model = False
@@ -1298,16 +1298,15 @@ if remove_incomplete:
     print(rdf.to_string())
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
+    # 105
 
     print('Check if LSC didnt change much')
     irdf = rdf[
         abs(rdf['LSC f'] - rdf['LSC i']) < lsc_epsilon
         ]
     print(irdf.to_string())
+    print(irdf.shape, df.shape)
 
-
-
-    # 105
     print('Remove onlypretrain of the onlyloadpretrained that did not satisfy the lsc')
     nrdf = rdf[rdf['comments'].str.contains('onlyloadpretrained')].copy()
     # rdf['comments'] = rdf['comments'].str.replace('onlyloadpretrained', 'onlypretrain')

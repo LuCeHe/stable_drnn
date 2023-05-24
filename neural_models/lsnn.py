@@ -1,10 +1,7 @@
-import tensorflow_probability as tfp
 
 from GenericTools.keras_tools.esoteric_initializers import FuncOnInitializer
 from GenericTools.keras_tools.esoteric_layers.surrogated_step import *
 from GenericTools.stay_organized.utils import str2val
-
-tfd = tfp.distributions
 
 
 class non_spiking_LIF(tf.keras.layers.Layer):
