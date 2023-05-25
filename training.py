@@ -193,7 +193,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
             # lsclr = 3.14e-4 if not net_name == 'LSTM' else 3.14e-3
             # lsclr = 1e-2
             # lsclr = 3.14e-2
-            lsclr = 7.2e-3 # 3.14e-3 # 7.2e-4 # 7.2e-3 #
+            lsclr = 1e-2 # 3.14e-3 # 7.2e-4 # 7.2e-3 #
             # if 'LSNN' in net_name:
             #     lsclr = 3.14e-4
 
@@ -205,7 +205,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
                 new_batch_size = 8 if not 'maLSNN' in net_name else 3
                 if 'simplernn' in net_name:
                     new_batch_size = 16
-                    lsclr = 0.001
+                    # lsclr = 0.001
 
                 new_batch_size = str2val(comments, 'nbs', int, default=new_batch_size)
                 new_comments = str2val(new_comments, 'batchsize', replace=new_batch_size)
