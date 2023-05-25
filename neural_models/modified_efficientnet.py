@@ -27,16 +27,14 @@ import math
 from keras.applications import imagenet_utils
 from tensorflow.python.keras import backend
 # from tensorflow.python.keras.applications import imagenet_utils
-from tensorflow.python.keras.engine import training
 # from tensorflow.python.keras.layers import VersionAwareLayers
 import keras.layers as layers
 from tensorflow.python.keras.utils import data_utils
 from tensorflow.python.keras.utils import layer_utils
 from tensorflow.python.lib.io import file_io
-from tensorflow.python.util.tf_export import keras_export
 import tensorflow as tf
 
-from keras_tools.esoteric_regularizers.general_regularizer import GeneralActivityRegularization
+from keras_tools import GeneralActivityRegularization
 
 BASE_WEIGHTS_PATH = 'https://storage.googleapis.com/keras-applications/'
 

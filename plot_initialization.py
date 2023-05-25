@@ -1,12 +1,10 @@
-import os, logging
+import os
 import numpy as np
 import tensorflow as tf
-import matplotlib as mpl
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
-from GenericTools.stay_organized.mpl_tools import load_plot_settings
-from GenericTools.stay_organized.utils import setReproducible, str2val
+from GenericTools.stay_organized.utils import setReproducible
 from GenericTools.keras_tools.esoteric_losses.loss_redirection import get_loss
 from keras_tools.esoteric_initializers.out_initializer import OutInitializer
 # from alif_sg.generate_data.task_redirection import Task, language_tasks
@@ -16,7 +14,6 @@ from stochastic_spiking.generate_data.task_redirection import language_tasks
 
 # mpl = load_plot_settings(mpl=mpl, pd=None)
 
-from alif_sg.neural_models.lsnn import aLSNN
 from stochastic_spiking.visualization_tools.training_tests import get_test_model
 
 from scipy import special as sp
