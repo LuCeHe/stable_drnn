@@ -4,8 +4,8 @@ import tensorflow as tf
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
-from GenericTools.stay_organized.utils import setReproducible
-from GenericTools.keras_tools.esoteric_losses.loss_redirection import get_loss
+from pyaromatics.stay_organized.utils import setReproducible
+from pyaromatics.keras_tools.esoteric_losses.loss_redirection import get_loss
 from keras_tools.esoteric_initializers.out_initializer import OutInitializer
 # from alif_sg.generate_data.task_redirection import Task, language_tasks
 # from alif_sg.neural_models.custom_lstm import customLSTMcell

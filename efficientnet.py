@@ -1,8 +1,8 @@
 import argparse, os, time, json, shutil, socket, random, copy
 import numpy as np
 
-from GenericTools.keras_tools.esoteric_activations.smoothrelus import Guderman_T, Swish_T
-from GenericTools.keras_tools.silence_tensorflow import silence_tf
+from pyaromatics.keras_tools.esoteric_activations.smoothrelus import Guderman_T, Swish_T
+from pyaromatics.keras_tools.silence_tensorflow import silence_tf
 from alif_sg.tools.config import default_eff_lr
 
 silence_tf()
@@ -14,10 +14,10 @@ import pandas as pd
 
 from sklearn.model_selection import train_test_split
 
-from GenericTools.keras_tools.esoteric_callbacks import LearningRateLogger, TimeStopping
-from GenericTools.keras_tools.esoteric_tasks.numpy_generator import NumpyClassificationGenerator
-from GenericTools.keras_tools.plot_tools import plot_history
-from GenericTools.stay_organized.utils import NumpyEncoder, str2val
+from pyaromatics.keras_tools.esoteric_callbacks import LearningRateLogger, TimeStopping
+from pyaromatics.keras_tools.esoteric_tasks.numpy_generator import NumpyClassificationGenerator
+from pyaromatics.keras_tools.plot_tools import plot_history
+from pyaromatics.stay_organized.utils import NumpyEncoder, str2val
 from alif_sg.neural_models.modified_efficientnet import EfficientNetB0
 
 from alif_sg.neural_models.nonrecLSC import apply_LSC_no_time

@@ -10,7 +10,7 @@ from alif_sg.neural_models.transformer_model import EncoderLayer, DecoderLayer, 
 from alif_sg.neural_models.transformer_model import build_model
 from tensorflow_addons.optimizers import AdamW
 
-from GenericTools.stay_organized.utils import str2val
+from pyaromatics.stay_organized.utils import str2val
 
 
 def get_enc_model(attention_head_count, d_model, d_point_wise_ff, dropout_prob, activation, comments, layer_index,

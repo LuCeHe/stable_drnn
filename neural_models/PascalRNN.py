@@ -60,7 +60,7 @@ if __name__ == '__main__':
             it = 2 * tf.random.normal((batch_size, T, 1))
 
         else:
-            from GenericTools.keras_tools.esoteric_tasks.time_task_redirection import Task
+            from pyaromatics.keras_tools.esoteric_tasks.time_task_redirection import Task
 
             comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2'
             stack, batch_size, embedding, n_neurons, lr = default_config(

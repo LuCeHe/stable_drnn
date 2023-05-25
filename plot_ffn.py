@@ -1,4 +1,4 @@
-from GenericTools.stay_organized.submit_jobs import dict2iter
+from pyaromatics.stay_organized.submit_jobs import dict2iter
 from alif_sg.tools.plot_tools import lsc_colors, lsc_clean_comments, clean_title
 
 import os
@@ -6,8 +6,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from GenericTools.stay_organized.pandardize import experiments_to_pandas, complete_missing_exps
-from GenericTools.stay_organized.standardize_strings import shorten_losses
+from pyaromatics.stay_organized.pandardize import experiments_to_pandas, complete_missing_exps
+from pyaromatics.stay_organized.standardize_strings import shorten_losses
 
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)

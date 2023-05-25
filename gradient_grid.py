@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib as mpl
 
-from GenericTools.stay_organized.mpl_tools import load_plot_settings
+from pyaromatics.stay_organized.mpl_tools import load_plot_settings
 
 # mpl = load_plot_settings(mpl=mpl)
 

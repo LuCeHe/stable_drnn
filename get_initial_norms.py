@@ -1,6 +1,6 @@
 import os, shutil, logging, json, copy
 
-from GenericTools.keras_tools.silence_tensorflow import silence_tf
+from pyaromatics.keras_tools.silence_tensorflow import silence_tf
 
 silence_tf()
 
@@ -15,11 +15,11 @@ os.environ["TF_CPP_VMODULE"] = "gpu_process_state=10,gpu_cudamallocasync_allocat
 
 tf.compat.v1.enable_eager_execution()
 
-from GenericTools.keras_tools.esoteric_initializers import esoteric_initializers_list, get_initializer
-from GenericTools.stay_organized.VeryCustomSacred import CustomExperiment, ChooseGPU
-from GenericTools.stay_organized.utils import timeStructured, setReproducible, str2val, NumpyEncoder, save_results
-from GenericTools.keras_tools.esoteric_tasks.time_task_redirection import Task, checkTaskMeanVariance, language_tasks
-from GenericTools.stay_organized.submit_jobs import dict2iter
+from pyaromatics.keras_tools.esoteric_initializers import esoteric_initializers_list, get_initializer
+from pyaromatics.stay_organized.VeryCustomSacred import CustomExperiment, ChooseGPU
+from pyaromatics.stay_organized.utils import timeStructured, setReproducible, str2val, NumpyEncoder, save_results
+from pyaromatics.keras_tools.esoteric_tasks.time_task_redirection import Task, checkTaskMeanVariance, language_tasks
+from pyaromatics.stay_organized.submit_jobs import dict2iter
 from alif_sg.neural_models.recLSC import apply_LSC
 
 FILENAME = os.path.realpath(__file__)

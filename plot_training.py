@@ -1,9 +1,9 @@
 import os, json, copy, time, shutil, math
 
-from GenericTools.keras_tools.esoteric_layers import AddLossLayer, AddMetricsLayer
-from GenericTools.keras_tools.esoteric_layers.rate_voltage_reg import RateVoltageRegularization
+from pyaromatics.keras_tools.esoteric_layers import AddLossLayer, AddMetricsLayer
+from pyaromatics.keras_tools.esoteric_layers.rate_voltage_reg import RateVoltageRegularization
 
-from GenericTools.stay_organized.submit_jobs import dict2iter
+from pyaromatics.stay_organized.submit_jobs import dict2iter
 from tqdm import tqdm
 import numpy as np
 import pandas as pd
@@ -11,10 +11,10 @@ import matplotlib as mpl
 
 import pickle
 from matplotlib.lines import Line2D
-from GenericTools.stay_organized.mpl_tools import load_plot_settings
-from GenericTools.stay_organized.pandardize import experiments_to_pandas, complete_missing_exps
-from GenericTools.stay_organized.standardize_strings import shorten_losses
-from GenericTools.stay_organized.utils import str2val
+from pyaromatics.stay_organized.mpl_tools import load_plot_settings
+from pyaromatics.stay_organized.pandardize import experiments_to_pandas, complete_missing_exps
+from pyaromatics.stay_organized.standardize_strings import shorten_losses
+from pyaromatics.stay_organized.utils import str2val
 from alif_sg.neural_models.recLSC import remove_pretrained_extra, load_LSC_model
 from alif_sg.tools.plot_tools import *
 from sg_design_lif.neural_models import maLSNN
@@ -24,10 +24,10 @@ mpl, pd = load_plot_settings(mpl=mpl, pd=pd)
 import matplotlib.pyplot as plt
 from datetime import timedelta, datetime
 
-from GenericTools.stay_organized.plot_tricks import large_num_to_reasonable_string
+from pyaromatics.stay_organized.plot_tricks import large_num_to_reasonable_string
 
 FMT = '%Y-%m-%dT%H:%M:%S'
-from GenericTools.stay_organized.unzip import unzip_good_exps
+from pyaromatics.stay_organized.unzip import unzip_good_exps
 
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)

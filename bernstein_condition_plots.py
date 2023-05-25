@@ -3,15 +3,15 @@ import numpy as np
 import scipy
 from scipy import stats
 
-from GenericTools.keras_tools.esoteric_tasks.time_task_redirection import language_tasks, Task
-from GenericTools.stay_organized.utils import str2val, NumpyEncoder
+from pyaromatics.keras_tools.esoteric_tasks.time_task_redirection import language_tasks, Task
+from pyaromatics.stay_organized.utils import str2val, NumpyEncoder
 
-from GenericTools.keras_tools.silence_tensorflow import silence_tf
+from pyaromatics.keras_tools.silence_tensorflow import silence_tf
 
 silence_tf()
 
 import matplotlib as mpl
-from GenericTools.stay_organized.mpl_tools import load_plot_settings
+from pyaromatics.stay_organized.mpl_tools import load_plot_settings
 
 mpl = load_plot_settings(mpl=mpl)
 

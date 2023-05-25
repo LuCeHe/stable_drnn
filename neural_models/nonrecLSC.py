@@ -6,9 +6,9 @@ import numpy as np
 from tensorflow_addons.optimizers import AdamW
 from tqdm import tqdm
 
-from GenericTools.keras_tools.convenience_operations import sample_axis, desample_axis
-from GenericTools.keras_tools.expose_latent import split_model, truer_split_model
-from GenericTools.stay_organized.utils import flaggedtry, str2val
+from pyaromatics.keras_tools.convenience_operations import sample_axis, desample_axis
+from pyaromatics.keras_tools.expose_latent import split_model, truer_split_model
+from pyaromatics.stay_organized.utils import flaggedtry, str2val
 from alif_sg.neural_models.recLSC import get_norms, get_lsctype
 
 FILENAME = os.path.realpath(__file__)

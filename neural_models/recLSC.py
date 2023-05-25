@@ -4,13 +4,13 @@ import warnings
 import tensorflow as tf
 import tensorflow_probability as tfp
 import tensorflow_addons as tfa
-from GenericTools.keras_tools.esoteric_optimizers.AdamW import AdamW as AdamW2
+from pyaromatics.keras_tools.esoteric_optimizers.AdamW import AdamW as AdamW2
 
-from GenericTools.keras_tools.convenience_operations import sample_axis
-from GenericTools.keras_tools.esoteric_layers import AddLossLayer, AddMetricsLayer, SymbolAndPositionEmbedding
-from GenericTools.keras_tools.esoteric_layers.rate_voltage_reg import RateVoltageRegularization
-from GenericTools.keras_tools.learning_rate_schedules import DummyConstantSchedule
-from GenericTools.stay_organized.utils import str2val, timeStructured
+from pyaromatics.keras_tools.convenience_operations import sample_axis
+from pyaromatics.keras_tools.esoteric_layers import AddLossLayer, AddMetricsLayer, SymbolAndPositionEmbedding
+from pyaromatics.keras_tools.esoteric_layers.rate_voltage_reg import RateVoltageRegularization
+from pyaromatics.keras_tools.learning_rate_schedules import DummyConstantSchedule
+from pyaromatics.stay_organized.utils import str2val, timeStructured
 from sg_design_lif.neural_models import maLSNN, maLSNNb
 from sg_design_lif.neural_models.config import default_config
 
@@ -21,8 +21,8 @@ warnings.filterwarnings('ignore')
 import matplotlib.pyplot as plt
 
 from tqdm import tqdm
-from GenericTools.keras_tools.esoteric_losses import well_loss
-from GenericTools.keras_tools.esoteric_tasks.time_task_redirection import Task
+from pyaromatics.keras_tools.esoteric_losses import well_loss
+from pyaromatics.keras_tools.esoteric_tasks.time_task_redirection import Task
 from sg_design_lif.neural_models.full_model import build_model
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -418,7 +418,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
     if 'onlyloadpretrained' in comments:
         steps_per_epoch = 1
-        time_steps = 10 if not 'test' in comments else time_steps
+        time_steps = 2 if not 'test' in comments else time_steps
         learn = False
 
     if 'randlambda' in comments:

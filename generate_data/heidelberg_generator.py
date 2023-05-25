@@ -3,7 +3,7 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 import numpy as np
 
-from GenericTools.stay_organized.download_utils import download_and_unzip
+from pyaromatics.stay_organized.download_utils import download_and_unzip
 from alif_sg.generate_data.base_generator import BaseGenerator
 from alif_sg.generate_data.heidelberg_preprocess import generate_dataset
 

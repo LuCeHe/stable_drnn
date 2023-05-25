@@ -1,7 +1,7 @@
 
-from GenericTools.keras_tools.esoteric_initializers import FuncOnInitializer
-from GenericTools.keras_tools.esoteric_layers.surrogated_step import *
-from GenericTools.stay_organized.utils import str2val
+from pyaromatics.keras_tools.esoteric_initializers import FuncOnInitializer
+from pyaromatics.keras_tools.esoteric_layers.surrogated_step import *
+from pyaromatics.stay_organized.utils import str2val
 
 
 class non_spiking_LIF(tf.keras.layers.Layer):

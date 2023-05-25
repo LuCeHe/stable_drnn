@@ -1,6 +1,6 @@
 import os
 from tqdm import tqdm
-from GenericTools.stay_organized.download_utils import download_and_unzip
+from pyaromatics.stay_organized.download_utils import download_and_unzip
 
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)

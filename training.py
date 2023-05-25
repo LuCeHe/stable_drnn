@@ -1,7 +1,7 @@
 import os, shutil, logging, json, copy
 import pandas as pd
 
-from GenericTools.keras_tools.silence_tensorflow import silence_tf
+from pyaromatics.keras_tools.silence_tensorflow import silence_tf
 
 silence_tf()
 
@@ -15,15 +15,15 @@ os.environ["TF_CPP_VMODULE"] = "gpu_process_state=10,gpu_cudamallocasync_allocat
 
 tf.compat.v1.enable_eager_execution()
 
-from GenericTools.keras_tools.convergence_metric import convergence_estimation
-from GenericTools.keras_tools.esoteric_callbacks.gradient_tensorboard import ExtendedTensorBoard
-from GenericTools.keras_tools.esoteric_initializers import esoteric_initializers_list, get_initializer
-from GenericTools.keras_tools.esoteric_callbacks import *
-from GenericTools.keras_tools.plot_tools import plot_history
-from GenericTools.stay_organized.VeryCustomSacred import CustomExperiment, ChooseGPU
-from GenericTools.stay_organized.utils import timeStructured, setReproducible, str2val, NumpyEncoder, save_results
-from GenericTools.keras_tools.esoteric_callbacks.several_validations import MultipleValidationSets
-from GenericTools.keras_tools.esoteric_tasks.time_task_redirection import Task, checkTaskMeanVariance, language_tasks
+from pyaromatics.keras_tools.convergence_metric import convergence_estimation
+from pyaromatics.keras_tools.esoteric_callbacks.gradient_tensorboard import ExtendedTensorBoard
+from pyaromatics.keras_tools.esoteric_initializers import esoteric_initializers_list, get_initializer
+from pyaromatics.keras_tools.esoteric_callbacks import *
+from pyaromatics.keras_tools.plot_tools import plot_history
+from pyaromatics.stay_organized.VeryCustomSacred import CustomExperiment, ChooseGPU
+from pyaromatics.stay_organized.utils import timeStructured, setReproducible, str2val, NumpyEncoder, save_results
+from pyaromatics.keras_tools.esoteric_callbacks.several_validations import MultipleValidationSets
+from pyaromatics.keras_tools.esoteric_tasks.time_task_redirection import Task, checkTaskMeanVariance, language_tasks
 
 from sg_design_lif.neural_models.full_model import build_model
 from alif_sg.neural_models.recLSC import apply_LSC
@@ -50,7 +50,7 @@ def config():
     # test configuration
     epochs = 4
     steps_per_epoch = 2
-    batch_size = 13
+    batch_size = 2
 
     # net
     # maLSNN cLSTM LSTM maLSNNb GRU indrnn LMU ssimplernn rsimplernn
@@ -102,8 +102,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
     net_name = net
 
     comments += '_dampf:.5'
-    if 'maLSNN' in net and 'targetnorm:.5' in comments:
-        comments += '_learnsharp_learndamp'
+
     ostack = stack
     stack, batch_size, embedding, n_neurons, lr = default_config(
         stack, batch_size, embedding, n_neurons, lr, task_name, net_name, setting='LSC'
@@ -232,11 +231,11 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
             lsclr = str2val(comments, 'lsclr', float, default=lsclr)
 
             if 'deslice' in comments:
-                from GenericTools.keras_tools.esoteric_optimizers.AdamW import AdamW as AdamW2
-                from GenericTools.keras_tools.esoteric_layers import AddLossLayer, AddMetricsLayer, \
+                from pyaromatics.keras_tools.esoteric_optimizers.AdamW import AdamW as AdamW2
+                from pyaromatics.keras_tools.esoteric_layers import AddLossLayer, AddMetricsLayer, \
                     SymbolAndPositionEmbedding
-                from GenericTools.keras_tools.esoteric_layers.rate_voltage_reg import RateVoltageRegularization
-                from GenericTools.keras_tools.learning_rate_schedules import DummyConstantSchedule
+                from pyaromatics.keras_tools.esoteric_layers.rate_voltage_reg import RateVoltageRegularization
+                from pyaromatics.keras_tools.learning_rate_schedules import DummyConstantSchedule
                 from sg_design_lif.neural_models import maLSNNb, maLSNN
 
                 custom_objects = {

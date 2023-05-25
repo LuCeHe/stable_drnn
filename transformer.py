@@ -7,11 +7,11 @@ from tensorflow_addons.optimizers import AdamW
 import numpy as np
 import pandas as pd
 
-from GenericTools.keras_tools.esoteric_activations.smoothrelus import Guderman_T, Swish_T
-from GenericTools.keras_tools.esoteric_callbacks import LearningRateLogger, TimeStopping, CSVLogger
-from GenericTools.keras_tools.esoteric_losses import sparse_perplexity
-from GenericTools.keras_tools.plot_tools import plot_history
-from GenericTools.stay_organized.utils import NumpyEncoder, str2val
+from pyaromatics.keras_tools.esoteric_activations.smoothrelus import Guderman_T, Swish_T
+from pyaromatics.keras_tools.esoteric_callbacks import LearningRateLogger, TimeStopping, CSVLogger
+from pyaromatics.keras_tools.esoteric_losses import sparse_perplexity
+from pyaromatics.keras_tools.plot_tools import plot_history
+from pyaromatics.stay_organized.utils import NumpyEncoder, str2val
 from alif_sg.neural_models.chunked_transformer import chunked_lsc
 from alif_sg.neural_models.nonrecLSC import apply_LSC_no_time
 from alif_sg.neural_models.transformer_model import build_model

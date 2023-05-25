@@ -2,7 +2,7 @@ import os, json
 import numpy as np
 import tensorflow as tf
 
-from GenericTools.stay_organized.download_utils import download_and_unzip
+from pyaromatics.stay_organized.download_utils import download_and_unzip
 from alif_sg.generate_data import ptb_reader
 from alif_sg.generate_data.base_generator import BaseGenerator
 
