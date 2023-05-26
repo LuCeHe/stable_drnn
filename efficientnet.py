@@ -29,6 +29,9 @@ named_tuple = time.localtime()  # get struct_time
 time_string = time.strftime("%Y-%m-%d--%H-%M-%S--", named_tuple)
 random_string = ''.join([str(r) for r in np.random.choice(10, 4)])
 
+GEXPERIMENTS = os.path.abspath(os.path.join(CDIR, 'good_experiments'))
+os.makedirs(GEXPERIMENTS, exist_ok=True)
+
 EXPERIMENT = os.path.join(EXPERIMENTS, time_string + random_string + '_lsc-effnet')
 os.makedirs(EXPERIMENT, exist_ok=True)
 
@@ -43,12 +46,12 @@ def get_argparse():
     parser = argparse.ArgumentParser()
 
     # Required parameters
-    parser.add_argument("--batch_size", default=2, type=int, help="Batch size")
+    parser.add_argument("--batch_size", default=4, type=int, help="Batch size")
     parser.add_argument("--seed", default=0, type=int, help="Random seed")
     parser.add_argument("--epochs", default=3, type=int, help="Batch size")
     parser.add_argument("--steps_per_epoch", default=3, type=int, help="Batch size")
     parser.add_argument("--lr", default=-1, type=float, help="Learning rate")
-    parser.add_argument("--batch_normalization", default=0, type=int, help="Batch normalization")
+    parser.add_argument("--batch_normalization", default=1, type=int, help="Batch normalization")
     parser.add_argument("--comments",
                         default='newarch_lscvar',
                         # default='newarch',
@@ -145,6 +148,7 @@ def main(args):
 
         results.update(lsc_results)
         results.update(lsclr=lsclr)
+
     elif 'lscvar' in args.comments:
         model = build_model(args, input_shape, classes)
         loss = lambda x, y: 0
@@ -153,20 +157,42 @@ def main(args):
         optimizer = tfa.optimizers.Lookahead(adabelief, sync_period=6, slow_step_size=0.5)
         model.compile(optimizer, loss)
         steps_per_epoch = args.steps_per_epoch if args.steps_per_epoch > 0 else None
-        lsc_history = model.fit(
-            x_train, y_train, epochs=2, batch_size=args.batch_size, validation_data=(x_val, y_val),
-            callbacks=[], steps_per_epoch=steps_per_epoch
+
+        path_pretrained = os.path.join(
+            GEXPERIMENTS, f"pretrained_s{args.seed}_effnet_{args.dataset}_{args.activation}_lscvar.h5"
         )
+
+        if os.path.exists(path_pretrained):
+            print('Loading pretrained lsc weights')
+            model = tf.keras.models.load_model(path_pretrained)
+
+        callbacks = [
+            tf.keras.callbacks.ModelCheckpoint(path_pretrained, monitor="val_loss", save_best_only=True),
+            tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=2, restore_best_weights=True)
+        ]
+
+        if not 'onlyloadpretrained' in args.comments:
+            lsc_history = model.fit(
+                x_train, y_train, epochs=10, batch_size=args.batch_size, validation_data=(x_val, y_val),
+                callbacks=callbacks, steps_per_epoch=steps_per_epoch
+            )
+            results.update(LSC_losses=np.array(lsc_history.history['val_loss']) / 18,
+                           LSC_norms=np.array(lsc_history.history['val_loss']) / 18 + 1)
+            print(lsc_history.history)
+
+        else:
+
+            evaluation = model.evaluate(x_val, y_val, return_dict=True, verbose=True, steps=steps_per_epoch,
+                                        batch_size=args.batch_size)
+            results.update(LSC_losses=np.array(evaluation['val_loss']) / 18,
+                           LSC_norms=np.array(evaluation['val_loss']) / 18 + 1)
+
         print(args.comments)
         args.comments = args.comments.replace('_lscvar', '')
         print(args.comments)
         weights = model.get_weights()
         model = build_model(args, input_shape, classes)
         model.set_weights(weights)
-        print(lsc_history.history)
-        results.update(LSC_losses=np.array(lsc_history.history['val_loss']) / 18,
-                       LSC_norms=np.array(lsc_history.history['val_loss']) / 18 + 1)
-
 
     else:
         model = build_model(args, input_shape, classes)
@@ -178,7 +204,7 @@ def main(args):
     callbacks = [
         TimeStopping(args.stop_time, 1),
         tf.keras.callbacks.CSVLogger(history_path),
-        # tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=10, restore_best_weights=True)
+        tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=10, restore_best_weights=True)
     ]
     lr = default_eff_lr(args.activation, args.lr, args.batch_normalization)
 
@@ -186,17 +212,26 @@ def main(args):
     optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
     model.compile(optimizer, loss, metrics=['sparse_categorical_accuracy', 'sparse_categorical_crossentropy'])
     steps_per_epoch = args.steps_per_epoch if args.steps_per_epoch > 0 else None
+    epochs = args.epochs
+
+    if 'onlypretrain' in args.comments:
+        epochs = 0
+        steps_per_epoch = 0
+
     model.fit(
-        x_train, y_train, epochs=args.epochs, batch_size=args.batch_size, validation_data=(x_val, y_val),
+        x_train, y_train, epochs=epochs, batch_size=args.batch_size, validation_data=(x_val, y_val),
         callbacks=callbacks, steps_per_epoch=steps_per_epoch
     )
 
-    evaluation = model.evaluate(x_test, y_test, return_dict=True, verbose=True, steps=steps_per_epoch,
-                                batch_size=args.batch_size)
-    for k in evaluation.keys():
-        results['test_' + k] = evaluation[k]
+    try:
+        evaluation = model.evaluate(x_test, y_test, return_dict=True, verbose=True, steps=steps_per_epoch,
+                                    batch_size=args.batch_size)
+        for k in evaluation.keys():
+            results['test_' + k] = evaluation[k]
+    except:
+        pass
 
-    if args.epochs > 0:
+    if epochs > 0:
         history_df = pd.read_csv(history_path)
 
         history_dict = {k: history_df[k].tolist() for k in history_df.columns.tolist()}

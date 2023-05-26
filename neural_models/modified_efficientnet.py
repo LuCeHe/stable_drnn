@@ -34,7 +34,7 @@ from tensorflow.python.keras.utils import layer_utils
 from tensorflow.python.lib.io import file_io
 import tensorflow as tf
 
-from keras_tools import GeneralActivityRegularization
+from pyaromatics.keras_tools.esoteric_regularizers import GeneralActivityRegularization
 
 BASE_WEIGHTS_PATH = 'https://storage.googleapis.com/keras-applications/'
 

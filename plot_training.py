@@ -53,7 +53,7 @@ pandas_means = True
 show_per_tasknet = False
 make_latex = False
 make_good_latex = False
-missing_exps = True
+missing_exps = False
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -65,10 +65,9 @@ plot_bars = False
 plot_new_bars = False
 chain_norms = False
 
-remove_incomplete = False
+remove_incomplete = True
 truely_remove = False
-truely_remove_pretrained = False
-remove_saved_model = False
+truely_remove_pretrained = True
 
 task = 'ps_mnist'  # heidelberg wordptb sl_mnist all ps_mnist
 incomplete_comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_pretrained_'
@@ -1437,7 +1436,7 @@ if remove_incomplete:
     if truely_remove_pretrained:
 
         # sdf = pd.read_hdf(h5path, 'df')
-        sdf = allrdfs.copy()
+        sdf = irdf.copy()
         print(sdf.head().to_string())
         sdf.loc[sdf['task'].str.contains('SHD'), 'task'] = 'heidelberg'
         sdf.loc[sdf['task'].str.contains('sl-MNIST'), 'task'] = 'sl_mnist'
@@ -1454,7 +1453,7 @@ if remove_incomplete:
         print(experiments)
         print(f'Experiments to remove: {len(experiments)}')
         folder = r'D:\work\alif_sg\good_experiments\pmodels'
-        remove_pretrained_extra(experiments, remove_opposite=False, folder=folder)
+        # remove_pretrained_extra(experiments, remove_opposite=False, folder=folder)
 
     if truely_remove:
         for rdf in [allrdfs]:
