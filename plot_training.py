@@ -53,7 +53,7 @@ pandas_means = True
 show_per_tasknet = False
 make_latex = False
 make_good_latex = False
-missing_exps = False
+missing_exps = True
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -65,9 +65,9 @@ plot_bars = False
 plot_new_bars = False
 chain_norms = False
 
-remove_incomplete = True
+remove_incomplete = False
 truely_remove = False
-truely_remove_pretrained = True
+truely_remove_pretrained = False
 
 task = 'ps_mnist'  # heidelberg wordptb sl_mnist all ps_mnist
 incomplete_comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_pretrained_'

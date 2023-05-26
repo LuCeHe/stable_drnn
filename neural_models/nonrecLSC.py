@@ -442,7 +442,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                         new_weights = []
                         for w in weights:
                             if len(w.shape) >= 2:
-                                noise = 4 * tf.random.uniform(w.shape, -1, 1) * tf.math.reduce_std(w)
+                                noise = 1 * tf.random.uniform(w.shape, -1, 1) * tf.math.reduce_std(w)
                                 w += noise.numpy()
                             new_weights.append(w)
                         weights = new_weights
