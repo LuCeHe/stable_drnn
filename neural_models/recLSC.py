@@ -95,7 +95,7 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
 
             a = std @ zT
             preloss = tf.einsum('bks,sk->bs', a, z)
-            loss += tf.reduce_mean(tf.nn.relu(-preloss))/ 10
+            loss += tf.reduce_mean(tf.nn.relu(-preloss)) / 10
 
         eig = tf.linalg.eigvals(std)
         r = tf.math.real(eig)
@@ -107,7 +107,7 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
             norms = r
 
         if not 'noimagloss' in comments:
-            loss += well_loss(min_value=0., max_value=0., walls_type='relu', axis='all')(i)/ 10
+            loss += well_loss(min_value=0., max_value=0., walls_type='relu', axis='all')(i) / 10
 
     elif 'logradius' in comments:
         if td.shape[-1] == td.shape[-2]:
@@ -260,7 +260,13 @@ def remove_pretrained_extra(experiments, remove_opposite=True, folder=None):
     safety_folder = os.path.abspath(os.path.join(folder, '..', 'safety'))
     os.makedirs(safety_folder, exist_ok=True)
 
-    existing_pretrained = [d for d in os.listdir(folder) if 'pretrained_' in d and '.h5' in d and not '_ffn_' in d]
+    existing_pretrained = [
+        d for d in os.listdir(folder)
+        if 'pretrained_' in d
+           and '.h5' in d
+           and not '_ffn_' in d
+           and not '_effnet_' in d
+    ]
     pbar = tqdm(total=len(existing_pretrained))
     removed = 0
     for d in existing_pretrained:
@@ -294,7 +300,7 @@ def load_LSC_model(path):
             'AdamW': AdamW2, 'DummyConstantSchedule': DummyConstantSchedule,
             'SymbolAndPositionEmbedding': SymbolAndPositionEmbedding,
         },
-        compile = False
+        compile=False
     )
     return model
 
@@ -657,7 +663,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                         print(weights[0][0][0])
                         for w in weights:
                             if len(w.shape) >= 2:
-                                noise = 4 * tf.random.uniform(w.shape, -1, 1) * tf.math.reduce_std(w)
+                                noise = 1 * tf.random.uniform(w.shape, -1, 1) * tf.math.reduce_std(w)
                                 w += noise.numpy()
                             # w = w * multiplier
                             new_weights.append(w)

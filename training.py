@@ -193,7 +193,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
             # lsclr = 3.14e-4 if not net_name == 'LSTM' else 3.14e-3
             # lsclr = 1e-2
             # lsclr = 3.14e-2
-            lsclr = 1e-2 # 3.14e-3 # 7.2e-4 # 7.2e-3 #
+            lsclr = 1e-4 # 3.14e-3 # 7.2e-4 # 7.2e-3 #
             # if 'LSNN' in net_name:
             #     lsclr = 3.14e-4
 
