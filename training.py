@@ -188,6 +188,8 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
             norm_pow = norm_pow if norm_pow > 0 else np.inf
             new_model_args = copy.deepcopy(model_args)
             new_comments = new_model_args['comments'] + '_reoldspike'
+            new_comments = new_comments + '_waddnoise'
+
             new_batch_size = batch_size
 
             # lsclr = 3.14e-4 if not net_name == 'LSTM' else 3.14e-3
@@ -198,7 +200,6 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
             #     lsclr = 3.14e-4
 
             # if 'maLSNN' in net_name or 'simplernn' in net_name:
-            comments = comments + '_waddnoise'
 
             if 'ptb' in task_name:
 
