@@ -479,7 +479,6 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                 tf.keras.backend.clear_session()
                 model, tape = None, None
                 tf.keras.backend.clear_session()
-                print(0)
                 with tf.GradientTape(persistent=True, watch_accessed_variables=True) as tape:
                     tape.watch(wt)
                     tape.watch(bt)

@@ -13,13 +13,21 @@ FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
 EXPERIMENTS = os.path.join(CDIR, 'experiments')
 EXPERIMENTS = r'D:\work\alif_sg\experiments'
-GEXPERIMENTS = [
+
+expsid = 'effnet'  # effnet als ffnandcnns transf
+
+if expsid == 'ffnandcnns':
+    GEXPERIMENTS = [r'D:\work\alif_sg\good_experiments\2022-12-16--ffn']
+elif expsid == 'effnet':
+    GEXPERIMENTS = [r'D:\work\alif_sg\good_experiments\2023-01-01--effnet']
+
+# GEXPERIMENTS = [
     # os.path.join(CDIR, 'good_experiments', '2022-12-16--ffn'),
     # os.path.join(CDIR, 'good_experiments'),
-    r'D:\work\alif_sg\good_experiments\2022-12-16--ffn'
+    # r'D:\work\alif_sg\good_experiments\2022-12-16--ffn'
     # r'D:\work\alif_sg\good_experiments\2023-01-01--effnet',
     # r'D:\work\alif_sg\good_experiments\2023-01-15--transf',
-]
+# ]
 
 plot_norms_evol = False
 plot_norms_evol_1 = False
@@ -27,12 +35,11 @@ lrs_plot = False
 lrs_plot_2 = False
 bar_plot = False
 plot_losses = False
-missing_exps = False
-remove_incomplete = True
+missing_exps = True
+remove_incomplete = False
 truely_remove = False
 
 metric = 'val_acc M'  # 'val_acc M'   'val_loss m' test_acc
-expsid = 'ffnandcnns'  # effnet als ffnandcnns transf
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 force_keep_column = ['LSC_norms list', 'val_sparse_categorical_accuracy list', 'val_loss list',
                      'encoder_norm list', 'decoder_norm list']
