@@ -2,6 +2,7 @@ import argparse, os, time, json, shutil, socket, random, copy
 import numpy as np
 
 from pyaromatics.keras_tools.esoteric_activations.smoothrelus import Guderman_T, Swish_T
+from pyaromatics.keras_tools.esoteric_regularizers import GeneralActivityRegularization
 from pyaromatics.keras_tools.silence_tensorflow import silence_tf
 from alif_sg.tools.config import default_eff_lr
 
@@ -18,7 +19,7 @@ from pyaromatics.keras_tools.esoteric_callbacks import LearningRateLogger, TimeS
 from pyaromatics.keras_tools.esoteric_tasks.numpy_generator import NumpyClassificationGenerator
 from pyaromatics.keras_tools.plot_tools import plot_history
 from pyaromatics.stay_organized.utils import NumpyEncoder, str2val
-from alif_sg.neural_models.modified_efficientnet import EfficientNetB0
+from alif_sg.neural_models.modified_efficientnet import EfficientNetB0, act_reg
 
 from alif_sg.neural_models.nonrecLSC import apply_LSC_no_time
 
@@ -164,7 +165,12 @@ def main(args):
 
         if os.path.exists(path_pretrained):
             print('Loading pretrained lsc weights')
-            model = tf.keras.models.load_model(path_pretrained)
+            model = tf.keras.models.load_model(
+                path_pretrained,
+                custom_objects={
+                    'GeneralActivityRegularization': GeneralActivityRegularization, 'act_reg': act_reg,
+                }
+            )
 
         callbacks = [
             tf.keras.callbacks.ModelCheckpoint(path_pretrained, monitor="val_loss", save_best_only=True),

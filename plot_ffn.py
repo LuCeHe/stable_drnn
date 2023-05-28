@@ -14,7 +14,7 @@ CDIR = os.path.dirname(FILENAME)
 EXPERIMENTS = os.path.join(CDIR, 'experiments')
 EXPERIMENTS = r'D:\work\alif_sg\experiments'
 
-expsid = 'effnet'  # effnet als ffnandcnns transf
+expsid = 'ffnandcnns'  # effnet als ffnandcnns transf
 
 if expsid == 'ffnandcnns':
     GEXPERIMENTS = [r'D:\work\alif_sg\good_experiments\2022-12-16--ffn']
