@@ -200,7 +200,8 @@ def get_lsctype(comments):
 
     elif 'entrywise' in comments:
         lsctype = 'entrywise'
-
+    elif 'lscvar' in comments:
+        lsctype = 'lscvar'
     else:
         lsctype = 'other'
     return lsctype

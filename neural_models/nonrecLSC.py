@@ -40,13 +40,13 @@ def get_weights_statistics(results, weight_names, weights):
     return results
 
 
-def remove_nonrec_pretrained_extra(experiments, remove_opposite=True, folder=None):
+def remove_nonrec_pretrained_extra(experiments, remove_opposite=True, folder=None, net_name='ffn'):
     files = []
     print('Desired:')
     for exp in experiments:
         lsct = get_lsctype(exp['comments'][0])
         file = os.path.join(
-            GEXPERIMENTS, f"pretrained_s{exp['seed'][0]}_ffn"
+            GEXPERIMENTS, f"pretrained_s{exp['seed'][0]}_{net_name}"
                           f"_{exp['dataset'][0]}_{exp['activation'][0]}_{lsct}.h5"
         )
         print(file)
@@ -60,7 +60,7 @@ def remove_nonrec_pretrained_extra(experiments, remove_opposite=True, folder=Non
 
     existing_pretrained = [os.path.join(folder, d)
                            for d in os.listdir(folder)
-                           if 'pretrained_' in d and '.h5' in d and '_ffn_' in d]
+                           if 'pretrained_' in d and '.h5' in d and f'_{net_name}_' in d]
 
     which_is_missing = [f for f in files if not f in existing_pretrained]
     print('Missing:')
