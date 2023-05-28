@@ -8,8 +8,8 @@ from pyaromatics.stay_organized.utils import setReproducible
 from pyaromatics.keras_tools.esoteric_losses.loss_redirection import get_loss
 from keras_tools.esoteric_initializers.out_initializer import OutInitializer
 # from alif_sg.generate_data.task_redirection import Task, language_tasks
-# from alif_sg.neural_models.custom_lstm import customLSTMcell
-# from sg_design_lif.neural_models.full_model import build_model
+# from alif_sg.neural_models_tf.custom_lstm import customLSTMcell
+# from sg_design_lif.neural_models_tf.full_model import build_model
 from stochastic_spiking.generate_data.task_redirection import language_tasks
 
 # mpl = load_plot_settings(mpl=mpl, pd=None)

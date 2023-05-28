@@ -120,7 +120,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
     ChooseGPU(GPU)
     setReproducible(seed)
 
-    shutil.copytree(os.path.join(CDIR, 'neural_models'), other_dir + '/neural_models')
+    shutil.copytree(os.path.join(CDIR, 'neural_models'), other_dir + '/neural_models_tf')
     shutil.copyfile(FILENAME, other_dir + '/' + os.path.split(FILENAME)[-1])
 
     timerepeat = str2val(comments, 'timerepeat', int, default=1)
