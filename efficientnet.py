@@ -169,11 +169,12 @@ def main(args):
                 path_pretrained,
                 custom_objects={
                     'GeneralActivityRegularization': GeneralActivityRegularization, 'act_reg': act_reg,
+                    '<lambda>': lambda x, y: 0
                 }
             )
-
+        model.summary()
         callbacks = [
-            tf.keras.callbacks.ModelCheckpoint(path_pretrained, monitor="val_loss", save_best_only=True),
+            tf.keras.callbacks.ModelCheckpoint(path_pretrained, monitor="val_loss", save_best_only=True, verbose=True),
             tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=2, restore_best_weights=True)
         ]
 
