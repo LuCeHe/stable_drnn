@@ -79,7 +79,7 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
 
         a = std @ zT
         preloss = tf.einsum('bks,sk->bs', a, z)
-        loss += tf.reduce_mean(tf.nn.relu(-preloss)) / 10
+        loss += tf.reduce_mean(tf.nn.relu(-preloss)) / 4
 
         # norms = tf.linalg.logdet(std) + 1
         norms = tf.reduce_sum(tf.math.log(log_epsilon + tf.abs(tf.linalg.eigvals(std))), axis=-1) + 1
@@ -95,7 +95,7 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
 
             a = std @ zT
             preloss = tf.einsum('bks,sk->bs', a, z)
-            loss += tf.reduce_mean(tf.nn.relu(-preloss)) / 10
+            loss += tf.reduce_mean(tf.nn.relu(-preloss)) / 4
 
         eig = tf.linalg.eigvals(std)
         r = tf.math.real(eig)
@@ -107,7 +107,7 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
             norms = r
 
         if not 'noimagloss' in comments:
-            loss += well_loss(min_value=0., max_value=0., walls_type='relu', axis='all')(i) / 10
+            loss += well_loss(min_value=0., max_value=0., walls_type='relu', axis='all')(i) / 4
 
     elif 'logradius' in comments:
         if td.shape[-1] == td.shape[-2]:

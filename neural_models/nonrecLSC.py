@@ -45,6 +45,9 @@ def remove_nonrec_pretrained_extra(experiments, remove_opposite=True, folder=Non
     print('Desired:')
     for exp in experiments:
         lsct = get_lsctype(exp['comments'][0])
+        print(exp['seed'])
+        print(exp['dataset'])
+        print(exp['activation'])
         file = os.path.join(
             GEXPERIMENTS, f"pretrained_s{exp['seed'][0]}_{net_name}"
                           f"_{exp['dataset'][0]}_{exp['activation'][0]}_{lsct}.h5"
@@ -94,7 +97,7 @@ def remove_nonrec_pretrained_extra(experiments, remove_opposite=True, folder=Non
 
 
 def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_pow=2, forward_lsc=False,
-                      nlayerjump=None, comments='', epsilon=.02, patience=20, learning_rate=1.e-4,
+                      nlayerjump=None, comments='', epsilon=.02, patience=20, learning_rate=3.16e-5,
                       subsample_axis=False,
                       skip_in_layers=[], skip_out_layers=[],
                       keep_in_layers=None, keep_out_layers=None,
