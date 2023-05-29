@@ -190,7 +190,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
             tf.keras.backend.clear_session()
             tf.compat.v1.reset_default_graph()
 
-            if time.perf_counter() - time_start > 60 * 60 * 12:
+            if time.perf_counter() - time_start > 60 * 60 * 16:
                 time_over = True
                 break
 

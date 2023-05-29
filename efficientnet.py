@@ -59,7 +59,7 @@ def get_argparse():
                         # default='newarch_pretrained_deslice_findLSC_onlyprem_preprocessinput_meanaxis',
                         # default='newarch_pretrained_deslice_findLSC_truersplit_preprocessinput',
                         type=str, help="String to activate extra behaviors")
-    parser.add_argument("--dataset", default='cifar100', type=str, help="Dataset to train on",
+    parser.add_argument("--dataset", default='cifar10', type=str, help="Dataset to train on",
                         choices=['cifar10', 'cifar100', 'mnist'])
     parser.add_argument("--activation", default='tanh', type=str, help="Activation",
                         choices=['swish', 'relu', 'gudermanlu', 'swish.1', 'gudermanlu.1', 'tanh'])
@@ -88,7 +88,10 @@ def build_model(args, input_shape, classes):
     )
 
     if not 'noresize' in args.comments:
-        readout = tf.keras.layers.Conv2D(4, 3)
+        if classes == 100:
+            readout = tf.keras.layers.Conv2D(4, 3)
+        else:
+            readout = tf.keras.layers.Conv2D(classes, 7)
         reshape = tf.keras.layers.Reshape((classes,))
         outmodel = reshape(readout(outmodel))
 

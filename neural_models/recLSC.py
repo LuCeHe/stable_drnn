@@ -674,7 +674,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                 tf.keras.backend.clear_session()
                 tf.keras.backend.clear_session()
 
-                if time.perf_counter() - time_start > 60 * 60 * 17:  # 17h
+                if time.perf_counter() - time_start > 60 * 60 * 16:  # 17h
                     time_over = True
                     break
 
