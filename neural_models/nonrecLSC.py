@@ -45,9 +45,6 @@ def remove_nonrec_pretrained_extra(experiments, remove_opposite=True, folder=Non
     print('Desired:')
     for exp in experiments:
         lsct = get_lsctype(exp['comments'][0])
-        print(exp['seed'])
-        print(exp['dataset'])
-        print(exp['activation'])
         file = os.path.join(
             GEXPERIMENTS, f"pretrained_s{exp['seed'][0]}_{net_name}"
                           f"_{exp['dataset'][0]}_{exp['activation'][0]}_{lsct}.h5"
@@ -61,7 +58,7 @@ def remove_nonrec_pretrained_extra(experiments, remove_opposite=True, folder=Non
     safety_folder = os.path.abspath(os.path.join(folder, '..', 'safety'))
     os.makedirs(safety_folder, exist_ok=True)
 
-    existing_pretrained = [os.path.join(folder, d)
+    existing_pretrained = [d
                            for d in os.listdir(folder)
                            if 'pretrained_' in d and '.h5' in d and f'_{net_name}_' in d]
 
