@@ -14,7 +14,7 @@ CDIR = os.path.dirname(FILENAME)
 EXPERIMENTS = os.path.join(CDIR, 'experiments')
 EXPERIMENTS = r'D:\work\alif_sg\experiments'
 
-expsid = 'ffnandcnns'  # effnet als ffnandcnns transf
+expsid = 'effnet'  # effnet als ffnandcnns transf
 
 if expsid == 'ffnandcnns':
     GEXPERIMENTS = [r'D:\work\alif_sg\good_experiments\2022-12-16--ffn']
@@ -22,11 +22,11 @@ elif expsid == 'effnet':
     GEXPERIMENTS = [r'D:\work\alif_sg\good_experiments\2023-01-01--effnet']
 
 # GEXPERIMENTS = [
-    # os.path.join(CDIR, 'good_experiments', '2022-12-16--ffn'),
-    # os.path.join(CDIR, 'good_experiments'),
-    # r'D:\work\alif_sg\good_experiments\2022-12-16--ffn'
-    # r'D:\work\alif_sg\good_experiments\2023-01-01--effnet',
-    # r'D:\work\alif_sg\good_experiments\2023-01-15--transf',
+# os.path.join(CDIR, 'good_experiments', '2022-12-16--ffn'),
+# os.path.join(CDIR, 'good_experiments'),
+# r'D:\work\alif_sg\good_experiments\2022-12-16--ffn'
+# r'D:\work\alif_sg\good_experiments\2023-01-01--effnet',
+# r'D:\work\alif_sg\good_experiments\2023-01-15--transf',
 # ]
 
 plot_norms_evol = False
@@ -35,8 +35,8 @@ lrs_plot = False
 lrs_plot_2 = False
 bar_plot = False
 plot_losses = False
-missing_exps = False
-remove_incomplete = True
+missing_exps = True
+remove_incomplete = False
 truely_remove = False
 
 metric = 'val_acc M'  # 'val_acc M'   'val_loss m' test_acc
@@ -590,8 +590,14 @@ if remove_incomplete:
 
     print('here')
     print(df.head().to_string())
-    df = df[df['comments'].str.contains('adabelief')]
-    # odf = odf[odf['comments'].str.contains('adabelief')]
+
+    if expsid == 'ffnandcnns':
+        df = df[df['comments'].str.contains('adabelief')]
+    elif expsid == 'effnet':
+        df = df[df['comments'].str.contains('onlypretrain')]
+    else:
+        raise NotImplementedError
+
     print(df.head())
 
     # from LSC_norms final column, select those that are epsilon away from 1
@@ -606,11 +612,11 @@ if remove_incomplete:
     rdfs.append(rdf)
 
     print('Remove if it didnt converge')
-    rdf = df[df['conveps'] < 8]
-
-    print(rdf.to_string())
-    print(rdf.shape, df.shape)
-    rdfs.append(rdf)
+    # rdf = df[df['conveps'] < 8]
+    #
+    # print(rdf.to_string())
+    # print(rdf.shape, df.shape)
+    # rdfs.append(rdf)
 
     # remove one seed from those that have more than 4 seeds
     brdf = mdf[mdf['counts'] > 4]
@@ -676,21 +682,15 @@ if missing_exps:
         experiments.append(experiment)
 
     elif 'effnet' in expsid:
-        coi = ['seed', 'activation', 'lr', 'comments', 'epochs', 'steps_per_epoch']
+        coi = ['seed', 'act', 'lr', 'comments', 'eps', 'spe', 'batch_normalization', 'dataset']
 
-        incomplete_comments = 'deslice_'
-        all_comments = [
-            incomplete_comments,
-            incomplete_comments + f'findLSC',
-            incomplete_comments + f'findLSC_supsubnpsd',
-            incomplete_comments + f'findLSC_radius',
-        ]
-
-        all_comments = [c + '_preprocessinput' for c in all_comments]
-
+        incomplete_comments = 'newarch_lscvar'
+        all_comments = [incomplete_comments + f'_onlypretrain']
+        seeds = list(range(4))
         experiment = {
-            'seed': list(range(4)), 'comments': all_comments, 'epochs': [100], 'steps_per_epoch': [-1],
-            'lr': [1e-3, 3.16e-4, 1e-4, 3.16e-5, 1e-5], 'activation': ['swish', 'relu'],
+            'seed': seeds, 'comments': all_comments, 'eps': [150], 'spe': [-1],
+            'lr': [-1], 'act': ['swish', 'relu', 'tanh'], 'batch_normalization': [1],
+            'dataset': ['cifar10', 'cifar100', 'mnist'],
         }
         experiments.append(experiment)
 
@@ -699,6 +699,7 @@ if missing_exps:
     # add string pretrain to comments if it's not there
     sdf['comments'] = sdf['comments'].apply(lambda x: x + '_onlypretrain' if 'onlypretrain' not in x else x)
 
+    print('this is on')
     print(sdf.head().to_string())
     sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
     print(sdf.head().to_string())
