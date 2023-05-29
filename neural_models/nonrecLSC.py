@@ -45,10 +45,8 @@ def remove_nonrec_pretrained_extra(experiments, remove_opposite=True, folder=Non
     print('Desired:')
     for exp in experiments:
         lsct = get_lsctype(exp['comments'][0])
-        file = os.path.join(
-            GEXPERIMENTS, f"pretrained_s{exp['seed'][0]}_{net_name}"
-                          f"_{exp['dataset'][0]}_{exp['activation'][0]}_{lsct}.h5"
-        )
+        file = f"pretrained_s{exp['seed'][0]}_{net_name}" \
+               f"_{exp['dataset'][0]}_{exp['activation'][0]}_{lsct}.h5"
         print(file)
         files.append(file)
 
@@ -154,7 +152,6 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
     n_failures = 0
     loss, model = None, None
     target_norm = str2val(comments, 'targetnorm', float, default=1)
-
 
     lsct = get_lsctype(comments)
     path_pretrained = os.path.join(
@@ -433,7 +430,6 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                 del intermodel
                 tf.keras.backend.clear_session()
                 tf.keras.backend.clear_session()
-
 
                 new_weights = model.get_weights()
                 av_weights = tf.reduce_mean([tf.reduce_mean(tf.cast(t, tf.float32)) for t in new_weights])
