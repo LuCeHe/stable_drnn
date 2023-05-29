@@ -74,15 +74,11 @@ def remove_nonrec_pretrained_extra(experiments, remove_opposite=True, folder=Non
     removed = 0
     print('\nRemoving:')
     for d in existing_pretrained:
-        # print(d)
         # copy d file to safety folder
-        try:
+        if os.path.exists(os.path.join(folder, d)):
             if os.path.exists(os.path.join(safety_folder, d)):
                 os.remove(os.path.join(safety_folder, d))
             shutil.copy(os.path.join(folder, d), os.path.join(safety_folder, d))
-        except shutil.SameFileError as e:
-            print(e)
-            pass
 
         if not d in files and remove_opposite:
             os.remove(os.path.join(folder, d))
