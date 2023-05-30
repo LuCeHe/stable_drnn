@@ -53,6 +53,8 @@ def get_argparse():
     parser.add_argument("--steps_per_epoch", default=3, type=int, help="Batch size")
     parser.add_argument("--lr", default=-1, type=float, help="Learning rate")
     parser.add_argument("--batch_normalization", default=1, type=int, help="Batch normalization")
+    parser.add_argument("--pretrain_epochs", default=2, type=int, help="Pretraining Epochs")  # 20
+
     parser.add_argument("--comments",
                         default='newarch_lscvar',
                         # default='newarch',
@@ -125,7 +127,7 @@ def main(args):
     if 'findLSC' in args.comments:
         gen_train = NumpyClassificationGenerator(
             x_train, y_train,
-            epochs=3, steps_per_epoch=args.steps_per_epoch,
+            epochs=args.pretrain_epochs, steps_per_epoch=args.steps_per_epoch,
             batch_size=2,
             output_type='[i]o'
         )
@@ -183,7 +185,7 @@ def main(args):
 
         if not 'onlyloadpretrained' in args.comments:
             lsc_history = model.fit(
-                x_train, y_train, epochs=10, batch_size=args.batch_size, validation_data=(x_val, y_val),
+                x_train, y_train, epochs=args.pretrain_epochs, batch_size=args.batch_size, validation_data=(x_val, y_val),
                 callbacks=callbacks, steps_per_epoch=steps_per_epoch
             )
             results.update(LSC_losses=np.array(lsc_history.history['val_loss']) / 18,

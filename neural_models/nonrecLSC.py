@@ -417,6 +417,8 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                     if np.abs(float(norm) - target_norm) < np.abs(float(best_norm) - target_norm):
                         print('Saving pretrained lsc weights with best norms')
                         model.save(path_pretrained)
+                        best_norm = norm.numpy().mean()
+
                 elif best_norm is None:
                     best_norm = norm.numpy().mean()
 
@@ -464,7 +466,8 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
             pbar.update(1)
             pbar.set_description(
                 f"Pretrain e {epoch + 1} s {step + 1}, "
-                f"Loss {show_loss}/{li}, Norms {show_norm}/{ni}, "
+                f"Loss {show_loss}/{li}, "
+                f"Norms {show_norm}/{ni} (best {str(np.array(best_norm).round(round_to))}), "
                 # f"Factor {show_factor}, "
                 f"Av. Weights {show_avw}/{pi}, "
                 # f"Failures {n_failures}, "
