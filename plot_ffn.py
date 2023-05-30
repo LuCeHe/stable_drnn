@@ -14,7 +14,7 @@ CDIR = os.path.dirname(FILENAME)
 EXPERIMENTS = os.path.join(CDIR, 'experiments')
 EXPERIMENTS = r'D:\work\alif_sg\experiments'
 
-expsid = 'effnet'  # effnet als ffnandcnns transf
+expsid = 'ffnandcnns'  # effnet als ffnandcnns transf
 
 if expsid == 'ffnandcnns':
     GEXPERIMENTS = [r'D:\work\alif_sg\good_experiments\2022-12-16--ffn']
@@ -669,52 +669,57 @@ if missing_exps:
     if 'ffnandcnns' in expsid:
         # coi = ['seed', 'act', 'lr', 'comments', 'dataset', 'eps', 'spe']
         coi = ['seed', 'act', 'comments', 'dataset', 'eps', 'spe']
+        flags = ['_onlypretrain', '_onlyloadpretrained']
         # all_comments = ['', 'findLSC_supsubnpsd', 'findLSC_supnpsd2', 'findLSC_radius', 'heinit', ]
-        all_comments = ['findLSC_supsubnpsd', 'findLSC_supnpsd2', 'findLSC_radius', ]
-        all_comments = [c + '_adabelief_onlypretrain' for c in all_comments]
+        comments = ['findLSC_supsubnpsd', 'findLSC_supnpsd2', 'findLSC_radius', ]
+        all_comments = lambda x: [c + f'_adabelief{x}' for c in comments]
 
-        experiment = {
-            'comments': all_comments,
+        experiment = lambda x: {
+            'comments': all_comments(x),
             'act': ['sin', 'relu', 'cos'], 'dataset': ['cifar10', 'cifar100'],
             'layers': [30], 'width': [128], 'lr': [1e-3, 3.16e-4, 1e-4, 3.16e-5, 1e-5],
             'eps': [50], 'spe': [-1], 'pretrain_epochs': [30], 'seed': list(range(4)),
         }
-        experiments.append(experiment)
+        exps = lambda x: [experiment(x)]
 
     elif 'effnet' in expsid:
         coi = ['seed', 'act', 'lr', 'comments', 'eps', 'spe', 'batch_normalization', 'dataset']
-
+        flags = ['_onlypretrain']
         incomplete_comments = 'newarch_lscvar'
         all_comments = [incomplete_comments + f'_onlypretrain']
         seeds = list(range(4))
-        experiment = {
+        experiment = lambda x: {
             'seed': seeds, 'comments': all_comments, 'eps': [150], 'spe': [-1],
             'lr': [-1], 'act': ['swish', 'relu', 'tanh'], 'batch_normalization': [1],
             'dataset': ['cifar10', 'cifar100', 'mnist'],
         }
-        experiments.append(experiment)
+        experiments = lambda x: [experiment(x)]
+        # experiments.append(experiment)
 
-    ds = dict2iter(experiments)
     sdf = odf
-    # add string pretrain to comments if it's not there
-    sdf['comments'] = sdf['comments'].apply(lambda x: x + '_onlypretrain' if 'onlypretrain' not in x else x)
-
-    print('this is on')
+    sdf['comments'] = sdf['comments'].apply(
+        lambda x: x + '_onlypretrain' if 'onlypretrain' not in x and 'onlyloadpretrained' not in x
+        else x
+    )
     print(sdf.head().to_string())
     sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
-    print(sdf.head().to_string())
-    df, experiments = complete_missing_exps(sdf, ds, coi)
-    new_exps = []
-    for e in experiments:
-        ne = e.copy()
-        ne.update({'pretrain_epochs': [100]})
-        ne.update({'epochs': [int(e['eps'][0])]})
-        ne.update({'steps_per_epoch': [int(e['spe'][0])]})
-        ne.update({'activation': e['act']})
-        # ne.update({'comments': [e['comments'][0] + '_onlypretrain']})
-        del ne['act'], ne['eps'], ne['spe']
-        # print(ne)
-        new_exps.append(ne)
 
-    print('experiments = ', new_exps)
-    print('# ', len(new_exps))
+    for add_flag in flags:
+        # add string pretrain to comments if it's not there
+        ds = dict2iter(exps(add_flag))
+
+        df, experiments = complete_missing_exps(sdf, ds, coi)
+        new_exps = []
+        for e in experiments:
+            ne = e.copy()
+            ne.update({'pretrain_epochs': [100]})
+            ne.update({'epochs': [int(e['eps'][0])]})
+            ne.update({'steps_per_epoch': [int(e['spe'][0])]})
+            ne.update({'activation': e['act']})
+            # ne.update({'comments': [e['comments'][0] + '_onlypretrain']})
+            del ne['act'], ne['eps'], ne['spe']
+            # print(ne)
+            new_exps.append(ne)
+
+        print(f'experiments{add_flag} = ', new_exps)
+        print('# ', len(new_exps))
