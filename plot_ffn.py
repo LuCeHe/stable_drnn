@@ -35,8 +35,8 @@ lrs_plot = False
 lrs_plot_2 = False
 bar_plot = False
 plot_losses = False
-missing_exps = False
-remove_incomplete = True
+missing_exps = True
+remove_incomplete = False
 truely_remove = False
 
 metric = 'val_acc M'  # 'val_acc M'   'val_loss m' test_acc
@@ -216,7 +216,7 @@ if 'ffnandcnns' in expsid:
         'seed', 'lr', 'comments',
         'val_acc M', 'val_loss m', 'test_acc M', 'test_loss m',
         # 'acc max','loss min',
-        'LSC i', 'LSC f',
+        'LSC i', 'LSC f', 'LSC a',
         'conveps',
         'ep M', 'time_elapsed', 'hostname', 'path',
     ]
@@ -227,7 +227,7 @@ elif 'effnet' in expsid:
         'act', 'eps', 'dataset', 'batch_normalization',
         'seed', 'lr', 'comments',
         'val_acc M', 'val_loss m', 'test_acc M', 'test_loss m',
-        'LSC i', 'LSC f',
+        'LSC i', 'LSC f', 'LSC a',
         'ep M', 'time_elapsed', 'hostname', 'path',
     ]
     group_cols = ['lr', 'comments', 'act', 'dataset', 'batch_normalization']
@@ -238,7 +238,7 @@ elif 'transf' in expsid:
         'act', 'eps', 'dataset',
         'seed', 'lr', 'comments', 'batch_size',
         'val_ppl m',
-        'LSC i', 'LSC f',
+        'LSC i', 'LSC f', 'LSC a',
         'encoder_norm i', 'encoder_norm f',
         'decoder_norm i', 'decoder_norm f',
         'ep M', 'time_elapsed', 'hostname', 'path',
@@ -606,10 +606,10 @@ if remove_incomplete:
     print(list(df.columns))
     print('Remove if too far from target radius')
     # rdf = df[abs(df['LSC f'] - 1) > epsilon]
-    df['vs_epsilon'] = ((abs(df['LSC a'] - df['target']) > epsilon)
-                             & df['comments'].str.contains('onlyloadpretrained')) \
-                            | ((abs(df['LSC f'] - df['target']) > epsilon)
-                             & df['comments'].str.contains('onlypretrain'))
+    df['vs_epsilon'] = ((abs(df['LSC a'] - 1) > epsilon)
+                        & df['comments'].str.contains('onlyloadpretrained')) \
+                       | ((abs(df['LSC f'] - 1) > epsilon)
+                          & df['comments'].str.contains('onlypretrain'))
 
     rdf = df[
         df['comments'].str.contains('findLSC')
@@ -639,10 +639,12 @@ if remove_incomplete:
             ]
         listem.append(rdf)
         rdfs.append(rdf)
-    listem = pd.concat(listem)
 
-    print(listem.to_string())
-    print(listem.shape, df.shape)
+    if len(listem) > 0:
+        listem = pd.concat(listem)
+
+        print(listem.to_string())
+        print(listem.shape, df.shape)
 
     print('Remove if it didnt converge')
     # rdf = df[df['conveps'] < 8]
@@ -703,6 +705,7 @@ if missing_exps:
         # coi = ['seed', 'act', 'lr', 'comments', 'dataset', 'eps', 'spe']
         coi = ['seed', 'act', 'comments', 'dataset', 'eps', 'spe']
         flags = ['_onlypretrain', '_onlyloadpretrained']
+        flags = ['_onlypretrain']
         # all_comments = ['', 'findLSC_supsubnpsd', 'findLSC_supnpsd2', 'findLSC_radius', 'heinit', ]
         comments = ['findLSC_supsubnpsd', 'findLSC_supnpsd2', 'findLSC_radius', ]
         all_comments = lambda x: [c + f'_adabelief{x}' for c in comments]
@@ -726,8 +729,7 @@ if missing_exps:
             'lr': [-1], 'act': ['swish', 'relu', 'tanh'], 'batch_normalization': [1],
             'dataset': ['cifar10', 'cifar100', 'mnist'],
         }
-        experiments = lambda x: [experiment(x)]
-        # experiments.append(experiment)
+        exps = lambda x: [experiment(x)]
 
     sdf = odf
     sdf['comments'] = sdf['comments'].apply(
