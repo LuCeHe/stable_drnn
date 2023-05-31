@@ -158,8 +158,8 @@ def main(args):
     elif 'lscvar' in args.comments:
         model = build_model(args, input_shape, classes)
         loss = lambda x, y: 0
-        lsclr = str2val(args.comments, 'lsclr', float, default=1.0e-4)
-        adabelief = tfa.optimizers.AdaBelief(lr=lsclr, weight_decay=1e-4)
+        lsclr = str2val(args.comments, 'lsclr', float, default=1.0e-5)
+        adabelief = tfa.optimizers.AdaBelief(lr=lsclr, weight_decay=1e-5)
         optimizer = tfa.optimizers.Lookahead(adabelief, sync_period=6, slow_step_size=0.5)
         model.compile(optimizer, loss)
         steps_per_epoch = args.steps_per_epoch if args.steps_per_epoch > 0 else None

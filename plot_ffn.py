@@ -35,8 +35,8 @@ lrs_plot = False
 lrs_plot_2 = False
 bar_plot = False
 plot_losses = False
-missing_exps = True
-remove_incomplete = False
+missing_exps = False
+remove_incomplete = True
 truely_remove = False
 
 metric = 'val_acc M'  # 'val_acc M'   'val_loss m' test_acc
@@ -77,10 +77,10 @@ if expsid == 'effnet':
 
 # select only rows with width 10
 df['time_elapsed'] = pd.to_timedelta(df['time_elapsed'], unit='s')
-# df['val_loss argm'] = df['val_loss list'].apply(np.argmin)
-# df['conveps'] = df['val_loss len'] - df['val_loss argm']
-df['val_acc argM'] = df['val_sparse_categorical_accuracy list'].apply(np.argmax)
-df['conveps'] = df['val_sparse_categorical_accuracy len'] - df['val_acc argM']
+df['val_loss argm'] = df['val_loss list'].apply(np.argmin)
+df['conveps'] = df['val_loss len'] - df['val_loss argm']
+# df['val_acc argM'] = df['val_sparse_categorical_accuracy list'].apply(np.argmax)
+# df['conveps'] = df['val_sparse_categorical_accuracy len'] - df['val_acc argM']
 
 if plot_norms_evol:
     for _, row in df.iterrows():
@@ -605,11 +605,44 @@ if remove_incomplete:
     # epsilon = 2.
     print(list(df.columns))
     print('Remove if too far from target radius')
-    rdf = df[abs(df['LSC f'] - 1) > epsilon]
+    # rdf = df[abs(df['LSC f'] - 1) > epsilon]
+    df['vs_epsilon'] = ((abs(df['LSC a'] - df['target']) > epsilon)
+                             & df['comments'].str.contains('onlyloadpretrained')) \
+                            | ((abs(df['LSC f'] - df['target']) > epsilon)
+                             & df['comments'].str.contains('onlypretrain'))
+
+    rdf = df[
+        df['comments'].str.contains('findLSC')
+        & df['vs_epsilon']
+        ]
     print(rdf.to_string())
     print(rdf.shape, odf.shape, df.shape, df[df['comments'].str.contains('pretrain')].shape)
 
     rdfs.append(rdf)
+
+    print('Remove onlypretrain of the onlyloadpretrained that did not satisfy the lsc')
+    nrdf = rdf[rdf['comments'].str.contains('onlyloadpretrained')].copy()
+    # rdf['comments'] = rdf['comments'].str.replace('onlyloadpretrained', 'onlypretrain')
+
+    listem = []
+    for _, row in nrdf.iterrows():
+        act = row['act']
+        dataset = row['dataset']
+        seed = row['seed']
+        comments = row['comments'].replace('onlyloadpretrained', 'onlypretrain')
+        # print(net, task, seed, stack, comments)
+        rdf = df[
+            df['act'].eq(act)
+            & df['dataset'].eq(dataset)
+            & df['seed'].eq(seed)
+            & df['comments'].eq(comments)
+            ]
+        listem.append(rdf)
+        rdfs.append(rdf)
+    listem = pd.concat(listem)
+
+    print(listem.to_string())
+    print(listem.shape, df.shape)
 
     print('Remove if it didnt converge')
     # rdf = df[df['conveps'] < 8]

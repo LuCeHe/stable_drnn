@@ -69,6 +69,7 @@ remove_incomplete = False
 truely_remove = False
 truely_remove_pretrained = False
 
+
 task = 'ps_mnist'  # heidelberg wordptb sl_mnist all ps_mnist
 incomplete_comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_pretrained_'
 
@@ -80,7 +81,7 @@ optimizer_name = 'SWAAdaBelief'  # SGD SWAAdaBelief
 metrics_oi = [
     # 't_ppl min', 't_mode_acc max', 'v_ppl min', 'v_mode_acc max',
     't_ppl', 't_mode_acc', 'v_ppl', 'v_mode_acc',
-    'LSC_norms i', 'LSC_norms f'
+    'LSC_norms i', 'LSC_norms f', 'LSC_norms mean',
 ]
 metrics_oi = [shorten_losses(m) for m in metrics_oi]
 
@@ -1288,8 +1289,13 @@ if remove_incomplete:
     # else nan
     plotdf['target'] = plotdf['comments'].apply(
         lambda x: 0.5 if 'targetnorm:.5' in x else 1 if 'findLSC' in x else np.nan)
-    plotdf['diff_target'] = abs(plotdf['LSC f'] - plotdf['target'])
-    plotdf['vs_epsilon'] = plotdf['diff_target'] > lsc_epsilon
+    # plotdf['diff_target'] = abs(plotdf['LSC f'] - plotdf['target'])
+    # plotdf['vs_epsilon'] = plotdf['diff_target'] > lsc_epsilon
+    plotdf['vs_epsilon'] = ((abs(plotdf['LSC a'] - plotdf['target']) > lsc_epsilon)
+                             & plotdf['comments'].str.contains('onlyloadpretrained')) \
+                            | ((abs(plotdf['LSC f'] - plotdf['target']) > lsc_epsilon)
+                             & plotdf['comments'].str.contains('onlypretrain'))
+
     rdf = plotdf[
         plotdf['comments'].str.contains('findLSC')
         & plotdf['vs_epsilon']
@@ -1309,6 +1315,8 @@ if remove_incomplete:
     print('Remove onlypretrain of the onlyloadpretrained that did not satisfy the lsc')
     nrdf = rdf[rdf['comments'].str.contains('onlyloadpretrained')].copy()
     # rdf['comments'] = rdf['comments'].str.replace('onlyloadpretrained', 'onlypretrain')
+
+    listem = []
     for _, row in nrdf.iterrows():
         net = row['net']
         task = row['task']
@@ -1323,13 +1331,12 @@ if remove_incomplete:
             & plotdf['stack'].eq(stack)
             & plotdf['comments'].eq(comments)
             ]
-        # print(rdf.to_string())
-        # print(row.to_string())
-        print(rdf.shape, df.shape)
+        listem.append(rdf)
         rdfs.append(rdf)
+    listem = pd.concat(listem)
 
-    print(nrdf.to_string())
-    print(nrdf.shape, df.shape)
+    print(listem.to_string())
+    print(listem.shape, df.shape)
 
     # rdfs.append(rdf)
 
@@ -1355,15 +1362,6 @@ if remove_incomplete:
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
 
-    print('Check state of .5 maLSNN')
-    rdf = plotdf[
-        plotdf['comments'].str.contains('targetnorm:.5')
-        & plotdf['net'].str.contains('ALIF')
-        & plotdf['task'].str.contains('PTB')
-        ]
-    print(rdf.to_string())
-    print(rdf.shape, df.shape)
-    rdfs.append(rdf)
 
     print('Remove ppl and acc na and inf')
     rdf = plotdf[
@@ -1507,7 +1505,7 @@ if missing_exps:
 
     incomplete_comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained'
 
-    for add_flag in ['_onlypretrain', '_onlyloadpretrained']:  # ['_onlyloadpretrained', '_onlypretrain']:
+    for add_flag in ['_onlypretrain']:  # ['_onlyloadpretrained', '_onlypretrain']:
         if add_flag == '_onlyloadpretrained':
             good_lsc_options = [True, False]
         else:
