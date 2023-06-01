@@ -258,6 +258,7 @@ def remove_pretrained_extra(experiments, remove_opposite=True, folder=None):
     if folder is None:
         folder = GEXPERIMENTS
 
+
     safety_folder = os.path.abspath(os.path.join(folder, '..', 'safety'))
     os.makedirs(safety_folder, exist_ok=True)
 
@@ -268,6 +269,12 @@ def remove_pretrained_extra(experiments, remove_opposite=True, folder=None):
            and not '_ffn_' in d
            and not '_effnet_' in d
     ]
+
+    which_is_missing = [f for f in files if not f in existing_pretrained]
+    print('Missing:')
+    for f in which_is_missing:
+        print(f)
+
     pbar = tqdm(total=len(existing_pretrained))
     removed = 0
     for d in existing_pretrained:
@@ -285,10 +292,6 @@ def remove_pretrained_extra(experiments, remove_opposite=True, folder=None):
         pbar.update(1)
         pbar.set_description(f"Removed {removed} of {len(existing_pretrained)}")
 
-    which_is_missing = [f for f in files if not f in existing_pretrained]
-    print('Missing:')
-    for f in which_is_missing:
-        print(f)
 
 
 def load_LSC_model(path):

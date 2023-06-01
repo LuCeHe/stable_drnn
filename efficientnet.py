@@ -124,7 +124,9 @@ def main(args):
     input_shape = x_train.shape[1:]
 
     results = {}
-    if 'findLSC' in args.comments:
+    results.update(vars(args))
+
+    if 'findLSC' in args.comments and not 'lscvar' in args.comments:
         gen_train = NumpyClassificationGenerator(
             x_train, y_train,
             epochs=args.pretrain_epochs, steps_per_epoch=args.steps_per_epoch,
@@ -158,8 +160,8 @@ def main(args):
     elif 'lscvar' in args.comments:
         model = build_model(args, input_shape, classes)
         loss = lambda x, y: 0
-        lsclr = str2val(args.comments, 'lsclr', float, default=1.0e-5)
-        adabelief = tfa.optimizers.AdaBelief(lr=lsclr, weight_decay=1e-5)
+        lsclr = str2val(args.comments, 'lsclr', float, default=1.e-3)
+        adabelief = tfa.optimizers.AdaBelief(lr=lsclr, weight_decay=1.e-3)
         optimizer = tfa.optimizers.Lookahead(adabelief, sync_period=6, slow_step_size=0.5)
         model.compile(optimizer, loss)
         steps_per_epoch = args.steps_per_epoch if args.steps_per_epoch > 0 else None
@@ -254,7 +256,6 @@ def main(args):
         history_jsonable = {k: np.array(v).astype(float).tolist() for k, v in history_dict.items()}
         json.dump(history_jsonable, open(json_filename, "w"))
 
-    results.update(vars(args))
 
     return results
 

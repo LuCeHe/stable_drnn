@@ -1390,7 +1390,6 @@ if remove_incomplete:
         seed = row['seed']
         stack = row['stack']
         comments = row['comments'].replace('onlyloadpretrained', 'onlypretrain')
-        print(net, task, seed, stack, comments)
         rdf = plotdf[
             plotdf['net'].eq(net)
             & plotdf['task'].eq(task)
@@ -1402,13 +1401,12 @@ if remove_incomplete:
         print(rdf.shape, df.shape)
         rdfs.append(rdf)
 
-    print('-=***=-' * 10)
-    print('Count > 4')
-
+    print('Remove repeated experiments')
     brdf = mdf[mdf['counts'] > 4]
     print(brdf.to_string())
 
     for _, row in brdf.iterrows():
+        print('-' * 80)
         srdf = plotdf[
             # (df['lr'] == row['lr'])
             (plotdf['comments'].eq(row['comments']))
@@ -1417,11 +1415,16 @@ if remove_incomplete:
             & (plotdf['net'] == row['net'])
             ].copy()
 
+        # order wrt path column
+        srdf = srdf.sort_values(by=['path'], ascending=False)
+
         # no duplicates
         gsrdf = srdf.drop_duplicates(subset=['seed'])
 
         # remainder
         rdf = srdf[~srdf.apply(tuple, 1).isin(gsrdf.apply(tuple, 1))]
+        print(srdf.to_string())
+        print(rdf.to_string())
         print(rdf.shape)
         rdfs.append(rdf)
 

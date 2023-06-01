@@ -14,7 +14,7 @@ CDIR = os.path.dirname(FILENAME)
 EXPERIMENTS = os.path.join(CDIR, 'experiments')
 EXPERIMENTS = r'D:\work\alif_sg\experiments'
 
-expsid = 'ffnandcnns'  # effnet als ffnandcnns transf
+expsid = 'effnet'  # effnet als ffnandcnns transf
 
 if expsid == 'ffnandcnns':
     GEXPERIMENTS = [r'D:\work\alif_sg\good_experiments\2022-12-16--ffn']
@@ -588,8 +588,6 @@ if remove_incomplete:
     rdfs = []
     import shutil
 
-    print('here')
-    print(df.head().to_string())
 
     if expsid == 'ffnandcnns':
         df = df[df['comments'].str.contains('adabelief')]
@@ -598,23 +596,25 @@ if remove_incomplete:
     else:
         raise NotImplementedError
 
-    print(df.head())
-
     # from LSC_norms final column, select those that are epsilon away from 1
     epsilon = 0.02
     # epsilon = 2.
-    print(list(df.columns))
+    print(df.to_string())
     print('Remove if too far from target radius')
     # rdf = df[abs(df['LSC f'] - 1) > epsilon]
     df['vs_epsilon'] = ((abs(df['LSC a'] - 1) > epsilon)
                         & df['comments'].str.contains('onlyloadpretrained')) \
                        | ((abs(df['LSC f'] - 1) > epsilon)
                           & df['comments'].str.contains('onlypretrain'))
+    print(df.to_string())
 
-    rdf = df[
-        df['comments'].str.contains('findLSC')
-        & df['vs_epsilon']
+    # rdf = df[
+    #     df['comments'].str.contains('findLSC')
+    #     & df['vs_epsilon']
+    #     ]
+    rdf = df[df['vs_epsilon']
         ]
+
     print(rdf.to_string())
     print(rdf.shape, odf.shape, df.shape, df[df['comments'].str.contains('pretrain')].shape)
 
@@ -653,12 +653,10 @@ if remove_incomplete:
     # print(rdf.shape, df.shape)
     # rdfs.append(rdf)
 
-    # remove one seed from those that have more than 4 seeds
-    brdf = mdf[mdf['counts'] > 4]
-    # print(rdf.to_string())
 
+    print('Remove repeated experiments')
+    brdf = mdf[mdf['counts'] > 4]
     for _, row in brdf.iterrows():
-        # print('-' * 80)
         srdf = df[
             (df['lr'] == row['lr'])
             & (df['comments'] == row['comments'])
@@ -666,14 +664,15 @@ if remove_incomplete:
             & (df['dataset'] == row['dataset'])
             ]
 
+        # order wrt path column
+        srdf = srdf.sort_values(by=['path'], ascending=False)
+
         # no duplicates
         gsrdf = srdf.drop_duplicates(subset=['seed'])
 
         # remainder
         rdf = srdf[~srdf.apply(tuple, 1).isin(gsrdf.apply(tuple, 1))]
         print(rdf.shape, odf.shape)
-        print(rdf.to_string())
-        rdfs.append(rdf)
 
     allrdfs = pd.concat(rdfs)
     allrdfs = allrdfs.drop_duplicates()
@@ -721,7 +720,7 @@ if missing_exps:
     elif 'effnet' in expsid:
         coi = ['seed', 'act', 'lr', 'comments', 'eps', 'spe', 'batch_normalization', 'dataset']
         flags = ['_onlypretrain']
-        incomplete_comments = 'newarch_lscvar'
+        incomplete_comments = 'newarch_findLSC_lscvar'
         all_comments = [incomplete_comments + f'_onlypretrain']
         seeds = list(range(4))
         experiment = lambda x: {
