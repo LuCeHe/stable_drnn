@@ -206,7 +206,7 @@ BASE_DOCSTRING = """Instantiates the {name} architecture.
 
 
 def act_reg(activity):
-    return tf.math.abs(tf.math.reduce_variance(activity) - 1)
+    return tf.math.abs(tf.math.reduce_std(activity) - 1)
 
 
 def EfficientNet(
