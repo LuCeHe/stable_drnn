@@ -14,7 +14,7 @@ CDIR = os.path.dirname(FILENAME)
 EXPERIMENTS = os.path.join(CDIR, 'experiments')
 EXPERIMENTS = r'D:\work\alif_sg\experiments'
 
-expsid = 'effnet'  # effnet als ffnandcnns transf
+expsid = 'ffnandcnns'  # effnet als ffnandcnns transf
 
 if expsid == 'ffnandcnns':
     GEXPERIMENTS = [r'D:\work\alif_sg\good_experiments\2022-12-16--ffn']
@@ -35,6 +35,7 @@ lrs_plot = False
 lrs_plot_2 = False
 bar_plot = False
 plot_losses = False
+
 missing_exps = True
 remove_incomplete = False
 truely_remove = False
@@ -600,13 +601,12 @@ if remove_incomplete:
     epsilon = 0.02
     # epsilon = 2.
     print(df.to_string())
-    print('Remove if too far from target radius')
+    print('\n\nRemove if too far from target radius')
     # rdf = df[abs(df['LSC f'] - 1) > epsilon]
     df['vs_epsilon'] = ((abs(df['LSC a'] - 1) > epsilon)
                         & df['comments'].str.contains('onlyloadpretrained')) \
                        | ((abs(df['LSC f'] - 1) > epsilon)
                           & df['comments'].str.contains('onlypretrain'))
-    print(df.to_string())
 
     # rdf = df[
     #     df['comments'].str.contains('findLSC')
@@ -672,6 +672,8 @@ if remove_incomplete:
 
         # remainder
         rdf = srdf[~srdf.apply(tuple, 1).isin(gsrdf.apply(tuple, 1))]
+        print(srdf.to_string())
+        print(rdf.to_string())
         print(rdf.shape, odf.shape)
 
     allrdfs = pd.concat(rdfs)
