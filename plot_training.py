@@ -1333,10 +1333,11 @@ if remove_incomplete:
             ]
         listem.append(rdf)
         rdfs.append(rdf)
-    listem = pd.concat(listem)
 
-    print(listem.to_string())
-    print(listem.shape, df.shape)
+    if len(listem) > 0:
+        listem = pd.concat(listem)
+        print(listem.to_string())
+        print(listem.shape, df.shape)
 
     # rdfs.append(rdf)
 

@@ -14,20 +14,6 @@ CDIR = os.path.dirname(FILENAME)
 EXPERIMENTS = os.path.join(CDIR, 'experiments')
 EXPERIMENTS = r'D:\work\alif_sg\experiments'
 
-expsid = 'effnet'  # effnet als ffnandcnns transf
-
-if expsid == 'ffnandcnns':
-    GEXPERIMENTS = [r'D:\work\alif_sg\good_experiments\2022-12-16--ffn']
-elif expsid == 'effnet':
-    GEXPERIMENTS = [r'D:\work\alif_sg\good_experiments\2023-01-01--effnet']
-
-# GEXPERIMENTS = [
-# os.path.join(CDIR, 'good_experiments', '2022-12-16--ffn'),
-# os.path.join(CDIR, 'good_experiments'),
-# r'D:\work\alif_sg\good_experiments\2022-12-16--ffn'
-# r'D:\work\alif_sg\good_experiments\2023-01-01--effnet',
-# r'D:\work\alif_sg\good_experiments\2023-01-15--transf',
-# ]
 
 plot_norms_evol = False
 plot_norms_evol_1 = False
@@ -39,6 +25,13 @@ plot_losses = False
 missing_exps = True
 remove_incomplete = False
 truely_remove = False
+
+expsid = 'effnet'  # effnet als ffnandcnns transf
+
+if expsid == 'ffnandcnns':
+    GEXPERIMENTS = [r'D:\work\alif_sg\good_experiments\2022-12-16--ffn']
+elif expsid == 'effnet':
+    GEXPERIMENTS = [r'D:\work\alif_sg\good_experiments\2023-01-01--effnet']
 
 metric = 'val_acc M'  # 'val_acc M'   'val_loss m' test_acc
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
