@@ -201,11 +201,13 @@ def main(args):
         flsc = str2val(args.comments, 'flsc', bool, default=False)
 
         comments = args.comments
-        # if 'supsubnpsd' in args.comments:
-        #     comments = args.comments + '_waddnoise'
+        if 'supsubnpsd' in args.comments:
+            comments = args.comments + '_waddnoise'
+
         weights, lsc_results = apply_LSC_no_time(
             bm, generator=gen_val, max_dim=max_dim, norm_pow=2, forward_lsc=flsc,
             nlayerjump=2, net_name='ffn', task_name=args.dataset, activation=act_name, seed=args.seed,
+            learning_rate=3.16e-3,
             # layer_min=4, layer_max=None,  fanin=fanin,
             comments=comments
         )

@@ -14,7 +14,6 @@ CDIR = os.path.dirname(FILENAME)
 EXPERIMENTS = os.path.join(CDIR, 'experiments')
 EXPERIMENTS = r'D:\work\alif_sg\experiments'
 
-
 plot_norms_evol = False
 plot_norms_evol_1 = False
 lrs_plot = False
@@ -63,8 +62,8 @@ if expsid == 'effnet':
     from alif_sg.tools.config import default_eff_lr
 
     df = df[df['comments'].str.contains('newarch')]
-    df['comments'] = df['comments'].str.replace('newarch_', '')
-    df['comments'] = df['comments'].str.replace('pretrained_', '')
+    # df['comments'] = df['comments'].str.replace('newarch_', '')
+    # df['comments'] = df['comments'].str.replace('pretrained_', '')
     df['lr'] = df.apply(
         lambda x: default_eff_lr(x['activation'], x['lr'], x['batch_normalization']) if x['lr'] == -1 else x['lr'],
         axis=1)
@@ -274,24 +273,25 @@ print(mdf.to_string())
 
 if 'effnet' in expsid:
     # remove string from column comments in the df
-    bn = 0
-    mdf = mdf[~mdf['comments'].eq('deslice_findLSC_truersplit_meanaxis')]
-    no_LSC_string = 'deslice_' if bn == 1 else 'meanaxis_deslice_'
-    mdf = mdf[
-        mdf['comments'].eq(no_LSC_string)
-        | (
-                mdf['comments'].str.contains('findLSC')
-                & mdf['comments'].str.contains('meanaxis')
-        )
-        ]
-    mdf['comments'] = mdf['comments'].str.replace('meanaxis_', '')
-    mdf = mdf[mdf['batch_normalization'].eq(bn)]
-    mdf['comments'] = mdf['comments'].str.replace('deslice_', '')
-    mdf['comments'] = mdf['comments'].str.replace('pretrained_', '')
-    mdf['comments'] = mdf['comments'].str.replace('truersplit_', '')
-    mdf['comments'] = mdf['comments'].str.replace('sameemb_', '')
-
-    mdf['comments'] = mdf['comments'].replace(r'^\s*$', 'heinit', regex=True)
+    # bn = 0
+    # mdf = mdf[~mdf['comments'].eq('deslice_findLSC_truersplit_meanaxis')]
+    # no_LSC_string = 'deslice_' if bn == 1 else 'meanaxis_deslice_'
+    # mdf = mdf[
+    #     mdf['comments'].eq(no_LSC_string)
+    #     | (
+    #             mdf['comments'].str.contains('findLSC')
+    #             & mdf['comments'].str.contains('meanaxis')
+    #     )
+    #     ]
+    # mdf['comments'] = mdf['comments'].str.replace('meanaxis_', '')
+    # mdf = mdf[mdf['batch_normalization'].eq(bn)]
+    # mdf['comments'] = mdf['comments'].str.replace('deslice_', '')
+    # mdf['comments'] = mdf['comments'].str.replace('pretrained_', '')
+    # mdf['comments'] = mdf['comments'].str.replace('truersplit_', '')
+    # mdf['comments'] = mdf['comments'].str.replace('sameemb_', '')
+    #
+    # mdf['comments'] = mdf['comments'].replace(r'^\s*$', 'heinit', regex=True)
+    pass
 
 if lrs_plot:
     from matplotlib.lines import Line2D
@@ -582,7 +582,6 @@ if remove_incomplete:
     rdfs = []
     import shutil
 
-
     if expsid == 'ffnandcnns':
         df = df[df['comments'].str.contains('adabelief')]
     elif expsid == 'effnet':
@@ -601,12 +600,12 @@ if remove_incomplete:
                        | ((abs(df['LSC f'] - 1) > epsilon)
                           & df['comments'].str.contains('onlypretrain'))
 
-    # rdf = df[
-    #     df['comments'].str.contains('findLSC')
-    #     & df['vs_epsilon']
-    #     ]
-    rdf = df[df['vs_epsilon']
+    rdf = df[
+        df['comments'].str.contains('findLSC')
+        & df['vs_epsilon']
         ]
+    # rdf = df[df['vs_epsilon']
+    # ]
 
     print(rdf.to_string())
     print(rdf.shape, odf.shape, df.shape, df[df['comments'].str.contains('pretrain')].shape)
@@ -646,16 +645,21 @@ if remove_incomplete:
     # print(rdf.shape, df.shape)
     # rdfs.append(rdf)
 
-
     print('Remove repeated experiments')
     brdf = mdf[mdf['counts'] > 4]
+    print(brdf.to_string())
     for _, row in brdf.iterrows():
-        srdf = df[
-            (df['lr'] == row['lr'])
-            & (df['comments'] == row['comments'])
-            & (df['act'] == row['act'])
-            & (df['dataset'] == row['dataset'])
-            ]
+        print('-' * 80)
+        if expsid == 'ffnandcnns' or expsid == 'effnet':
+            srdf = df[
+                (df['lr'] == row['lr'])
+                & (df['comments'] == row['comments'])
+                & (df['act'] == row['act'])
+                & (df['dataset'] == row['dataset'])
+                ]
+        else:
+            raise NotImplementedError
+
 
         # order wrt path column
         srdf = srdf.sort_values(by=['path'], ascending=False)
@@ -668,6 +672,7 @@ if remove_incomplete:
         print(srdf.to_string())
         print(rdf.to_string())
         print(rdf.shape, odf.shape)
+        rdfs.append(rdf)
 
     allrdfs = pd.concat(rdfs)
     allrdfs = allrdfs.drop_duplicates()
@@ -694,6 +699,8 @@ if missing_exps:
     # columns of interest
 
     # print(sdf.to_string())
+    sdf = odf
+
     experiments = []
     if 'ffnandcnns' in expsid:
         # coi = ['seed', 'act', 'lr', 'comments', 'dataset', 'eps', 'spe']
@@ -716,7 +723,7 @@ if missing_exps:
         coi = ['seed', 'act', 'lr', 'comments', 'eps', 'spe', 'batch_normalization', 'dataset']
         flags = ['_onlypretrain']
         incomplete_comments = 'newarch_findLSC_lscvar'
-        all_comments = [incomplete_comments + f'_onlypretrain']
+        all_comments = [incomplete_comments + f'_onlypretrain_preprocessinput']
         seeds = list(range(4))
         experiment = lambda x: {
             'seed': seeds, 'comments': all_comments, 'eps': [150], 'spe': [-1],
@@ -724,15 +731,16 @@ if missing_exps:
             'dataset': ['cifar10', 'cifar100', 'mnist'],
         }
         exps = lambda x: [experiment(x)]
+        sdf = sdf[sdf['comments'].str.contains(incomplete_comments)]
+        sdf['lr'] = -1
 
-    sdf = odf
     sdf['comments'] = sdf['comments'].apply(
         lambda x: x + '_onlypretrain' if 'onlypretrain' not in x and 'onlyloadpretrained' not in x
         else x
     )
-    print(sdf.head().to_string())
     sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
 
+    print(sdf.to_string())
     for add_flag in flags:
         # add string pretrain to comments if it's not there
         ds = dict2iter(exps(add_flag))
