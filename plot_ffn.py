@@ -753,7 +753,8 @@ if missing_exps:
             ne.update({'epochs': [int(e['eps'][0])]})
             ne.update({'steps_per_epoch': [int(e['spe'][0])]})
             ne.update({'activation': e['act']})
-            # ne.update({'comments': [e['comments'][0] + '_onlypretrain']})
+            if 'pretrained' not in e['comments'][0]:
+                ne.update({'comments': [e['comments'][0] + '_pretrained']})
             del ne['act'], ne['eps'], ne['spe']
             # print(ne)
             new_exps.append(ne)
