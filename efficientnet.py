@@ -160,7 +160,7 @@ def main(args):
     elif 'lscvar' in args.comments:
         model = build_model(args, input_shape, classes)
         loss = lambda x, y: 0
-        lsclr = str2val(args.comments, 'lsclr', float, default=1.e-2)
+        lsclr = str2val(args.comments, 'lsclr', float, default=1.e-4)
         optimizer = tfa.optimizers.AdaBelief(lr=lsclr)
         # optimizer = tfa.optimizers.Lookahead(adabelief, sync_period=6, slow_step_size=0.5)
         model.compile(optimizer, loss)
@@ -182,7 +182,7 @@ def main(args):
         model.summary()
         callbacks = [
             tf.keras.callbacks.ModelCheckpoint(path_pretrained, monitor="val_loss", save_best_only=True, verbose=True),
-            tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=2, restore_best_weights=True)
+            tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=10, restore_best_weights=True)
         ]
 
         if not 'onlyloadpretrained' in args.comments:
