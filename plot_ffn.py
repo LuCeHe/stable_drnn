@@ -25,7 +25,7 @@ missing_exps = True
 remove_incomplete = False
 truely_remove = False
 
-expsid = 'effnet'  # effnet als ffnandcnns transf
+expsid = 'ffnandcnns'  # effnet als ffnandcnns transf
 
 if expsid == 'ffnandcnns':
     GEXPERIMENTS = [r'D:\work\alif_sg\good_experiments\2022-12-16--ffn']
