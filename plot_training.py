@@ -1359,6 +1359,7 @@ if remove_incomplete:
     rdf = plotdf[
         plotdf['LSC f'].isna()
     ]
+    remove_models = rdf.copy()
     print(rdf.to_string())
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
@@ -1438,7 +1439,7 @@ if remove_incomplete:
     if truely_remove_pretrained:
 
         # sdf = pd.read_hdf(h5path, 'df')
-        sdf = irdf.copy()
+        sdf = remove_models.copy()
         print(sdf.head().to_string())
         sdf.loc[sdf['task'].str.contains('SHD'), 'task'] = 'heidelberg'
         sdf.loc[sdf['task'].str.contains('sl-MNIST'), 'task'] = 'sl_mnist'
@@ -1455,6 +1456,7 @@ if remove_incomplete:
         print(experiments)
         print(f'Experiments to remove: {len(experiments)}')
         folder = r'D:\work\alif_sg\good_experiments\pmodels'
+        print(experiments)
         # remove_pretrained_extra(experiments, remove_opposite=False, folder=folder)
 
     if truely_remove:

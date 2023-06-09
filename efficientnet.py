@@ -160,7 +160,7 @@ def main(args):
     elif 'lscvar' in args.comments:
         model = build_model(args, input_shape, classes)
         loss = lambda x, y: 0
-        lsclr = str2val(args.comments, 'lsclr', float, default=1.e-4)
+        lsclr = str2val(args.comments, 'lsclr', float, default=1.e-5)
         optimizer = tfa.optimizers.AdaBelief(lr=lsclr)
         # optimizer = tfa.optimizers.Lookahead(adabelief, sync_period=6, slow_step_size=0.5)
         model.compile(optimizer, loss)
