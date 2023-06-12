@@ -45,7 +45,7 @@ def config():
     # task and net
     # ps_mnist heidelberg s_mnist
     # wordptb sl_mnist
-    task = 'sl_mnist'
+    task = 'wordptb'
 
     # test configuration
     epochs = 4
@@ -189,7 +189,9 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
             new_model_args = copy.deepcopy(model_args)
             new_comments = new_model_args['comments'] + '_reoldspike'
 
-            new_comments = new_comments + '_waddnoise'
+            # new_comments = new_comments + '_waddnoise'
+            # new_comments = new_comments + '_reducevar'
+            new_comments = new_comments + '_randlambda1'
 
             new_batch_size = batch_size
 

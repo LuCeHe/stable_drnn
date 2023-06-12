@@ -150,7 +150,7 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
     else:
         norms = tf.math.reduce_max(tf.abs(tf.linalg.eigvals(std)), axis=-1)
 
-    loss += well_loss(min_value=target_norm, max_value=target_norm, walls_type='relu', axis='all')(norms)
+    loss += well_loss(min_value=target_norm, max_value=target_norm, walls_type='squared', axis='all')(norms)
 
     naswot_score = None
     if not naswot == 0:
@@ -200,6 +200,7 @@ def get_lsctype(comments):
 
     elif 'entrywise' in comments:
         lsctype = 'entrywise'
+
     elif 'lscvar' in comments:
         lsctype = 'lscvar'
     else:
@@ -258,7 +259,6 @@ def remove_pretrained_extra(experiments, remove_opposite=True, folder=None):
     if folder is None:
         folder = GEXPERIMENTS
 
-
     safety_folder = os.path.abspath(os.path.join(folder, '..', 'safety'))
     os.makedirs(safety_folder, exist_ok=True)
 
@@ -293,7 +293,6 @@ def remove_pretrained_extra(experiments, remove_opposite=True, folder=None):
         pbar.set_description(f"Removed {removed} of {len(existing_pretrained)}")
 
 
-
 def load_LSC_model(path):
     model = tf.keras.models.load_model(
         path,
@@ -310,7 +309,7 @@ def load_LSC_model(path):
 
 
 def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, steps_per_epoch=2, es_epsilon=.08,
-              patience=10, rec_norm=True, depth_norm=True, encoder_norm=False, decoder_norm=True, learn=True,
+              patience=20, rec_norm=True, depth_norm=True, encoder_norm=False, decoder_norm=True, learn=True,
               time_steps=None, weights=None, save_weights_path=None, lr=1e-3, naswot=0):
     time_string = timeStructured()
     print('LSC starts at: ', time_string)
@@ -431,8 +430,10 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
         time_steps = 2 if not 'test' in comments else time_steps
         learn = False
 
-    if 'randlambda' in comments:
-        l = lambda: tf.random.uniform(shape=(), minval=0, maxval=1, dtype=tf.float32)
+    if 'randlambda1' in comments:
+        l = lambda: 2 * tf.random.uniform(shape=(), minval=0, maxval=1, dtype=tf.float32)
+    elif 'randlambda2' in comments:
+        l = lambda: float(tf.random.uniform(shape=(), minval=0, maxval=1, dtype=tf.float32) > .5)
     else:
         l = lambda: 1
 
@@ -577,6 +578,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                         if decoder_norm and i == len(stack) - 1 and r4 < .5:
                             output = outputs[0][:, 0, :]
 
+                            print(output.shape[-1])
                             if not output.shape[-1] > 100:
                                 norms, loss, naswot_score = get_norms(tape=tape, lower_states=stp1,
                                                                       upper_states=[output],
@@ -589,6 +591,12 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                                 mean_loss += l() * loss
 
                         del htp1, ht, ctp1, ct
+
+                # if 'reducevar' in comments:
+                #     print('interesting!')
+                #     sn = [tf.reduce_mean(n) for n in some_norms]
+                #     mean_loss += l() * tf.math.reduce_variance(sn)
+                #     mean_loss += l() * tf.math.reduce_mean(sn)
 
                 best_count += 1
                 mean_norm = tf.reduce_mean(some_norms)

@@ -64,11 +64,11 @@ plot_bars = False
 plot_new_bars = False
 chain_norms = False
 
-missing_exps = True
+missing_exps = False
 remove_incomplete = False
 truely_remove = False
 truely_remove_pretrained = False
-
+check_all_norms = True
 
 task = 'ps_mnist'  # heidelberg wordptb sl_mnist all ps_mnist
 incomplete_comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_pretrained_'
@@ -1292,9 +1292,9 @@ if remove_incomplete:
     # plotdf['diff_target'] = abs(plotdf['LSC f'] - plotdf['target'])
     # plotdf['vs_epsilon'] = plotdf['diff_target'] > lsc_epsilon
     plotdf['vs_epsilon'] = ((abs(plotdf['LSC a'] - plotdf['target']) > lsc_epsilon)
-                             & plotdf['comments'].str.contains('onlyloadpretrained')) \
-                            | ((abs(plotdf['LSC f'] - plotdf['target']) > lsc_epsilon)
-                             & plotdf['comments'].str.contains('onlypretrain'))
+                            & plotdf['comments'].str.contains('onlyloadpretrained')) \
+                           | ((abs(plotdf['LSC f'] - plotdf['target']) > lsc_epsilon)
+                              & plotdf['comments'].str.contains('onlypretrain'))
 
     rdf = plotdf[
         plotdf['comments'].str.contains('findLSC')
@@ -1363,7 +1363,6 @@ if remove_incomplete:
     print(rdf.to_string())
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
-
 
     print('Remove ppl and acc na and inf')
     rdf = plotdf[
@@ -1609,3 +1608,45 @@ if missing_exps:
             # for e in experiments:
             # if e['net'] == ['maLSNN']:
             # print(e)
+
+if check_all_norms:
+    dirs = [d for d in os.listdir(EXPERIMENTS) if 'als' in d][:1000]
+    print(dirs)
+    # make subplots
+    fig, axs = plt.subplots(1, 2, figsize=(10, 5))
+    exceptions = []
+    for i, d in tqdm(enumerate(dirs)):
+        try:
+            # print('-' * 30)
+            config_path = os.path.join(EXPERIMENTS, d, '1', 'config.json')
+            with open(config_path, 'r') as f:
+                config = json.load(f)
+            # print(config['comments'])
+            # print(config['net'])
+            # print(config['task'])
+
+            c = 'g' if 'targetnorm:.5' in config['comments'] else 'r'
+            c = c if 'findLSC' in config['comments'] else 'k'
+            results_path = os.path.join(EXPERIMENTS, d, 'other_outputs', 'results.json')
+            with open(results_path, 'r') as f:
+                results = json.load(f)
+            norms = results['save_norms']
+            for k in norms.keys():
+
+                if not norms[k] == [-1] and not norms[k] == []:
+                    if not 'dec' in k:
+                        axs[0].scatter(i, norms[k][-1], c=c)
+                    else:
+                        axs[1].scatter(i, norms[k][-1], c=c)
+
+        except Exception as e:
+            exceptions.append(e)
+
+    print('Exceptions:')
+    for i, e in enumerate(exceptions):
+        print(f'{i}/{len(exceptions)}', e)
+
+    plot_filename = f'experiments/manynormsperexps.pdf'
+    fig.savefig(plot_filename, bbox_inches='tight')
+
+    plt.show()
