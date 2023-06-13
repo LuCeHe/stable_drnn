@@ -64,11 +64,11 @@ plot_bars = False
 plot_new_bars = False
 chain_norms = False
 
-missing_exps = False
+missing_exps = True
 remove_incomplete = False
 truely_remove = False
 truely_remove_pretrained = False
-check_all_norms = True
+check_all_norms = False
 
 task = 'ps_mnist'  # heidelberg wordptb sl_mnist all ps_mnist
 incomplete_comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_pretrained_'
@@ -1339,9 +1339,11 @@ if remove_incomplete:
         print(listem.to_string())
         print(listem.shape, df.shape)
 
-    # rdfs.append(rdf)
-
-    # 105
+    print('Keep pretraining')
+    rdf = plotdf[plotdf['comments'].str.contains('findLSC')]
+    rdfs.append(rdf)
+    print(rdf.head().to_string())
+    print(rdf.shape, df.shape)
 
     print('Remove if it didnt converge')
     plotdf['conveps'] = plotdf['v_ppl len'] - plotdf['v_ppl argm']

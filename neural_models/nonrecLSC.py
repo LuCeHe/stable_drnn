@@ -109,7 +109,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
     lr = learning_rate[0] if isinstance(learning_rate, tuple) else learning_rate
 
     if 'adabelief' in comments:
-        adabelief = tfa.optimizers.AdaBelief(lr=lr, weight_decay=1e-4)
+        adabelief = tfa.optimizers.AdaBelief(lr=lr, weight_decay=1e-3)
         optimizer = tfa.optimizers.Lookahead(adabelief, sync_period=6, slow_step_size=0.5)
     else:
         optimizer = AdamW(learning_rate=lr, weight_decay=1e-4)
