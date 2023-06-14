@@ -308,8 +308,8 @@ def load_LSC_model(path):
     return model
 
 
-def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, steps_per_epoch=2, es_epsilon=.08,
-              patience=20, rec_norm=True, depth_norm=True, encoder_norm=False, decoder_norm=True, learn=True,
+def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2, steps_per_epoch=2, es_epsilon=.08,
+              patience=20, rec_norm=True, depth_norm=True, encoder_norm=True, decoder_norm=True, learn=True,
               time_steps=None, weights=None, save_weights_path=None, lr=1e-3, naswot=0):
     time_string = timeStructured()
     print('LSC starts at: ', time_string)
