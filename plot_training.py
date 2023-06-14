@@ -1614,18 +1614,55 @@ if missing_exps:
 if check_all_norms:
     dirs = [d for d in os.listdir(EXPERIMENTS) if 'als' in d][:1000]
     print(dirs)
+
+
+    def task_marker(task):
+        if task == 'heidelberg':
+            return 'o'
+        elif task == 'sl_mnist':
+            return 's'
+        elif task == 'wordptb':
+            return 'd'
+        else:
+            return 'x'
+
+
+    def net_marker(net):
+        if net == 'maLSNN':
+            return 'o'
+        if net == 'maLSNNb':
+            return 'x'
+        elif net == 'LSTM':
+            return '_'
+        elif net == 'GRU':
+            return '3'
+        elif net == 'rsimplernn':
+            return 'd'
+        elif net == 'ssimplernn':
+            return 's'
+        else:
+            return '.'
+
+
     # make subplots
-    fig, axs = plt.subplots(1, 2, figsize=(10, 5))
+    fig, axs = plt.subplots(2, 2, figsize=(10, 5))
     exceptions = []
-    for i, d in tqdm(enumerate(dirs)):
+    tasks = ['heidelberg', 'sl_mnist', 'wordptb']
+    nets = ['maLSNN', 'maLSNNb', 'LSTM', 'GRU', 'rsimplernn', 'ssimplernn']
+
+    # dirs = dirs[:10]
+    for i, d in tqdm(enumerate(dirs), total=len(dirs)):
+        # if i > 230 and i < 235:
         try:
             # print('-' * 30)
             config_path = os.path.join(EXPERIMENTS, d, '1', 'config.json')
             with open(config_path, 'r') as f:
                 config = json.load(f)
+            # print(i)
             # print(config['comments'])
             # print(config['net'])
             # print(config['task'])
+            # print()
 
             c = 'g' if 'targetnorm:.5' in config['comments'] else 'r'
             c = c if 'findLSC' in config['comments'] else 'k'
@@ -1633,13 +1670,23 @@ if check_all_norms:
             with open(results_path, 'r') as f:
                 results = json.load(f)
             norms = results['save_norms']
-            for k in norms.keys():
+            keys = list(norms.keys())
+            last_batch = np.unique([k[:8] for k in keys])[-1]
+            keys = [k for k in keys if last_batch in k]
+            keys.sort()
+
+            for k in keys:
+                # print(k)
 
                 if not norms[k] == [-1] and not norms[k] == []:
                     if not 'dec' in k:
-                        axs[0].scatter(i, norms[k][-1], c=c)
+                        axs[0, 0].scatter(i, norms[k][-1], c=c, marker=net_marker(config['net']))
+                        axs[1, 0].scatter(i, norms[k][-1], c=c, marker=task_marker(config['task']))
                     else:
-                        axs[1].scatter(i, norms[k][-1], c=c)
+                        axs[0, 1].scatter(i, norms[k][-1], c=c, marker=net_marker(config['net']),
+                                          label=config['net'])
+                        axs[1, 1].scatter(i, norms[k][-1], c=c, marker=task_marker(config['task']),
+                                          label=config['task'])
 
         except Exception as e:
             exceptions.append(e)
@@ -1647,6 +1694,17 @@ if check_all_norms:
     print('Exceptions:')
     for i, e in enumerate(exceptions):
         print(f'{i}/{len(exceptions)}', e)
+
+    for i, ax in enumerate(axs.reshape(-1)):
+        for pos in ['right', 'left', 'bottom', 'top']:
+            ax.spines[pos].set_visible(False)
+
+    net_elements = [Line2D([0], [0], color='k', lw=2, label=n, linestyle='None', marker=net_marker(n), markersize=5)
+                    for n in nets]
+    task_elements = [Line2D([0], [0], color='k', lw=2, label=t, linestyle='None', marker=task_marker(t), markersize=5)
+                     for t in tasks]
+    axs[0, 1].legend(ncol=3, handles=net_elements, fontsize=10)
+    axs[1, 1].legend(ncol=3, handles=task_elements, fontsize=10)
 
     plot_filename = f'experiments/manynormsperexps.pdf'
     fig.savefig(plot_filename, bbox_inches='tight')

@@ -438,6 +438,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
         l = lambda: 1
 
     last_step = 0
+    dec_in_loss = 0
     for step in range(steps_per_epoch):
         if time_over:
             break
@@ -514,6 +515,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
                     mean_loss = 0
                     some_norms = []
+                    some_losses = []
+                    n_norms = len(stack) + 2 + len(stack) - 1
                     state_below = None
 
                     for i, _ in enumerate(stack):
@@ -540,9 +543,10 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
                             save_norms[f'batch {step} rec layer {i}'].append(tf.reduce_mean(rnorm).numpy())
                             some_norms.append(tf.reduce_mean(rnorm))
+                            some_losses.append(loss)
                             if not naswot_score is None:
                                 all_naswot.append(tf.reduce_mean(naswot_score))
-                            mean_loss += l() * loss
+                            mean_loss += l() * loss / n_norms
 
                         if encoder_norm and i == 0 and r2 < .5:
                             lower_states = [bflat]
@@ -553,15 +557,13 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                             save_norms[f'batch {step} enc layer {i}'].append(tf.reduce_mean(norms).numpy())
 
                             some_norms.append(tf.reduce_mean(norms))
-                            mean_loss += l() * loss
+                            some_losses.append(loss)
+                            mean_loss += l() * loss / n_norms
 
                         sl = stp1
-                        # hl = htp1
-                        # cl = ctp1
 
                         if depth_norm and r3 < .5:
                             if not state_below is None:
-                                # hlm1, clm1 = state_below
                                 norms, loss, naswot_score = get_norms(tape=tape, lower_states=state_below,
                                                                       upper_states=sl,
                                                                       n_samples=n_samples, norm_pow=norm_pow,
@@ -570,7 +572,8 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                                 save_norms[f'batch {step} depth layer {i}'].append(tf.reduce_mean(norms).numpy())
 
                                 some_norms.append(tf.reduce_mean(norms))
-                                mean_loss += l() * loss
+                                some_losses.append(loss)
+                                mean_loss += l() * loss / n_norms
 
                         state_below = sl
                         del sl
@@ -578,7 +581,6 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                         if decoder_norm and i == len(stack) - 1 and r4 < .5:
                             output = outputs[0][:, 0, :]
 
-                            print(output.shape[-1])
                             if not output.shape[-1] > 100:
                                 norms, loss, naswot_score = get_norms(tape=tape, lower_states=stp1,
                                                                       upper_states=[output],
@@ -588,9 +590,16 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                                 save_norms[f'batch {step} dec layer {i}'].append(tf.reduce_mean(norms).numpy())
 
                                 # some_norms.append(tf.reduce_mean(norms))
-                                mean_loss += l() * loss
+                                some_losses.append(loss)
+                                mean_loss += l() * loss / n_norms
 
                         del htp1, ht, ctp1, ct
+
+                if 'reducevar' in comments:
+                    print('nice')
+                    print(mean_loss)
+                    print(tf.math.reduce_std(some_losses))
+                    mean_loss += l() * tf.math.reduce_std(some_losses) / 10
 
                 # if 'reducevar' in comments:
                 #     print('interesting!')
@@ -604,10 +613,6 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
                 if not best_norm is None:
                     lower_than_target = mean_norm.numpy() < target_norm
 
-                    print(np.abs(mean_norm.numpy() - target_norm))
-                    print(np.abs(best_norm - target_norm))
-                    print(np.abs(mean_norm.numpy() - target_norm) < np.abs(best_norm - target_norm))
-                    print('lower', lower_than_target)
                     if np.abs(mean_norm.numpy() - target_norm) < np.abs(best_norm - target_norm):
                         best_norm = mean_norm.numpy()
                         best_loss = mean_loss.numpy()
@@ -666,11 +671,7 @@ def apply_LSC(train_task_args, model_args, norm_pow, n_samples, batch_size, step
 
                     if 'waddnoise' in comments and lower_than_target and learn:
                         print('adding noise to weights!')
-                        # multiplier = 1.1 if lower_than_target else 0.9
-                        # multiplier = 0.9 if lower_than_target else 1.1
-                        # print('multiplier!', multiplier)
                         new_weights = []
-                        # add noise to w with its shape
                         for w in weights:
                             if len(w.shape) >= 2:
                                 print(w[0][0])

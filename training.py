@@ -45,7 +45,7 @@ def config():
     # task and net
     # ps_mnist heidelberg s_mnist
     # wordptb sl_mnist
-    task = 'wordptb'
+    task = 'sl_mnist'
 
     # test configuration
     epochs = 4
@@ -56,8 +56,8 @@ def config():
     # maLSNN cLSTM LSTM maLSNNb GRU indrnn LMU ssimplernn rsimplernn
     net = 'maLSNN'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
-    stack = None
-    n_neurons = None
+    stack = '4:3'
+    n_neurons = 3
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task in language_tasks else False
     comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_findLSC_supsubnpsd_test_pretrained_deslice'
@@ -195,25 +195,16 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
 
             new_batch_size = batch_size
 
-            # lsclr = 3.14e-4 if not net_name == 'LSTM' else 3.14e-3
-            # lsclr = 1e-2
-            # lsclr = 3.14e-2
-            lsclr = 7.2e-3 # 3.14e-3 # 7.2e-4 # 7.2e-3 #
-            # if 'LSNN' in net_name:
-            #     lsclr = 3.14e-4
-
-            # if 'maLSNN' in net_name or 'simplernn' in net_name:
+            lsclr = 7.2e-4 # 3.14e-3 # 7.2e-4 # 7.2e-3 #
 
             if 'ptb' in task_name:
 
                 new_batch_size = 8 if not 'maLSNN' in net_name else 3
                 if 'simplernn' in net_name:
                     new_batch_size = 16
-                    # lsclr = 0.001
 
                 new_batch_size = str2val(comments, 'nbs', int, default=new_batch_size)
                 new_comments = str2val(new_comments, 'batchsize', replace=new_batch_size)
-
 
             if 'heidelberg' in task_name and 'maLSNN' in net_name:
                 new_batch_size = 100

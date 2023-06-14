@@ -109,7 +109,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
     lr = learning_rate[0] if isinstance(learning_rate, tuple) else learning_rate
 
     if 'adabelief' in comments:
-        adabelief = tfa.optimizers.AdaBelief(lr=lr, weight_decay=1e-3)
+        adabelief = tfa.optimizers.AdaBelief(lr=lr, weight_decay=1e-4)
         optimizer = tfa.optimizers.Lookahead(adabelief, sync_period=6, slow_step_size=0.5)
     else:
         optimizer = AdamW(learning_rate=lr, weight_decay=1e-4)
@@ -123,6 +123,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
     model = build_model()
     model.summary()
     weights = model.get_weights()
+    best_weights = weights
 
     lnames = [layer.name for layer in model.layers]
 
@@ -179,6 +180,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
     time_start = time.perf_counter()
     time_over = False
     best_norm = None
+    best_count = 0
 
     for epoch in range(epochs):
         pbar = tqdm(total=generator.steps_per_epoch)
@@ -418,6 +420,8 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                         print('Saving pretrained lsc weights with best norms')
                         model.save(path_pretrained)
                         best_norm = norm.numpy().mean()
+                        best_weights = model.get_weights()
+                        best_count = 0
 
                 elif best_norm is None:
                     best_norm = norm.numpy().mean()
@@ -425,7 +429,14 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                     print('Saving pretrained lsc weights with best norms')
                     model.save(path_pretrained)
 
-                print(best_norm)
+
+                if best_count > 2 * patience:
+                    print('Reloading best weights')
+                    model.set_weights(best_weights)
+                    best_count = 0
+
+                best_count += 1
+
                 if learn:
                     grads = tape.gradient(loss, intermodel.trainable_weights)
                     optimizer.apply_gradients(zip(grads, intermodel.trainable_weights))
