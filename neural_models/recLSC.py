@@ -748,6 +748,8 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
         weights_path = os.path.join(save_weights_path, 'model_weights_lsc_after.h5')
         model.save_weights(weights_path)
 
+    results['weights_names'] = [weight.name for layer in model.layers for weight in layer.weights]
+
     del model, tape
 
     all_norms.append(best_norm)
@@ -757,14 +759,6 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
     tf.keras.backend.clear_session()
     tf.keras.backend.clear_session()
 
-    if os.path.exists(path_pretrained):
-        print('Loading pretrained lsc weights')
-        try:
-            model = load_LSC_model(path_pretrained)
-            weights = model.get_weights()
-
-        except Exception as e:
-            print(e)
 
     for i, _ in enumerate(stack):
         for nt in n_types:
@@ -790,13 +784,16 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
             else:
                 dec_norm = norms[k][-1]
 
+    results['weights_shapes'] = [weight.shape for weight in best_weights]
     results['final_norms'] = final_norms
     results['final_norm_dec'] = dec_norm
     results['final_norms_mean'] = np.mean(final_norms)
     results['final_norms_std'] = np.std(final_norms)
 
     print('Final norms:', final_norms)
-    return weights, results
+    print(f'     mean pm std: {np.mean(final_norms)} pm {np.std(final_norms)}')
+
+    return best_weights, results
 
 
 def test_1():

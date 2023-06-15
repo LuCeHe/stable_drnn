@@ -62,7 +62,7 @@ def config():
     embedding = 'learned:None:None:{}'.format(n_neurons) if task in language_tasks else False
     # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_test_onlypretrain_lscshuffw_gausslsc'
     # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain'
-    comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_pretrained_test'
+    comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test'
     # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain_pretrained_lsclr:0.0001_nbs:16_tsteps:10'
     # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain_pretrained_lsclr:0.0001_nbs:16_targetnorm:.5'
     # comments = ''
@@ -98,7 +98,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
     gradwincrease = os.path.join(EXPERIMENTS, 'gradualwidthincrease')
     os.makedirs(gradwincrease, exist_ok=True)
 
-    gradwincrease = os.path.join(EXPERIMENTS, f'{net}_{task}')
+    gradwincrease = os.path.join(EXPERIMENTS, f'{net}_{task}_{stack}')
     os.makedirs(gradwincrease, exist_ok=True)
 
     task_name = task
@@ -185,31 +185,13 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
         print(json.dumps(new_model_args, indent=4, cls=NumpyEncoder))
         lsclr = str2val(comments, 'lsclr', float, default=lsclr)
 
-        del gen_train
+        # del gen_train
         weights, lsc_results = apply_LSC(
-            steps_per_epoch=1,
+            steps_per_epoch=2,
             train_task_args=new_task_args, model_args=new_model_args,
             batch_size=new_batch_size, time_steps=time_steps, lr=lsclr
         )
 
-        norms = lsc_results['save_norms']
-        keys = list(norms.keys())
-        last_batch = np.unique([k[:8] for k in keys])[-1]
-
-        keys = [k for k in keys if last_batch in k]
-        keys.sort()
-
-        final_norms = []
-        for k in keys:
-            if not norms[k] == [-1] and not norms[k] == []:
-                if not 'dec' in k:
-                    final_norms.append(norms[k][-1])
-
-        lsc_results['final_norms'] = final_norms
-        lsc_results['final_norms_mean'] = np.mean(final_norms)
-        lsc_results['final_norms_std'] = np.std(final_norms)
-
-        print('final_norms: ', np.mean(final_norms), np.std(final_norms))
         means_w = [np.mean(w) for w in weights]
         stds_w = [np.std(w) for w in weights]
 
