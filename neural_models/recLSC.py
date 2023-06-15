@@ -775,6 +775,27 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
         fail_rate=failures / iterations
     )
 
+    norms = save_norms
+    keys = list(norms.keys())
+    last_batch = np.unique([k[:8] for k in keys])[-1]
+    print(last_batch)
+    keys = [k for k in keys if last_batch in k]
+    keys.sort()
+
+    final_norms = []
+    for k in keys:
+        if not norms[k] == [-1] and not norms[k] == []:
+            if not 'dec' in k:
+                final_norms.append(norms[k][-1])
+            else:
+                dec_norm = norms[k][-1]
+
+    results['final_norms'] = final_norms
+    results['final_norm_dec'] = dec_norm
+    results['final_norms_mean'] = np.mean(final_norms)
+    results['final_norms_std'] = np.std(final_norms)
+
+    print('Final norms:', final_norms)
     return weights, results
 
 

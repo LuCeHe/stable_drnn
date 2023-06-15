@@ -139,7 +139,7 @@ def main(args):
 
         bm = lambda: build_model(lsc_args, input_shape, classes)
         maxdim = str2val(args.comments, 'maxdim', int, default=1024)
-        lsclr = str2val(args.comments, 'lsclr', float, default=1.0e-4)
+        lsclr = str2val(args.comments, 'lsclr', float, default=1.0e-3)
 
         subsample_axis = True if not 'deslice' in args.comments else False
 

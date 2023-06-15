@@ -256,7 +256,7 @@ if plot_losses:
     plt.show()
 
 if 'net' in df.columns:
-    df.loc[df['comments'].str.contains('noalif'), 'net'] = 'LIF'
+    # df.loc[df['comments'].str.contains('noalif'), 'net'] = 'LIF'
     df.loc[df['net'].eq('maLSNNb'), 'net'] = 'ALIFb'
     df.loc[df['net'].eq('maLSNN'), 'net'] = 'ALIF'
 
@@ -1283,12 +1283,25 @@ if remove_incomplete:
     rdfs = []
 
     print('-=***=-' * 10)
+    print('Eliminate nan comments')
+    rdf = plotdf[plotdf['comments'].isna()]
+    plotdf = plotdf[~plotdf['comments'].isna()]
+    print(rdf.to_string())
+    print(rdf.shape, df.shape)
+    rdfs.append(rdf)
+
+
+
     print('Eliminate if not close enough to target norm')
+
+
     # from LSC_norms final column, select those that are epsilon away from 1
     # make a column target equal to .5 if targetnorm:.5 is in comments else 1 if findLSC is in comments
     # else nan
     plotdf['target'] = plotdf['comments'].apply(
-        lambda x: 0.5 if 'targetnorm:.5' in x else 1 if 'findLSC' in x else np.nan)
+        lambda x: 0.5 if 'targetnorm:.5' in x else 1 if 'findLSC' in x else np.nan
+    )
+
     # plotdf['diff_target'] = abs(plotdf['LSC f'] - plotdf['target'])
     # plotdf['vs_epsilon'] = plotdf['diff_target'] > lsc_epsilon
     plotdf['vs_epsilon'] = ((abs(plotdf['LSC a'] - plotdf['target']) > lsc_epsilon)

@@ -60,19 +60,10 @@ def config():
     n_neurons = 3
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task in language_tasks else False
-    comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_findLSC_supsubnpsd_test_pretrained_deslice'
-    # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_findLSC_supsubnpsd_test_pretrained'
-    # comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_findLSC_supsubnpsd_test_pretrained_randlsc'
-    # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_targetnorm:.5_test'
-    comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_test_onlypretrain_lscshuffw_gausslsc'
-    comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2'
-    # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_test_onlypretrain_lscshuffw_gausslsc'
-    # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain'
-    comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain_pretrained_lsclr:0.0001_nbs:16_tsteps:10_shuffwsometimes'
+    comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain_pretrained_tsteps:2'
     # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain_pretrained_lsclr:0.0001_nbs:16_tsteps:10'
     # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain_pretrained_lsclr:0.0001_nbs:16_targetnorm:.5'
     # comments = ''
-
 
     # optimizer properties
     lr = None  # 7e-4 None

@@ -60,15 +60,9 @@ def config():
     n_neurons = 2
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task in language_tasks else False
-    comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_findLSC_supsubnpsd_test_pretrained_deslice'
-    # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_findLSC_supsubnpsd_test_pretrained'
-    # comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_findLSC_supsubnpsd_test_pretrained_randlsc'
-    # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_targetnorm:.5_test'
-    comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_test_onlypretrain_lscshuffw_gausslsc'
-    comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2'
     # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_test_onlypretrain_lscshuffw_gausslsc'
     # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain'
-    comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_pretrained'
+    comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_pretrained_test'
     # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain_pretrained_lsclr:0.0001_nbs:16_tsteps:10'
     # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain_pretrained_lsclr:0.0001_nbs:16_targetnorm:.5'
     # comments = ''
@@ -107,44 +101,34 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
     gradwincrease = os.path.join(EXPERIMENTS, f'{net}_{task}')
     os.makedirs(gradwincrease, exist_ok=True)
 
-    for n_neurons in [2, 4, 8, 16, 32]:
-        task_name = task
-        net_name = net
+    task_name = task
+    net_name = net
 
-        comments += '_dampf:.5'
+    exp_dir = os.path.join(CDIR, ex.observers[0].basedir)
+    comments += '_dampf:.5'
+    comments += '_**folder:' + exp_dir + '**_'
+    full_mean, full_var = checkTaskMeanVariance(task_name)
+    comments = comments + '_taskmean:{}_taskvar:{}'.format(full_mean, full_var)
+
+    ChooseGPU(GPU)
+    setReproducible(seed)
+
+    timerepeat = str2val(comments, 'timerepeat', int, default=1)
+    maxlen = str2val(comments, 'maxlen', int, default=100)
+    comments = str2val(comments, 'maxlen', int, default=maxlen, replace=maxlen)
+
+    train_task_args = dict(timerepeat=timerepeat, epochs=epochs, batch_size=batch_size,
+                           steps_per_epoch=steps_per_epoch,
+                           name=task_name, train_val_test='train', maxlen=maxlen, comments=comments)
+    gen_train = Task(**train_task_args)
+    comments += '_batchsize:' + str(gen_train.batch_size)
+
+    for i, n_neurons in enumerate([2, 4, 8, 16, 32]):
 
         ostack = stack
         stack, batch_size, embedding, n_neurons, lr = default_config(
             stack, batch_size, embedding, n_neurons, lr, task_name, net_name, setting='LSC'
         )
-
-        exp_dir = os.path.join(CDIR, ex.observers[0].basedir)
-        comments += '_**folder:' + exp_dir + '**_'
-
-        # images_dir = os.path.join(exp_dir, 'images')
-        # other_dir = os.path.join(exp_dir, 'other_outputs')
-        # models_dir = os.path.join(exp_dir, 'trained_models')
-        full_mean, full_var = checkTaskMeanVariance(task_name)
-        comments = comments + '_taskmean:{}_taskvar:{}'.format(full_mean, full_var)
-
-        ChooseGPU(GPU)
-        setReproducible(seed)
-
-        timerepeat = str2val(comments, 'timerepeat', int, default=1)
-        maxlen = str2val(comments, 'maxlen', int, default=100)
-        comments = str2val(comments, 'maxlen', int, default=maxlen, replace=maxlen)
-
-        # task definition
-        if 'onlypretrain' in comments:
-            epochs = 0
-            steps_per_epoch = 0
-
-        train_task_args = dict(timerepeat=timerepeat, epochs=epochs, batch_size=batch_size,
-                               steps_per_epoch=steps_per_epoch,
-                               name=task_name, train_val_test='train', maxlen=maxlen, comments=comments)
-        gen_train = Task(**train_task_args)
-
-        comments += '_batchsize:' + str(gen_train.batch_size)
 
         if initializer in esoteric_initializers_list:
             initializer = get_initializer(initializer_name=initializer)
@@ -203,6 +187,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
 
         del gen_train
         weights, lsc_results = apply_LSC(
+            steps_per_epoch=1,
             train_task_args=new_task_args, model_args=new_model_args,
             batch_size=new_batch_size, time_steps=time_steps, lr=lsclr
         )
@@ -210,13 +195,12 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
         norms = lsc_results['save_norms']
         keys = list(norms.keys())
         last_batch = np.unique([k[:8] for k in keys])[-1]
+
         keys = [k for k in keys if last_batch in k]
         keys.sort()
 
         final_norms = []
         for k in keys:
-            # print(k)
-
             if not norms[k] == [-1] and not norms[k] == []:
                 if not 'dec' in k:
                     final_norms.append(norms[k][-1])
@@ -231,12 +215,12 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
 
         mean_path = os.path.join(gradwincrease, f'means_s{seed}_w{n_neurons}.json')
         with open(mean_path, "w") as fp:
-            json.dump(means_w, fp)
+            json.dump(means_w, fp, cls=NumpyEncoder)
 
         std_path = os.path.join(gradwincrease, f'stds_s{seed}_w{n_neurons}.json')
         with open(std_path, "w") as fp:
-            json.dump(stds_w, fp)
+            json.dump(stds_w, fp, cls=NumpyEncoder)
 
         results_path = os.path.join(gradwincrease, f'results_s{seed}_w{n_neurons}.json')
         with open(results_path, "w") as fp:
-            json.dump(lsc_results, fp)
+            json.dump(lsc_results, fp, cls=NumpyEncoder)
