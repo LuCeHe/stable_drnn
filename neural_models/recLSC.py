@@ -424,6 +424,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
     best_count = 0
     failures = 0
     iterations = 0
+    wnames = [weight.name for layer in model.layers for weight in layer.weights]
 
     if 'onlyloadpretrained' in comments:
         steps_per_epoch = 1
@@ -517,6 +518,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                     some_norms = []
                     some_losses = []
                     n_norms = len(stack) + 2 + len(stack) - 1
+                    norms_names = []
                     state_below = None
 
                     for i, _ in enumerate(stack):
@@ -542,10 +544,12 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                                                                   comments=comments, target_norm=target_norm)
 
                             save_norms[f'batch {step} rec layer {i}'].append(tf.reduce_mean(rnorm).numpy())
+                            norms_names.append(f'rec layer {i}')
                             some_norms.append(tf.reduce_mean(rnorm))
                             some_losses.append(loss)
                             if not naswot_score is None:
                                 all_naswot.append(tf.reduce_mean(naswot_score))
+
                             mean_loss += l() * loss / n_norms
 
                         if encoder_norm and i == 0 and r2 < .5:
@@ -555,6 +559,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                                                                   n_samples=n_samples, norm_pow=norm_pow, naswot=naswot,
                                                                   comments=comments, target_norm=target_norm)
                             save_norms[f'batch {step} enc layer {i}'].append(tf.reduce_mean(norms).numpy())
+                            norms_names.append(f'enc layer {i}')
 
                             some_norms.append(tf.reduce_mean(norms))
                             some_losses.append(loss)
@@ -570,6 +575,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                                                                       naswot=naswot,
                                                                       comments=comments, target_norm=target_norm)
                                 save_norms[f'batch {step} depth layer {i}'].append(tf.reduce_mean(norms).numpy())
+                                norms_names.append(f'depth layer {i}')
 
                                 some_norms.append(tf.reduce_mean(norms))
                                 some_losses.append(loss)
@@ -588,6 +594,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                                                                       naswot=naswot,
                                                                       comments=comments, target_norm=1.)
                                 save_norms[f'batch {step} dec layer {i}'].append(tf.reduce_mean(norms).numpy())
+                                # norms_names.append(f'dec layer {i}')
 
                                 # some_norms.append(tf.reduce_mean(norms))
                                 some_losses.append(loss)
@@ -669,7 +676,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                             new_weights.append(w)
                         weights = new_weights
 
-                    if 'waddnoise' in comments and lower_than_target and learn:
+                    if 'waddnoise' in comments and lower_than_target and not 'onlyloadpretrained' in comments:
                         print('adding noise to weights!')
                         new_weights = []
                         for w in weights:
@@ -678,6 +685,69 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                                 noise = 1 * tf.random.uniform(w.shape, -1, 1) * tf.math.reduce_std(w)
                                 w += noise.numpy()
                                 print(w[0][0])
+                            # w = w * multiplier
+                            new_weights.append(w)
+                        weights = new_weights
+
+                    if 'wmultiplier' in comments and not 'onlyloadpretrained' in comments:
+                        print('multiplier to weights!')
+                        new_weights = []
+                        print(norms_names)
+                        print([n.numpy().round(3) for n in some_norms])
+                        for w, wname in zip(weights, wnames):
+
+                            print('-' * 20)
+                            print(wname)
+                            if len(w.shape) >= 2 or 'tau' in wname:
+                                n_multiplier = 1
+                                if 'encoder_' in wname or '_cell_' in wname:
+                                    if 'encoder_' in wname:
+                                        depth = int(wname.split('_')[1])
+                                    else:
+                                        depth = int(wname.split('_')[2].split('/')[0]) - 1
+
+                                    dname = 'enc' if depth == 0 else 'depth'
+
+                                    if 'input_weights' in wname or '/kernel:' in wname:
+                                        idx = norms_names.index(f'{dname} layer {depth}')
+                                        local_norm = some_norms[idx].numpy()
+                                        n_multiplier = target_norm / local_norm
+
+                                    elif 'recurrent_weights' in wname or 'recurrent_kernel' in wname:
+                                        idx = norms_names.index(f'rec layer {depth}')
+                                        local_norm = some_norms[idx].numpy()
+                                        n_multiplier = target_norm / local_norm
+
+                                    elif 'tau' in wname:
+                                        idx = norms_names.index(f'rec layer {depth}')
+                                        local_norm = some_norms[idx].numpy()
+                                        n_multiplier = target_norm / local_norm
+
+                                if not 'dec' in wname:
+                                    multiplier = (target_norm / mean_norm.numpy() - 1) * 2 + 1
+                                else:
+                                    multiplier = 1
+                                print('multipliers, n and not', n_multiplier, multiplier)
+
+                                w_norm = np.std(w) * np.sqrt(np.mean(w.shape))
+                                # w_multiplier = target_norm / w_norm
+                                # print('multiplier', multiplier)
+                                # print(wname, w_multiplier, w_norm)
+                                # print(w.shape, np.mean(w.shape))
+                                # m = w_multiplier if t == 0 and step == 0 else multiplier
+
+                                # print('w_multiplier', w_multiplier)
+
+                                if 'dec' in wname:
+                                    n_multiplier = 1 / w_norm
+
+                                r = np.random.rand()
+                                m = multiplier if r < .2 else n_multiplier
+                                m = np.clip(m, 0.88, 1.12)
+
+                                # print(np.mean(w))
+                                w = m * w
+                                # print(np.mean(w))
                             # w = w * multiplier
                             new_weights.append(w)
                         weights = new_weights
@@ -748,8 +818,6 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
         weights_path = os.path.join(save_weights_path, 'model_weights_lsc_after.h5')
         model.save_weights(weights_path)
 
-    results['weights_names'] = [weight.name for layer in model.layers for weight in layer.weights]
-
     del model, tape
 
     all_norms.append(best_norm)
@@ -758,7 +826,6 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
     tf.keras.backend.clear_session()
     tf.keras.backend.clear_session()
     tf.keras.backend.clear_session()
-
 
     for i, _ in enumerate(stack):
         for nt in n_types:
@@ -777,20 +844,29 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
     keys.sort()
 
     final_norms = []
+    norm_names = []
     for k in keys:
         if not norms[k] == [-1] and not norms[k] == []:
             if not 'dec' in k:
                 final_norms.append(norms[k][-1])
+                norm_names.append(k)
             else:
                 dec_norm = norms[k][-1]
 
     results['weights_shapes'] = [weight.shape for weight in best_weights]
+    results['weights_names'] = wnames
+
     results['final_norms'] = final_norms
+    results['norm_names'] = norm_names
     results['final_norm_dec'] = dec_norm
     results['final_norms_mean'] = np.mean(final_norms)
     results['final_norms_std'] = np.std(final_norms)
 
     print('Final norms:', final_norms)
+    print('         ', norm_names)
+    for name, norm in zip(norm_names, final_norms):
+        print('      ', name, norm)
+
     print(f'     mean pm std: {np.mean(final_norms)} pm {np.std(final_norms)}')
 
     return best_weights, results
