@@ -81,12 +81,12 @@ optimizer_name = 'SWAAdaBelief'  # SGD SWAAdaBelief
 metrics_oi = [
     # 't_ppl min', 't_mode_acc max', 'v_ppl min', 'v_mode_acc max',
     't_ppl', 't_mode_acc', 'v_ppl', 'v_mode_acc',
-    'LSC_norms i', 'LSC_norms f', 'LSC_norms mean',
+    'LSC_norms i', 'LSC_norms f', 'LSC_norms mean', # 'final_norms_mean', 'final_norms_std'
 ]
 metrics_oi = [shorten_losses(m) for m in metrics_oi]
 
 plot_only = ['eps', 'net', 'task', 'n_params', 'stack', 'comments', 'path', 'lr', 'seed', 'host_hostname',
-             'v_ppl argm', 'v_ppl len'] + metrics_oi
+             'v_ppl argm', 'v_ppl len', ] + metrics_oi
 columns_to_remove = [
     'heaviside', '_test', 'weight', 'sLSTM_factor', 'save_model', 'clipnorm', 'GPU', 'batch_size',
     'continue_training', 'embedding', 'lr_schedule', 'loss_name', 'seed', 'stack', 'stop_time',
@@ -97,7 +97,7 @@ columns_to_remove = []
 columns_to_remove = [
     '_var', '_mean', 'sparse_categorical_crossentropy', 'bpc', 'loss', 'artifacts',
     'experiment_dependencies', 'experiment_sources', 'experiment_repositories', 'host_os',
-    'sparse_categorical_accuracy', 'LSC_losses', 'rec_norms', 'fail_trace', 'list']
+    'sparse_categorical_accuracy', 'LSC_losses', 'rec_norms', 'fail_trace', 'list', 'weights_shapes']
 force_keep_column = [
     'LSC_norms list', 'batch ',
     'val_sparse_mode_accuracy list', 'val_perplexity list',
@@ -1545,10 +1545,13 @@ if missing_exps:
 
             experiments = []
             for nt, nets in net_types.items():
-                if nt == 'lsnns':
-                    comments = [c for c in all_comments if not 'targetnorm:.5' in c]
-                else:
-                    comments = all_comments
+                comments = all_comments
+
+                # if nt == 'lsnns':
+                #     comments = [c for c in all_comments if not 'targetnorm:.5' in c]
+                # else:
+                #     comments = all_comments
+
                 experiment = {
                     'task': tasks,
                     'net': nets, 'seed': seeds, 'stack': ['None'],

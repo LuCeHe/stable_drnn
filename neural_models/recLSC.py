@@ -658,6 +658,10 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
 
                 states = states_p1
 
+                print('\n')
+                print(norms_names)
+                print([n.numpy().round(3) for n in some_norms])
+
                 if best_count > 2 * patience:
                     print('Reloading best weights')
                     weights = best_weights
@@ -681,34 +685,32 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                         new_weights = []
                         for w in weights:
                             if len(w.shape) >= 2:
-                                print(w[0][0])
                                 noise = 1 * tf.random.uniform(w.shape, -1, 1) * tf.math.reduce_std(w)
                                 w += noise.numpy()
-                                print(w[0][0])
-                            # w = w * multiplier
+
                             new_weights.append(w)
                         weights = new_weights
 
                     if 'wmultiplier' in comments and not 'onlyloadpretrained' in comments:
                         print('multiplier to weights!')
                         new_weights = []
-                        print(norms_names)
-                        print([n.numpy().round(3) for n in some_norms])
                         for w, wname in zip(weights, wnames):
 
                             print('-' * 20)
-                            print(wname)
-                            if len(w.shape) >= 2 or 'tau' in wname:
-                                n_multiplier = 1
-                                if 'encoder_' in wname or '_cell_' in wname:
+                            print(wname, w.shape)
+                            if len(w.shape) >= 2 or 'tau' in wname or 'bias' in wname:
+                                n_multiplier, multiplier = 1, 1
+                                if 'encoder_' in wname or '_cell_' in wname and not 'embedding' in wname:
+                                    multiplier = (target_norm / mean_norm.numpy() - 1) * 2 + 1
+
                                     if 'encoder_' in wname:
                                         depth = int(wname.split('_')[1])
                                     else:
-                                        depth = int(wname.split('_')[2].split('/')[0]) - 1
+                                        depth = int(wname.split('cell_')[1].split('/')[0]) - 1
 
                                     dname = 'enc' if depth == 0 else 'depth'
 
-                                    if 'input_weights' in wname or '/kernel:' in wname:
+                                    if 'input_weights' in wname or '/kernel:' in wname or 'bias' in wname:
                                         idx = norms_names.index(f'{dname} layer {depth}')
                                         local_norm = some_norms[idx].numpy()
                                         n_multiplier = target_norm / local_norm
@@ -723,23 +725,15 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                                         local_norm = some_norms[idx].numpy()
                                         n_multiplier = target_norm / local_norm
 
-                                if not 'dec' in wname:
-                                    multiplier = (target_norm / mean_norm.numpy() - 1) * 2 + 1
-                                else:
-                                    multiplier = 1
-                                print('multipliers, n and not', n_multiplier, multiplier)
+                                elif 'decoder/kernel' in wname or 'embedding' in wname:
 
-                                w_norm = np.std(w) * np.sqrt(np.mean(w.shape))
-                                # w_multiplier = target_norm / w_norm
-                                # print('multiplier', multiplier)
-                                # print(wname, w_multiplier, w_norm)
-                                # print(w.shape, np.mean(w.shape))
-                                # m = w_multiplier if t == 0 and step == 0 else multiplier
-
-                                # print('w_multiplier', w_multiplier)
-
-                                if 'dec' in wname:
+                                    # w.shape
+                                    s = w.shape[1] if 'embedding' in wname else w.shape[0]
+                                    # w_norm = np.std(w) * np.sqrt(np.mean(w.shape))
+                                    w_norm = np.std(w) * np.sqrt(s)
                                     n_multiplier = 1 / w_norm
+
+                                print('multipliers, n and not', n_multiplier, multiplier)
 
                                 r = np.random.rand()
                                 m = multiplier if r < .2 else n_multiplier
@@ -845,6 +839,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
 
     final_norms = []
     norm_names = []
+    dec_norm = -1
     for k in keys:
         if not norms[k] == [-1] and not norms[k] == []:
             if not 'dec' in k:

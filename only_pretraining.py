@@ -1,6 +1,6 @@
 import os, shutil, logging, json, copy
 import pandas as pd
-
+from tqdm import tqdm
 from pyaromatics.keras_tools.silence_tensorflow import silence_tf
 
 silence_tf()
@@ -95,11 +95,11 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
     FILENAME = os.path.realpath(__file__)
     CDIR = os.path.dirname(FILENAME)
     EXPERIMENTS = os.path.join(CDIR, 'experiments')
-    gradwincrease = os.path.join(EXPERIMENTS, 'gradualwidthincrease')
-    os.makedirs(gradwincrease, exist_ok=True)
+    GRADWDIR = os.path.join(EXPERIMENTS, 'gradualwidthincrease')
+    os.makedirs(GRADWDIR, exist_ok=True)
 
-    gradwincrease = os.path.join(EXPERIMENTS, f'{net}_{task}_{stack}')
-    os.makedirs(gradwincrease, exist_ok=True)
+    aGRADWDIR = os.path.join(GRADWDIR, f'{net}_{task}_{stack}')
+    os.makedirs(aGRADWDIR, exist_ok=True)
 
     task_name = task
     net_name = net
@@ -117,18 +117,22 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
     maxlen = str2val(comments, 'maxlen', int, default=100)
     comments = str2val(comments, 'maxlen', int, default=maxlen, replace=maxlen)
 
-    train_task_args = dict(timerepeat=timerepeat, epochs=epochs, batch_size=batch_size,
-                           steps_per_epoch=steps_per_epoch,
-                           name=task_name, train_val_test='train', maxlen=maxlen, comments=comments)
-    gen_train = Task(**train_task_args)
-    comments += '_batchsize:' + str(gen_train.batch_size)
 
-    for i, n_neurons in enumerate([2, 4, 8, 16, 32]):
+
+    for i, n_neurons in tqdm(enumerate([2, 4, 8, 16, 32]), tot=5):
 
         ostack = stack
         stack, batch_size, embedding, n_neurons, lr = default_config(
             stack, batch_size, embedding, n_neurons, lr, task_name, net_name, setting='LSC'
         )
+
+        train_task_args = dict(timerepeat=timerepeat, epochs=epochs, batch_size=batch_size,
+                               steps_per_epoch=steps_per_epoch,
+                               name=task_name, train_val_test='train', maxlen=maxlen, comments=comments)
+
+        gen_train = Task(**train_task_args)
+        if i == 0:
+           comments += '_batchsize:' + str(gen_train.batch_size)
 
         if initializer in esoteric_initializers_list:
             initializer = get_initializer(initializer_name=initializer)
@@ -195,14 +199,14 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
         means_w = [np.mean(w) for w in weights]
         stds_w = [np.std(w) for w in weights]
 
-        mean_path = os.path.join(gradwincrease, f'means_s{seed}_w{n_neurons}.json')
+        mean_path = os.path.join(aGRADWDIR, f'means_s{seed}_w{n_neurons}.json')
         with open(mean_path, "w") as fp:
             json.dump(means_w, fp, cls=NumpyEncoder)
 
-        std_path = os.path.join(gradwincrease, f'stds_s{seed}_w{n_neurons}.json')
+        std_path = os.path.join(aGRADWDIR, f'stds_s{seed}_w{n_neurons}.json')
         with open(std_path, "w") as fp:
             json.dump(stds_w, fp, cls=NumpyEncoder)
 
-        results_path = os.path.join(gradwincrease, f'results_s{seed}_w{n_neurons}.json')
+        results_path = os.path.join(aGRADWDIR, f'results_s{seed}_w{n_neurons}.json')
         with open(results_path, "w") as fp:
             json.dump(lsc_results, fp, cls=NumpyEncoder)

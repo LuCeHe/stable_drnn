@@ -54,13 +54,13 @@ def config():
 
     # net
     # maLSNN cLSTM LSTM maLSNNb GRU indrnn LMU ssimplernn rsimplernn
-    net = 'LSTM'
+    net = 'GRU'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
-    stack = '4:3'
-    n_neurons = 3
+    stack = 5
+    n_neurons = None
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task in language_tasks else False
-    comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain_pretrained_tsteps:10_targetnorm:.5'
+    comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain_pretrained_tsteps:10'
     # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain_pretrained_lsclr:0.0001_nbs:16_tsteps:10'
     # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain_pretrained_lsclr:0.0001_nbs:16_targetnorm:.5'
     # comments = ''
@@ -180,8 +180,9 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
             new_model_args = copy.deepcopy(model_args)
             new_comments = new_model_args['comments'] + '_reoldspike'
 
-            # new_comments = new_comments + '_waddnoise'
+            # if not 'ssimplernn' in net:
             new_comments = new_comments + '_wmultiplier'
+            # new_comments = new_comments + '_waddnoise'
             # new_comments = new_comments + '_reducevar'
             new_comments = new_comments + '_randlambda1'
 
