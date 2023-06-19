@@ -64,10 +64,10 @@ plot_bars = False
 plot_new_bars = False
 chain_norms = False
 
-missing_exps = True
-remove_incomplete = False
+missing_exps = False
+remove_incomplete = True
 truely_remove = False
-truely_remove_pretrained = False
+truely_remove_pretrained = True
 check_all_norms = False
 
 task = 'ps_mnist'  # heidelberg wordptb sl_mnist all ps_mnist
@@ -81,7 +81,8 @@ optimizer_name = 'SWAAdaBelief'  # SGD SWAAdaBelief
 metrics_oi = [
     # 't_ppl min', 't_mode_acc max', 'v_ppl min', 'v_mode_acc max',
     't_ppl', 't_mode_acc', 'v_ppl', 'v_mode_acc',
-    'LSC_norms i', 'LSC_norms f', 'LSC_norms mean', # 'final_norms_mean', 'final_norms_std'
+    'LSC_norms i', 'LSC_norms f', 'LSC_norms mean',
+    'final_norms_mean', 'final_norms_std'
 ]
 metrics_oi = [shorten_losses(m) for m in metrics_oi]
 
@@ -103,6 +104,7 @@ force_keep_column = [
     'val_sparse_mode_accuracy list', 'val_perplexity list',
     'v_sparse_mode_accuracy list', 'v_perplexity list',
     't_sparse_mode_accuracy list', 't_perplexity list',
+    'final_norms_mean', 'final_norms_std'
 ]
 
 df = experiments_to_pandas(
@@ -1292,6 +1294,13 @@ if remove_incomplete:
 
 
 
+    print('Eliminate if f_norms_std too large')
+    rdf = plotdf[plotdf['f_norms_std'] > .1]
+    print(rdf.to_string())
+    print(rdf.shape, df.shape)
+    rdfs.append(rdf)
+
+
     print('Eliminate if not close enough to target norm')
 
 
@@ -1352,11 +1361,11 @@ if remove_incomplete:
         print(listem.to_string())
         print(listem.shape, df.shape)
 
-    print('Keep pretraining')
-    rdf = plotdf[plotdf['comments'].str.contains('findLSC')]
-    rdfs.append(rdf)
-    print(rdf.head().to_string())
-    print(rdf.shape, df.shape)
+    # print('Keep pretraining')
+    # rdf = plotdf[plotdf['comments'].str.contains('findLSC')]
+    # rdfs.append(rdf)
+    # print(rdf.head().to_string())
+    # print(rdf.shape, df.shape)
 
     print('Remove if it didnt converge')
     plotdf['conveps'] = plotdf['v_ppl len'] - plotdf['v_ppl argm']

@@ -287,6 +287,7 @@ def remove_pretrained_extra(experiments, remove_opposite=True, folder=None):
 
         if d in files and not remove_opposite:
             os.remove(os.path.join(folder, d))
+            os.remove(os.path.join(safety_folder, d))
             removed += 1
 
         pbar.update(1)
@@ -424,6 +425,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
     best_count = 0
     failures = 0
     iterations = 0
+    dec_norm = -1
     wnames = [weight.name for layer in model.layers for weight in layer.weights]
 
     if 'onlyloadpretrained' in comments:
@@ -732,6 +734,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                                     # w_norm = np.std(w) * np.sqrt(np.mean(w.shape))
                                     w_norm = np.std(w) * np.sqrt(s)
                                     n_multiplier = 1 / w_norm
+                                    dec_norm = w_norm
 
                                 print('multipliers, n and not', n_multiplier, multiplier)
 
@@ -839,13 +842,12 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
 
     final_norms = []
     norm_names = []
-    dec_norm = -1
     for k in keys:
         if not norms[k] == [-1] and not norms[k] == []:
             if not 'dec' in k:
                 final_norms.append(norms[k][-1])
                 norm_names.append(k)
-            else:
+            elif dec_norm == -1:
                 dec_norm = norms[k][-1]
 
     results['weights_shapes'] = [weight.shape for weight in best_weights]
