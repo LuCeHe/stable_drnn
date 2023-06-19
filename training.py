@@ -54,10 +54,10 @@ def config():
 
     # net
     # maLSNN cLSTM LSTM maLSNNb GRU indrnn LMU ssimplernn rsimplernn
-    net = 'GRU'
+    net = 'maLSNN'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
-    stack = 5
-    n_neurons = None
+    stack = 3
+    n_neurons = 2
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task in language_tasks else False
     comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain_pretrained_tsteps:10'
@@ -92,6 +92,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
     task_name = task
     net_name = net
 
+    # comments += '_dampf:.5_v0m'
     comments += '_dampf:.5'
 
     ostack = stack

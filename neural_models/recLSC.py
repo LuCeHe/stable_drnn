@@ -546,7 +546,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                                                                   comments=comments, target_norm=target_norm)
 
                             save_norms[f'batch {step} rec layer {i}'].append(tf.reduce_mean(rnorm).numpy())
-                            norms_names.append(f'rec layer {i}')
+                            norms_names.append(f'rec l{i}')
                             some_norms.append(tf.reduce_mean(rnorm))
                             some_losses.append(loss)
                             if not naswot_score is None:
@@ -561,7 +561,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                                                                   n_samples=n_samples, norm_pow=norm_pow, naswot=naswot,
                                                                   comments=comments, target_norm=target_norm)
                             save_norms[f'batch {step} enc layer {i}'].append(tf.reduce_mean(norms).numpy())
-                            norms_names.append(f'enc layer {i}')
+                            norms_names.append(f'enc l{i}')
 
                             some_norms.append(tf.reduce_mean(norms))
                             some_losses.append(loss)
@@ -577,7 +577,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                                                                       naswot=naswot,
                                                                       comments=comments, target_norm=target_norm)
                                 save_norms[f'batch {step} depth layer {i}'].append(tf.reduce_mean(norms).numpy())
-                                norms_names.append(f'depth layer {i}')
+                                norms_names.append(f'depth l{i}')
 
                                 some_norms.append(tf.reduce_mean(norms))
                                 some_losses.append(loss)
@@ -696,14 +696,20 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                     if 'wmultiplier' in comments and not 'onlyloadpretrained' in comments:
                         print('multiplier to weights!')
                         new_weights = []
-                        for w, wname in zip(weights, wnames):
-
+                        for w, _wname in zip(weights, wnames):
+                            wname = _wname
                             print('-' * 20)
                             print(wname, w.shape)
-                            if len(w.shape) >= 2 or 'tau' in wname or 'bias' in wname:
+                            if len(w.shape) >= 2 or 'tau' in wname or 'bias' in wname \
+                                    or 'internal_current' in wname or '/thr:' in wname\
+                                    or '/beta:' in wname:
                                 n_multiplier, multiplier = 1, 1
-                                if 'encoder_' in wname or '_cell_' in wname and not 'embedding' in wname:
-                                    multiplier = (target_norm / mean_norm.numpy() - 1) * 2 + 1
+                                wname = wname.replace('ma_lsnn_', '_cell_')
+                                wname = wname.replace('ma_lsn_nb_', '_cell_')
+                                print('         ', wname)
+                                if ('encoder_' in wname or '_cell_' in wname) \
+                                        and not 'embedding' in wname:
+                                    multiplier = target_norm / mean_norm.numpy()
 
                                     if 'encoder_' in wname:
                                         depth = int(wname.split('_')[1])
@@ -712,18 +718,22 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
 
                                     dname = 'enc' if depth == 0 else 'depth'
 
-                                    if 'input_weights' in wname or '/kernel:' in wname or 'bias' in wname:
-                                        idx = norms_names.index(f'{dname} layer {depth}')
+                                    if 'input_weights' in wname or '/kernel:' in wname or 'bias' in wname \
+                                            or 'internal_current' in wname or 'thr:' in wname or 'beta:' in wname:
+                                        idx = norms_names.index(f'{dname} l{depth}')
                                         local_norm = some_norms[idx].numpy()
                                         n_multiplier = target_norm / local_norm
+                                        if 'internal_current' in wname:
+                                            n_multiplier = 1/n_multiplier
+
 
                                     elif 'recurrent_weights' in wname or 'recurrent_kernel' in wname:
-                                        idx = norms_names.index(f'rec layer {depth}')
+                                        idx = norms_names.index(f'rec l{depth}')
                                         local_norm = some_norms[idx].numpy()
                                         n_multiplier = target_norm / local_norm
 
                                     elif 'tau' in wname:
-                                        idx = norms_names.index(f'rec layer {depth}')
+                                        idx = norms_names.index(f'rec l{depth}')
                                         local_norm = some_norms[idx].numpy()
                                         n_multiplier = target_norm / local_norm
 
@@ -738,14 +748,12 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
 
                                 print('multipliers, n and not', n_multiplier, multiplier)
 
-                                r = np.random.rand()
-                                m = multiplier if r < .2 else n_multiplier
-                                m = np.clip(m, 0.88, 1.12)
+                                # r = np.random.rand()
+                                # m = multiplier if r < .2 else n_multiplier
+                                m = n_multiplier
+                                m = np.clip(m, 0.85, 1.15)
 
-                                # print(np.mean(w))
                                 w = m * w
-                                # print(np.mean(w))
-                            # w = w * multiplier
                             new_weights.append(w)
                         weights = new_weights
 
@@ -753,7 +761,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                 tf.keras.backend.clear_session()
                 tf.keras.backend.clear_session()
 
-                if time.perf_counter() - time_start > 60 * 60 * 16:  # 17h
+                if time.perf_counter() - time_start > 60 * 60 * 8:  # 17h
                     time_over = True
                     break
 
@@ -846,7 +854,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
         if not norms[k] == [-1] and not norms[k] == []:
             if not 'dec' in k:
                 final_norms.append(norms[k][-1])
-                norm_names.append(k)
+                norm_names.append(k.replace(' layer ', ' l'))
             elif dec_norm == -1:
                 dec_norm = norms[k][-1]
 
