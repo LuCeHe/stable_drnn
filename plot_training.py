@@ -64,11 +64,11 @@ plot_bars = False
 plot_new_bars = False
 chain_norms = False
 
-missing_exps = True
+missing_exps = False
 remove_incomplete = False
 truely_remove = False
 truely_remove_pretrained = False
-check_all_norms = False
+check_all_norms = True
 
 task = 'ps_mnist'  # heidelberg wordptb sl_mnist all ps_mnist
 incomplete_comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_pretrained_'

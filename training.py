@@ -183,6 +183,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
 
             # if not 'ssimplernn' in net:
             new_comments = new_comments + '_wmultiplier'
+            new_comments = new_comments + '_nosgd'
             # new_comments = new_comments + '_waddnoise'
             # new_comments = new_comments + '_reducevar'
             new_comments = new_comments + '_randlambda1'

@@ -242,7 +242,7 @@ def get_pretrained_file(comments, s, net_name, task_name, ostack):
     return f"pretrained_s{s}_{net_name}_{lsct}_{task_name}_stack{str(stack).replace(':', 'c')}{c}.h5"
 
 
-def remove_pretrained_extra(experiments, remove_opposite=True, folder=None):
+def remove_pretrained_extra(experiments, remove_opposite=True, folder=None, erase_safety=False):
     files = []
     print('Desired:')
     for exp in experiments:
@@ -287,7 +287,8 @@ def remove_pretrained_extra(experiments, remove_opposite=True, folder=None):
 
         if d in files and not remove_opposite:
             os.remove(os.path.join(folder, d))
-            # os.remove(os.path.join(safety_folder, d))
+            if erase_safety:
+                os.remove(os.path.join(safety_folder, d))
             removed += 1
 
         pbar.update(1)
@@ -653,7 +654,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                             else:
                                 best_individual_norms[f'{nt} layer {i}'] = -1
 
-                if learn:
+                if learn and not 'nosgd' in comments:
                     grads = tape.gradient(mean_loss, model.trainable_weights)
                     optimizer.apply_gradients(zip(grads, model.trainable_weights))
                     del grads
@@ -761,7 +762,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                 tf.keras.backend.clear_session()
                 tf.keras.backend.clear_session()
 
-                if time.perf_counter() - time_start > 60 * 60 * 8:  # 17h
+                if time.perf_counter() - time_start > 60 * 60 * 16:  # 17h
                     time_over = True
                     break
 
