@@ -43,7 +43,7 @@ def get_argparse():
     parser.add_argument("--resize", default=32, type=int, help="Resize images", choices=[224, 128, 64, 32])
     parser.add_argument("--width", default=128, type=int, help="Layer width")
     parser.add_argument("--lr", default=.001, type=float, help="Learning rate")
-    parser.add_argument("--comments", default='heinit', type=str, help="String to activate extra behaviors")
+    parser.add_argument("--comments", default='findLSC_radius', type=str, help="String to activate extra behaviors")
     parser.add_argument("--dataset", default='cifar10', type=str,
                         choices=['cifar10', 'cifar100', 'mnist'])
     parser.add_argument("--net_type", default='ffn', type=str, choices=['ffn', 'cnn'])
@@ -201,8 +201,13 @@ def main(args):
         flsc = str2val(args.comments, 'flsc', bool, default=False)
 
         comments = args.comments
+
+
         if 'supsubnpsd' in args.comments:
             comments = args.comments + '_waddnoise'
+        comments = comments + '_wmultiplier'
+        comments = comments + '_reevaluatenorm'
+
 
         weights, lsc_results = apply_LSC_no_time(
             bm, generator=gen_val, max_dim=max_dim, norm_pow=2, forward_lsc=flsc,

@@ -220,7 +220,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                     tf.keras.backend.clear_session()
 
                     model = build_model()
-                    # model.compile(loss='mse', optimizer=optimizer)
+
                     if not weights is None:
                         model.set_weights(weights)
 
@@ -397,7 +397,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                             raise ValueError('Norms are all 1, since the input and output are the same. '
                                              'This happens because the architecture is complex and now '
                                              'we are not able to find a path from the input to the output '
-                                             'in the general case.')
+                                             'for a general architecture.')
 
                     else:
                         varin = tf.math.reduce_variance(new_preinter)
@@ -458,6 +458,14 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                                 w += noise.numpy()
                             new_weights.append(w)
                         weights = new_weights
+
+                if 'reevaluatenorm' in comments:
+                    nnorms, iloss, naswot_score = get_norms(tape, [inp], [oup], n_samples=n_samples,
+                                                           norm_pow=norm_pow, comments=comments)
+                    print('Reevaluation of the norm:')
+                    print(f'           {norms.numpy().round(3)} vs {nnorms.numpy().round(3)}')
+
+
 
                 # show_factor = str(np.array(ma_factor).round(3))
                 show_loss = str(ma_loss.numpy().round(round_to))
