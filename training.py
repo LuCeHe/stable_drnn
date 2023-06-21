@@ -183,14 +183,14 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
 
             # if not 'ssimplernn' in net:
             new_comments = new_comments + '_wmultiplier'
-            new_comments = new_comments + '_nosgd'
+            # new_comments = new_comments + '_nosgd'
             # new_comments = new_comments + '_waddnoise'
             # new_comments = new_comments + '_reducevar'
-            new_comments = new_comments + '_randlambda1'
+            # new_comments = new_comments + '_randlambda1'
 
             new_batch_size = batch_size
 
-            lsclr = 7.2e-3
+            lsclr = 7.2e-4
             # 3.14e-3 # 7.2e-4 # 7.2e-3 #
 
             if 'ptb' in task_name:

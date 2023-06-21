@@ -64,11 +64,11 @@ plot_bars = False
 plot_new_bars = False
 chain_norms = False
 
-missing_exps = False
+missing_exps = True
 remove_incomplete = False
 truely_remove = False
 truely_remove_pretrained = False
-check_all_norms = True
+check_all_norms = False
 
 task = 'ps_mnist'  # heidelberg wordptb sl_mnist all ps_mnist
 incomplete_comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_pretrained_'
@@ -86,19 +86,14 @@ metrics_oi = [
 ]
 metrics_oi = [shorten_losses(m) for m in metrics_oi]
 
-plot_only = ['eps', 'net', 'task', 'n_params', 'stack', 'comments', 'path', 'lr', 'seed', 'host_hostname',
+plot_only = ['seed',  'net', 'task', 'n_params', 'stack', 'comments', 'path', 'lr', 'host_hostname',
              'v_ppl argm', 'v_ppl len', ] + metrics_oi
-columns_to_remove = [
-    'heaviside', '_test', 'weight', 'sLSTM_factor', 'save_model', 'clipnorm', 'GPU', 'batch_size',
-    'continue_training', 'embedding', 'lr_schedule', 'loss_name', 'seed', 'stack', 'stop_time',
-    'convergence', 'n_neurons', 'optimizer_name', 'LSC', ' list', 'artifacts', 'command', 'heartbeat', 'meta',
-    'resources', 'host', 'start_time', 'status', 'experiment', 'result',
-]
-columns_to_remove = []
+
 columns_to_remove = [
     '_var', '_mean', 'sparse_categorical_crossentropy', 'bpc', 'loss', 'artifacts',
     'experiment_dependencies', 'experiment_sources', 'experiment_repositories', 'host_os',
-    'sparse_categorical_accuracy', 'LSC_losses', 'rec_norms', 'fail_trace', 'list', 'weights_shapes']
+    'sparse_categorical_accuracy', 'LSC_losses', 'rec_norms', 'fail_trace', 'list', 'weights_shapes'
+]
 force_keep_column = [
     'LSC_norms list', 'batch ',
     'val_sparse_mode_accuracy list', 'val_perplexity list',
@@ -1373,9 +1368,9 @@ if remove_incomplete:
         plotdf['conveps'] < 8
         ]
 
-    # print(rdf.to_string())
-    # print(rdf.shape, df.shape)
-    # rdfs.append(rdf)
+    print(rdf.to_string())
+    print(rdf.shape, df.shape)
+    rdfs.append(rdf)
 
     # 86
 
@@ -1458,6 +1453,11 @@ if remove_incomplete:
     print(f'Remove {allrdfs.shape} of {plotdf.shape}')
     trueallrdfs = allrdfs.drop_duplicates(subset=['seed', 'task', 'net', 'comments', 'stack'])
     print(f'Remove actually {trueallrdfs.shape} of {plotdf.shape}')
+    # df_all = allrdfs.merge(trueallrdfs.drop_duplicates(), on=['seed', 'task', 'net', 'comments', 'stack'],
+    #                    how='left', indicator=True)
+    # df_left = df_all[df_all['_merge'] == 'left_only']
+
+    print(allrdfs.to_string())
 
     if truely_remove_pretrained:
 
@@ -1480,7 +1480,7 @@ if remove_incomplete:
         print(f'Experiments to remove: {len(experiments)}')
         folder = r'D:\work\alif_sg\good_experiments\pmodels'
         print(experiments)
-        # remove_pretrained_extra(experiments, remove_opposite=False, folder=folder)
+        remove_pretrained_extra(experiments, remove_opposite=False, folder=folder, truely_remove=False)
 
     if truely_remove:
         for rdf in [allrdfs]:
@@ -1534,7 +1534,7 @@ if missing_exps:
 
     incomplete_comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained'
 
-    for add_flag in ['_onlypretrain']:  # ['_onlyloadpretrained', '_onlypretrain']:
+    for add_flag in ['_onlyloadpretrained', '_onlypretrain']:
         if add_flag == '_onlyloadpretrained':
             good_lsc_options = [True, False]
         else:
@@ -1549,8 +1549,8 @@ if missing_exps:
             else:
                 all_comments = []
 
-            if '_onlyloadpretrained' in add_flag and not only_if_good_lsc:
-                all_comments.append(incomplete_comments + add_flag)
+                if '_onlyloadpretrained' in add_flag:
+                    all_comments.append(incomplete_comments + add_flag)
 
             experiments = []
             for nt, nets in net_types.items():

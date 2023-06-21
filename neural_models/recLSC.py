@@ -242,7 +242,7 @@ def get_pretrained_file(comments, s, net_name, task_name, ostack):
     return f"pretrained_s{s}_{net_name}_{lsct}_{task_name}_stack{str(stack).replace(':', 'c')}{c}.h5"
 
 
-def remove_pretrained_extra(experiments, remove_opposite=True, folder=None, erase_safety=False):
+def remove_pretrained_extra(experiments, remove_opposite=True, folder=None, erase_safety=False, truely_remove=True):
     files = []
     print('Desired:')
     for exp in experiments:
@@ -281,11 +281,11 @@ def remove_pretrained_extra(experiments, remove_opposite=True, folder=None, eras
         # copy d file to safety folder
         shutil.copy(os.path.join(folder, d), os.path.join(safety_folder, d))
 
-        if not d in files and remove_opposite:
+        if not d in files and remove_opposite and truely_remove:
             os.remove(os.path.join(folder, d))
             removed += 1
 
-        if d in files and not remove_opposite:
+        if d in files and not remove_opposite and truely_remove:
             os.remove(os.path.join(folder, d))
             if erase_safety:
                 os.remove(os.path.join(safety_folder, d))
