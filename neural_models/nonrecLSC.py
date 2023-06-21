@@ -161,7 +161,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
     path_pretrained = os.path.join(
         GEXPERIMENTS, f"pretrained_s{seed}_{net_name}_{task_name}_{activation}_{lsct}.h5"
     )
-    if 'pretrained' in comments or 'onlypretrain' in comments:
+    if 'pretrained' in comments:
         if os.path.exists(path_pretrained):
             try:
                 print('Loading pretrained lsc weights')
@@ -185,6 +185,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
     best_norm = None
     best_count = 0
     ma_norm_std = None
+    best_ma_norm_std = None
 
     psdized = False
     for epoch in range(epochs):
@@ -432,11 +433,13 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
 
                 if best_norm is None:
                     best_norm = norm.numpy().mean()
+                    best_ma_norm_std = ma_norm_std
                     best_weights = model.get_weights()
 
                 if np.abs(float(ma_norm) - target_norm) < np.abs(float(best_norm) - target_norm) and ma_norm_std < 0.4:
                     print('MA norm improved!')
                     best_norm = ma_norm
+                    best_ma_norm_std = ma_norm_std
                     best_weights = model.get_weights()
                     best_count = 0
                     if 'pretrained' in comments:
@@ -544,6 +547,9 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                 model.save(path_pretrained)
             except Exception as e:
                 print(e)
+
+    results['final_norms_mean'] = best_norm
+    results['final_norms_std'] = best_ma_norm_std
 
     model, generator = None, None
     del model, generator
