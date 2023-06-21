@@ -126,6 +126,9 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
     best_weights = weights
 
     lnames = [layer.name for layer in model.layers]
+    wnames = [weight.name for layer in model.layers for weight in layer.weights]
+    kernels = [w for w in wnames if 'kernel' in w]
+    ema_t = len(wnames) / 2
 
     if keep_in_layers is None:
         keep_in_layers = lnames
@@ -181,13 +184,16 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
     time_over = False
     best_norm = None
     best_count = 0
+    ma_norm_std = None
 
+    psdized = False
     for epoch in range(epochs):
         pbar = tqdm(total=generator.steps_per_epoch)
         if time_over:
             break
 
         generator.on_epoch_end()
+
         for step in range(time_steps):
             tf.keras.backend.clear_session()
             tf.compat.v1.reset_default_graph()
@@ -204,8 +210,10 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
             if epsilon_steps > patience:
                 break
 
-            # if True:
-            try:
+            print('-' * 20)
+
+            if True:
+                # try:
                 batch = generator.__getitem__(step)[0]
                 if isinstance(batch, list) or isinstance(batch, tuple):
                     batch = [tf.convert_to_tensor(tf.cast(b, tf.float32), dtype=tf.float32) for b in batch]
@@ -236,7 +244,6 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
 
                     lnames = [layer.name for layer in model.layers]
                     last_layer_name = lnames[pairs[1]]
-                    # print(last_layer_name)
 
                     if 'truersplit' in comments:
                         premodel, intermodel = truer_split_model(model, pairs)
@@ -248,10 +255,16 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                     else:
                         premodel, intermodel = split_model(model, pairs)
 
-                    # print('letssee', batch.shape)
-
                     preinter = premodel(batch)
+
+                    wnames_i = [weight.name for layer in intermodel.layers for weight in layer.weights]
+                    wnames_p = [weight.name for layer in premodel.layers for weight in layer.weights]
                     del premodel
+
+                    if len(wnames_i) == 0:
+                        continue
+
+                    # del premodel
                     allpreinter = preinter
 
                     if isinstance(allpreinter, list):
@@ -406,29 +419,31 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                         norms = varout / varin
                     loss += iloss
 
-                ma_loss = loss if ma_loss is None else ma_loss * 9 / 10 + loss / 10
+                ma_loss = loss if ma_loss is None else \
+                    ma_loss * (ema_t - 1) / ema_t + loss / ema_t
                 norm = tf.reduce_mean(norms)
-                ma_norm = norm if ma_norm is None else ma_norm * 9 / 10 + norm / 10
+                ma_norm = norm if ma_norm is None else \
+                    ma_norm * (ema_t - 1) / ema_t + norm / ema_t
+                ma_norm_std = 1 if ma_norm_std is None else \
+                    ma_norm_std * (ema_t - 1) / ema_t + (norm.numpy() - target_norm) ** 2 / ema_t
+
                 all_norms.append(norm.numpy())
                 all_losses.append(loss.numpy())
 
-                print(best_norm)
-
                 lower_than_target = norm.numpy().mean() < target_norm
-                if 'pretrained' in comments and not model is None and not best_norm is None:
-                    if np.abs(float(norm) - target_norm) < np.abs(float(best_norm) - target_norm):
+
+                if best_norm is None:
+                    best_norm = norm.numpy().mean()
+                    best_weights = model.get_weights()
+
+                if np.abs(float(ma_norm) - target_norm) < np.abs(float(best_norm) - target_norm) and ma_norm_std < 0.4:
+                    print('MA norm improved!')
+                    best_norm = ma_norm
+                    best_weights = model.get_weights()
+                    best_count = 0
+                    if 'pretrained' in comments:
                         print('Saving pretrained lsc weights with best norms')
                         model.save(path_pretrained)
-                        best_norm = norm.numpy().mean()
-                        best_weights = model.get_weights()
-                        best_count = 0
-
-                elif best_norm is None:
-                    best_norm = norm.numpy().mean()
-
-                    print('Saving pretrained lsc weights with best norms')
-                    model.save(path_pretrained)
-
 
                 if best_count > 2 * patience:
                     print('Reloading best weights')
@@ -437,10 +452,10 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
 
                 best_count += 1
 
-                if learn:
+                if learn and not 'nosgd' in comments:
                     grads = tape.gradient(loss, intermodel.trainable_weights)
                     optimizer.apply_gradients(zip(grads, intermodel.trainable_weights))
-                del intermodel
+
                 tf.keras.backend.clear_session()
                 tf.keras.backend.clear_session()
 
@@ -459,22 +474,47 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                             new_weights.append(w)
                         weights = new_weights
 
-                if 'reevaluatenorm' in comments:
-                    nnorms, iloss, naswot_score = get_norms(tape, [inp], [oup], n_samples=n_samples,
-                                                           norm_pow=norm_pow, comments=comments)
-                    print('Reevaluation of the norm:')
-                    print(f'           {norms.numpy().round(3)} vs {nnorms.numpy().round(3)}')
+                if 'wmultiplier' in comments and not 'onlyloadpretrained' in comments:
+                    print('multiplier to weights!')
+                    new_weights = []
+                    for w, wname in zip(weights, wnames):
+                        if ('supsubnpsd' in comments or 'supnpsd' in comments) and \
+                                'kernel' in wname and not psdized:
+                            print('here! now!')
+                            s = np.amax(np.sum(w, axis=-1))
+                            np.fill_diagonal(w, s, wrap=False)
+                            psdized = True
 
+                        if len(w.shape) >= 2 and wname in wnames_i and 'kernel' in wname:
+                            n_multiplier = 1
 
+                            if wname == kernels[0]:
+                                s = w.shape[1]
+                                local_norm = np.std(w) * np.sqrt(s)
+                            elif wname == kernels[-1]:
+                                s = w.shape[0]
+                                local_norm = np.std(w) * np.sqrt(s)
+                            else:
+                                local_norm = norms.numpy().mean()
 
-                # show_factor = str(np.array(ma_factor).round(3))
+                            n_multiplier = target_norm / local_norm
+
+                            m = n_multiplier
+                            m = np.clip(m, 0.85, 1.15)
+
+                            w = m * w
+                        new_weights.append(w)
+                    weights = new_weights
+
+                del intermodel
+
                 show_loss = str(ma_loss.numpy().round(round_to))
                 show_norm = str(ma_norm.numpy().round(round_to))
                 show_avw = str(av_weights.numpy().round(round_to))
 
-            except Exception as e:
-                print(e)
-                n_failures += 1
+            # except Exception as e:
+            #     print(e)
+            #     n_failures += 1
 
             if li is None:
                 li = show_loss
@@ -486,10 +526,11 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
             pbar.set_description(
                 f"Pretrain e {epoch + 1} s {step + 1}, "
                 f"Loss {show_loss}/{li}, "
-                f"Norms {show_norm}/{ni} (best {str(np.array(best_norm).round(round_to))}), "
-                # f"Factor {show_factor}, "
+                f"Norms {show_norm}/{ni} "
+                f"(best ma {str(np.array(best_norm).round(round_to))}, "
+                f"current {str(norms.numpy().mean().round(round_to))}), "
+                f"MA norm std {str(np.array(ma_norm_std).mean().round(round_to))}, "
                 f"Av. Weights {show_avw}/{pi}, "
-                # f"Failures {n_failures}, "
                 f"Fail rate {show_failure}, "
                 f"ES {epsilon_steps}/{patience} "
 

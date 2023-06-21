@@ -716,7 +716,7 @@ if missing_exps:
         flags = ['_onlypretrain', '_onlyloadpretrained']
         flags = ['_onlypretrain']
         # all_comments = ['', 'findLSC_supsubnpsd', 'findLSC_supnpsd2', 'findLSC_radius', 'heinit', ]
-        comments = ['findLSC_supsubnpsd', 'findLSC_supnpsd2', 'findLSC_radius', ]
+        comments = ['findLSC_supsubnpsd', 'findLSC_supnpsd', 'findLSC_radius', ]
         all_comments = lambda x: [c + f'_adabelief{x}' for c in comments]
 
         experiment = lambda x: {

@@ -38,16 +38,17 @@ def get_argparse():
     parser.add_argument("--seed", default=0, type=int, help="Random seed")
     parser.add_argument("--epochs", default=1, type=int, help="Training Epochs")
     parser.add_argument("--pretrain_epochs", default=2, type=int, help="Pretraining Epochs")  # 20
-    parser.add_argument("--steps_per_epoch", default=2, type=int, help="Batch size")  # -1
-    parser.add_argument("--layers", default=30, type=int, help="Number of layers")
+    parser.add_argument("--steps_per_epoch", default=80, type=int, help="Batch size")  # -1
+    parser.add_argument("--layers", default=6, type=int, help="Number of layers")
     parser.add_argument("--resize", default=32, type=int, help="Resize images", choices=[224, 128, 64, 32])
-    parser.add_argument("--width", default=128, type=int, help="Layer width")
+    parser.add_argument("--width", default=32, type=int, help="Layer width")
     parser.add_argument("--lr", default=.001, type=float, help="Learning rate")
-    parser.add_argument("--comments", default='findLSC_radius', type=str, help="String to activate extra behaviors")
+    parser.add_argument("--comments", default='findLSC_supnpsd', type=str, help="String to activate extra behaviors")
+    parser.add_argument("--comments", default='findLSC_supsubnpsd', type=str, help="String to activate extra behaviors")
     parser.add_argument("--dataset", default='cifar10', type=str,
                         choices=['cifar10', 'cifar100', 'mnist'])
     parser.add_argument("--net_type", default='ffn', type=str, choices=['ffn', 'cnn'])
-    parser.add_argument("--activation", default='sin', type=str, help="Activation",
+    parser.add_argument("--activation", default='relu', type=str, help="Activation",
                         choices=['swish', 'relu', 'sin', 'cos'])
     parser.add_argument(
         "--initialization", default='glorot_normal', type=str, help="Activation to train on",
@@ -101,19 +102,11 @@ def build_ffn(args, input_shape, classes):
 
     # Build stem
     x = img_input
-    x = tf.keras.layers.experimental.preprocessing.Rescaling(1. / 255.)(x)
-    x = tf.keras.layers.experimental.preprocessing.Normalization(mean=.5, variance=1 / 12)(x)
-
-    # 224, 224
-    x = tf.keras.layers.Flatten()(x)
 
     for _ in range(args.layers):
         x = tf.keras.layers.Dense(args.width, kernel_initializer=args.initialization)(x)
         x = tf.keras.layers.Activation(args.activation)(x)
 
-    x = tf.keras.layers.Flatten()(x)
-    x = tf.keras.layers.Dense(2 * classes, kernel_initializer=args.initialization)(x)
-    x = tf.keras.layers.Activation(args.activation)(x)
     x = tf.keras.layers.Dense(classes, kernel_initializer=args.initialization)(x)
 
     model = tf.keras.models.Model(img_input, x)
@@ -170,7 +163,18 @@ def main(args):
             tf.image.resize(x_train[..., None], [32, 32]).numpy().repeat(3, -1)
         x_test = x_test if x_test.shape[-1] == 3 else tf.image.resize(x_test[..., None], [32, 32]).numpy().repeat(3, -1)
 
+    elif args.net_type == 'ffn':
+        # flatten data
+        n_samples_train = x_train.shape[0]
+        n_samples_test = x_test.shape[0]
+        x_train = np.reshape(x_train, (n_samples_train, -1))
+        x_test = np.reshape(x_test, (n_samples_test, -1))
+
     x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=0.10, random_state=42)
+
+    # normalize data
+    m, s = x_train.mean(), x_train.std()
+    x_train, x_val, x_test = (x_train - m) / s, (x_val - m) / s, (x_test - m) / s
 
     classes = np.max(y_train) + 1
     input_shape = x_train.shape[1:]
@@ -202,17 +206,15 @@ def main(args):
 
         comments = args.comments
 
-
-        if 'supsubnpsd' in args.comments:
-            comments = args.comments + '_waddnoise'
+        # if 'supsubnpsd' in args.comments:
+        #     comments = args.comments + '_waddnoise'
         comments = comments + '_wmultiplier'
-        comments = comments + '_reevaluatenorm'
-
+        # comments = comments + '_nosgd'
 
         weights, lsc_results = apply_LSC_no_time(
             bm, generator=gen_val, max_dim=max_dim, norm_pow=2, forward_lsc=flsc,
             nlayerjump=2, net_name='ffn', task_name=args.dataset, activation=act_name, seed=args.seed,
-            learning_rate=1e-3, #3.16e-3,
+            learning_rate=1e-3,  # 3.16e-3,
             # layer_min=4, layer_max=None,  fanin=fanin,
             comments=comments
         )
