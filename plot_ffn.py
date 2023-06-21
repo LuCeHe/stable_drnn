@@ -25,32 +25,23 @@ missing_exps = True
 remove_incomplete = False
 truely_remove = False
 
-expsid = 'effnet'  # effnet als ffnandcnns transf
+expsid = 'ffnandcnns'  # effnet als ffnandcnns transf
 
 if expsid == 'ffnandcnns':
-    GEXPERIMENTS = [r'D:\work\alif_sg\good_experiments\2022-12-16--ffn']
+    GEXPERIMENTS = [r'D:\work\alif_sg\good_experiments\2023-06-16--ffn']
 elif expsid == 'effnet':
     GEXPERIMENTS = [r'D:\work\alif_sg\good_experiments\2023-01-01--effnet']
 
 metric = 'val_acc M'  # 'val_acc M'   'val_loss m' test_acc
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
-force_keep_column = ['LSC_norms list', 'val_sparse_categorical_accuracy list', 'val_loss list',
-                     'encoder_norm list', 'decoder_norm list']
+
 columns_to_remove = [
     '_var', '_mean', 'sparse_categorical_crossentropy', 'bpc', 'artifacts',
     'experiment_dependencies', 'experiment_sources', 'experiment_repositories', 'host_os',
-
-    # 'sparse_categorical_accuracy', 'loss',
     'LSC_losses', 'rec_norms', 'fail_trace', 'list']
-# force_keep_column = [
-#     'LSC_norms list', 'batch ',
-#     'val_sparse_mode_accuracy list', 'val_perplexity list',
-#     'v_sparse_mode_accuracy list', 'v_perplexity list',
-#     't_sparse_mode_accuracy list', 't_perplexity list',
-# ]
+
 force_keep_column = ['LSC_norms list', 'val_sparse_categorical_accuracy list', 'val_loss list',
                      'encoder_norm list', 'decoder_norm list']
-# force_keep_column = []
 
 df = experiments_to_pandas(
     h5path=h5path, zips_folder=GEXPERIMENTS, unzips_folder=EXPERIMENTS, experiments_identifier=expsid,
@@ -69,11 +60,12 @@ if expsid == 'effnet':
         axis=1)
 
 # select only rows with width 10
-df['time_elapsed'] = pd.to_timedelta(df['time_elapsed'], unit='s')
-df['val_loss argm'] = df['val_loss list'].apply(np.argmin)
-df['conveps'] = df['val_loss len'] - df['val_loss argm']
-# df['val_acc argM'] = df['val_sparse_categorical_accuracy list'].apply(np.argmax)
-# df['conveps'] = df['val_sparse_categorical_accuracy len'] - df['val_acc argM']
+if not df.empty:
+    df['time_elapsed'] = pd.to_timedelta(df['time_elapsed'], unit='s')
+    df['val_loss argm'] = df['val_loss list'].apply(np.argmin)
+    df['conveps'] = df['val_loss len'] - df['val_loss argm']
+    # df['val_acc argM'] = df['val_sparse_categorical_accuracy list'].apply(np.argmax)
+    # df['conveps'] = df['val_sparse_categorical_accuracy len'] - df['val_acc argM']
 
 if plot_norms_evol:
     for _, row in df.iterrows():
@@ -248,28 +240,32 @@ elif 'transf' in expsid:
     metric = 'val_ppl m'  # 'val_acc M'   'val_loss min'
     stats_oi = ['mean']
 
-df = df[plot_only]
-df = df.sort_values(by=metric)
-print(df.to_string())
-df['comments'] = df['comments'].str.replace('_preprocessinput', '')
+    print('Maximal time elapsed is: {}'.format(df['time_elapsed'].max()))
+    print('Minimal time elapsed is: {}'.format(df['time_elapsed'].min()))
 
-counts = df.groupby(group_cols).size().reset_index(name='counts')
+if not df.empty:
+    df = df[plot_only]
+    df = df.sort_values(by=metric)
+    print(df.to_string())
+    df['comments'] = df['comments'].str.replace('_preprocessinput', '')
 
-metrics_oi = [shorten_losses(m) for m in metrics_oi]
-mdf = df.groupby(
-    group_cols, as_index=False
-).agg({m: stats_oi for m in metrics_oi})
+    counts = df.groupby(group_cols).size().reset_index(name='counts')
 
-for m in metrics_oi:
-    for s in stats_oi:
-        mdf[f'{s}_{m}'] = mdf[m][s]
-    mdf = mdf.drop([m], axis=1)
-mdf = mdf.droplevel(level=1, axis=1)
+    metrics_oi = [shorten_losses(m) for m in metrics_oi]
+    mdf = df.groupby(
+        group_cols, as_index=False
+    ).agg({m: stats_oi for m in metrics_oi})
 
-mdf['counts'] = counts['counts']
-mdf = mdf.sort_values(by='mean_' + metric)
+    for m in metrics_oi:
+        for s in stats_oi:
+            mdf[f'{s}_{m}'] = mdf[m][s]
+        mdf = mdf.drop([m], axis=1)
+    mdf = mdf.droplevel(level=1, axis=1)
 
-print(mdf.to_string())
+    mdf['counts'] = counts['counts']
+    mdf = mdf.sort_values(by='mean_' + metric)
+
+    print(mdf.to_string())
 
 if 'effnet' in expsid:
     # remove string from column comments in the df
@@ -575,17 +571,16 @@ if plot_losses:
     plt.legend()
     plt.show()
 
-print('Maximal time elapsed is: {}'.format(df['time_elapsed'].max()))
-print('Minimal time elapsed is: {}'.format(df['time_elapsed'].min()))
-
 if remove_incomplete:
     rdfs = []
     import shutil
 
     if expsid == 'ffnandcnns':
         df = df[df['comments'].str.contains('adabelief')]
+        mdf = mdf[mdf['comments'].str.contains('adabelief')]
     elif expsid == 'effnet':
         df = df[df['comments'].str.contains('onlypretrain')]
+        mdf = mdf[mdf['comments'].str.contains('onlypretrain')]
     else:
         raise NotImplementedError
 
@@ -645,13 +640,13 @@ if remove_incomplete:
     # print(rdf.shape, df.shape)
     # rdfs.append(rdf)
 
-
     print('Keep pretraining')
     # rdf = df[df['comments'].str.contains('findLSC')]
-    # rdfs.append(rdf)
+    rdf = df.copy()
+    rdfs.append(rdf)
     # print(rdf.head().to_string())
-    # print(rdf.shape, df.shape)
-
+    print(rdf.to_string())
+    print(rdf.shape, df.shape)
 
     print('Remove repeated experiments')
     brdf = mdf[mdf['counts'] > 4]
@@ -667,7 +662,6 @@ if remove_incomplete:
                 ]
         else:
             raise NotImplementedError
-
 
         # order wrt path column
         srdf = srdf.sort_values(by=['path'], ascending=False)
@@ -712,26 +706,27 @@ if missing_exps:
     experiments = []
     if 'ffnandcnns' in expsid:
         # coi = ['seed', 'act', 'lr', 'comments', 'dataset', 'eps', 'spe']
-        coi = ['seed', 'act', 'comments', 'dataset', 'eps', 'spe']
+        coi = ['seed', 'act', 'comments', 'dataset', 'eps', 'spe', 'layers', 'width', 'lr', 'pretrain_epochs']
         flags = ['_onlypretrain', '_onlyloadpretrained']
         flags = ['_onlypretrain']
         # all_comments = ['', 'findLSC_supsubnpsd', 'findLSC_supnpsd2', 'findLSC_radius', 'heinit', ]
-        comments = ['findLSC_supsubnpsd', 'findLSC_supnpsd', 'findLSC_radius', ]
-        all_comments = lambda x: [c + f'_adabelief{x}' for c in comments]
+        comments = ['findLSC_supsubnpsd', 'findLSC_radius', ]
+        all_comments = lambda x: [c + f'_adabelief_pretrained{x}' for c in comments]
 
         experiment = lambda x: {
             'comments': all_comments(x),
             'act': ['sin', 'relu', 'cos'], 'dataset': ['cifar10', 'cifar100'],
-            'layers': [30], 'width': [128], 'lr': [1e-3, 3.16e-4, 1e-4, 3.16e-5, 1e-5],
-            'eps': [50], 'spe': [-1], 'pretrain_epochs': [30], 'seed': list(range(4)),
+            'layers': [30], 'width': [128], 'lr': [1e-3],  # [1e-3, 3.16e-4, 1e-4, 3.16e-5, 1e-5],
+            'eps': [50], 'spe': [-1], 'pretrain_epochs': [100], 'seed': list(range(4)),
         }
+
         exps = lambda x: [experiment(x)]
 
     elif 'effnet' in expsid:
         coi = ['seed', 'act', 'lr', 'comments', 'eps', 'spe', 'batch_normalization', 'dataset']
         flags = ['_onlypretrain']
         incomplete_comments = 'newarch_findLSC_lscvar'
-        all_comments = [incomplete_comments + f'_onlypretrain_preprocessinput']
+        all_comments = [incomplete_comments + f'_pretrained_onlypretrain_preprocessinput']
         seeds = list(range(4))
         experiment = lambda x: {
             'seed': seeds, 'comments': all_comments, 'eps': [150], 'spe': [-1],
@@ -742,11 +737,12 @@ if missing_exps:
         sdf = sdf[sdf['comments'].str.contains(incomplete_comments)]
         sdf['lr'] = -1
 
-    sdf['comments'] = sdf['comments'].apply(
-        lambda x: x + '_onlypretrain' if 'onlypretrain' not in x and 'onlyloadpretrained' not in x
-        else x
-    )
-    sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
+    if not sdf.empty:
+        sdf['comments'] = sdf['comments'].apply(
+            lambda x: x + '_onlypretrain' if 'onlypretrain' not in x and 'onlyloadpretrained' not in x
+            else x
+        )
+        sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
 
     print(sdf.to_string())
     for add_flag in flags:
@@ -754,15 +750,15 @@ if missing_exps:
         ds = dict2iter(exps(add_flag))
 
         df, experiments = complete_missing_exps(sdf, ds, coi)
+        print(df.to_string())
         new_exps = []
         for e in experiments:
+            print(e)
             ne = e.copy()
             ne.update({'pretrain_epochs': [100]})
             ne.update({'epochs': [int(e['eps'][0])]})
             ne.update({'steps_per_epoch': [int(e['spe'][0])]})
             ne.update({'activation': e['act']})
-            if 'pretrained' not in e['comments'][0]:
-                ne.update({'comments': [e['comments'][0] + '_pretrained']})
             del ne['act'], ne['eps'], ne['spe']
             # print(ne)
             new_exps.append(ne)

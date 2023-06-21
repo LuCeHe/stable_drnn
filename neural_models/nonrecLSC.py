@@ -210,10 +210,8 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
             if epsilon_steps > patience:
                 break
 
-            print('-' * 20)
-
-            if True:
-                # try:
+            # if True:
+            try:
                 batch = generator.__getitem__(step)[0]
                 if isinstance(batch, list) or isinstance(batch, tuple):
                     batch = [tf.convert_to_tensor(tf.cast(b, tf.float32), dtype=tf.float32) for b in batch]
@@ -480,7 +478,6 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                     for w, wname in zip(weights, wnames):
                         if ('supsubnpsd' in comments or 'supnpsd' in comments) and \
                                 'kernel' in wname and not psdized:
-                            print('here! now!')
                             s = np.amax(np.sum(w, axis=-1))
                             np.fill_diagonal(w, s, wrap=False)
                             psdized = True
@@ -512,9 +509,9 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                 show_norm = str(ma_norm.numpy().round(round_to))
                 show_avw = str(av_weights.numpy().round(round_to))
 
-            # except Exception as e:
-            #     print(e)
-            #     n_failures += 1
+            except Exception as e:
+                print(e)
+                n_failures += 1
 
             if li is None:
                 li = show_loss
