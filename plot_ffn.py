@@ -21,8 +21,8 @@ lrs_plot_2 = False
 bar_plot = False
 plot_losses = False
 
-missing_exps = False
-remove_incomplete = True
+missing_exps = True
+remove_incomplete = False
 truely_remove = False
 
 expsid = 'ffnandcnns'  # effnet als ffnandcnns transf
@@ -199,7 +199,7 @@ bn = 1
 if 'ffnandcnns' in expsid:
     plot_only = [
         'act', 'pre_eps', 'eps', 'dataset',
-        'seed', 'lr', 'comments',
+        'seed', 'lr', 'comments', 'depth', 'width',
         # 'val_acc M', 'val_loss m', 'test_acc M', 'test_loss m',
         'LSC i', 'LSC f', 'LSC a', 'f_norms_std',
         # 'conveps',
@@ -707,9 +707,9 @@ if missing_exps:
     experiments = []
     if 'ffnandcnns' in expsid:
         # coi = ['seed', 'act', 'lr', 'comments', 'dataset', 'eps', 'spe']
-        coi = ['seed', 'act', 'comments', 'dataset', 'eps', 'spe', 'layers', 'width', 'lr', 'pretrain_epochs']
+        coi = ['seed', 'act', 'comments', 'dataset', 'eps', 'spe', 'depth', 'width', 'lr', 'pre_eps']
         flags = ['_onlypretrain', '_onlyloadpretrained']
-        flags = ['_onlypretrain']
+        # flags = ['_onlypretrain']
         # all_comments = ['', 'findLSC_supsubnpsd', 'findLSC_supnpsd2', 'findLSC_radius', 'heinit', ]
         comments = ['findLSC_supsubnpsd', 'findLSC_radius', ]
         all_comments = lambda x: [c + f'_adabelief_pretrained{x}' for c in comments]
@@ -717,11 +717,27 @@ if missing_exps:
         experiment = lambda x: {
             'comments': all_comments(x),
             'act': ['sin', 'relu', 'cos'], 'dataset': ['cifar10', 'cifar100'],
-            'layers': [30], 'width': [128], 'lr': [1e-3],  # [1e-3, 3.16e-4, 1e-4, 3.16e-5, 1e-5],
-            'eps': [50], 'spe': [-1], 'pretrain_epochs': [100], 'seed': list(range(4)),
+            'depth': [30], 'width': [128], 'lr': [1e-3],  # [1e-3, 3.16e-4, 1e-4, 3.16e-5, 1e-5],
+            'eps': [50], 'spe': [-1], 'pre_eps': [100], 'seed': list(range(4)),
         }
 
-        exps = lambda x: [experiment(x)]
+
+        experiment_2 = lambda x: {
+            'comments': ['_onlyloadpretrained_adabelief', 'heinit_onlyloadpretrained_adabelief', ],
+            'act': ['sin', 'relu', 'cos'], 'dataset': ['cifar10', 'cifar100'],
+            'depth': [30], 'width': [128], 'lr': [1e-3, 3.16e-4, 1e-4, 3.16e-5, 1e-5],
+            'eps': [50], 'spe': [-1], 'pre_eps': [100], 'seed': list(range(4)),
+        }
+
+        # exps = lambda x: [experiment(x)]
+        def exps(x):
+            if x == '_onlypretrain':
+                return [experiment(x)]
+            elif x == '_onlyloadpretrained':
+                return [experiment_2(x)]
+            else:
+                raise NotImplementedError
+
 
     elif 'effnet' in expsid:
         coi = ['seed', 'act', 'lr', 'comments', 'eps', 'spe', 'batch_normalization', 'dataset']
@@ -751,16 +767,16 @@ if missing_exps:
         ds = dict2iter(exps(add_flag))
 
         df, experiments = complete_missing_exps(sdf, ds, coi)
-        print(df.to_string())
         new_exps = []
         for e in experiments:
-            print(e)
+            # print(e)
             ne = e.copy()
-            ne.update({'pretrain_epochs': [100]})
+            ne.update({'pretrain_epochs': e['pre_eps']})
             ne.update({'epochs': [int(e['eps'][0])]})
             ne.update({'steps_per_epoch': [int(e['spe'][0])]})
             ne.update({'activation': e['act']})
-            del ne['act'], ne['eps'], ne['spe']
+            ne.update({'layers': e['depth']})
+            del ne['act'], ne['eps'], ne['spe'], ne['depth'], ne['pre_eps']
             # print(ne)
             new_exps.append(ne)
 
