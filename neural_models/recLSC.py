@@ -275,24 +275,26 @@ def remove_pretrained_extra(experiments, remove_opposite=True, folder=None, eras
     for f in which_is_missing:
         print(f)
 
-    pbar = tqdm(total=len(existing_pretrained))
-    removed = 0
-    for d in existing_pretrained:
-        # copy d file to safety folder
-        shutil.copy(os.path.join(folder, d), os.path.join(safety_folder, d))
+    if truely_remove:
 
-        if not d in files and remove_opposite and truely_remove:
-            os.remove(os.path.join(folder, d))
-            removed += 1
+        pbar = tqdm(total=len(existing_pretrained))
+        removed = 0
+        for d in existing_pretrained:
+            # copy d file to safety folder
+            shutil.copy(os.path.join(folder, d), os.path.join(safety_folder, d))
 
-        if d in files and not remove_opposite and truely_remove:
-            os.remove(os.path.join(folder, d))
-            if erase_safety:
-                os.remove(os.path.join(safety_folder, d))
-            removed += 1
+            if not d in files and remove_opposite and truely_remove:
+                os.remove(os.path.join(folder, d))
+                removed += 1
 
-        pbar.update(1)
-        pbar.set_description(f"Removed {removed} of {len(existing_pretrained)}")
+            if d in files and not remove_opposite and truely_remove:
+                os.remove(os.path.join(folder, d))
+                if erase_safety:
+                    os.remove(os.path.join(safety_folder, d))
+                removed += 1
+
+            pbar.update(1)
+            pbar.set_description(f"Removed {removed} of {len(existing_pretrained)}")
 
 
 def load_LSC_model(path):
@@ -443,6 +445,8 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
 
     last_step = 0
     dec_in_loss = 0
+    std_ma_norm = 1
+    best_std_ma_norm = 1
     for step in range(steps_per_epoch):
         if time_over:
             break
@@ -626,6 +630,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                     if np.abs(mean_norm.numpy() - target_norm) < np.abs(best_norm - target_norm):
                         best_norm = mean_norm.numpy()
                         best_loss = mean_loss.numpy()
+                        best_std_ma_norm = std_ma_norm
 
                         for i, _ in enumerate(stack):
                             for nt in n_types:
@@ -653,6 +658,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                                 best_individual_norms[f'{nt} layer {i}'] = a[-1]
                             else:
                                 best_individual_norms[f'{nt} layer {i}'] = -1
+
 
                 if learn and not 'nosgd' in comments:
                     grads = tape.gradient(mean_loss, model.trainable_weights)
@@ -768,6 +774,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
 
                 ma_loss = loss if ma_loss is None else ma_loss * 9 / 10 + loss / 10
                 ma_norm = mean_norm if ma_norm is None else ma_norm * 9 / 10 + mean_norm / 10
+                std_ma_norm = std_ma_norm * 9 / 10 + np.std(some_norms)**2 / 10
 
                 epsilons = [(abs(n - target_norm) < es_epsilon).numpy() for n in some_norms]
                 if not ma_norm is None and all(epsilons):
@@ -799,7 +806,9 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                     f"loss {str(show_loss)}/{li}; "
                     f"mean params {str(round(prms, round_to))}/{pi}; "
                     f"mean norms {show_norm}/{ni} (best {str(np.array(best_norm).round(round_to))}); "
+                    f"ma std norms {std_ma_norm}/{1} (best {str(np.array(best_std_ma_norm).round(round_to))}); "
                     f"fail rate {failures / iterations * 100:.1f}%; "
+
                 )
 
             except Exception as e:
@@ -867,6 +876,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
     results['final_norm_dec'] = dec_norm
     results['final_norms_mean'] = np.mean(final_norms)
     results['final_norms_std'] = np.std(final_norms)
+    results['best_std_ma_norm'] = best_std_ma_norm
 
     print('Final norms:', final_norms)
     print('         ', norm_names)
@@ -877,121 +887,3 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
 
     return best_weights, results
 
-
-def test_1():
-    FILENAME = os.path.realpath(__file__)
-    CDIR = os.path.dirname(FILENAME)
-    DATA = os.path.join(CDIR, 'data', )
-    EXPERIMENTS = os.path.join(CDIR, 'experiments')
-    named_tuple = time.localtime()  # get struct_time
-    time_string = time.strftime("%Y-%m-%d--%H-%M-%S--", named_tuple)
-    random_string = ''.join([str(r) for r in np.random.choice(10, 4)])
-    EXPERIMENT = os.path.join(EXPERIMENTS, time_string + random_string + '_normM')
-    MODL = os.path.join(EXPERIMENT, 'trained_models')
-    # GENDATA = os.path.join(DATA, 'initconds')
-
-    for d in [EXPERIMENT, MODL]:
-        os.makedirs(d, exist_ok=True)
-
-    np.random.seed(42)
-    tf.random.set_seed(42)
-
-    input_dim = 2
-    time_steps = 2
-    batch_size = 2
-    units = 4
-    norm_pow = 0.1  # np.inf
-    n_samples = 11
-    lr = 1e-2
-
-    stack = 2
-    net_name = 'LSTM'  # maLSNN LSTM
-    comments = ''
-
-    comments += '_**folder:' + EXPERIMENT + '**_'
-    comments += '_batchsize:' + str(batch_size)
-
-    gen_train = Task(timerepeat=2, epochs=2, batch_size=batch_size, steps_per_epoch=2,
-                     name='heidelberg', train_val_test='train', maxlen=100, comments=comments)
-
-    comments += '_reoldspike'
-    model_args = dict(task_name='heidelberg', net_name=net_name, n_neurons=units, lr=lr, stack=stack,
-                      loss_name='sparse_categorical_crossentropy', tau=1., tau_adaptation=1.,
-                      embedding=None, optimizer_name='AdaBelief', lr_schedule='',
-                      weight_decay=1, clipnorm=1, initializer='glorot_uniform', comments=comments,
-                      in_len=gen_train.in_len, n_in=gen_train.in_dim, out_len=gen_train.out_len,
-                      n_out=gen_train.out_dim, final_epochs=1)
-    # model = build_model(**model_args)
-
-    weights, losses, all_norms = apply_LSC(gen_train, model_args, norm_pow, n_samples)
-    plt.plot(losses)
-    plt.show()
-
-
-def test_slogdet():
-    batch_size = 7
-    t = tf.random.normal((batch_size, 10, 10))
-    t = tf.reshape(t, (batch_size, -1))
-    shuffinp = sample_axis(t, max_dim=batch_size)
-    t = tf.tanh(shuffinp)
-    naswot_score = tf.linalg.slogdet(t)[1]
-
-    print(t.shape, shuffinp.shape)
-
-
-def test_subsample_larger_axis():
-    batch_size = 7
-    t = tf.random.normal((batch_size, 12, 13))
-    if tf.math.greater(t.shape[1], t.shape[2]):
-        sample_ax = 1
-        max_dim = t.shape[2]
-    else:
-        sample_ax = 2
-        max_dim = t.shape[1]
-
-    shuffinp = sample_axis(t, max_dim=max_dim, axis=sample_ax)
-    print(shuffinp.shape)
-
-
-def test_subsampled_larger_axis():
-    batch_size = 7
-    comments = '_supsubnpsd'
-    tape = tf.random.normal((batch_size, 12, 13))
-    get_norms(tape, lower_states=[], upper_states=[], n_samples=-1, norm_pow=2, naswot=0, comments=comments,
-              epsilon=1e-8,
-              target_norm=1., test=True)
-
-
-def test_remove():
-    experiments = [{'comments': [
-        'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_targetnorm:.5_onlypretrain'],
-        'seed': [0], 'stack': ['None'], 'net': ['maLSNN'], 'task': ['heidelberg']}, {'comments': [
-        'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_onlypretrain'], 'seed': [1],
-        'stack': ['None'],
-        'net': ['maLSNN'],
-        'task': [
-            'heidelberg']}, {
-        'comments': [
-            'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_targetnorm:.5_onlypretrain'],
-        'seed': [1], 'stack': ['None'], 'net': ['maLSNN'], 'task': ['heidelberg']}, {'comments': [
-        'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_onlypretrain'], 'seed': [2],
-        'stack': ['None'],
-        'net': ['maLSNN'],
-        'task': [
-            'heidelberg']},
-        {'comments': [
-            'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_onlypretrain'],
-            'seed': [41], 'stack': ['4:3'], 'net': ['LSTM'], 'task': ['heidelberg']},
-        {'comments': [
-            'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_onlypretrain'],
-            'seed': [41],
-            'stack': ['None'],
-            'net': ['maLSNN'],
-            'task': [
-                'heidelberg']}]
-
-    remove_pretrained_extra(experiments)
-
-
-if __name__ == '__main__':
-    test_remove()

@@ -1277,6 +1277,7 @@ if plot_dampenings_and_betas:
 if remove_incomplete:
     import shutil
 
+    plotdf = plotdf[plotdf['comments'].str.contains('onlypretrain')]
     rdfs = []
 
     print('-=***=-' * 10)
@@ -1453,11 +1454,6 @@ if remove_incomplete:
     print(f'Remove {allrdfs.shape} of {plotdf.shape}')
     trueallrdfs = allrdfs.drop_duplicates(subset=['seed', 'task', 'net', 'comments', 'stack'])
     print(f'Remove actually {trueallrdfs.shape} of {plotdf.shape}')
-    # df_all = allrdfs.merge(trueallrdfs.drop_duplicates(), on=['seed', 'task', 'net', 'comments', 'stack'],
-    #                    how='left', indicator=True)
-    # df_left = df_all[df_all['_merge'] == 'left_only']
-
-    print(allrdfs.to_string())
 
     if truely_remove_pretrained:
 
@@ -1534,7 +1530,7 @@ if missing_exps:
 
     incomplete_comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained'
 
-    for add_flag in ['_onlyloadpretrained', '_onlypretrain']:
+    for add_flag in ['_onlypretrain']: # ['_onlyloadpretrained', '_onlypretrain']:
         if add_flag == '_onlyloadpretrained':
             good_lsc_options = [True, False]
         else:

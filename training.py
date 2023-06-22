@@ -190,7 +190,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
 
             new_batch_size = batch_size
 
-            lsclr = 7.2e-4
+            lsclr = 7.2e-3
             # 3.14e-3 # 7.2e-4 # 7.2e-3 #
 
             if 'ptb' in task_name:

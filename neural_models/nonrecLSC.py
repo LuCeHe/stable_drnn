@@ -93,7 +93,7 @@ def remove_nonrec_pretrained_extra(experiments, remove_opposite=True, folder=Non
 
 
 def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_pow=2, forward_lsc=False,
-                      nlayerjump=None, comments='', epsilon=.02, patience=20, learning_rate=3.16e-5,
+                      nlayerjump=None, comments='', epsilon=.02, patience=40, learning_rate=3.16e-5,
                       subsample_axis=False,
                       skip_in_layers=[], skip_out_layers=[],
                       keep_in_layers=None, keep_out_layers=None,

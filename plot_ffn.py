@@ -21,8 +21,8 @@ lrs_plot_2 = False
 bar_plot = False
 plot_losses = False
 
-missing_exps = True
-remove_incomplete = False
+missing_exps = False
+remove_incomplete = True
 truely_remove = False
 
 expsid = 'ffnandcnns'  # effnet als ffnandcnns transf
@@ -62,10 +62,11 @@ if expsid == 'effnet':
 # select only rows with width 10
 if not df.empty:
     df['time_elapsed'] = pd.to_timedelta(df['time_elapsed'], unit='s')
-    df['val_loss argm'] = df['val_loss list'].apply(np.argmin)
-    df['conveps'] = df['val_loss len'] - df['val_loss argm']
-    # df['val_acc argM'] = df['val_sparse_categorical_accuracy list'].apply(np.argmax)
-    # df['conveps'] = df['val_sparse_categorical_accuracy len'] - df['val_acc argM']
+    if 'val_loss list' in df.columns:
+        df['val_loss argm'] = df['val_loss list'].apply(np.argmin)
+        df['conveps'] = df['val_loss len'] - df['val_loss argm']
+        # df['val_acc argM'] = df['val_sparse_categorical_accuracy list'].apply(np.argmax)
+        # df['conveps'] = df['val_sparse_categorical_accuracy len'] - df['val_acc argM']
 
 if plot_norms_evol:
     for _, row in df.iterrows():
@@ -191,19 +192,18 @@ print(list(odf.columns))
 df = df.rename(columns={'test_loss': 'test_loss m', 'test_acc': 'test_acc M'})
 
 metrics_oi = ['val_acc M', 'test_acc M', 'val_loss m', 'test_loss m', 'LSC_norms i', 'LSC_norms f', 'conveps']
+metrics_oi = ['LSC_norms i', 'LSC_norms f', 'f_norms_std']
 stats_oi = ['mean', 'std']  # ['mean', 'std']
 group_cols = ['lr', 'comments', 'act', 'dataset']
 bn = 1
 if 'ffnandcnns' in expsid:
     plot_only = [
         'act', 'pre_eps', 'eps', 'dataset',
-        # 'spe', 'width', 'depth',
         'seed', 'lr', 'comments',
-        'val_acc M', 'val_loss m', 'test_acc M', 'test_loss m',
-        # 'acc max','loss min',
-        'LSC i', 'LSC f', 'LSC a',
-        'conveps',
-        'ep M', 'time_elapsed', 'hostname', 'path',
+        # 'val_acc M', 'val_loss m', 'test_acc M', 'test_loss m',
+        'LSC i', 'LSC f', 'LSC a', 'f_norms_std',
+        # 'conveps',
+        'time_elapsed', 'hostname', 'path',
     ]
 
 elif 'effnet' in expsid:
@@ -226,7 +226,7 @@ elif 'transf' in expsid:
         'LSC i', 'LSC f', 'LSC a',
         'encoder_norm i', 'encoder_norm f',
         'decoder_norm i', 'decoder_norm f',
-        'ep M', 'time_elapsed', 'hostname', 'path',
+        'time_elapsed', 'hostname', 'path',
         'dataset',
     ]
     metrics_oi = [
@@ -245,7 +245,8 @@ elif 'transf' in expsid:
 
 if not df.empty:
     df = df[plot_only]
-    df = df.sort_values(by=metric)
+    if metric in df.columns:
+        df = df.sort_values(by=metric)
     print(df.to_string())
     df['comments'] = df['comments'].str.replace('_preprocessinput', '')
 
@@ -263,7 +264,8 @@ if not df.empty:
     mdf = mdf.droplevel(level=1, axis=1)
 
     mdf['counts'] = counts['counts']
-    mdf = mdf.sort_values(by='mean_' + metric)
+    if 'mean_' + metric in mdf.columns:
+        mdf = mdf.sort_values(by='mean_' + metric)
 
     print(mdf.to_string())
 
@@ -642,11 +644,10 @@ if remove_incomplete:
 
     print('Keep pretraining')
     # rdf = df[df['comments'].str.contains('findLSC')]
-    rdf = df.copy()
-    rdfs.append(rdf)
+    # rdfs.append(rdf)
     # print(rdf.head().to_string())
-    print(rdf.to_string())
-    print(rdf.shape, df.shape)
+    # print(rdf.to_string())
+    # print(rdf.shape, df.shape)
 
     print('Remove repeated experiments')
     brdf = mdf[mdf['counts'] > 4]
