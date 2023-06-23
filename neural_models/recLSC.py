@@ -622,8 +622,13 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                 #     mean_loss += l() * tf.math.reduce_variance(sn)
                 #     mean_loss += l() * tf.math.reduce_mean(sn)
 
-                best_count += 1
+
                 mean_norm = tf.reduce_mean(some_norms)
+                ma_loss = loss if ma_loss is None else ma_loss * 9 / 10 + loss / 10
+                ma_norm = mean_norm if ma_norm is None else ma_norm * 9 / 10 + mean_norm / 10
+                std_ma_norm = std_ma_norm * 9 / 10 + np.std(some_norms) ** 2 / 10
+
+                best_count += 1
                 lower_than_target = True
                 if not best_norm is None:
                     lower_than_target = mean_norm.numpy() < target_norm
@@ -772,9 +777,6 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                     time_over = True
                     break
 
-                ma_loss = loss if ma_loss is None else ma_loss * 9 / 10 + loss / 10
-                ma_norm = mean_norm if ma_norm is None else ma_norm * 9 / 10 + mean_norm / 10
-                std_ma_norm = std_ma_norm * 9 / 10 + np.std(some_norms) ** 2 / 10
 
                 epsilons = [(abs(n - target_norm) < es_epsilon).numpy() for n in some_norms]
                 if not ma_norm is None and all(epsilons):
