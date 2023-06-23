@@ -246,15 +246,16 @@ def remove_pretrained_extra(experiments, remove_opposite=True, folder=None, eras
     files = []
     print('Desired:')
     for exp in experiments:
-        file = get_pretrained_file(
-            comments=exp['comments'][0],
-            s=exp['seed'][0],
-            net_name=exp['net'][0],
-            task_name=exp['task'][0],
-            ostack=exp['stack'][0]
-        )
-        print(file)
-        files.append(file)
+        if 'onlypretrain' in exp['comments'][0]:
+            file = get_pretrained_file(
+                comments=exp['comments'][0],
+                s=exp['seed'][0],
+                net_name=exp['net'][0],
+                task_name=exp['task'][0],
+                ostack=exp['stack'][0]
+            )
+            print(file)
+            files.append(file)
 
     if folder is None:
         folder = GEXPERIMENTS

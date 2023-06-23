@@ -44,11 +44,12 @@ def remove_nonrec_pretrained_extra(experiments, remove_opposite=True, folder=Non
     files = []
     print('Desired:')
     for exp in experiments:
-        lsct = get_lsctype(exp['comments'][0])
-        file = f"pretrained_s{exp['seed'][0]}_{net_name}" \
-               f"_{exp['dataset'][0]}_{exp['activation'][0]}_{lsct}.h5"
-        print(file)
-        files.append(file)
+        if 'onlypretrain' in exp['comments'][0]:
+            lsct = get_lsctype(exp['comments'][0])
+            file = f"pretrained_s{exp['seed'][0]}_{net_name}" \
+                   f"_{exp['dataset'][0]}_{exp['activation'][0]}_{lsct}.h5"
+            print(file)
+            files.append(file)
 
     if folder is None:
         folder = GEXPERIMENTS
