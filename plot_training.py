@@ -82,7 +82,7 @@ metrics_oi = [
     # 't_ppl min', 't_mode_acc max', 'v_ppl min', 'v_mode_acc max',
     't_ppl', 't_mode_acc', 'v_ppl', 'v_mode_acc',
     'LSC_norms i', 'LSC_norms f', 'LSC_norms mean',
-    'final_norms_mean', 'final_norms_std'
+    'final_norms_mean', 'final_norms_std', 'best_std_ma_norm'
 ]
 metrics_oi = [shorten_losses(m) for m in metrics_oi]
 
@@ -513,13 +513,14 @@ if make_good_latex:
     idf = idf[idf['comments'].str.contains('onlyloadpretrained')]
     idf['net'] = pd.Categorical(idf['net'], categories=net_types['all'], ordered=True)
     idf['task'] = pd.Categorical(idf['task'], categories=tab_types['task'], ordered=True)
+    idf = idf[~(idf['net'].str.contains('ALIF') & idf['comments'].str.contains(r'targetnorm:.5'))]
 
     ntype = 'all'
-    ttype = 'stack'  # stack task
+    ttype = 'task'  # stack task
     data_split = 't_'  # t_ v_
     if ttype == 'task':
-        # idf = idf[idf['stack'].eq('None')]
-        idf = idf[idf['stack'].eq('5')]
+        idf = idf[idf['stack'].eq('None')]
+        # idf = idf[idf['stack'].eq('5')]
     else:
         idf = idf[~idf['stack'].eq('None')]
         idf = idf[idf['task'].eq('SHD')]
@@ -564,7 +565,6 @@ if make_good_latex:
     # reorder 'type' column
     df['type'] = pd.Categorical(df['type'], categories=['metric', 'lsc'], ordered=True)
     df = df.sort_values(['net', 'comments', 'type'])
-    # df = df[~(df['net'].eq('ALIFb') & df['comments'].eq(r'$\rho_t=0.5$'))]
 
     # group by 'net' and 'comments'
     df.rename(columns={'comments': 'LSC'}, inplace=True)
@@ -623,6 +623,8 @@ if make_good_latex:
             line = line.replace(r'$\textbf{', r'$\cellcolor{NiceGreen!25}\textbf{')
         if r'\rho_t=1' in line:
             line = line.replace(r'$\textbf{', r'$\cellcolor{NiceOrange!25}\textbf{')
+        if r'none' in line:
+            line = line.replace(r'$\textbf{', r'$\cellcolor{NiceBlue!25}\textbf{')
 
         line = re.sub(' +', '', line)
 
@@ -632,6 +634,7 @@ if make_good_latex:
                 net_name = 'ALIFb'
             else:
                 net_name = 'ALIF'
+            pass
 
         elif i == ref_line + 2:
             new_latex_df += net_name + line + '\n'
@@ -643,6 +646,8 @@ if make_good_latex:
     latex_df = new_latex_df
     latex_df = latex_df.replace('ALIFb', 'ALIF$_{\pm}$')
     latex_df = latex_df.replace('ALIF ', 'ALIF$_{+}$ ')
+
+    latex_df = '\\begin{table}[]\n\centering\n' + latex_df + r'\end{table}'
     print(latex_df)
 
 if plot_init_lrs:
@@ -1277,7 +1282,7 @@ if plot_dampenings_and_betas:
 if remove_incomplete:
     import shutil
 
-    plotdf = plotdf[plotdf['comments'].str.contains('onlypretrain')]
+    # plotdf = plotdf[plotdf['comments'].str.contains('onlypretrain')]
     rdfs = []
 
     print('-=***=-' * 10)
@@ -1292,6 +1297,15 @@ if remove_incomplete:
 
     print('Eliminate if f_norms_std too large')
     rdf = plotdf[plotdf['f_norms_std'] > .1]
+    print(rdf.to_string())
+    print(rdf.shape, df.shape)
+    rdfs.append(rdf)
+
+    print('Eliminate if best_std_ma_norm too large')
+    rdf = plotdf[
+        (plotdf['best_std_ma_norm'] > .1)
+        & plotdf['comments'].str.contains('onlypretrain')
+    ]
     print(rdf.to_string())
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
@@ -1552,10 +1566,10 @@ if missing_exps:
             for nt, nets in net_types.items():
                 comments = all_comments
 
-                # if nt == 'lsnns':
-                #     comments = [c for c in all_comments if not 'targetnorm:.5' in c]
-                # else:
-                #     comments = all_comments
+                if nt == 'lsnns':
+                    comments = [c for c in all_comments if not 'targetnorm:.5' in c]
+                else:
+                    comments = all_comments
 
                 experiment = {
                     'task': tasks,

@@ -628,7 +628,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                 if not best_norm is None:
                     lower_than_target = mean_norm.numpy() < target_norm
 
-                    if np.abs(mean_norm.numpy() - target_norm) < np.abs(best_norm - target_norm):
+                    if np.abs(mean_norm.numpy() - target_norm) < np.abs(best_norm - target_norm) and std_ma_norm < .5:
                         best_norm = mean_norm.numpy()
                         best_loss = mean_loss.numpy()
                         best_std_ma_norm = std_ma_norm
@@ -659,7 +659,6 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                                 best_individual_norms[f'{nt} layer {i}'] = a[-1]
                             else:
                                 best_individual_norms[f'{nt} layer {i}'] = -1
-
 
                 if learn and not 'nosgd' in comments:
                     grads = tape.gradient(mean_loss, model.trainable_weights)
@@ -709,7 +708,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                             print('-' * 20)
                             print(wname, w.shape)
                             if len(w.shape) >= 2 or 'tau' in wname or 'bias' in wname \
-                                    or 'internal_current' in wname or '/thr:' in wname\
+                                    or 'internal_current' in wname or '/thr:' in wname \
                                     or '/beta:' in wname:
                                 n_multiplier, multiplier = 1, 1
                                 wname = wname.replace('ma_lsnn_', '_cell_')
@@ -732,7 +731,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                                         local_norm = some_norms[idx].numpy()
                                         n_multiplier = target_norm / local_norm
                                         if 'internal_current' in wname:
-                                            n_multiplier = 1/n_multiplier
+                                            n_multiplier = 1 / n_multiplier
 
 
                                     elif 'recurrent_weights' in wname or 'recurrent_kernel' in wname:
@@ -775,7 +774,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
 
                 ma_loss = loss if ma_loss is None else ma_loss * 9 / 10 + loss / 10
                 ma_norm = mean_norm if ma_norm is None else ma_norm * 9 / 10 + mean_norm / 10
-                std_ma_norm = std_ma_norm * 9 / 10 + np.std(some_norms)**2 / 10
+                std_ma_norm = std_ma_norm * 9 / 10 + np.std(some_norms) ** 2 / 10
 
                 epsilons = [(abs(n - target_norm) < es_epsilon).numpy() for n in some_norms]
                 if not ma_norm is None and all(epsilons):
@@ -807,7 +806,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                     f"loss {str(show_loss)}/{li}; "
                     f"mean params {str(round(prms, round_to))}/{pi}; "
                     f"mean norms {show_norm}/{ni} (best {str(np.array(best_norm).round(round_to))}); "
-                    f"ma std norms {std_ma_norm}/{1} (best {str(np.array(best_std_ma_norm).round(round_to))}); "
+                    f"ma std norms {np.array(std_ma_norm).round(round_to)}/{1} (best {str(np.array(best_std_ma_norm).round(round_to))}); "
                     f"fail rate {failures / iterations * 100:.1f}%; "
 
                 )
@@ -887,4 +886,3 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
     print(f'     mean pm std: {np.mean(final_norms)} pm {np.std(final_norms)}')
 
     return best_weights, results
-

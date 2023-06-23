@@ -32,7 +32,7 @@ if expsid == 'ffnandcnns':
 elif expsid == 'effnet':
     GEXPERIMENTS = [r'D:\work\alif_sg\good_experiments\2023-01-01--effnet']
 
-metric = 'val_acc M'  # 'val_acc M'   'val_loss m' test_acc
+metric = 'test_acc M'  # 'val_acc M'   'val_loss m' test_acc
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 columns_to_remove = [
@@ -192,7 +192,7 @@ print(list(odf.columns))
 df = df.rename(columns={'test_loss': 'test_loss m', 'test_acc': 'test_acc M'})
 
 metrics_oi = ['val_acc M', 'test_acc M', 'val_loss m', 'test_loss m', 'LSC_norms i', 'LSC_norms f', 'conveps']
-metrics_oi = ['LSC_norms i', 'LSC_norms f', 'f_norms_std']
+# metrics_oi = ['LSC_norms i', 'LSC_norms f', 'f_norms_std']
 stats_oi = ['mean', 'std']  # ['mean', 'std']
 group_cols = ['lr', 'comments', 'act', 'dataset']
 bn = 1
@@ -200,9 +200,8 @@ if 'ffnandcnns' in expsid:
     plot_only = [
         'act', 'pre_eps', 'eps', 'dataset',
         'seed', 'lr', 'comments', 'depth', 'width',
-        # 'val_acc M', 'val_loss m', 'test_acc M', 'test_loss m',
+        'val_acc M', 'val_loss m', 'test_acc M', 'test_loss m', 'conveps',
         'LSC i', 'LSC f', 'LSC a', 'f_norms_std',
-        # 'conveps',
         'time_elapsed', 'hostname', 'path',
     ]
 
@@ -707,7 +706,7 @@ if missing_exps:
     experiments = []
     if 'ffnandcnns' in expsid:
         # coi = ['seed', 'act', 'lr', 'comments', 'dataset', 'eps', 'spe']
-        coi = ['seed', 'act', 'comments', 'dataset', 'eps', 'spe', 'depth', 'width', 'lr', 'pre_eps']
+        coi = ['seed', 'act', 'comments', 'dataset', 'eps', 'spe', 'depth', 'width', 'pre_eps']
         flags = ['_onlypretrain', '_onlyloadpretrained']
         # flags = ['_onlypretrain']
         # all_comments = ['', 'findLSC_supsubnpsd', 'findLSC_supnpsd2', 'findLSC_radius', 'heinit', ]
@@ -717,24 +716,24 @@ if missing_exps:
         experiment = lambda x: {
             'comments': all_comments(x),
             'act': ['sin', 'relu', 'cos'], 'dataset': ['cifar10', 'cifar100'],
-            'depth': [30], 'width': [128], 'lr': [1e-3],  # [1e-3, 3.16e-4, 1e-4, 3.16e-5, 1e-5],
+            'depth': [30], 'width': [128], 'lr': [-1],  # [1e-3, 3.16e-4, 1e-4, 3.16e-5, 1e-5],
             'eps': [50], 'spe': [-1], 'pre_eps': [100], 'seed': list(range(4)),
         }
 
 
-        experiment_2 = lambda x: {
-            'comments': ['_onlyloadpretrained_adabelief', 'heinit_onlyloadpretrained_adabelief', ],
-            'act': ['sin', 'relu', 'cos'], 'dataset': ['cifar10', 'cifar100'],
-            'depth': [30], 'width': [128], 'lr': [1e-3, 3.16e-4, 1e-4, 3.16e-5, 1e-5],
-            'eps': [50], 'spe': [-1], 'pre_eps': [100], 'seed': list(range(4)),
-        }
+        # experiment_2 = lambda x: {
+        #     'comments': ['_onlyloadpretrained_adabelief', 'heinit_onlyloadpretrained_adabelief', ],
+        #     'act': ['sin', 'relu', 'cos'], 'dataset': ['cifar10', 'cifar100'],
+        #     'depth': [30], 'width': [128], 'lr': [1e-3, 3.16e-4, 1e-4, 3.16e-5, 1e-5],
+        #     'eps': [50], 'spe': [-1], 'pre_eps': [100], 'seed': list(range(4)),
+        # }
 
         # exps = lambda x: [experiment(x)]
         def exps(x):
             if x == '_onlypretrain':
                 return [experiment(x)]
             elif x == '_onlyloadpretrained':
-                return [experiment_2(x)]
+                return []  # [experiment_2(x)]
             else:
                 raise NotImplementedError
 
@@ -766,7 +765,10 @@ if missing_exps:
         # add string pretrain to comments if it's not there
         ds = dict2iter(exps(add_flag))
 
-        df, experiments = complete_missing_exps(sdf, ds, coi)
+        if len(ds) > 0:
+            df, experiments = complete_missing_exps(sdf, ds, coi)
+        else:
+            experiments = []
         new_exps = []
         for e in experiments:
             # print(e)
@@ -776,6 +778,7 @@ if missing_exps:
             ne.update({'steps_per_epoch': [int(e['spe'][0])]})
             ne.update({'activation': e['act']})
             ne.update({'layers': e['depth']})
+            ne.update({'lr': [-1]})
             del ne['act'], ne['eps'], ne['spe'], ne['depth'], ne['pre_eps']
             # print(ne)
             new_exps.append(ne)

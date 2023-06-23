@@ -206,13 +206,13 @@ def main(args):
 
         comments = args.comments
 
-        # comments = comments + '_wmultiplier'
+        comments = comments + '_wmultiplier'
         # comments = comments + '_nosgd'
 
         weights, lsc_results = apply_LSC_no_time(
             bm, generator=gen_val, max_dim=max_dim, norm_pow=2, forward_lsc=flsc,
             nlayerjump=2, net_name='ffn', task_name=args.dataset, activation=act_name, seed=args.seed,
-            learning_rate=1e-3,  # 3.16e-3,
+            learning_rate=1e-2,  # 3.16e-3,
             comments=comments
         )
 
@@ -235,11 +235,23 @@ def main(args):
     ]
 
     loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+
+    lr = args.lr
+    if args.lr < 0:
+        if act_name == 'cos':
+            lr = 1e-4
+        elif act_name == 'relu':
+            lr = 3.16e-4
+        elif act_name == 'sin':
+            lr = 1e-4
+        else:
+            raise NotImplementedError
+
     if 'adabelief' in args.comments:
-        adabelief = tfa.optimizers.AdaBelief(lr=args.lr, weight_decay=1e-4)
+        adabelief = tfa.optimizers.AdaBelief(lr=lr, weight_decay=1e-4)
         optimizer = tfa.optimizers.Lookahead(adabelief, sync_period=6, slow_step_size=0.5)
     else:
-        optimizer = tf.keras.optimizers.Adam(learning_rate=args.lr)
+        optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
     model.compile(optimizer, loss, metrics=['sparse_categorical_accuracy', 'sparse_categorical_crossentropy'])
     steps_per_epoch = args.steps_per_epoch if args.steps_per_epoch > 0 else None
     epochs = args.epochs if args.epochs > 0 else None
