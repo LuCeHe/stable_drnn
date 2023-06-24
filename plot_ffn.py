@@ -21,8 +21,8 @@ lrs_plot_2 = False
 bar_plot = False
 plot_losses = False
 
-missing_exps = False
-remove_incomplete = True
+missing_exps = True
+remove_incomplete = False
 truely_remove = False
 
 expsid = 'ffnandcnns'  # effnet als ffnandcnns transf
