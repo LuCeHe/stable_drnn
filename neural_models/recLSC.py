@@ -633,7 +633,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                 if not best_norm is None:
                     lower_than_target = mean_norm.numpy() < target_norm
 
-                    if np.abs(mean_norm.numpy() - target_norm) < np.abs(best_norm - target_norm) and std_ma_norm < .5:
+                    if np.abs(mean_norm.numpy() - target_norm) < np.abs(best_norm - target_norm) and std_ma_norm < .4:
                         best_norm = mean_norm.numpy()
                         best_loss = mean_loss.numpy()
                         best_std_ma_norm = std_ma_norm
@@ -808,7 +808,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                     f"loss {str(show_loss)}/{li}; "
                     f"mean params {str(round(prms, round_to))}/{pi}; "
                     f"mean norms {show_norm}/{ni} (best {str(np.array(best_norm).round(round_to))}); "
-                    f"ma std norms {np.array(std_ma_norm).round(round_to)}/{1} (best {str(np.array(best_std_ma_norm).round(round_to))}); "
+                    f"ma std norms {str(np.array(std_ma_norm).round(round_to))}/{1} (best {str(np.array(best_std_ma_norm).round(round_to))}); "
                     f"fail rate {failures / iterations * 100:.1f}%; "
 
                 )
