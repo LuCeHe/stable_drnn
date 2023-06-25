@@ -299,6 +299,7 @@ if __name__ == "__main__":
     results.update(time_elapsed=time_elapsed)
     results.update(hostname=socket.gethostname())
 
+    print(results)
     try:
         with open(os.path.join(EXPERIMENT, 'results.pkl'), 'wb') as fp:
             pickle.dump(results, fp)
