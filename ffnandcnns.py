@@ -1,4 +1,4 @@
-import argparse, os, time, json, shutil, socket, random
+import argparse, os, time, json, shutil, socket, random, pickle
 import numpy as np
 import matplotlib.pyplot as plt
 from pyaromatics.keras_tools.silence_tensorflow import silence_tf
@@ -212,7 +212,7 @@ def main(args):
         weights, lsc_results = apply_LSC_no_time(
             bm, generator=gen_val, max_dim=max_dim, norm_pow=2, forward_lsc=flsc,
             nlayerjump=2, net_name='ffn', task_name=args.dataset, activation=act_name, seed=args.seed,
-            learning_rate=1e-2,  # 3.16e-3,
+            learning_rate=1e-4,  # 3.16e-3,
             comments=comments
         )
 
@@ -299,9 +299,18 @@ if __name__ == "__main__":
     results.update(time_elapsed=time_elapsed)
     results.update(hostname=socket.gethostname())
 
-    string_result = json.dumps(results, indent=4, cls=NumpyEncoder)
-    print(string_result)
-    with open(os.path.join(EXPERIMENT, 'results.txt'), "w") as f:
-        f.write(string_result)
+    try:
+        with open(os.path.join(EXPERIMENT, 'results.pkl'), 'wb') as fp:
+            pickle.dump(results, fp)
+    except Exception as e:
+        print('Error saving dictionary to pickle file', e)
+
+    try:
+        string_result = json.dumps(results, indent=4, cls=NumpyEncoder)
+        print(string_result)
+        with open(os.path.join(EXPERIMENT, 'results.txt'), "w") as f:
+            f.write(string_result)
+    except Exception as e:
+        print('Error saving dictionary to json file', e)
 
     shutil.make_archive(EXPERIMENT, 'zip', EXPERIMENT)
