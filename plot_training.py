@@ -1296,14 +1296,14 @@ if remove_incomplete:
 
 
     print('Eliminate if f_norms_std too large')
-    rdf = plotdf[plotdf['f_norms_std'] > .1]
+    rdf = plotdf[plotdf['f_norms_std'] > .2]
     print(rdf.to_string())
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
 
     print('Eliminate if best_std_ma_norm too large')
     rdf = plotdf[
-        (plotdf['best_std_ma_norm'] > .1)
+        (plotdf['best_std_ma_norm'] > .2)
         & plotdf['comments'].str.contains('onlypretrain')
     ]
     print(rdf.to_string())

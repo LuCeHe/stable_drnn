@@ -187,7 +187,8 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
     best_count = 0
     ma_norm_std = None
     best_ma_norm_std = None
-
+    n_saves = 0
+    std_thr = .8
     psdized = False
     for epoch in range(epochs):
         pbar = tqdm(total=generator.steps_per_epoch)
@@ -437,15 +438,20 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                     best_ma_norm_std = ma_norm_std
                     best_weights = model.get_weights()
 
-                if np.abs(float(ma_norm) - target_norm) < np.abs(float(best_norm) - target_norm) and ma_norm_std < 0.4:
+                if np.abs(float(ma_norm) - target_norm) < np.abs(
+                        float(best_norm) - target_norm) and ma_norm_std < std_thr:
                     print('MA norm improved!')
-                    best_norm = ma_norm
+                    n_saves += 1
+                    best_norm = ma_norm.numpy().mean()
                     best_ma_norm_std = ma_norm_std
                     best_weights = model.get_weights()
                     best_count = 0
                     if 'pretrained' in comments:
                         print('Saving pretrained lsc weights with best norms')
                         model.save(path_pretrained)
+
+                    if n_saves > 5:
+                        std_thr = .3
 
                 if best_count > 2 * patience:
                     print('Reloading best weights')
@@ -530,7 +536,8 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                 f"Norms {show_norm}/{ni} "
                 f"(best ma {str(np.array(best_norm).round(round_to))}, "
                 f"current {str(norms.numpy().mean().round(round_to))}), "
-                f"MA norm std {str(np.array(ma_norm_std).mean().round(round_to))}, "
+                f"MA norm std {str(np.array(ma_norm_std).mean().round(round_to))} "
+                f"(best {str(np.array(best_ma_norm_std).round(round_to))}), "
                 f"Av. Weights {show_avw}/{pi}, "
                 f"Fail rate {show_failure}, "
                 f"ES {epsilon_steps}/{patience} "
