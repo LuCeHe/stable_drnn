@@ -576,6 +576,10 @@ if remove_incomplete:
     rdfs = []
     import shutil
 
+    print('\n\n')
+    print('-=***=-' * 10)
+    print('\n\n')
+
     if expsid == 'ffnandcnns':
         df = df[df['comments'].str.contains('adabelief')]
         mdf = mdf[mdf['comments'].str.contains('adabelief')]
@@ -607,6 +611,17 @@ if remove_incomplete:
     print(rdf.shape, odf.shape, df.shape, df[df['comments'].str.contains('pretrain')].shape)
 
     rdfs.append(rdf)
+
+
+    print('\n\nRemove large f_norms_std')
+    rdf = df[
+        (df['f_norms_std'] > .2)
+        & df['comments'].str.contains('findLSC')
+    ]
+    print(rdf.to_string())
+    print(rdf.shape, odf.shape, df.shape, df[df['comments'].str.contains('pretrain')].shape)
+    rdfs.append(rdf)
+
 
     print('Remove onlypretrain of the onlyloadpretrained that did not satisfy the lsc')
     nrdf = rdf[rdf['comments'].str.contains('onlyloadpretrained')].copy()
@@ -728,14 +743,14 @@ if missing_exps:
         #     'eps': [50], 'spe': [-1], 'pre_eps': [100], 'seed': list(range(4)),
         # }
 
-        # exps = lambda x: [experiment(x)]
-        def exps(x):
-            if x == '_onlypretrain':
-                return [experiment(x)]
-            elif x == '_onlyloadpretrained':
-                return []  # [experiment_2(x)]
-            else:
-                raise NotImplementedError
+        exps = lambda x: [experiment(x)]
+        # def exps(x):
+        #     if x == '_onlypretrain':
+        #         return [experiment(x)]
+        #     elif x == '_onlyloadpretrained':
+        #         return []  # [experiment_2(x)]
+        #     else:
+        #         raise NotImplementedError
 
 
     elif 'effnet' in expsid:

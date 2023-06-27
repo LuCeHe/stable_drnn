@@ -1285,18 +1285,16 @@ if remove_incomplete:
     # plotdf = plotdf[plotdf['comments'].str.contains('onlypretrain')]
     rdfs = []
 
+    print('\n\n')
     print('-=***=-' * 10)
-    print('Eliminate nan comments')
-    rdf = plotdf[plotdf['comments'].isna()]
-    plotdf = plotdf[~plotdf['comments'].isna()]
-    print(rdf.to_string())
-    print(rdf.shape, df.shape)
-    rdfs.append(rdf)
-
+    print('\n\n')
 
 
     print('Eliminate if f_norms_std too large')
-    rdf = plotdf[plotdf['f_norms_std'] > .2]
+    rdf = plotdf[
+        (plotdf['f_norms_std'] > .2)
+        & plotdf['comments'].str.contains('findLSC')
+    ]
     print(rdf.to_string())
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
@@ -1304,7 +1302,7 @@ if remove_incomplete:
     print('Eliminate if best_std_ma_norm too large')
     rdf = plotdf[
         (plotdf['best_std_ma_norm'] > .2)
-        & plotdf['comments'].str.contains('onlypretrain')
+        & plotdf['comments'].str.contains('findLSC')
     ]
     print(rdf.to_string())
     print(rdf.shape, df.shape)
@@ -1544,7 +1542,7 @@ if missing_exps:
 
     incomplete_comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained'
 
-    for add_flag in ['_onlypretrain']: # ['_onlyloadpretrained', '_onlypretrain']:
+    for add_flag in ['_onlyloadpretrained', '_onlypretrain']:
         if add_flag == '_onlyloadpretrained':
             good_lsc_options = [True, False]
         else:
