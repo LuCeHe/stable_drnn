@@ -64,8 +64,8 @@ plot_bars = False
 plot_new_bars = False
 chain_norms = False
 
-missing_exps = False
-remove_incomplete = True
+missing_exps = True
+remove_incomplete = False
 truely_remove = False
 truely_remove_pretrained = False
 check_all_norms = False
@@ -1468,6 +1468,8 @@ if remove_incomplete:
     print(f'Remove {allrdfs.shape} of {plotdf.shape}')
     trueallrdfs = allrdfs.drop_duplicates(subset=['seed', 'task', 'net', 'comments', 'stack'])
     print(f'Remove actually {trueallrdfs.shape} of {plotdf.shape}')
+    allrdfs = allrdfs[allrdfs['comments'].str.contains('onlypretrain')]
+    print(f'Remove instead {allrdfs.shape} of {plotdf.shape}')
 
     if truely_remove_pretrained:
 
@@ -1544,7 +1546,7 @@ if missing_exps:
 
     incomplete_comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained'
 
-    for add_flag in ['_onlyloadpretrained', '_onlypretrain']:
+    for add_flag in ['_onlypretrain']: # ['_onlyloadpretrained', '_onlypretrain']:
         if add_flag == '_onlyloadpretrained':
             good_lsc_options = [True, False]
         else:
