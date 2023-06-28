@@ -652,7 +652,7 @@ if make_good_latex:
     latex_df = latex_df.replace('ALIF ', 'ALIF$_{+}$ ')
 
     latex_df = latex_df + '\caption{' + f'{tttype}' + '}\n\end{table}'
-    latex_df = '\\begin{table}[]\n\centering\n' + latex_df
+    latex_df = '\\begin{table}[h]\n\centering\n' + latex_df
     print(latex_df)
 
 if plot_init_lrs:

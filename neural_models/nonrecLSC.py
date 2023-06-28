@@ -482,8 +482,20 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                             new_weights.append(w)
                         weights = new_weights
 
+                if 'wshuff' in comments and not 'onlyloadpretrained' in comments:
+                    print('Shuffling weights!')
+
+                    new_weights = []
+                    for w in weights:
+                        oshape = w.shape
+                        w = w.reshape(-1)
+                        np.random.shuffle(w)
+                        w = w.reshape(oshape)
+                        new_weights.append(w)
+                    weights = new_weights
+
                 if 'wmultiplier' in comments and not 'onlyloadpretrained' in comments:
-                    print('multiplier to weights!')
+                    print('Multiplier to weights!')
                     new_weights = []
                     for w, wname in zip(weights, wnames):
                         if ('supsubnpsd' in comments or 'supnpsd' in comments) and \

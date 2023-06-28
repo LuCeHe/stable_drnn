@@ -380,6 +380,10 @@ if lrs_plot_2:
 
     mdf = mdf[mdf['comments'].str.contains('adabelief')]
     mdf['comments'] = mdf['comments'].str.replace('_adabelief', '')
+    mdf = mdf[mdf['comments'].str.contains('_onlyloadpretrained')]
+    # mdf = mdf[~mdf['comments'].str.contains('supsubnpsd')]
+    mdf = mdf[~mdf['comments'].str.contains('radius')]
+
     mdf = mdf.sort_values(by='lr')
     print(mdf.to_string())
 
@@ -388,7 +392,7 @@ if lrs_plot_2:
         ncol = 5
         bbox_to_anchor = (-3.1, -.8)
 
-        mdf = mdf[~mdf['comments'].eq('findLSC')]
+        # mdf = mdf[~mdf['comments'].eq('findLSC')]
     elif 'effnet' in expsid or 'transf' in expsid:
         ncol = 4
         bbox_to_anchor = (-.3, -.4)
@@ -431,8 +435,18 @@ if lrs_plot_2:
             ys = idf['mean_' + metric].values
             yerrs = idf['std_' + metric].values
             xs = idf['lr'].values
-            axs[i].plot(xs, ys, color=lsc_colors(c), label=lsc_clean_comments(c), linewidth=linewidth)
-            axs[i].fill_between(xs, ys - yerrs / 2, ys + yerrs / 2, alpha=0.5, color=lsc_colors(c))
+            print(c)
+            print(xs)
+            print(ys)
+            print(yerrs)
+            if -1 in xs:
+                xs = [1.00e-05, 3.16e-05, 1.00e-04, 3.16e-04, 1.00e-03]
+                ys = np.array([ys[0]]*len(xs))
+                yerrs = np.array([yerrs[0]]*len(xs))
+            _c = c.replace('_pretrained', '')
+            axs[i].plot(xs, ys, color=lsc_colors(_c), label=lsc_clean_comments(_c), linewidth=linewidth)
+            axs[i].fill_between(xs, ys - yerrs / 2, ys + yerrs / 2, alpha=0.5, color=lsc_colors(_c))
+            # else:
 
         # if not i == len(datasets) - 1:
         #     axs[i, j].tick_params(axis='x', which='both', bottom=False, top=False, labelbottom=False)
@@ -730,27 +744,27 @@ if missing_exps:
 
         experiment = lambda x: {
             'comments': all_comments(x),
-            'act': ['sin', 'relu', 'cos'], 'dataset': ['cifar10', 'cifar100'],
+            'act': ['sin', 'relu', 'cos'], 'dataset': ['mnist', 'cifar10', 'cifar100'],
             'depth': [30], 'width': [128], 'lr': [-1],  # [1e-3, 3.16e-4, 1e-4, 3.16e-5, 1e-5],
             'eps': [50], 'spe': [-1], 'pre_eps': [100], 'seed': list(range(4)),
         }
 
 
-        # experiment_2 = lambda x: {
-        #     'comments': ['_onlyloadpretrained_adabelief', 'heinit_onlyloadpretrained_adabelief', ],
-        #     'act': ['sin', 'relu', 'cos'], 'dataset': ['cifar10', 'cifar100'],
-        #     'depth': [30], 'width': [128], 'lr': [1e-3, 3.16e-4, 1e-4, 3.16e-5, 1e-5],
-        #     'eps': [50], 'spe': [-1], 'pre_eps': [100], 'seed': list(range(4)),
-        # }
+        experiment_2 = lambda x: {
+            'comments': ['_onlyloadpretrained_adabelief', 'heinit_onlyloadpretrained_adabelief', ],
+            'act': ['sin', 'relu', 'cos'], 'dataset': ['mnist'],#['cifar10', 'cifar100'],
+            'depth': [30], 'width': [128], 'lr': [1e-3, 3.16e-4, 1e-4, 3.16e-5, 1e-5],
+            'eps': [50], 'spe': [-1], 'pre_eps': [100], 'seed': list(range(4)),
+        }
 
-        exps = lambda x: [experiment(x)]
-        # def exps(x):
-        #     if x == '_onlypretrain':
-        #         return [experiment(x)]
-        #     elif x == '_onlyloadpretrained':
-        #         return []  # [experiment_2(x)]
-        #     else:
-        #         raise NotImplementedError
+        # exps = lambda x: [experiment(x)]
+        def exps(x):
+            if x == '_onlypretrain':
+                return [experiment(x)]
+            elif x == '_onlyloadpretrained':
+                return [experiment_2(x)]
+            else:
+                raise NotImplementedError
 
 
     elif 'effnet' in expsid:
