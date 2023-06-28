@@ -45,7 +45,7 @@ def get_argparse():
     parser.add_argument("--lr", default=.001, type=float, help="Learning rate")
     # parser.add_argument("--comments", default='findLSC_supnpsd', type=str, help="String to activate extra behaviors")
     parser.add_argument("--comments", default='findLSC_supsubnpsd_adabelief_pretrained_onlypretrain', type=str, help="String to activate extra behaviors")
-    parser.add_argument("--dataset", default='cifar10', type=str,
+    parser.add_argument("--dataset", default='mnist', type=str,
                         choices=['cifar10', 'cifar100', 'mnist'])
     parser.add_argument("--net_type", default='ffn', type=str, choices=['ffn', 'cnn'])
     parser.add_argument("--activation", default='relu', type=str, help="Activation",
