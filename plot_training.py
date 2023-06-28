@@ -64,8 +64,8 @@ plot_bars = False
 plot_new_bars = False
 chain_norms = False
 
-missing_exps = True
-remove_incomplete = False
+missing_exps = False
+remove_incomplete = True
 truely_remove = False
 truely_remove_pretrained = False
 check_all_norms = False
@@ -86,7 +86,7 @@ metrics_oi = [
 ]
 metrics_oi = [shorten_losses(m) for m in metrics_oi]
 
-plot_only = ['seed',  'net', 'task', 'n_params', 'stack', 'comments', 'path', 'lr', 'host_hostname',
+plot_only = ['seed', 'net', 'task', 'n_params', 'stack', 'comments', 'path', 'lr', 'host_hostname',
              'v_ppl argm', 'v_ppl len', ] + metrics_oi
 
 columns_to_remove = [
@@ -516,11 +516,15 @@ if make_good_latex:
     idf = idf[~(idf['net'].str.contains('ALIF') & idf['comments'].str.contains(r'targetnorm:.5'))]
 
     ntype = 'all'
-    ttype = 'task'  # stack task
+    tttype = 'stack'  # stack task task:5
+    ttype = tttype.split(':')[0]
     data_split = 't_'  # t_ v_
+
     if ttype == 'task':
-        idf = idf[idf['stack'].eq('None')]
-        # idf = idf[idf['stack'].eq('5')]
+        if not '5' in tttype:
+            idf = idf[idf['stack'].eq('None')]
+        else:
+            idf = idf[idf['stack'].eq('5')]
     else:
         idf = idf[~idf['stack'].eq('None')]
         idf = idf[idf['task'].eq('SHD')]
@@ -647,7 +651,8 @@ if make_good_latex:
     latex_df = latex_df.replace('ALIFb', 'ALIF$_{\pm}$')
     latex_df = latex_df.replace('ALIF ', 'ALIF$_{+}$ ')
 
-    latex_df = '\\begin{table}[]\n\centering\n' + latex_df + r'\end{table}'
+    latex_df = latex_df + '\caption{' + f'{tttype}' + '}\n\end{table}'
+    latex_df = '\\begin{table}[]\n\centering\n' + latex_df
     print(latex_df)
 
 if plot_init_lrs:
@@ -1289,12 +1294,11 @@ if remove_incomplete:
     print('-=***=-' * 10)
     print('\n\n')
 
-
     print('Eliminate if f_norms_std too large')
     rdf = plotdf[
         (plotdf['f_norms_std'] > .2)
         & plotdf['comments'].str.contains('findLSC')
-    ]
+        ]
     print(rdf.to_string())
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
@@ -1303,14 +1307,12 @@ if remove_incomplete:
     rdf = plotdf[
         (plotdf['best_std_ma_norm'] > .2)
         & plotdf['comments'].str.contains('findLSC')
-    ]
+        ]
     print(rdf.to_string())
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
 
-
     print('Eliminate if not close enough to target norm')
-
 
     # from LSC_norms final column, select those that are epsilon away from 1
     # make a column target equal to .5 if targetnorm:.5 is in comments else 1 if findLSC is in comments
