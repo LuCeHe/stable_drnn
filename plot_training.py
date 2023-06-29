@@ -516,8 +516,8 @@ if make_good_latex:
     idf = idf[~(idf['net'].str.contains('ALIF') & idf['comments'].str.contains(r'targetnorm:.5'))]
 
     ntype = 'all'
-    tttype = 'stack'  # stack task task:5
-    ttype = tttype.split(':')[0]
+    tttype = 'task5'  # stack task task5
+    ttype = ''.join([i for i in tttype if not i.isdigit()])
     data_split = 't_'  # t_ v_
 
     if ttype == 'task':
@@ -1378,14 +1378,14 @@ if remove_incomplete:
     # print(rdf.shape, df.shape)
 
     print('Remove if it didnt converge')
-    plotdf['conveps'] = plotdf['v_ppl len'] - plotdf['v_ppl argm']
-    rdf = plotdf[
-        plotdf['conveps'] < 8
-        ]
-
-    print(rdf.to_string())
-    print(rdf.shape, df.shape)
-    rdfs.append(rdf)
+    # plotdf['conveps'] = plotdf['v_ppl len'] - plotdf['v_ppl argm']
+    # rdf = plotdf[
+    #     plotdf['conveps'] < 8
+    #     ]
+    #
+    # print(rdf.to_string())
+    # print(rdf.shape, df.shape)
+    # rdfs.append(rdf)
 
     # 86
 
@@ -1468,8 +1468,8 @@ if remove_incomplete:
     print(f'Remove {allrdfs.shape} of {plotdf.shape}')
     trueallrdfs = allrdfs.drop_duplicates(subset=['seed', 'task', 'net', 'comments', 'stack'])
     print(f'Remove actually {trueallrdfs.shape} of {plotdf.shape}')
-    allrdfs = allrdfs[allrdfs['comments'].str.contains('onlypretrain')]
-    print(f'Remove instead {allrdfs.shape} of {plotdf.shape}')
+    # allrdfs = allrdfs[allrdfs['comments'].str.contains('onlypretrain')]
+    # print(f'Remove instead {allrdfs.shape} of {plotdf.shape}')
 
     if truely_remove_pretrained:
 

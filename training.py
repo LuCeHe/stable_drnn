@@ -183,6 +183,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
 
             # if not 'ssimplernn' in net:
             new_comments = new_comments + '_wmultiplier'
+            new_comments = new_comments + '_wshuff'
             # new_comments = new_comments + '_nosgd'
             # new_comments = new_comments + '_waddnoise'
             # new_comments = new_comments + '_reducevar'
@@ -253,7 +254,8 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
                     train_task_args=new_task_args, model_args=new_model_args, norm_pow=norm_pow, n_samples=n_samples,
                     batch_size=new_batch_size,
                     rec_norm=lscrec, depth_norm=lscdepth, decoder_norm=lscout, encoder_norm=lscin,
-                    save_weights_path=save_weights_path, time_steps=time_steps, lr=lsclr, naswot=naswot
+                    save_weights_path=save_weights_path, time_steps=time_steps, lr=lsclr, naswot=naswot,
+                    stop_time=stop_time
                 )
             results.update(lsc_results)
             results['lsclr'] = lsclr

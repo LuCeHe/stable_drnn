@@ -381,8 +381,8 @@ if lrs_plot_2:
     mdf = mdf[mdf['comments'].str.contains('adabelief')]
     mdf['comments'] = mdf['comments'].str.replace('_adabelief', '')
     mdf = mdf[mdf['comments'].str.contains('_onlyloadpretrained')]
-    # mdf = mdf[~mdf['comments'].str.contains('supsubnpsd')]
-    mdf = mdf[~mdf['comments'].str.contains('radius')]
+    mdf = mdf[~mdf['comments'].str.contains('supsubnpsd')]
+    # mdf = mdf[~mdf['comments'].str.contains('radius')]
 
     mdf = mdf.sort_values(by='lr')
     print(mdf.to_string())
@@ -441,8 +441,8 @@ if lrs_plot_2:
             print(yerrs)
             if -1 in xs:
                 xs = [1.00e-05, 3.16e-05, 1.00e-04, 3.16e-04, 1.00e-03]
-                ys = np.array([ys[0]]*len(xs))
-                yerrs = np.array([yerrs[0]]*len(xs))
+                ys = np.array([ys[0]] * len(xs))
+                yerrs = np.array([yerrs[0]] * len(xs))
             _c = c.replace('_pretrained', '')
             axs[i].plot(xs, ys, color=lsc_colors(_c), label=lsc_clean_comments(_c), linewidth=linewidth)
             axs[i].fill_between(xs, ys - yerrs / 2, ys + yerrs / 2, alpha=0.5, color=lsc_colors(_c))
@@ -605,14 +605,13 @@ if remove_incomplete:
 
     # from LSC_norms final column, select those that are epsilon away from 1
     epsilon = 0.02
-    # epsilon = 2.
-    print(df.to_string())
+
     print('\n\nRemove if too far from target radius')
     # rdf = df[abs(df['LSC f'] - 1) > epsilon]
     df['vs_epsilon'] = ((abs(df['LSC a'] - 1) > epsilon)
                         & df['comments'].str.contains('onlyloadpretrained')) \
                        | ((abs(df['LSC f'] - 1) > epsilon)
-                          & df['comments'].str.contains('onlypretrain'))
+                              & df['comments'].str.contains('onlypretrain'))
 
     rdf = df[
         df['comments'].str.contains('findLSC')
@@ -626,16 +625,14 @@ if remove_incomplete:
 
     rdfs.append(rdf)
 
-
     print('\n\nRemove large f_norms_std')
     rdf = df[
         (df['f_norms_std'] > .2)
         & df['comments'].str.contains('findLSC')
-    ]
+        ]
     print(rdf.to_string())
     print(rdf.shape, odf.shape, df.shape, df[df['comments'].str.contains('pretrain')].shape)
     rdfs.append(rdf)
-
 
     print('Remove onlypretrain of the onlyloadpretrained that did not satisfy the lsc')
     nrdf = rdf[rdf['comments'].str.contains('onlyloadpretrained')].copy()
@@ -749,20 +746,20 @@ if missing_exps:
             'eps': [50], 'spe': [-1], 'pre_eps': [100], 'seed': list(range(4)),
         }
 
-
         experiment_2 = lambda x: {
             'comments': ['_onlyloadpretrained_adabelief', 'heinit_onlyloadpretrained_adabelief', ],
-            'act': ['sin', 'relu', 'cos'], 'dataset': ['mnist'],#['cifar10', 'cifar100'],
+            'act': ['sin', 'relu', 'cos'], 'dataset': ['mnist'],  # ['cifar10', 'cifar100'],
             'depth': [30], 'width': [128], 'lr': [1e-3, 3.16e-4, 1e-4, 3.16e-5, 1e-5],
             'eps': [50], 'spe': [-1], 'pre_eps': [100], 'seed': list(range(4)),
         }
+
 
         # exps = lambda x: [experiment(x)]
         def exps(x):
             if x == '_onlypretrain':
                 return [experiment(x)]
             elif x == '_onlyloadpretrained':
-                return [experiment_2(x)]
+                return []  # [experiment_2(x)]
             else:
                 raise NotImplementedError
 

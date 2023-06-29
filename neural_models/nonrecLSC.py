@@ -99,7 +99,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                       skip_in_layers=[], skip_out_layers=[],
                       keep_in_layers=None, keep_out_layers=None,
                       net_name='', task_name='', seed=0,
-                      activation='', custom_objects=None):
+                      activation='', custom_objects=None, stop_time=None):
     np.random.seed(seed)
     tf.random.set_seed(seed)
 
@@ -176,20 +176,24 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
     epochs = generator.epochs
     learn = True
 
+
+    ma_norm_std = 1
     if 'onlyloadpretrained' in comments:
         time_steps = 10 if not 'test' in comments else time_steps
         epochs = 1
         learn = False
+        ma_norm_std = 0
 
     time_start = time.perf_counter()
     time_over = False
     best_norm = None
     best_count = 0
-    ma_norm_std = None
-    best_ma_norm_std = None
+    best_ma_norm_std = ma_norm_std
     n_saves = 0
     std_thr = .8
     psdized = False
+    stop_time = 60 * 60 * 16 if stop_time - 3600 is None else stop_time
+
     for epoch in range(epochs):
         pbar = tqdm(total=generator.steps_per_epoch)
         if time_over:
@@ -201,7 +205,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
             tf.keras.backend.clear_session()
             tf.compat.v1.reset_default_graph()
 
-            if time.perf_counter() - time_start > 60 * 60 * 16:
+            if time.perf_counter() - time_start > stop_time:
                 time_over = True
                 break
 
@@ -425,8 +429,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                 norm = tf.reduce_mean(norms)
                 ma_norm = norm if ma_norm is None else \
                     ma_norm * (ema_t - 1) / ema_t + norm / ema_t
-                ma_norm_std = 1 if ma_norm_std is None else \
-                    ma_norm_std * (ema_t - 1) / ema_t + (norm.numpy() - target_norm) ** 2 / ema_t
+                ma_norm_std = ma_norm_std * (ema_t - 1) / ema_t + (norm.numpy() - target_norm) ** 2 / ema_t
 
                 all_norms.append(norm.numpy())
                 all_losses.append(loss.numpy())
@@ -519,7 +522,11 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                             n_multiplier = target_norm / local_norm
 
                             m = n_multiplier
-                            m = np.clip(m, 0.85, 1.15)
+
+                            if 'cos' in activation and local_norm < .5:
+                                m = np.clip(m, 0.85, 2.)
+                            else:
+                                m = np.clip(m, 0.85, 1.15)
 
                             w = m * w
                         new_weights.append(w)

@@ -315,7 +315,7 @@ def load_LSC_model(path):
 
 def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2, steps_per_epoch=2, es_epsilon=.08,
               patience=20, rec_norm=True, depth_norm=True, encoder_norm=True, decoder_norm=True, learn=True,
-              time_steps=None, weights=None, save_weights_path=None, lr=1e-3, naswot=0):
+              time_steps=None, weights=None, save_weights_path=None, lr=1e-3, naswot=0, stop_time=None):
     time_string = timeStructured()
     print('LSC starts at: ', time_string)
     # FIXME: generalize this loop for any recurrent model
@@ -432,10 +432,13 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
     dec_norm = -1
     wnames = [weight.name for layer in model.layers for weight in layer.weights]
 
+
+    std_ma_norm = 1
     if 'onlyloadpretrained' in comments:
         steps_per_epoch = 1
         time_steps = 2 if not 'test' in comments else time_steps
         learn = False
+        std_ma_norm = 0
 
     if 'randlambda1' in comments:
         l = lambda: 2 * tf.random.uniform(shape=(), minval=0, maxval=1, dtype=tf.float32)
@@ -445,9 +448,8 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
         l = lambda: 1
 
     last_step = 0
-    dec_in_loss = 0
-    std_ma_norm = 1
-    best_std_ma_norm = 1
+    best_std_ma_norm = std_ma_norm
+    stop_time = 60 * 60 * 16 if stop_time - 3600 is None else stop_time
     for step in range(steps_per_epoch):
         if time_over:
             break
@@ -684,13 +686,15 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                 if not np.isnan(mean_loss.numpy()):
                     del weights
                     weights = model.get_weights()
-                    if 'lscshuffw' in comments and learn:
+
+                    if 'wshuff' in comments and learn:
                         new_weights = []
                         for w in weights:
-                            oshape = w.shape
-                            w = w.reshape(-1)
-                            np.random.shuffle(w)
-                            w = w.reshape(oshape)
+                            if len(w.shape) >= 2:
+                                oshape = w.shape
+                                w = w.reshape(-1)
+                                np.random.shuffle(w)
+                                w = w.reshape(oshape)
                             new_weights.append(w)
                         weights = new_weights
 
@@ -773,7 +777,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                 tf.keras.backend.clear_session()
                 tf.keras.backend.clear_session()
 
-                if time.perf_counter() - time_start > 60 * 60 * 16:  # 17h
+                if time.perf_counter() - time_start > stop_time:  # 17h
                     time_over = True
                     break
 
