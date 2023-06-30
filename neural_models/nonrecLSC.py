@@ -523,7 +523,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
 
                             m = n_multiplier
 
-                            if 'cos' in activation and local_norm < .5:
+                            if local_norm < .5:
                                 m = np.clip(m, 0.85, 2.)
                             else:
                                 m = np.clip(m, 0.85, 1.15)
