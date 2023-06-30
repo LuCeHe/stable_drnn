@@ -1299,6 +1299,7 @@ if remove_incomplete:
         (plotdf['f_norms_std'] > .2)
         & plotdf['comments'].str.contains('findLSC')
         ]
+    ardf = rdf.copy()
     print(rdf.to_string())
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
@@ -1307,7 +1308,9 @@ if remove_incomplete:
     rdf = plotdf[
         (plotdf['best_std_ma_norm'] > .2)
         & plotdf['comments'].str.contains('findLSC')
+        & plotdf['comments'].str.contains('onlypretrain')
         ]
+    brdf = rdf.copy()
     print(rdf.to_string())
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
@@ -1346,7 +1349,11 @@ if remove_incomplete:
 
     print('Remove onlypretrain of the onlyloadpretrained that did not satisfy the lsc')
     nrdf = rdf[rdf['comments'].str.contains('onlyloadpretrained')].copy()
-    # rdf['comments'] = rdf['comments'].str.replace('onlyloadpretrained', 'onlypretrain')
+    ardf = ardf[ardf['comments'].str.contains('onlyloadpretrained')]
+    brdf = brdf[brdf['comments'].str.contains('onlyloadpretrained')]
+
+    # concatenate these 3 pandas
+    nrdf = pd.concat([nrdf, ardf, brdf])
 
     listem = []
     for _, row in nrdf.iterrows():

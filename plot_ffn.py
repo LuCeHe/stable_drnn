@@ -629,6 +629,7 @@ if remove_incomplete:
     rdf = df[
         (df['f_norms_std'] > .2)
         & df['comments'].str.contains('findLSC')
+        & df['comments'].str.contains('onlypretrain')
         ]
     print(rdf.to_string())
     print(rdf.shape, odf.shape, df.shape, df[df['comments'].str.contains('pretrain')].shape)
