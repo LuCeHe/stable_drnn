@@ -435,7 +435,7 @@ if lrs_plot_2:
             ys = idf['mean_' + metric].values
             yerrs = idf['std_' + metric].values
             xs = idf['lr'].values
-            print(c)
+            print(dataset, c)
             print(xs)
             print(ys)
             print(yerrs)
@@ -760,7 +760,7 @@ if missing_exps:
             if x == '_onlypretrain':
                 return [experiment(x)]
             elif x == '_onlyloadpretrained':
-                return []  # [experiment_2(x)]
+                return [experiment_2(x)] + [experiment(x)]
             else:
                 raise NotImplementedError
 
