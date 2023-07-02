@@ -190,7 +190,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
     best_count = 0
     best_ma_norm_std = ma_norm_std
     n_saves = 0
-    std_thr = .8
+    std_thr = .6
     psdized = False
     stop_time = 60 * 60 * 16 if stop_time - 3600 is None else stop_time
 
@@ -524,7 +524,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                             m = n_multiplier
 
                             if local_norm < .5:
-                                m = np.clip(m, 0.85, 2.)
+                                m = np.clip(m, 0.85, 3)
                             else:
                                 m = np.clip(m, 0.85, 1.15)
 

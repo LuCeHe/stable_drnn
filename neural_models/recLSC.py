@@ -450,6 +450,8 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
     last_step = 0
     best_std_ma_norm = std_ma_norm
     stop_time = 60 * 60 * 16 if stop_time - 3600 is None else stop_time
+    n_saves = 0
+    std_thr = .8
     for step in range(steps_per_epoch):
         if time_over:
             break
@@ -635,7 +637,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                 if not best_norm is None:
                     lower_than_target = mean_norm.numpy() < target_norm
 
-                    if np.abs(mean_norm.numpy() - target_norm) < np.abs(best_norm - target_norm) and std_ma_norm < .4:
+                    if np.abs(mean_norm.numpy() - target_norm) < np.abs(best_norm - target_norm) and std_ma_norm < std_thr:
                         best_norm = mean_norm.numpy()
                         best_loss = mean_loss.numpy()
                         best_std_ma_norm = std_ma_norm
@@ -651,6 +653,10 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
 
                         best_weights = model.get_weights()
                         best_count = 0
+                        n_saves += 1
+
+                        if n_saves > 5:
+                            std_thr = .3
 
                         if 'pretrained' in comments and not model is None and learn:
                             print('Saving pretrained lsc weights with best norms')
@@ -882,6 +888,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
     results['final_norm_dec'] = dec_norm
     results['final_norms_mean'] = np.mean(final_norms)
     results['final_norms_std'] = np.std(final_norms)
+    results['std_ma_norm'] = std_ma_norm
     results['best_std_ma_norm'] = best_std_ma_norm
 
     print('Final norms:', final_norms)

@@ -399,6 +399,7 @@ if lrs_plot_2:
 
     activations = sorted(mdf['act'].unique())
     datasets = sorted(mdf['dataset'].unique())
+    datasets = ['mnist', 'cifar10', 'cifar100']
     comments = sorted(mdf['comments'].unique())
 
     # comments = ['', 'heinit', 'findLSC', 'findLSC_radius', 'findLSC_supnpsd2', 'findLSC_supsubnpsd']
@@ -481,7 +482,7 @@ if lrs_plot_2:
         ax.set_xscale('log')
 
         pos = ax.get_position()
-        dx = 0 if i < 3 else .06
+        dx = 0 if i < 3 else .06 if i < 3 * 2 else .12
         ax.set_position([pos.x0 + dx, pos.y0, pos.width, pos.height])
 
     plot_filename = os.path.join(EXPERIMENTS, f'{expsid}_relu.pdf')
@@ -733,7 +734,7 @@ if missing_exps:
     experiments = []
     if 'ffnandcnns' in expsid:
         # coi = ['seed', 'act', 'lr', 'comments', 'dataset', 'eps', 'spe']
-        coi = ['seed', 'act', 'comments', 'dataset', 'eps', 'spe', 'depth', 'width', 'pre_eps']
+        coi = ['seed', 'act', 'comments', 'dataset', 'eps', 'spe', 'depth', 'width', 'pre_eps', 'lr']
         flags = ['_onlypretrain', '_onlyloadpretrained']
         # flags = ['_onlypretrain']
         # all_comments = ['', 'findLSC_supsubnpsd', 'findLSC_supnpsd2', 'findLSC_radius', 'heinit', ]
@@ -748,7 +749,7 @@ if missing_exps:
         }
 
         experiment_2 = lambda x: {
-            'comments': ['_onlyloadpretrained_adabelief', 'heinit_onlyloadpretrained_adabelief', ],
+            'comments': [f'{x}_adabelief', f'heinit{x}_adabelief', ],
             'act': ['sin', 'relu', 'cos'], 'dataset': ['mnist'],  # ['cifar10', 'cifar100'],
             'depth': [30], 'width': [128], 'lr': [1e-3, 3.16e-4, 1e-4, 3.16e-5, 1e-5],
             'eps': [50], 'spe': [-1], 'pre_eps': [100], 'seed': list(range(4)),
@@ -760,7 +761,7 @@ if missing_exps:
             if x == '_onlypretrain':
                 return [experiment(x)]
             elif x == '_onlyloadpretrained':
-                return [experiment_2(x)] + [experiment(x)]
+                return [experiment_2(x)] #+ [experiment(x)]
             else:
                 raise NotImplementedError
 
@@ -805,7 +806,7 @@ if missing_exps:
             ne.update({'steps_per_epoch': [int(e['spe'][0])]})
             ne.update({'activation': e['act']})
             ne.update({'layers': e['depth']})
-            ne.update({'lr': [-1]})
+            # ne.update({'lr': [-1]})
             del ne['act'], ne['eps'], ne['spe'], ne['depth'], ne['pre_eps']
             # print(ne)
             new_exps.append(ne)

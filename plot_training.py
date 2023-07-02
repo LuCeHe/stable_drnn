@@ -80,9 +80,10 @@ metric = shorten_losses(metric)
 optimizer_name = 'SWAAdaBelief'  # SGD SWAAdaBelief
 metrics_oi = [
     # 't_ppl min', 't_mode_acc max', 'v_ppl min', 'v_mode_acc max',
+
     't_ppl', 't_mode_acc', 'v_ppl', 'v_mode_acc',
     'LSC_norms i', 'LSC_norms f', 'LSC_norms mean',
-    'final_norms_mean', 'final_norms_std', 'best_std_ma_norm'
+    'final_norms_mean', 'final_norms_std', 'best_std_ma_norm', 'std_ma_norm',
 ]
 metrics_oi = [shorten_losses(m) for m in metrics_oi]
 
@@ -295,6 +296,7 @@ if metric in df.keys():
 
 print(list(df.columns))
 if not plot_only is None:
+    df = df.reindex(plot_only, axis=1)
     plotdf = df[plot_only]
     # plotdf = plotdf[plotdf['task'].str.contains('PTB')]
     print(plotdf.to_string())
@@ -1304,11 +1306,11 @@ if remove_incomplete:
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
 
-    print('Eliminate if best_std_ma_norm too large')
+    print('Eliminate if std_ma_norm too large')
     rdf = plotdf[
-        (plotdf['best_std_ma_norm'] > .2)
+        (plotdf['std_ma_norm'] > .2)
         & plotdf['comments'].str.contains('findLSC')
-        & plotdf['comments'].str.contains('onlypretrain')
+        # & plotdf['comments'].str.contains('onlypretrain')
         ]
     brdf = rdf.copy()
     print(rdf.to_string())
@@ -1475,8 +1477,8 @@ if remove_incomplete:
     print(f'Remove {allrdfs.shape} of {plotdf.shape}')
     trueallrdfs = allrdfs.drop_duplicates(subset=['seed', 'task', 'net', 'comments', 'stack'])
     print(f'Remove actually {trueallrdfs.shape} of {plotdf.shape}')
-    # allrdfs = allrdfs[allrdfs['comments'].str.contains('onlypretrain')]
-    # print(f'Remove instead {allrdfs.shape} of {plotdf.shape}')
+    allrdfs = allrdfs[allrdfs['comments'].str.contains('onlypretrain')]
+    print(f'Remove instead {allrdfs.shape} of {plotdf.shape}')
 
     if truely_remove_pretrained:
 
@@ -1553,7 +1555,7 @@ if missing_exps:
 
     incomplete_comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained'
 
-    for add_flag in ['_onlyloadpretrained', '_onlypretrain']:
+    for add_flag in ['_onlypretrain']: # ['_onlyloadpretrained', '_onlypretrain']:
         if add_flag == '_onlyloadpretrained':
             good_lsc_options = [True, False]
         else:
