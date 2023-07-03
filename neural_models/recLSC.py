@@ -637,7 +637,8 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                 if not best_norm is None:
                     lower_than_target = mean_norm.numpy() < target_norm
 
-                    if np.abs(mean_norm.numpy() - target_norm) < np.abs(best_norm - target_norm) and std_ma_norm < std_thr:
+                    if np.abs(mean_norm.numpy() - target_norm) < np.abs(best_norm - target_norm) \
+                            and std_ma_norm < std_thr and learn:
                         best_norm = mean_norm.numpy()
                         best_loss = mean_loss.numpy()
                         best_std_ma_norm = std_ma_norm
@@ -658,7 +659,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                         if n_saves > 5:
                             std_thr = .3
 
-                        if 'pretrained' in comments and not model is None and learn:
+                        if 'pretrained' in comments and not model is None:
                             print('Saving pretrained lsc weights with best norms')
                             for i in range(len(model.weights)):
                                 model.weights[i]._handle_name = model.weights[i].name + "_" + str(i)
@@ -704,7 +705,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                             new_weights.append(w)
                         weights = new_weights
 
-                    if 'waddnoise' in comments and lower_than_target and not 'onlyloadpretrained' in comments:
+                    if 'waddnoise' in comments and lower_than_target and learn:
                         print('adding noise to weights!')
                         new_weights = []
                         for w in weights:
@@ -715,7 +716,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                             new_weights.append(w)
                         weights = new_weights
 
-                    if 'wmultiplier' in comments and not 'onlyloadpretrained' in comments:
+                    if 'wmultiplier' in comments and learn:
                         print('multiplier to weights!')
                         new_weights = []
                         for w, _wname in zip(weights, wnames):
@@ -854,9 +855,10 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
     tf.keras.backend.clear_session()
     tf.keras.backend.clear_session()
 
-    for i, _ in enumerate(stack):
-        for nt in n_types:
-            save_norms[f'batch {last_step} {nt} layer {i}'].append(best_individual_norms[f'{nt} layer {i}'])
+    if learn:
+        for i, _ in enumerate(stack):
+            for nt in n_types:
+                save_norms[f'batch {last_step} {nt} layer {i}'].append(best_individual_norms[f'{nt} layer {i}'])
 
     results.update(
         LSC_losses=str(losses), LSC_norms=str(all_norms), save_norms=save_norms, all_naswot=str(all_naswot),

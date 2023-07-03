@@ -441,9 +441,17 @@ if lrs_plot_2:
             print(ys)
             print(yerrs)
             if -1 in xs:
-                xs = [1.00e-05, 3.16e-05, 1.00e-04, 3.16e-04, 1.00e-03]
-                ys = np.array([ys[0]] * len(xs))
-                yerrs = np.array([yerrs[0]] * len(xs))
+                if len(xs)==1:
+                    xs = [1.00e-05, 3.16e-05, 1.00e-04, 3.16e-04, 1.00e-03]
+                    ys = np.array([ys[0]] * len(xs))
+                    yerrs = np.array([yerrs[0]] * len(xs))
+                else:
+                    idx = np.where(xs == -1)
+                    xs = np.delete(xs, idx)
+                    ys = np.delete(ys, idx)
+                    yerrs = np.delete(yerrs, idx)
+                    # del xs[idx], ys[idx], yerrs[idx]
+
             _c = c.replace('_pretrained', '')
             axs[i].plot(xs, ys, color=lsc_colors(_c), label=lsc_clean_comments(_c), linewidth=linewidth)
             axs[i].fill_between(xs, ys - yerrs / 2, ys + yerrs / 2, alpha=0.5, color=lsc_colors(_c))
@@ -618,6 +626,8 @@ if remove_incomplete:
         df['comments'].str.contains('findLSC')
         & df['vs_epsilon']
         ]
+
+    far_radius_df = rdf.copy()
     # rdf = df[df['vs_epsilon']
     # ]
 
@@ -636,8 +646,18 @@ if remove_incomplete:
     print(rdf.shape, odf.shape, df.shape, df[df['comments'].str.contains('pretrain')].shape)
     rdfs.append(rdf)
 
+
+    print('\n\nRemove lr -1 if not findLSC there')
+    rdf = df[
+        (df['lr'].eq(-1))
+        & ~df['comments'].str.contains('findLSC')
+        ]
+    print(rdf.to_string())
+    print(rdf.shape, odf.shape, df.shape, df[df['comments'].str.contains('pretrain')].shape)
+    rdfs.append(rdf)
+
     print('Remove onlypretrain of the onlyloadpretrained that did not satisfy the lsc')
-    nrdf = rdf[rdf['comments'].str.contains('onlyloadpretrained')].copy()
+    nrdf = far_radius_df[far_radius_df['comments'].str.contains('onlyloadpretrained')].copy()
     # rdf['comments'] = rdf['comments'].str.replace('onlyloadpretrained', 'onlypretrain')
 
     listem = []

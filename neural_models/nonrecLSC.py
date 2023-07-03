@@ -442,7 +442,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                     best_weights = model.get_weights()
 
                 if np.abs(float(ma_norm) - target_norm) < np.abs(
-                        float(best_norm) - target_norm) and ma_norm_std < std_thr:
+                        float(best_norm) - target_norm) and ma_norm_std < std_thr and learn:
                     print('MA norm improved!')
                     n_saves += 1
                     best_norm = ma_norm.numpy().mean()
@@ -485,7 +485,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                             new_weights.append(w)
                         weights = new_weights
 
-                if 'wshuff' in comments and not 'onlyloadpretrained' in comments:
+                if 'wshuff' in comments and learn:
                     print('Shuffling weights!')
 
                     new_weights = []
@@ -497,7 +497,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                         new_weights.append(w)
                     weights = new_weights
 
-                if 'wmultiplier' in comments and not 'onlyloadpretrained' in comments:
+                if 'wmultiplier' in comments and learn:
                     print('Multiplier to weights!')
                     new_weights = []
                     for w, wname in zip(weights, wnames):

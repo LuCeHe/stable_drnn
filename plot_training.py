@@ -518,7 +518,7 @@ if make_good_latex:
     idf = idf[~(idf['net'].str.contains('ALIF') & idf['comments'].str.contains(r'targetnorm:.5'))]
 
     ntype = 'all'
-    tttype = 'task5'  # stack task task5
+    tttype = 'stack'  # stack task task5
     ttype = ''.join([i for i in tttype if not i.isdigit()])
     data_split = 't_'  # t_ v_
 
@@ -1317,6 +1317,17 @@ if remove_incomplete:
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
 
+
+    print('Eliminate if best_std_ma_norm too large')
+    rdf = plotdf[
+        (plotdf['best_std_ma_norm'] > .2)
+        & plotdf['comments'].str.contains('findLSC')
+        & plotdf['comments'].str.contains('onlypretrain')
+        ]
+    print(rdf.to_string())
+    print(rdf.shape, df.shape)
+    rdfs.append(rdf)
+
     print('Eliminate if not close enough to target norm')
 
     # from LSC_norms final column, select those that are epsilon away from 1
@@ -1477,8 +1488,8 @@ if remove_incomplete:
     print(f'Remove {allrdfs.shape} of {plotdf.shape}')
     trueallrdfs = allrdfs.drop_duplicates(subset=['seed', 'task', 'net', 'comments', 'stack'])
     print(f'Remove actually {trueallrdfs.shape} of {plotdf.shape}')
-    allrdfs = allrdfs[allrdfs['comments'].str.contains('onlypretrain')]
-    print(f'Remove instead {allrdfs.shape} of {plotdf.shape}')
+    # allrdfs = allrdfs[allrdfs['comments'].str.contains('onlypretrain')]
+    # print(f'Remove instead {allrdfs.shape} of {plotdf.shape}')
 
     if truely_remove_pretrained:
 

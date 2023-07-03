@@ -34,7 +34,7 @@ def get_argparse():
     parser = argparse.ArgumentParser()
 
     # Required parameters
-    parser.add_argument("--batch_size", default=32, type=int, help="Batch size")
+    parser.add_argument("--batch_size", default=64, type=int, help="Batch size")
     parser.add_argument("--seed", default=0, type=int, help="Random seed")
     parser.add_argument("--epochs", default=1, type=int, help="Training Epochs")
     parser.add_argument("--pretrain_epochs", default=2, type=int, help="Pretraining Epochs")  # 20
