@@ -6,10 +6,11 @@ import numpy as np
 from tensorflow_addons.optimizers import AdamW
 from tqdm import tqdm
 
+from alif_sg.tools.admin_model_removal import get_lsctype
 from pyaromatics.keras_tools.convenience_operations import sample_axis, desample_axis
 from pyaromatics.keras_tools.expose_latent import split_model, truer_split_model
 from pyaromatics.stay_organized.utils import flaggedtry, str2val
-from alif_sg.neural_models.recLSC import get_norms, get_lsctype
+from alif_sg.neural_models.recLSC import get_norms
 
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
@@ -38,59 +39,6 @@ def get_weights_statistics(results, weight_names, weights):
         results[f'{n}_var'].append(v)
 
     return results
-
-
-def remove_nonrec_pretrained_extra(experiments, remove_opposite=True, folder=None, net_name='ffn'):
-    files = []
-    print('Desired:')
-    for exp in experiments:
-        if 'onlypretrain' in exp['comments'][0]:
-            lsct = get_lsctype(exp['comments'][0])
-            file = f"pretrained_s{exp['seed'][0]}_{net_name}" \
-                   f"_{exp['dataset'][0]}_{exp['activation'][0]}_{lsct}.h5"
-            print(file)
-            files.append(file)
-
-    if folder is None:
-        folder = GEXPERIMENTS
-
-    safety_folder = os.path.abspath(os.path.join(folder, '..', 'safety'))
-    os.makedirs(safety_folder, exist_ok=True)
-
-    existing_pretrained = [d
-                           for d in os.listdir(folder)
-                           if 'pretrained_' in d and '.h5' in d and f'_{net_name}_' in d]
-
-    which_is_missing = [f for f in files if not f in existing_pretrained]
-    print('Missing:')
-    for f in which_is_missing:
-        print(f)
-
-    pbar = tqdm(total=len(existing_pretrained))
-    removed = 0
-    print('\nRemoving:')
-    for d in existing_pretrained:
-        # copy d file to safety folder
-        # print(d)
-        # print(os.path.join(folder, d))
-        # print(os.path.join(safety_folder, d))
-
-        if os.path.exists(os.path.join(folder, d)):
-            if os.path.exists(os.path.join(safety_folder, d)):
-                os.remove(os.path.join(safety_folder, d))
-                pass
-            shutil.copy(os.path.join(folder, d), os.path.join(safety_folder, d))
-
-        if not d in files and remove_opposite:
-            os.remove(os.path.join(folder, d))
-            removed += 1
-
-        if d in files and not remove_opposite:
-            os.remove(os.path.join(folder, d))
-            removed += 1
-
-        pbar.update(1)
-        pbar.set_description(f"Removed {removed} of {len(existing_pretrained)}")
 
 
 def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_pow=2, forward_lsc=False,

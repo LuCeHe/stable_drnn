@@ -4,6 +4,8 @@ import warnings
 import tensorflow as tf
 import tensorflow_probability as tfp
 import tensorflow_addons as tfa
+
+from alif_sg.tools.admin_model_removal import get_pretrained_file
 from pyaromatics.keras_tools.esoteric_optimizers.AdamW import AdamW as AdamW2
 
 from pyaromatics.keras_tools.convenience_operations import sample_axis
@@ -12,7 +14,6 @@ from pyaromatics.keras_tools.esoteric_layers.rate_voltage_reg import RateVoltage
 from pyaromatics.keras_tools.learning_rate_schedules import DummyConstantSchedule
 from pyaromatics.stay_organized.utils import str2val, timeStructured
 from sg_design_lif.neural_models import maLSNN, maLSNNb
-from sg_design_lif.neural_models.config import default_config
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['AUTOGRAPH_VERBOSITY'] = '1'
@@ -183,119 +184,6 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
             loss = scale_factor * naswot_loss
 
     return tf.abs(norms), loss, naswot_score
-
-
-def get_lsctype(comments):
-    if 'supnpsd' in comments:
-        lsctype = 'supnpsd'
-
-    elif 'supsubnpsd' in comments:
-        lsctype = 'supsubnpsd'
-
-    elif 'logradius' in comments:
-        lsctype = 'logradius'
-
-    elif 'radius' in comments:
-        lsctype = 'radius'
-
-    elif 'entrywise' in comments:
-        lsctype = 'entrywise'
-
-    elif 'lscvar' in comments:
-        lsctype = 'lscvar'
-    else:
-        lsctype = 'other'
-    return lsctype
-
-
-def get_pretrained_file(comments, s, net_name, task_name, ostack):
-    target_norm = str2val(comments, 'targetnorm', float, default=1)
-    if ostack == 'None':
-        ostack = None
-    elif ostack in ['1', '3', '5', '7']:
-        ostack = int(ostack)
-
-    stack, batch_size, embedding, n_neurons, lr = default_config(
-        ostack, None, None, None, .1, task_name, net_name, setting='LSC'
-    )
-
-    c = ''
-    if 'targetnorm' in comments:
-        c += f'_tn{str(target_norm).replace(".", "p")}'
-
-    if 'randlsc' in comments:
-        c += '_randlsc'
-
-    if 'lscshuffw' in comments:
-        c += '_lscshuffw'
-
-    if 'gausslsc' in comments:
-        c += '_gausslsc'
-
-    if 'learnsharp' in comments:
-        c += '_ls'
-
-    if 'learndamp' in comments:
-        c += '_ld'
-
-    lsct = get_lsctype(comments)
-    return f"pretrained_s{s}_{net_name}_{lsct}_{task_name}_stack{str(stack).replace(':', 'c')}{c}.h5"
-
-
-def remove_pretrained_extra(experiments, remove_opposite=True, folder=None, erase_safety=False, truely_remove=True):
-    files = []
-    print('Desired:')
-    for exp in experiments:
-        if 'onlypretrain' in exp['comments'][0]:
-            file = get_pretrained_file(
-                comments=exp['comments'][0],
-                s=exp['seed'][0],
-                net_name=exp['net'][0],
-                task_name=exp['task'][0],
-                ostack=exp['stack'][0]
-            )
-            print(file)
-            files.append(file)
-
-    if folder is None:
-        folder = GEXPERIMENTS
-
-    safety_folder = os.path.abspath(os.path.join(folder, '..', 'safety'))
-    os.makedirs(safety_folder, exist_ok=True)
-
-    existing_pretrained = [
-        d for d in os.listdir(folder)
-        if 'pretrained_' in d
-           and '.h5' in d
-           and not '_ffn_' in d
-           and not '_effnet_' in d
-    ]
-
-    which_is_missing = [f for f in files if not f in existing_pretrained]
-    print('Missing:')
-    for f in which_is_missing:
-        print(f)
-
-    if truely_remove:
-
-        pbar = tqdm(total=len(existing_pretrained))
-        removed = 0
-        for d in existing_pretrained:
-            # copy d file to safety folder
-            shutil.copy(os.path.join(folder, d), os.path.join(safety_folder, d))
-
-            if not d in files and remove_opposite and truely_remove:
-                os.remove(os.path.join(folder, d))
-                removed += 1
-
-            if d in files and not remove_opposite and truely_remove:
-                os.remove(os.path.join(folder, d))
-                if erase_safety:
-                    os.remove(os.path.join(safety_folder, d))
-                removed += 1
-
-            pbar.update(1)
-            pbar.set_description(f"Removed {removed} of {len(existing_pretrained)}")
 
 
 def load_LSC_model(path):
