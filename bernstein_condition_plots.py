@@ -17,7 +17,7 @@ mpl = load_plot_settings(mpl=mpl)
 
 import matplotlib.pyplot as plt
 
-from sg_design_lif.neural_models.config import default_config
+from sg_design_lif.config.config import default_config
 from alif_sg.neural_models.recLSC import apply_LSC
 
 FILENAME = os.path.realpath(__file__)

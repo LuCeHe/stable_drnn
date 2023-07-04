@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 from alif_sg.neural_models.recLSC import load_LSC_model
-from sg_design_lif.neural_models.config import default_config
+from sg_design_lif.config.config import default_config
 from sg_design_lif.neural_models.full_model import build_model
 
 

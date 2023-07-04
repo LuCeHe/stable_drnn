@@ -4,7 +4,7 @@ from pyaromatics.keras_tools.silence_tensorflow import silence_tf
 
 silence_tf()
 
-from sg_design_lif.neural_models.config import default_config
+from sg_design_lif.config.config import default_config
 
 import matplotlib.pyplot as plt
 import tensorflow as tf
@@ -17,9 +17,8 @@ tf.compat.v1.enable_eager_execution()
 
 from pyaromatics.keras_tools.esoteric_initializers import esoteric_initializers_list, get_initializer
 from pyaromatics.stay_organized.VeryCustomSacred import CustomExperiment, ChooseGPU
-from pyaromatics.stay_organized.utils import timeStructured, setReproducible, str2val, NumpyEncoder, save_results
+from pyaromatics.stay_organized.utils import setReproducible, str2val, NumpyEncoder, save_results
 from pyaromatics.keras_tools.esoteric_tasks.time_task_redirection import Task, checkTaskMeanVariance, language_tasks
-from pyaromatics.stay_organized.submit_jobs import dict2iter
 from alif_sg.neural_models.recLSC import apply_LSC
 
 FILENAME = os.path.realpath(__file__)

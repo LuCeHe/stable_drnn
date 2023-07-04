@@ -1,11 +1,10 @@
-import os, shutil, logging, json, copy
-import pandas as pd
+import os, logging, json, copy
 from tqdm import tqdm
 from pyaromatics.keras_tools.silence_tensorflow import silence_tf
 
 silence_tf()
 
-from sg_design_lif.neural_models.config import default_config
+from sg_design_lif.config.config import default_config
 
 import tensorflow as tf
 
@@ -15,19 +14,13 @@ os.environ["TF_CPP_VMODULE"] = "gpu_process_state=10,gpu_cudamallocasync_allocat
 
 tf.compat.v1.enable_eager_execution()
 
-from pyaromatics.keras_tools.convergence_metric import convergence_estimation
-from pyaromatics.keras_tools.esoteric_callbacks.gradient_tensorboard import ExtendedTensorBoard
 from pyaromatics.keras_tools.esoteric_initializers import esoteric_initializers_list, get_initializer
 from pyaromatics.keras_tools.esoteric_callbacks import *
-from pyaromatics.keras_tools.plot_tools import plot_history
 from pyaromatics.stay_organized.VeryCustomSacred import CustomExperiment, ChooseGPU
-from pyaromatics.stay_organized.utils import timeStructured, setReproducible, str2val, NumpyEncoder, save_results
-from pyaromatics.keras_tools.esoteric_callbacks.several_validations import MultipleValidationSets
+from pyaromatics.stay_organized.utils import setReproducible, str2val, NumpyEncoder
 from pyaromatics.keras_tools.esoteric_tasks.time_task_redirection import Task, checkTaskMeanVariance, language_tasks
 
-from sg_design_lif.neural_models.full_model import build_model
 from alif_sg.neural_models.recLSC import apply_LSC
-from alif_sg.neural_models.nonrecLSC import apply_LSC_no_time
 
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)

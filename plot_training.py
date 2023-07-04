@@ -1,6 +1,6 @@
 import os, json, copy, time, shutil, math
 
-from pyaromatics.keras_tools.esoteric_layers import AddLossLayer, AddMetricsLayer
+from alif_sg.tools.admin_model_removal import remove_pretrained_extra
 from pyaromatics.keras_tools.esoteric_layers.rate_voltage_reg import RateVoltageRegularization
 
 from pyaromatics.stay_organized.submit_jobs import dict2iter
@@ -15,7 +15,7 @@ from pyaromatics.stay_organized.mpl_tools import load_plot_settings
 from pyaromatics.stay_organized.pandardize import experiments_to_pandas, complete_missing_exps
 from pyaromatics.stay_organized.standardize_strings import shorten_losses
 from pyaromatics.stay_organized.utils import str2val
-from alif_sg.neural_models.recLSC import remove_pretrained_extra, load_LSC_model
+from alif_sg.neural_models.recLSC import load_LSC_model
 from alif_sg.tools.plot_tools import *
 from sg_design_lif.neural_models import maLSNN
 
@@ -903,6 +903,8 @@ if plot_bars:
     plt.show()
 
 if plot_weights:
+    from pyaromatics.keras_tools.esoteric_layers import AddLossLayer, AddMetricsLayer
+
     create_pickles = False
     plot_1 = False
     plot_2 = True

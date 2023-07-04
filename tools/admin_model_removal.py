@@ -2,7 +2,7 @@ import os, shutil
 from tqdm import tqdm
 
 from pyaromatics.stay_organized.utils import str2val
-from sg_design_lif.neural_models.config import default_config
+from sg_design_lif.config.config import default_config
 
 
 FILENAME = os.path.realpath(__file__)
