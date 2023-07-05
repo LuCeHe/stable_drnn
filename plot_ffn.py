@@ -200,7 +200,7 @@ if 'ffnandcnns' in expsid:
     plot_only = [
         'act', 'pre_eps', 'eps', 'dataset',
         'seed', 'lr', 'comments', 'depth', 'width',
-        'val_acc M', 'val_loss m', 'test_acc M', 'test_loss m', 'conveps',
+        'val_acc M', 'val_loss m', 'test_acc M', 'test_loss m', 'conveps', 'val_loss len',
         'LSC i', 'LSC f', 'LSC a', 'f_norms_std',
         'time_elapsed', 'hostname', 'path',
     ]
@@ -771,13 +771,13 @@ if missing_exps:
 
 
         exps = lambda x: [experiment(x)]
-        # def exps(x):
-        #     if x == '_onlypretrain':
-        #         return [experiment(x)]
-        #     elif x == '_onlyloadpretrained':
-        #         return [] #[experiment_2(x)] #+ [experiment(x)]
-        #     else:
-        #         raise NotImplementedError
+        def exps(x):
+            if x == '_onlypretrain':
+                return [experiment(x)]
+            elif x == '_onlyloadpretrained':
+                return [] #[experiment_2(x)] #+ [experiment(x)]
+            else:
+                raise NotImplementedError
 
 
     elif 'effnet' in expsid:
