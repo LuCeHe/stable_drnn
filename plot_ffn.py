@@ -390,12 +390,12 @@ if lrs_plot_2:
     if 'ffnandcnns' in expsid:
         activations = ['relu', 'sin', 'cos']
         ncol = 5
-        bbox_to_anchor = (-3.1, -.8)
+        bbox_to_anchor = (-6.1, -.6)
 
         # mdf = mdf[~mdf['comments'].eq('findLSC')]
     elif 'effnet' in expsid or 'transf' in expsid:
-        ncol = 4
-        bbox_to_anchor = (-.3, -.4)
+        ncol = 3
+        bbox_to_anchor = (-.5, -.4)
 
     activations = sorted(mdf['act'].unique())
     datasets = sorted(mdf['dataset'].unique())
@@ -463,11 +463,13 @@ if lrs_plot_2:
         if not i == 0:
             axs[i].tick_params(axis='y', which='both', left=False, right=False, labelleft=False)
 
-            # x axis log scale
-    axs[-1].set_xlabel('Learning rate', fontsize=fontsize)
+    axs[-1].set_xlabel('Learning\nrate', fontsize=fontsize)
+    axs[-1].xaxis.set_label_coords(-.1, -.25)
+
     axs[0].set_ylabel(clean_title(metric), fontsize=fontsize)
 
     comments = ['', 'heinit', 'findLSC_radius', 'findLSC_supnpsd2', 'findLSC_supsubnpsd', ]
+    comments = ['', 'heinit', 'findLSC_radius' ]
 
     legend_elements = [Line2D([0], [0], color=lsc_colors(n), lw=4, label=lsc_clean_comments(n))
                        for n in comments]
@@ -476,24 +478,23 @@ if lrs_plot_2:
     if len(datasets) > 1:
         # add a vertical text to the plot, to indicate the dataset, one for each row
         for i, dataset in enumerate(datasets):
-            fig.text(0.265 + i * .456, 1.15, dataset, va='center', weight='bold', fontsize=1.1 * fontsize)
+            fig.text(0.207 + i * .32, 1.15, dataset, va='center', weight='bold', fontsize=1.1 * fontsize)
 
     else:
         fig.text(-0.03, 0.5, datasets[0], va='center', rotation='vertical', weight='bold')
-
-    # plt.legend()
 
     for i, ax in enumerate(axs.reshape(-1)):
         for pos in ['right', 'left', 'bottom', 'top']:
             ax.spines[pos].set_visible(False)
         ax.locator_params(axis='y', nbins=5)
         ax.set_xscale('log')
+        ax.tick_params(axis='x', labelsize=7)
 
         pos = ax.get_position()
         dx = 0 if i < 3 else .06 if i < 3 * 2 else .12
         ax.set_position([pos.x0 + dx, pos.y0, pos.width, pos.height])
 
-    plot_filename = os.path.join(EXPERIMENTS, f'{expsid}_relu.pdf')
+    plot_filename = os.path.join(EXPERIMENTS, f"{expsid.replace('andcnns', '')}_lsc.pdf")
     fig.savefig(plot_filename, bbox_inches='tight')
     plt.show()
 
