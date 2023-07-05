@@ -48,7 +48,7 @@ def get_argparse():
     parser.add_argument("--dataset", default='mnist', type=str,
                         choices=['cifar10', 'cifar100', 'mnist'])
     parser.add_argument("--net_type", default='ffn', type=str, choices=['ffn', 'cnn'])
-    parser.add_argument("--activation", default='relu', type=str, help="Activation",
+    parser.add_argument("--activation", default='cos', type=str, help="Activation",
                         choices=['swish', 'relu', 'sin', 'cos'])
     parser.add_argument(
         "--initialization", default='glorot_normal', type=str, help="Activation to train on",

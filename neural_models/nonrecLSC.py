@@ -163,6 +163,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                 epsilon_steps = 0
 
             if epsilon_steps > patience:
+                print('Epsilon broken by MA norm!')
                 break
 
             # if True:
@@ -449,6 +450,9 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                     print('Multiplier to weights!')
                     new_weights = []
                     for w, wname in zip(weights, wnames):
+                        # print(wname)
+                        # if 'bias' in wname:
+                        # print(w)
                         if ('supsubnpsd' in comments or 'supnpsd' in comments) and \
                                 'kernel' in wname and not psdized:
                             s = np.amax(np.sum(w, axis=-1))
@@ -456,7 +460,6 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                             psdized = True
 
                         if len(w.shape) >= 2 and wname in wnames_i and 'kernel' in wname:
-                            n_multiplier = 1
 
                             if wname == kernels[0]:
                                 s = w.shape[1]
