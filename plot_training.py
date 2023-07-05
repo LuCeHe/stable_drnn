@@ -1321,14 +1321,14 @@ if remove_incomplete:
 
 
     print('Eliminate if best_std_ma_norm too large')
-    rdf = plotdf[
-        (plotdf['best_std_ma_norm'] > .2)
-        & plotdf['comments'].str.contains('findLSC')
-        & plotdf['comments'].str.contains('onlypretrain')
-        ]
-    print(rdf.to_string())
-    print(rdf.shape, df.shape)
-    rdfs.append(rdf)
+    # rdf = plotdf[
+    #     (plotdf['best_std_ma_norm'] > .2)
+    #     & plotdf['comments'].str.contains('findLSC')
+    #     & plotdf['comments'].str.contains('onlypretrain')
+    #     ]
+    # print(rdf.to_string())
+    # print(rdf.shape, df.shape)
+    # rdfs.append(rdf)
 
     print('Eliminate if not close enough to target norm')
 
@@ -1568,7 +1568,7 @@ if missing_exps:
 
     incomplete_comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained'
 
-    for add_flag in ['_onlypretrain']: # ['_onlyloadpretrained', '_onlypretrain']:
+    for add_flag in ['_onlyloadpretrained', '_onlypretrain']:
         if add_flag == '_onlyloadpretrained':
             good_lsc_options = [True, False]
         else:

@@ -609,15 +609,13 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                         new_weights = []
                         for w, _wname in zip(weights, wnames):
                             wname = _wname
-                            print('-' * 20)
-                            print(wname, w.shape)
                             if len(w.shape) >= 2 or 'tau' in wname or 'bias' in wname \
                                     or 'internal_current' in wname or '/thr:' in wname \
                                     or '/beta:' in wname:
                                 n_multiplier, multiplier = 1, 1
                                 wname = wname.replace('ma_lsnn_', '_cell_')
                                 wname = wname.replace('ma_lsn_nb_', '_cell_')
-                                print('         ', wname)
+
                                 if ('encoder_' in wname or '_cell_' in wname) \
                                         and not 'embedding' in wname:
                                     multiplier = target_norm / mean_norm.numpy()
@@ -649,18 +647,11 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                                         n_multiplier = target_norm / local_norm
 
                                 elif 'decoder/kernel' in wname or 'embedding' in wname:
-
-                                    # w.shape
                                     s = w.shape[1] if 'embedding' in wname else w.shape[0]
-                                    # w_norm = np.std(w) * np.sqrt(np.mean(w.shape))
                                     w_norm = np.std(w) * np.sqrt(s)
                                     n_multiplier = 1 / w_norm
                                     dec_norm = w_norm
 
-                                print('multipliers, n and not', n_multiplier, multiplier)
-
-                                # r = np.random.rand()
-                                # m = multiplier if r < .2 else n_multiplier
                                 m = n_multiplier
                                 m = np.clip(m, 0.85, 1.15)
 

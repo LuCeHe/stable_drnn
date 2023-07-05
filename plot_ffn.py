@@ -628,12 +628,8 @@ if remove_incomplete:
         ]
 
     far_radius_df = rdf.copy()
-    # rdf = df[df['vs_epsilon']
-    # ]
-
     print(rdf.to_string())
     print(rdf.shape, odf.shape, df.shape, df[df['comments'].str.contains('pretrain')].shape)
-
     rdfs.append(rdf)
 
     print('\n\nRemove large f_norms_std')
@@ -776,14 +772,14 @@ if missing_exps:
         }
 
 
-        # exps = lambda x: [experiment(x)]
-        def exps(x):
-            if x == '_onlypretrain':
-                return [experiment(x)]
-            elif x == '_onlyloadpretrained':
-                return [experiment_2(x)] #+ [experiment(x)]
-            else:
-                raise NotImplementedError
+        exps = lambda x: [experiment(x)]
+        # def exps(x):
+        #     if x == '_onlypretrain':
+        #         return [experiment(x)]
+        #     elif x == '_onlyloadpretrained':
+        #         return [experiment_2(x)] #+ [experiment(x)]
+        #     else:
+        #         raise NotImplementedError
 
 
     elif 'effnet' in expsid:
