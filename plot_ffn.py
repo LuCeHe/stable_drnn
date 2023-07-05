@@ -17,11 +17,11 @@ EXPERIMENTS = r'D:\work\alif_sg\experiments'
 plot_norms_evol = False
 plot_norms_evol_1 = False
 lrs_plot = False
-lrs_plot_2 = True
+lrs_plot_2 = False
 bar_plot = False
 plot_losses = False
 
-missing_exps = False
+missing_exps = True
 remove_incomplete = False
 truely_remove = False
 
@@ -754,7 +754,7 @@ if missing_exps:
         flags = ['_onlypretrain', '_onlyloadpretrained']
         # flags = ['_onlypretrain']
         # all_comments = ['', 'findLSC_supsubnpsd', 'findLSC_supnpsd2', 'findLSC_radius', 'heinit', ]
-        comments = ['findLSC_supsubnpsd', 'findLSC_radius', ]
+        comments = ['findLSC_radius', ]
         all_comments = lambda x: [c + f'_adabelief_pretrained{x}' for c in comments]
 
         experiment = lambda x: {
@@ -773,13 +773,13 @@ if missing_exps:
 
 
         exps = lambda x: [experiment(x)]
-        # def exps(x):
-        #     if x == '_onlypretrain':
-        #         return [experiment(x)]
-        #     elif x == '_onlyloadpretrained':
-        #         return [experiment_2(x)] #+ [experiment(x)]
-        #     else:
-        #         raise NotImplementedError
+        def exps(x):
+            if x == '_onlypretrain':
+                return [experiment(x)]
+            elif x == '_onlyloadpretrained':
+                return [] #[experiment_2(x)] #+ [experiment(x)]
+            else:
+                raise NotImplementedError
 
 
     elif 'effnet' in expsid:
