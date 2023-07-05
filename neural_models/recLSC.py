@@ -632,16 +632,8 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                                         idx = norms_names.index(f'{dname} l{depth}')
                                         local_norm = some_norms[idx].numpy()
                                         n_multiplier = target_norm / local_norm
-                                        if 'internal_current' in wname:
-                                            n_multiplier = 1 / n_multiplier
 
-
-                                    elif 'recurrent_weights' in wname or 'recurrent_kernel' in wname:
-                                        idx = norms_names.index(f'rec l{depth}')
-                                        local_norm = some_norms[idx].numpy()
-                                        n_multiplier = target_norm / local_norm
-
-                                    elif 'tau' in wname:
+                                    elif 'recurrent_weights' in wname or 'recurrent_kernel' in wname or 'tau' in wname:
                                         idx = norms_names.index(f'rec l{depth}')
                                         local_norm = some_norms[idx].numpy()
                                         n_multiplier = target_norm / local_norm
