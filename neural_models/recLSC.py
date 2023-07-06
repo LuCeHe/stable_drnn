@@ -320,7 +320,6 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
     dec_norm = -1
     wnames = [weight.name for layer in model.layers for weight in layer.weights]
 
-
     std_ma_norm = 1
     if 'onlyloadpretrained' in comments:
         steps_per_epoch = 1
@@ -337,7 +336,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
 
     last_step = 0
     best_std_ma_norm = std_ma_norm
-    stop_time = 60 * 60 * 16 if stop_time - 3600 is None else stop_time
+    stop_time = 60 * 60 * 16 if stop_time is None else stop_time - 30 * 60
     n_saves = 0
     std_thr = .8
     for step in range(steps_per_epoch):
@@ -514,7 +513,6 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                 #     mean_loss += l() * tf.math.reduce_variance(sn)
                 #     mean_loss += l() * tf.math.reduce_mean(sn)
 
-
                 mean_norm = tf.reduce_mean(some_norms)
                 ma_loss = loss if ma_loss is None else ma_loss * 9 / 10 + loss / 10
                 ma_norm = mean_norm if ma_norm is None else ma_norm * 9 / 10 + mean_norm / 10
@@ -658,7 +656,6 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                 if time.perf_counter() - time_start > stop_time:  # 17h
                     time_over = True
                     break
-
 
                 epsilons = [(abs(n - target_norm) < es_epsilon).numpy() for n in some_norms]
                 if not ma_norm is None and all(epsilons):

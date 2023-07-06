@@ -247,6 +247,7 @@ if not df.empty:
     if metric in df.columns:
         df = df.sort_values(by=metric)
     print(df.to_string())
+    print(f'Max time elapsed: {df["time_elapsed"].max()}, for {df["comments"][df["time_elapsed"].idxmax()]}')
     df['comments'] = df['comments'].str.replace('_preprocessinput', '')
 
     counts = df.groupby(group_cols).size().reset_index(name='counts')

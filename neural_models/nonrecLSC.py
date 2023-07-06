@@ -140,7 +140,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
     n_saves = 0
     std_thr = .6
     psdized = False
-    stop_time = 60 * 60 * 16 if stop_time - 3600 is None else stop_time
+    stop_time = 60 * 60 * 16 if stop_time is None else stop_time - 30*60
 
     for epoch in range(epochs):
         pbar = tqdm(total=generator.steps_per_epoch)

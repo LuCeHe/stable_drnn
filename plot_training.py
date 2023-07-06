@@ -1319,7 +1319,6 @@ if remove_incomplete:
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
 
-
     print('Eliminate if best_std_ma_norm too large')
     # rdf = plotdf[
     #     (plotdf['best_std_ma_norm'] > .2)
@@ -1490,8 +1489,8 @@ if remove_incomplete:
     print(f'Remove {allrdfs.shape} of {plotdf.shape}')
     trueallrdfs = allrdfs.drop_duplicates(subset=['seed', 'task', 'net', 'comments', 'stack'])
     print(f'Remove actually {trueallrdfs.shape} of {plotdf.shape}')
-    # allrdfs = allrdfs[allrdfs['comments'].str.contains('onlypretrain')]
-    # print(f'Remove instead {allrdfs.shape} of {plotdf.shape}')
+    allrdfs = allrdfs[allrdfs['comments'].str.contains('onlypretrain')]
+    print(f'Remove instead {allrdfs.shape} of {plotdf.shape}')
 
     if truely_remove_pretrained:
 
@@ -1568,7 +1567,7 @@ if missing_exps:
 
     incomplete_comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained'
 
-    for add_flag in ['_onlyloadpretrained', '_onlypretrain']:
+    for add_flag in ['_onlypretrain']:  # ['_onlyloadpretrained', '_onlypretrain']:
         if add_flag == '_onlyloadpretrained':
             good_lsc_options = [True, False]
         else:
