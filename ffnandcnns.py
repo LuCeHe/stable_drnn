@@ -196,7 +196,7 @@ def main(args):
         gen_val = NumpyClassificationGenerator(
             x_train, y_train,
             epochs=args.pretrain_epochs, steps_per_epoch=args.steps_per_epoch,
-            batch_size=64,
+            batch_size=128,
             output_type='[i]o'
         )
 
@@ -208,8 +208,7 @@ def main(args):
 
         comments = comments + '_wmultiplier'
         comments = comments + '_wshuff'
-
-        # comments = comments + '_nosgd'
+        comments = comments + '_nosgd'
 
         weights, lsc_results = apply_LSC_no_time(
             bm, generator=gen_val, max_dim=max_dim, norm_pow=2, forward_lsc=flsc,
