@@ -34,7 +34,7 @@ def get_argparse():
     parser = argparse.ArgumentParser()
 
     # Required parameters
-    parser.add_argument("--batch_size", default=128, type=int, help="Batch size")
+    parser.add_argument("--batch_size", default=256, type=int, help="Batch size")
     parser.add_argument("--seed", default=0, type=int, help="Random seed")
     parser.add_argument("--epochs", default=1, type=int, help="Training Epochs")
     parser.add_argument("--pretrain_epochs", default=2, type=int, help="Pretraining Epochs")  # 20
@@ -197,7 +197,7 @@ def main(args):
         gen_val = NumpyClassificationGenerator(
             x_train, y_train,
             epochs=args.pretrain_epochs, steps_per_epoch=args.steps_per_epoch,
-            batch_size=128,
+            batch_size=args.batch_size,
             output_type='[i]o'
         )
 
