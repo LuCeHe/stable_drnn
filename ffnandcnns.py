@@ -208,14 +208,14 @@ def main(args):
         comments = args.comments
 
         comments = comments + '_wmultiplier'
-        comments = comments + '_wshuff'
+        # comments = comments + '_wshuff'
         # comments = comments + '_nosgd'
         custom_objects = {'cos': tf.math.cos, 'sin': tf.math.sin}
         # custom_objects = None
         weights, lsc_results = apply_LSC_no_time(
             bm, generator=gen_val, max_dim=max_dim, norm_pow=2, forward_lsc=flsc,
             nlayerjump=2, net_name='ffn', task_name=args.dataset, activation=act_name, seed=args.seed,
-            learning_rate=7.2e-3,  # 3.16e-3,
+            learning_rate=7.2e-4,  # 3.16e-3,
             comments=comments, stop_time=args.stop_time, custom_objects=custom_objects,
         )
 
