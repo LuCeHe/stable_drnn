@@ -157,7 +157,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                 time_over = True
                 break
 
-            if not ma_norm is None and abs(ma_norm - target_norm) < epsilon:
+            if not ma_norm is None and abs(ma_norm - target_norm) < epsilon and ma_norm_std < std_thr:
                 epsilon_steps += 1
             else:
                 epsilon_steps = 0
@@ -403,7 +403,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                         model.save(path_pretrained)
 
                     if n_saves > 5:
-                        std_thr = .2
+                        std_thr = .1
 
                 if best_count > 3 * patience:
                     print('Reloading best weights')
