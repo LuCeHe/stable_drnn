@@ -580,7 +580,8 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                     del weights
                     weights = model.get_weights()
 
-                    if 'wshuff' in comments and learn:
+                    r = np.random.rand()
+                    if 'wshuff' in comments and learn and r > .66:
                         new_weights = []
                         for w in weights:
                             if len(w.shape) >= 2:

@@ -124,7 +124,6 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
     epochs = generator.epochs
     learn = True
 
-
     ma_norm_std = 1
     if 'onlyloadpretrained' in comments:
         time_steps = 10 if not 'test' in comments else time_steps
@@ -140,7 +139,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
     n_saves = 0
     std_thr = .6
     psdized = False
-    stop_time = 60 * 60 * 16 if stop_time is None else stop_time - 30*60
+    stop_time = 60 * 60 * 16 if stop_time is None else stop_time - 30 * 60
 
     for epoch in range(epochs):
         pbar = tqdm(total=generator.steps_per_epoch)
@@ -434,9 +433,9 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                             new_weights.append(w)
                         weights = new_weights
 
-                if 'wshuff' in comments and learn:
+                r = np.random.rand()
+                if 'wshuff' in comments and learn and r > .66:
                     print('Shuffling weights!')
-
                     new_weights = []
                     for w in weights:
                         oshape = w.shape
