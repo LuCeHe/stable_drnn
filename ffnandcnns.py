@@ -44,7 +44,8 @@ def get_argparse():
     parser.add_argument("--width", default=128, type=int, help="Layer width")
     parser.add_argument("--lr", default=.001, type=float, help="Learning rate")
     # parser.add_argument("--comments", default='findLSC_supnpsd', type=str, help="String to activate extra behaviors")
-    parser.add_argument("--comments", default='findLSC_supsubnpsd_adabelief_pretrained_onlypretrain', type=str, help="String to activate extra behaviors")
+    parser.add_argument("--comments", default='findLSC_supsubnpsd_adabelief_pretrained_onlyloadpretrained', type=str,
+                        help="String to activate extra behaviors")
     parser.add_argument("--dataset", default='mnist', type=str,
                         choices=['cifar10', 'cifar100', 'mnist'])
     parser.add_argument("--net_type", default='ffn', type=str, choices=['ffn', 'cnn'])
@@ -54,7 +55,7 @@ def get_argparse():
         "--initialization", default='glorot_normal', type=str, help="Activation to train on",
         choices=['he_normal', 'glorot_normal']
     )
-    parser.add_argument("--stop_time", type=int, default=42, help="Seconds assigned to this job")
+    parser.add_argument("--stop_time", type=int, default=3600, help="Seconds assigned to this job")
 
     args = parser.parse_args()
     return args
@@ -209,12 +210,13 @@ def main(args):
         comments = comments + '_wmultiplier'
         comments = comments + '_wshuff'
         # comments = comments + '_nosgd'
-
+        custom_objects = {'cos': tf.math.cos, 'sin': tf.math.sin}
+        # custom_objects = None
         weights, lsc_results = apply_LSC_no_time(
             bm, generator=gen_val, max_dim=max_dim, norm_pow=2, forward_lsc=flsc,
             nlayerjump=2, net_name='ffn', task_name=args.dataset, activation=act_name, seed=args.seed,
             learning_rate=7.2e-3,  # 3.16e-3,
-            comments=comments, stop_time=args.stop_time
+            comments=comments, stop_time=args.stop_time, custom_objects=custom_objects,
         )
 
         model = bm()
