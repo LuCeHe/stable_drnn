@@ -42,7 +42,7 @@ def get_weights_statistics(results, weight_names, weights):
 
 
 def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_pow=2, forward_lsc=False,
-                      nlayerjump=None, comments='', epsilon=.02, patience=40, learning_rate=3.16e-5,
+                      nlayerjump=None, comments='', epsilon=.02, patience=10, learning_rate=3.16e-5,
                       subsample_axis=False,
                       skip_in_layers=[], skip_out_layers=[],
                       keep_in_layers=None, keep_out_layers=None,
@@ -137,7 +137,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
     best_count = 0
     best_ma_norm_std = ma_norm_std
     n_saves = 0
-    std_thr = .6
+    std_thr = .4
     psdized = False
     stop_time = 60 * 60 * 16 if stop_time is None else stop_time - 30 * 60
     epsilon_steps = 0
@@ -403,9 +403,9 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                         model.save(path_pretrained)
 
                     if n_saves > 5:
-                        std_thr = .3
+                        std_thr = .2
 
-                if best_count > 2 * patience:
+                if best_count > 3 * patience:
                     print('Reloading best weights')
                     model.set_weights(best_weights)
                     best_count = 0
