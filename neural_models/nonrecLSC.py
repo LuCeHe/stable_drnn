@@ -402,7 +402,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                         print('Saving pretrained lsc weights with best norms')
                         model.save(path_pretrained)
 
-                    if n_saves > 5:
+                    if n_saves > 2:
                         std_thr = .1
 
                 if best_count > 3 * patience:
