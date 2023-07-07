@@ -208,7 +208,7 @@ def main(args):
         comments = args.comments
 
         comments = comments + '_wmultiplier'
-        # comments = comments + '_wshuff'
+        comments = comments + '_wshuff'
         # comments = comments + '_nosgd'
         custom_objects = {'cos': tf.math.cos, 'sin': tf.math.sin}
         # custom_objects = None
