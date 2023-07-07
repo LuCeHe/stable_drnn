@@ -689,9 +689,9 @@ if remove_incomplete:
 
     print('Keep pretraining')
     rdf = df[df['comments'].str.contains('findLSC')]
-    # rdfs.append(rdf)
-    # print(rdf.to_string())
-    # print(rdf.shape, df.shape)
+    rdfs.append(rdf)
+    print(rdf.to_string())
+    print(rdf.shape, df.shape)
 
     print('Remove repeated experiments')
     brdf = mdf[mdf['counts'] > 4]
@@ -773,9 +773,9 @@ if missing_exps:
         exps = lambda x: [experiment(x)]
         def exps(x):
             if x == '_onlypretrain':
-                return []  # [experiment_2(x)] # + [experiment(x)]
-            elif x == '_onlyloadpretrained':
                 return [experiment(x)]
+            elif x == '_onlyloadpretrained':
+                return []  # [experiment_2(x)] # + [experiment(x)]
             else:
                 raise NotImplementedError
 
