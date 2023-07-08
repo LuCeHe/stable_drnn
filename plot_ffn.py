@@ -769,15 +769,22 @@ if missing_exps:
             'eps': [50], 'spe': [-1], 'pre_eps': [100], 'seed': list(range(4)),
         }
 
+        experiment_3 = lambda x: {
+            'comments': all_comments(x),
+            'act': ['sin', 'relu', 'cos'], 'dataset': ['mnist', 'cifar10', 'cifar100'],  # ['cifar10', 'cifar100'],
+            'depth': [30], 'width': [128], 'lr': [1e-3, 3.16e-4, 1e-4, 3.16e-5, 1e-5],
+            'eps': [50], 'spe': [-1], 'pre_eps': [100], 'seed': list(range(4)),
+        }
+
 
         exps = lambda x: [experiment(x)]
-        # def exps(x):
-        #     if x == '_onlypretrain':
-        #         return [experiment(x)]
-        #     elif x == '_onlyloadpretrained':
-        #         return []  # [experiment_2(x)] # + [experiment(x)]
-        #     else:
-        #         raise NotImplementedError
+        def exps(x):
+            if x == '_onlypretrain':
+                return [experiment(x)]
+            elif x == '_onlyloadpretrained':
+                return [experiment_3(x)] # + [experiment(x)]
+            else:
+                raise NotImplementedError
 
 
     elif 'effnet' in expsid:

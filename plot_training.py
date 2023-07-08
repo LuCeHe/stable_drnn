@@ -518,7 +518,7 @@ if make_good_latex:
     idf = idf[~(idf['net'].str.contains('ALIF') & idf['comments'].str.contains(r'targetnorm:.5'))]
 
     ntype = 'all'
-    tttype = 'stack'  # stack task task5
+    tttype = 'task5'  # stack task task5
     ttype = ''.join([i for i in tttype if not i.isdigit()])
     data_split = 't_'  # t_ v_
 
@@ -1567,7 +1567,7 @@ if missing_exps:
 
     incomplete_comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained'
 
-    for add_flag in ['_onlypretrain']:  # ['_onlyloadpretrained', '_onlypretrain']:
+    for add_flag in ['_onlyloadpretrained', '_onlypretrain']:  # ['_onlyloadpretrained', '_onlypretrain']:
         if add_flag == '_onlyloadpretrained':
             good_lsc_options = [True, False]
         else:
