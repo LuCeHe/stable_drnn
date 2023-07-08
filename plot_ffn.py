@@ -689,9 +689,9 @@ if remove_incomplete:
 
     print('Keep pretraining')
     rdf = df[df['comments'].str.contains('findLSC')]
-    # rdfs.append(rdf)
-    # print(rdf.to_string())
-    # print(rdf.shape, df.shape)
+    rdfs.append(rdf)
+    print(rdf.to_string())
+    print(rdf.shape, df.shape)
 
     print('Remove repeated experiments')
     brdf = mdf[mdf['counts'] > 4]
