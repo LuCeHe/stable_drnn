@@ -782,7 +782,7 @@ if missing_exps:
             if x == '_onlypretrain':
                 return [experiment(x)]
             elif x == '_onlyloadpretrained':
-                return [experiment_2(x)]
+                return [] # [experiment_2(x)]
             else:
                 raise NotImplementedError
 

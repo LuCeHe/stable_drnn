@@ -435,7 +435,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                         weights = new_weights
 
                 r = np.random.rand()
-                if 'wshuff' in comments and learn and r > .66:
+                if 'wshuff' in comments and learn and r > .8:
                     print('Shuffling weights!')
                     new_weights = []
                     for w in weights:
@@ -446,7 +446,8 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                         new_weights.append(w)
                     weights = new_weights
 
-                if 'wmultiplier' in comments and learn:
+                r = np.random.rand()
+                if 'wmultiplier' in comments and learn and r > .66:
                     print('Multiplier to weights!')
                     new_weights = []
                     for w, wname in zip(weights, wnames):
