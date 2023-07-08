@@ -780,9 +780,9 @@ if missing_exps:
         exps = lambda x: [experiment(x)]
         def exps(x):
             if x == '_onlypretrain':
-                return [] #[experiment(x)]
+                return [experiment(x)]
             elif x == '_onlyloadpretrained':
-                return [experiment_3(x)] + [experiment(x)]
+                return [experiment_2(x)]
             else:
                 raise NotImplementedError
 
