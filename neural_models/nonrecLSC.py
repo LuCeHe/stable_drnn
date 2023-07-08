@@ -402,7 +402,7 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                         print('Saving pretrained lsc weights with best norms')
                         model.save(path_pretrained)
 
-                    if n_saves > 2:
+                    if n_saves >= 2:
                         std_thr = .1
 
                 if best_count > 3 * patience:
@@ -451,8 +451,8 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                     print('Multiplier to weights!')
                     new_weights = []
                     for w, wname in zip(weights, wnames):
-                        # if 'bias' in wname and 'cos' in activation and np.mean(w) == 0:
-                        #     w = np.random.rand(*w.shape)
+                        if 'bias' in wname and np.mean(w) == 0:
+                            w = np.random.rand(*w.shape)
                         #
                         # print(w)
                         if ('supsubnpsd' in comments or 'supnpsd' in comments) and \
@@ -461,8 +461,8 @@ def apply_LSC_no_time(build_model, generator, max_dim=4096, n_samples=-1, norm_p
                             np.fill_diagonal(w, s, wrap=False)
                             psdized = True
 
-                        if len(w.shape) >= 2 and wname in wnames_i and 'kernel' in wname:
-                            # if wname in wnames_i:
+                        # if len(w.shape) >= 2 and wname in wnames_i and 'kernel' in wname:
+                        if wname in wnames_i:
                             if wname == kernels[0]:
                                 s = w.shape[1]
                                 local_norm = np.std(w) * np.sqrt(s)

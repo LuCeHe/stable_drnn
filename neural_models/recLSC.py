@@ -542,7 +542,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                         best_count = 0
                         n_saves += 1
 
-                        if n_saves > 2:
+                        if n_saves >= 2:
                             std_thr = .1
 
                         if 'pretrained' in comments and not model is None:
