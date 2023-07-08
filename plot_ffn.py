@@ -771,13 +771,13 @@ if missing_exps:
 
 
         exps = lambda x: [experiment(x)]
-        # def exps(x):
-        #     if x == '_onlypretrain':
-        #         return [experiment(x)]
-        #     elif x == '_onlyloadpretrained':
-        #         return []  # [experiment_2(x)] # + [experiment(x)]
-        #     else:
-        #         raise NotImplementedError
+        def exps(x):
+            if x == '_onlypretrain':
+                return [experiment(x)]
+            elif x == '_onlyloadpretrained':
+                return []  # [experiment_2(x)] # + [experiment(x)]
+            else:
+                raise NotImplementedError
 
 
     elif 'effnet' in expsid:
