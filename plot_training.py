@@ -53,6 +53,8 @@ pandas_means = True
 show_per_tasknet = False
 make_latex = False
 make_good_latex = False
+nice_bar_plot = True
+
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
 plot_norms_pretraining = False
@@ -64,7 +66,7 @@ plot_bars = False
 plot_new_bars = False
 chain_norms = False
 
-missing_exps = True
+missing_exps = False
 remove_incomplete = False
 truely_remove = False
 truely_remove_pretrained = False
@@ -493,6 +495,146 @@ if pandas_means:
 
         print(pdf.to_latex(index=True, escape=False))
 
+if nice_bar_plot:
+    df = df.copy()
+    df = df[~df['net'].str.contains('rsimplernn')]
+    df = df[df['comments'].str.contains('onlyloadpretrained')]
+
+    pickle_path = os.path.join(EXPERIMENTS, 'results_bar_plot.pkl')
+    if not os.path.exists(pickle_path):
+        results = {}
+        for stack in ['None', '5']:
+            idf = df[df['stack'].eq(stack)]
+            five_df = idf[
+                idf['comments'].str.contains('targetnorm:.5')
+                & idf['comments'].str.contains('findLSC')
+                ]
+
+            five_better_than_one = 0
+            five_better_than_none = 0
+            tot_5 = 0
+            tot_none = 0
+            for _, row in five_df.iterrows():
+                # print('-' * 80)
+                # print(row['comments'])
+                same_one_df = idf[
+                    ~idf['comments'].str.contains('targetnorm:.5')
+                    & idf['comments'].str.contains('findLSC')
+                    & idf['net'].str.contains(row['net'])
+                    & idf['seed'].eq(row['seed'])
+                    & idf['task'].str.contains(row['task'])
+                    ]
+                # print(same_one_df.to_string())
+                if not same_one_df.empty:
+                    tot_5 += 1
+                    metric = 't_^acc' if not row['task'] == 'PTB' else 't_ppl'
+                    if same_one_df[metric].values[0] < row[metric] and not row['task'] == 'PTB':
+                        five_better_than_one += 1
+                    elif same_one_df[metric].values[0] > row[metric] and row['task'] == 'PTB':
+                        five_better_than_one += 1
+
+                same_none_df = idf[
+                    ~idf['comments'].str.contains('findLSC')
+                    & idf['net'].str.contains(row['net'])
+                    & idf['seed'].eq(row['seed'])
+                    & idf['task'].str.contains(row['task'])
+                    ]
+                # print(same_none_df.to_string())
+
+                if not same_none_df.empty:
+                    tot_none += 1
+                    metric = 't_^acc' if not row['task'] == 'PTB' else 't_ppl'
+                    if same_none_df[metric].values[0] < row[metric] and 'acc' in metric:
+                        five_better_than_none += 1
+                    elif same_none_df[metric].values[0] > row[metric] and 'ppl' in metric:
+                        five_better_than_none += 1
+
+            print(f'five_better_than_one (stack {stack}): ', five_better_than_one / tot_5)
+            print(f'five_better_than_none (stack {stack}):', five_better_than_none / tot_none)
+
+            results[stack] = {
+                'five_better_than_one': five_better_than_one / tot_5,
+                'five_better_than_none': five_better_than_none / tot_none,
+            }
+
+        for stack in ['None', '5']:
+            idf = df[
+                df['stack'].eq(stack)
+                & df['net'].str.contains('ALIF')
+                ]
+            one_df = idf[
+                idf['comments'].str.contains('findLSC')
+            ]
+
+            one_better_than_none = 0
+            tot = 0
+            for _, row in one_df.iterrows():
+                # print('-' * 80)
+                # print(row['comments'])
+                same_none_df = idf[
+                    ~idf['comments'].str.contains('findLSC')
+                    & idf['net'].eq(row['net'])
+                    & idf['seed'].eq(row['seed'])
+                    & idf['task'].str.contains(row['task'])
+                    ]
+                if not same_none_df.empty:
+                    tot += 1
+                    metric = 't_^acc' if not row['task'] == 'PTB' else 't_ppl'
+                    if same_none_df[metric].values[0] < row[metric] and 'acc' in metric:
+                        one_better_than_none += 1
+                    elif same_none_df[metric].values[0] > row[metric] and 'ppl' in metric:
+                        one_better_than_none += 1
+
+            print(f'one_better_than_none (stack {stack}): ', one_better_than_none / tot)
+
+            results[stack].update({
+                'one_better_than_none': one_better_than_none / tot,
+            })
+
+        with open(pickle_path, 'wb') as handle:
+            pickle.dump(results, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    else:
+        with open(pickle_path, 'rb') as handle:
+            results = pickle.load(handle)
+
+    print(results)
+
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    # set width of bar
+    barWidth = 0.33
+    fig, axs = plt.subplots(1, 1, figsize=(4, 3))
+
+    # set height of bar
+    stack_2 = 100 * np.array(list(results['None'].values()))
+    stack_5 = 100 * np.array(list(results['5'].values()))
+
+    # Set position of bar on X axis
+    br1 = np.arange(len(stack_2))
+    br2 = [x + barWidth for x in br1]
+    br3 = [x + barWidth for x in br2]
+
+    # Make the plot
+    plt.bar(br1, stack_2, color='r', width=barWidth, edgecolor='grey', label='2 layers')
+    plt.bar(br2, stack_5, color='g', width=barWidth, edgecolor='grey', label='5 layers')
+    plt.axhline(y=50, color='k', linestyle='-')
+
+    # for ax in axs.reshape(-1):
+    for pos in ['right', 'left', 'bottom', 'top']:
+        axs.spines[pos].set_visible(False)
+
+    # Adding Xticks
+    # plt.xlabel('Branch', fontweight='bold', fontsize=15)
+    plt.ylabel('Percentage\nof experiments', fontweight='bold', fontsize=15)
+    plt.xticks([r + barWidth/2 for r in range(len(stack_2))],
+               ['half > one', 'half > none', 'one > none\n(ALIFs)', ], rotation=10, fontsize=15)
+
+    plt.legend()
+    plot_filename = f'experiments/nicebars.pdf'
+    fig.savefig(plot_filename, bbox_inches='tight')
+    plt.show()
+
 if make_good_latex:
 
     mdf['target'] = mdf['comments'].apply(
@@ -504,10 +646,11 @@ if make_good_latex:
         'task': ['sl-MNIST', 'SHD', 'PTB'],
         'stack': [1, 3, 5, 7]
     }
+
     # indrnn
     net_types = {
-        'all': ['ssimplernn', 'rsimplernn', 'GRU', 'LSTM', 'ALIF', 'ALIFb'],
-        'nolsnns': ['ssimplernn', 'rsimplernn', 'GRU', 'LSTM'],
+        'all': ['ssimplernn', 'GRU', 'LSTM', 'ALIF', 'ALIFb'],  # 'rsimplernn',
+        'nolsnns': ['ssimplernn', 'GRU', 'LSTM'],  # 'rsimplernn',
         'lsnns': ['ALIF', 'ALIFb'],
     }
 

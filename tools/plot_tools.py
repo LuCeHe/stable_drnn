@@ -238,7 +238,8 @@ def lsc_clean_comments(c):
         c = r'sub ($\rho_{1/2}$)'
 
     if 'radius' in c:
-        c = r'up ($\rho$)'
+        # c = r'up ($\rho$)'
+        c = r'LSC ($\rho_t=1$)'
 
 
 
