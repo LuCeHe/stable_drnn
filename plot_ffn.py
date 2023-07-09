@@ -443,7 +443,7 @@ if lrs_plot_2:
             print(yerrs)
             if -1 in xs:
                 if len(xs)==1:
-                    xs = [1.00e-05, 3.16e-05, 1.00e-04, 3.16e-04, 1.00e-03]
+                    xs = [1.00e-05, 3.16e-05, 1.00e-04, 3.16e-04, 1.00e-03, 3.16e-03, 1.00e-02]
                     ys = np.array([ys[0]] * len(xs))
                     yerrs = np.array([yerrs[0]] * len(xs))
                 else:
@@ -688,10 +688,10 @@ if remove_incomplete:
     # rdfs.append(rdf)
 
     print('Keep pre-training')
-    # rdf = df[df['comments'].str.contains('findLSC')]
-    # rdfs.append(rdf)
-    # print(rdf.to_string())
-    # print(rdf.shape, df.shape)
+    rdf = df[df['comments'].str.contains('findLSC')]
+    rdfs.append(rdf)
+    print(rdf.to_string())
+    print(rdf.shape, df.shape)
 
     print('Remove repeated experiments')
     brdf = mdf[mdf['counts'] > 4]
@@ -778,13 +778,13 @@ if missing_exps:
 
 
         exps = lambda x: [experiment(x)]
-        # def exps(x):
-        #     if x == '_onlypretrain':
-        #         return [experiment(x)]
-        #     elif x == '_onlyloadpretrained':
-        #         return [] # [experiment_2(x)]
-        #     else:
-        #         raise NotImplementedError
+        def exps(x):
+            if x == '_onlypretrain':
+                return [experiment(x)]
+            elif x == '_onlyloadpretrained':
+                return [] # [experiment_2(x)]
+            else:
+                raise NotImplementedError
 
 
     elif 'effnet' in expsid:
