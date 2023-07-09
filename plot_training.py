@@ -630,7 +630,16 @@ if nice_bar_plot:
     plt.xticks([r + barWidth/2 for r in range(len(stack_2))],
                ['half > one', 'half > none', 'one > none\n(ALIFs)', ], rotation=10, fontsize=15)
 
-    plt.legend()
+
+    legend_elements = [
+        Line2D([0], [0], color='r', lw=4, label='2 layers'),
+        Line2D([0], [0], color='g', lw=4, label='5 layers'),
+    ]
+
+    plt.legend(ncol=2, handles=legend_elements, loc='center', bbox_to_anchor=(.4, -.4))
+
+
+    # plt.legend()
     plot_filename = f'experiments/nicebars.pdf'
     fig.savefig(plot_filename, bbox_inches='tight')
     plt.show()

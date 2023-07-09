@@ -442,7 +442,7 @@ if lrs_plot_2:
             print(ys)
             print(yerrs)
             if -1 in xs:
-                if len(xs)==1:
+                if len(xs) == 1:
                     xs = [1.00e-05, 3.16e-05, 1.00e-04, 3.16e-04, 1.00e-03, 3.16e-03, 1.00e-02]
                     ys = np.array([ys[0]] * len(xs))
                     yerrs = np.array([yerrs[0]] * len(xs))
@@ -470,7 +470,7 @@ if lrs_plot_2:
     axs[0].set_ylabel(clean_title(metric), fontsize=fontsize)
 
     comments = ['', 'heinit', 'findLSC_radius', 'findLSC_supnpsd2', 'findLSC_supsubnpsd', ]
-    comments = ['', 'heinit', 'findLSC_radius' ]
+    comments = ['', 'heinit', 'findLSC_radius']
 
     legend_elements = [Line2D([0], [0], color=lsc_colors(n), lw=4, label=lsc_clean_comments(n))
                        for n in comments]
@@ -622,7 +622,7 @@ if remove_incomplete:
     df['vs_epsilon'] = ((abs(df['LSC a'] - 1) > epsilon)
                         & df['comments'].str.contains('onlyloadpretrained')) \
                        | ((abs(df['LSC f'] - 1) > epsilon)
-                              & df['comments'].str.contains('onlypretrain'))
+                          & df['comments'].str.contains('onlypretrain'))
 
     rdf = df[
         df['comments'].str.contains('findLSC')
@@ -643,7 +643,6 @@ if remove_incomplete:
     print(rdf.to_string())
     print(rdf.shape, odf.shape, df.shape, df[df['comments'].str.contains('pretrain')].shape)
     rdfs.append(rdf)
-
 
     print('\n\nRemove lr -1 if not findLSC there')
     rdf = df[
@@ -765,26 +764,26 @@ if missing_exps:
         experiment_2 = lambda x: {
             'comments': [f'{x}_adabelief', f'heinit{x}_adabelief', ],
             'act': ['sin', 'relu', 'cos'], 'dataset': ['mnist', 'cifar10', 'cifar100'],  # ['cifar10', 'cifar100'],
-            'depth': [30], 'width': [128], 'lr': [3.16e-3, 1e-2], # [1e-3, 3.16e-4, 1e-4, 3.16e-5, 1e-5],
+            'depth': [30], 'width': [128], 'lr': [3.16e-3, 1e-2],  # [1e-3, 3.16e-4, 1e-4, 3.16e-5, 1e-5],
             'eps': [50], 'spe': [-1], 'pre_eps': [100], 'seed': list(range(4)),
         }
 
         experiment_3 = lambda x: {
             'comments': all_comments(x),
             'act': ['sin', 'relu', 'cos'], 'dataset': ['mnist', 'cifar10', 'cifar100'],  # ['cifar10', 'cifar100'],
-            'depth': [30], 'width': [128], 'lr': [3.16e-3, 1e-2], # [1e-3, 3.16e-4, 1e-4, 3.16e-5, 1e-5],
+            'depth': [30], 'width': [128], 'lr': [1e-2, 3.16e-3, 1e-3, 3.16e-4, 1e-4, 3.16e-5, 1e-5],
             'eps': [50], 'spe': [-1], 'pre_eps': [100], 'seed': list(range(4)),
         }
 
 
-        exps = lambda x: [experiment(x)]
-        # def exps(x):
-        #     if x == '_onlypretrain':
-        #         return [experiment(x)]
-        #     elif x == '_onlyloadpretrained':
-        #         return [] # [experiment_2(x)]
-        #     else:
-        #         raise NotImplementedError
+        # exps = lambda x: [experiment(x)]
+        def exps(x):
+            if x == '_onlypretrain':
+                return [experiment(x)]
+            elif x == '_onlyloadpretrained':
+                return [experiment_3(x)]
+            else:
+                raise NotImplementedError
 
 
     elif 'effnet' in expsid:
