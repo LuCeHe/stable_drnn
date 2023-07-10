@@ -17,11 +17,11 @@ EXPERIMENTS = r'D:\work\alif_sg\experiments'
 plot_norms_evol = False
 plot_norms_evol_1 = False
 lrs_plot = False
-lrs_plot_2 = False
+lrs_plot_2 = True
 bar_plot = False
 plot_losses = False
 
-missing_exps = True
+missing_exps = False
 remove_incomplete = False
 truely_remove = False
 
@@ -774,7 +774,6 @@ if missing_exps:
             'depth': [30], 'width': [128], 'lr': [1e-2, 3.16e-3, 1e-3, 3.16e-4, 1e-4, 3.16e-5, 1e-5],
             'eps': [50], 'spe': [-1], 'pre_eps': [100], 'seed': list(range(4)),
         }
-
 
         # exps = lambda x: [experiment(x)]
         def exps(x):
