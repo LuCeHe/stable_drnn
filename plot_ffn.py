@@ -17,11 +17,11 @@ EXPERIMENTS = r'D:\work\alif_sg\experiments'
 plot_norms_evol = False
 plot_norms_evol_1 = False
 lrs_plot = False
-lrs_plot_2 = True
+lrs_plot_2 = False
 bar_plot = False
 plot_losses = False
 
-missing_exps = False
+missing_exps = True
 remove_incomplete = False
 truely_remove = False
 
