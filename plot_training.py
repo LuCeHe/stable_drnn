@@ -604,7 +604,7 @@ if nice_bar_plot:
 
     # set width of bar
     barWidth = 0.33
-    fig, axs = plt.subplots(1, 1, figsize=(4, 3))
+    fig, axs = plt.subplots(1, 1, figsize=(6, 4))
 
     # set height of bar
     stack_2 = 100 * np.array(list(results['None'].values()))
@@ -615,10 +615,14 @@ if nice_bar_plot:
     br2 = [x + barWidth for x in br1]
     br3 = [x + barWidth for x in br2]
 
+    c_2 = '#C6C580'
+    c_5 = '#609208'
+
     # Make the plot
-    plt.bar(br1, stack_2, color='r', width=barWidth, edgecolor='grey', label='2 layers')
-    plt.bar(br2, stack_5, color='g', width=barWidth, edgecolor='grey', label='5 layers')
-    plt.axhline(y=50, color='k', linestyle='-')
+    axs.bar(br1, stack_2, color=c_2, width=barWidth, label='2 layers')
+    axs.bar(br2, stack_5, color=c_5, width=barWidth, label='5 layers')
+    axs.axhline(y=50, color='k', linestyle='--')
+    axs.set_yticks([0, 25, 50, 75])
 
     # for ax in axs.reshape(-1):
     for pos in ['right', 'left', 'bottom', 'top']:
@@ -626,20 +630,21 @@ if nice_bar_plot:
 
     # Adding Xticks
     # plt.xlabel('Branch', fontweight='bold', fontsize=15)
-    plt.ylabel('Percentage\nof experiments', fontweight='bold', fontsize=15)
+    plt.ylabel('Percentage\nof experiments', fontweight='bold', fontsize=17)
     plt.xticks([r + barWidth/2 for r in range(len(stack_2))],
-               ['half > one', 'half > none', 'one > none\n(ALIFs)', ], rotation=10, fontsize=15)
+               # ['half > one', 'half > none', 'one > none\n(ALIFs)', ],
+               [r'$\rho_t=0.5$' + '\nbetter than\n' + r'$\rho_t=1$',
+                r'$\rho_t=0.5$' + '\nbetter than\nnone', r'$\rho_t=1$'+'\nbetter than\nnone\n(ALIFs)', ],
+               rotation=10, fontsize=15)
 
 
     legend_elements = [
-        Line2D([0], [0], color='r', lw=4, label='2 layers'),
-        Line2D([0], [0], color='g', lw=4, label='5 layers'),
+        Line2D([0], [0], color=c_2, lw=4, label='2 layers'),
+        Line2D([0], [0], color=c_5, lw=4, label='5 layers'),
     ]
 
-    plt.legend(ncol=2, handles=legend_elements, loc='center', bbox_to_anchor=(.4, -.4))
+    plt.legend(ncol=2, handles=legend_elements, loc='center', bbox_to_anchor=(.5, .995), fontsize=15)
 
-
-    # plt.legend()
     plot_filename = f'experiments/nicebars.pdf'
     fig.savefig(plot_filename, bbox_inches='tight')
     plt.show()
