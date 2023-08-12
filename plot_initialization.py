@@ -6,15 +6,16 @@ import matplotlib.pyplot as plt
 
 from pyaromatics.stay_organized.utils import setReproducible
 from pyaromatics.keras_tools.esoteric_losses.loss_redirection import get_loss
-from keras_tools.esoteric_initializers.out_initializer import OutInitializer
+from pyaromatics.keras_tools.esoteric_initializers.out_initializer import OutInitializer
 # from alif_sg.generate_data.task_redirection import Task, language_tasks
 # from alif_sg.neural_models_tf.custom_lstm import customLSTMcell
 # from sg_design_lif.neural_models_tf.full_model import build_model
-from stochastic_spiking.generate_data.task_redirection import language_tasks
+# from stochastic_spiking.generate_data.task_redirection import language_tasks
 
 # mpl = load_plot_settings(mpl=mpl, pd=None)
 
-from stochastic_spiking.visualization_tools.training_tests import get_test_model
+# from stochastic_spiking.visualization_tools.training_tests import get_test_model
+
 
 from scipy import special as sp
 from scipy.optimize import curve_fit
@@ -256,7 +257,8 @@ def initialization_tests():
                 ax.set_yticks([1e8, 1e16])
 
                 # axs[0].set_ylabel(r'$\frac{1}{T}\binom{T + \Delta l +2}{T}$', fontsize=fontsize + 6)
-                ax.set_ylabel('Number of descent paths\nin rectangular grid', fontsize=fontsize * 1.1, labelpad=20)
+                # ax.set_ylabel('Descent paths number\nin rectangular grid', fontsize=fontsize * 1.1, labelpad=20)
+                ax.set_ylabel('# descent paths\nin rectangular grid', fontsize=fontsize * 1)
 
             elif label == 'ii)':
 
@@ -290,7 +292,8 @@ def initialization_tests():
 
         # axs[0].tick_params(axis='y', which='minor')
         pathplot = os.path.join(CDIR, 'experiments', 'subexp.pdf')
-        fig.savefig(pathplot, bbox_inches='tight')
+        # fig.savefig(pathplot, bbox_inches='tight')
+        fig.savefig(pathplot)
 
         plt.show()
 
