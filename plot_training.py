@@ -591,6 +591,41 @@ if nice_bar_plot:
                 'one_better_than_none': one_better_than_none / tot,
             })
 
+
+        for stack in ['None', '5']:
+            idf = df[
+                df['stack'].eq(stack)
+                & ~df['net'].str.contains('ALIF')
+                ]
+            one_df = idf[
+                idf['comments'].str.contains('findLSC')
+            ]
+
+            one_better_than_none = 0
+            tot = 0
+            for _, row in one_df.iterrows():
+                # print('-' * 80)
+                # print(row['comments'])
+                same_none_df = idf[
+                    ~idf['comments'].str.contains('findLSC')
+                    & idf['net'].eq(row['net'])
+                    & idf['seed'].eq(row['seed'])
+                    & idf['task'].str.contains(row['task'])
+                    ]
+                if not same_none_df.empty:
+                    tot += 1
+                    metric = 't_^acc' if not row['task'] == 'PTB' else 't_ppl'
+                    if same_none_df[metric].values[0] < row[metric] and 'acc' in metric:
+                        one_better_than_none += 1
+                    elif same_none_df[metric].values[0] > row[metric] and 'ppl' in metric:
+                        one_better_than_none += 1
+
+            print(f'one_better_than_none no ALIF (stack {stack}): ', one_better_than_none / tot)
+
+            results[stack].update({
+                'one_better_than_none_noalif': one_better_than_none / tot,
+            })
+
         with open(pickle_path, 'wb') as handle:
             pickle.dump(results, handle, protocol=pickle.HIGHEST_PROTOCOL)
     else:
@@ -607,6 +642,7 @@ if nice_bar_plot:
     fig, axs = plt.subplots(1, 1, figsize=(6, 4))
 
     # set height of bar
+    print(list(results['None'].keys()))
     stack_2 = 100 * np.array(list(results['None'].values()))
     stack_5 = 100 * np.array(list(results['5'].values()))
 
@@ -634,7 +670,10 @@ if nice_bar_plot:
     plt.xticks([r + barWidth/2 for r in range(len(stack_2))],
                # ['half > one', 'half > none', 'one > none\n(ALIFs)', ],
                [r'$\rho_t=0.5$' + '\nbetter than\n' + r'$\rho_t=1$',
-                r'$\rho_t=0.5$' + '\nbetter than\nnone', r'$\rho_t=1$'+'\nbetter than\nnone\n(ALIFs)', ],
+                r'$\rho_t=0.5$' + '\nbetter than\nnone',
+                r'$\rho_t=1$'+'\nbetter than\nnone\n(ALIFs)',
+                r'$\rho_t=1$'+'\nbetter than\nnone\n(no ALIFs)',
+                ],
                rotation=10, fontsize=15)
 
 
