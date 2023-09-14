@@ -260,9 +260,11 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
         hi, ci = 0, None
         n_states = 1
 
+    states_dtype = tf.float32 if not 'reslru' in net_name else tf.complex64
+
     for width in stack:
         for _ in range(n_states):
-            states.append(tf.zeros((batch_size, width)))
+            states.append(tf.zeros((batch_size, width), dtype=states_dtype))
 
     pbar1 = tqdm(total=steps_per_epoch, position=1)
     epsilon_steps = 0

@@ -49,17 +49,17 @@ def config():
     # test configuration
     epochs = 4
     steps_per_epoch = 2
-    batch_size = 2
+    batch_size = 5
 
     # net
-    # maLSNN cLSTM LSTM maLSNNb GRU indrnn LMU ssimplernn rsimplernn
-    net = 'maLSNN'
+    # maLSNN cLSTM LSTM maLSNNb GRU indrnn LMU ssimplernn rsimplernn reslru
+    net = 'reslru'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
     stack = 3
     n_neurons = 2
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task in language_tasks else False
-    comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain_pretrained_tsteps:10'
+    comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_pretrained_tsteps:2'
     # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain_pretrained_lsclr:0.0001_nbs:16_tsteps:10'
     # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain_pretrained_lsclr:0.0001_nbs:16_targetnorm:.5'
     # comments = ''
