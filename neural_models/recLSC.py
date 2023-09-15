@@ -381,8 +381,8 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
         for t in range(ts):
             iterations += 1
 
-            if True:
-                # try:
+            # if True:
+            try:
                 bt = batch[0][0][:, t, :][:, None]
                 wt = batch[0][1][:, t][:, None]
 
@@ -611,7 +611,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                         print('multiplier to weights!')
                         new_weights = []
                         for w, _wname in zip(weights, wnames):
-                            print(_wname)
+                            # print(_wname)
                             wname = _wname
                             if len(w.shape) >= 2 or 'tau' in wname or 'bias' in wname \
                                     or 'internal_current' in wname or '/thr:' in wname \
@@ -661,15 +661,15 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                                         idx = norms_names.index(f'{dname} l{depth}')
                                         local_norm = some_norms[idx].numpy()
                                         n_multiplier = target_norm / local_norm
-                                        print('depth radius: ' + wname, n_multiplier)
-                                        print('   local norm: ', local_norm)
+                                        # print('depth radius: ' + wname, n_multiplier)
+                                        # print('   local norm: ', local_norm)
 
                                     elif 'recurrent_weights' in wname or 'recurrent_kernel' in wname or rec_radius:
                                         idx = norms_names.index(f'rec l{depth}')
                                         local_norm = some_norms[idx].numpy()
                                         n_multiplier = target_norm / local_norm
-                                        print('recurrent radius: ' + wname, n_multiplier)
-                                        print('   local norm: ', local_norm)
+                                        # print('recurrent radius: ' + wname, n_multiplier)
+                                        # print('   local norm: ', local_norm)
 
                                 elif 'decoder/kernel' in wname or 'embedding' in wname:
                                     s = w.shape[1] if 'embedding' in wname else w.shape[0]
@@ -726,9 +726,9 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                     f"fail rate {failures / iterations * 100:.1f}%; "
                 )
 
-            # except Exception as e:
-            #     failures += 1
-            #     print(e)
+            except Exception as e:
+                failures += 1
+                print(e)
 
         del batch
 
