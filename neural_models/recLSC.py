@@ -6,6 +6,7 @@ import tensorflow_probability as tfp
 import tensorflow_addons as tfa
 
 from alif_sg.tools.admin_model_removal import get_pretrained_file
+from pyaromatics.keras_tools.esoteric_layers.linear_recurrent_unit import ResLRUCell
 from pyaromatics.keras_tools.esoteric_optimizers.AdamW import AdamW as AdamW2
 
 from pyaromatics.keras_tools.convenience_operations import sample_axis
@@ -195,6 +196,7 @@ def load_LSC_model(path):
             'SparseCategoricalCrossentropy': tf.keras.losses.SparseCategoricalCrossentropy,
             'AdamW': AdamW2, 'DummyConstantSchedule': DummyConstantSchedule,
             'SymbolAndPositionEmbedding': SymbolAndPositionEmbedding,
+            'ResLRUCell': ResLRUCell
         },
         compile=False
     )
@@ -379,8 +381,8 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
         for t in range(ts):
             iterations += 1
 
-            # if True:
-            try:
+            if True:
+                # try:
                 bt = batch[0][0][:, t, :][:, None]
                 wt = batch[0][1][:, t][:, None]
 
@@ -609,10 +611,11 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                         print('multiplier to weights!')
                         new_weights = []
                         for w, _wname in zip(weights, wnames):
+                            print(_wname)
                             wname = _wname
                             if len(w.shape) >= 2 or 'tau' in wname or 'bias' in wname \
                                     or 'internal_current' in wname or '/thr:' in wname \
-                                    or '/beta:' in wname:
+                                    or '/beta:' in wname or 'lambda' in wname:
                                 n_multiplier, multiplier = 1, 1
                                 wname = wname.replace('ma_lsnn_', '_cell_')
                                 wname = wname.replace('ma_lsn_nb_', '_cell_')
@@ -628,16 +631,45 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
 
                                     dname = 'enc' if depth == 0 else 'depth'
 
-                                    if 'input_weights' in wname or '/kernel:' in wname or 'bias' in wname \
-                                            or 'internal_current' in wname or 'thr:' in wname or 'beta:' in wname:
+                                    depth_radius = False
+                                    if 'lsnn' in wname:
+                                        if 'internal_current' in wname or 'thr:' in wname or 'beta:' in wname:
+                                            depth_radius = True
+
+                                    elif 'res_lru' in wname:
+                                        if 'geglu' in wname and 'kernel' in wname:
+                                            depth_radius = True
+
+                                        if 'C_re' in wname or 'B_re' in wname or 'B_im' in wname or 'C_im' in wname:
+                                            depth_radius = True
+
+                                    elif 'lstm' in wname:
+                                        if '/kernel:' in wname:
+                                            depth_radius = True
+
+                                    rec_radius = False
+                                    if 'lsnn' in wname:
+                                        if 'tau' in wname:
+                                            rec_radius = True
+
+                                    elif 'res_lru' in wname:
+                                        if 'lambda_nu' in wname:
+                                            rec_radius = True
+
+                                    if 'input_weights' in wname or depth_radius:
+                                        # or 'B_re' in wname or 'B_im' in wname:
                                         idx = norms_names.index(f'{dname} l{depth}')
                                         local_norm = some_norms[idx].numpy()
                                         n_multiplier = target_norm / local_norm
+                                        print('depth radius: ' + wname, n_multiplier)
+                                        print('   local norm: ', local_norm)
 
-                                    elif 'recurrent_weights' in wname or 'recurrent_kernel' in wname or 'tau' in wname:
+                                    elif 'recurrent_weights' in wname or 'recurrent_kernel' in wname or rec_radius:
                                         idx = norms_names.index(f'rec l{depth}')
                                         local_norm = some_norms[idx].numpy()
                                         n_multiplier = target_norm / local_norm
+                                        print('recurrent radius: ' + wname, n_multiplier)
+                                        print('   local norm: ', local_norm)
 
                                 elif 'decoder/kernel' in wname or 'embedding' in wname:
                                     s = w.shape[1] if 'embedding' in wname else w.shape[0]
@@ -692,12 +724,11 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                     f"mean norms {show_norm}/{ni} (best {str(np.array(best_norm).round(round_to))}); "
                     f"ma std norms {str(np.array(std_ma_norm).round(round_to))}/{1} (best {str(np.array(best_std_ma_norm).round(round_to))}); "
                     f"fail rate {failures / iterations * 100:.1f}%; "
-
                 )
 
-            except Exception as e:
-                failures += 1
-                print(e)
+            # except Exception as e:
+            #     failures += 1
+            #     print(e)
 
         del batch
 
