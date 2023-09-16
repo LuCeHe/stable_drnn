@@ -43,13 +43,13 @@ def config():
 
     # task and net
     # ps_mnist heidelberg s_mnist
-    # wordptb sl_mnist
-    task = 'sl_mnist'
+    # wordptb sl_mnist lralistops
+    task = 'wordptb'
 
     # test configuration
     epochs = 4
     steps_per_epoch = 2
-    batch_size = 5
+    batch_size = 8
 
     # net
     # maLSNN cLSTM LSTM maLSNNb GRU indrnn LMU ssimplernn rsimplernn reslru
@@ -59,7 +59,7 @@ def config():
     n_neurons = 32
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task in language_tasks else False
-    comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2'
+    comments = 'allns_36_nogradreset_dropout:0'
     # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_pretrained_tsteps:2_test'
     # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain_pretrained_lsclr:0.0001_nbs:16_tsteps:10'
     # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain_pretrained_lsclr:0.0001_nbs:16_targetnorm:.5'
@@ -106,8 +106,8 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
     images_dir = os.path.join(exp_dir, 'images')
     other_dir = os.path.join(exp_dir, 'other_outputs')
     models_dir = os.path.join(exp_dir, 'trained_models')
-    full_mean, full_var = checkTaskMeanVariance(task_name)
-    comments = comments + '_taskmean:{}_taskvar:{}'.format(full_mean, full_var)
+    # full_mean, full_var = checkTaskMeanVariance(task_name)
+    # comments = comments + '_taskmean:{}_taskvar:{}'.format(full_mean, full_var)
 
     ChooseGPU(GPU)
     setReproducible(seed)
@@ -142,7 +142,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
         lr=lr, stack=stack, loss_name=loss_name,
         embedding=embedding, optimizer_name=optimizer_name, lr_schedule=lr_schedule,
         weight_decay=weight_decay, clipnorm=clipnorm, initializer=initializer, comments=comments,
-        in_len=gen_train.in_len, n_in=gen_train.in_dim, out_len=gen_train.out_len,
+        in_len=gen_train.in_len, n_in=gen_train.in_dim, out_len=gen_train.out_len, vocab_size=gen_train.vocab_size,
         n_out=gen_train.out_dim, final_epochs=gen_train.epochs, seed=seed,
     )
 
