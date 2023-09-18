@@ -47,20 +47,20 @@ def config():
     task = 'wordptb'
 
     # test configuration
-    epochs = 4
+    epochs = 2
     steps_per_epoch = 2
     batch_size = 8
 
     # net
-    # maLSNN cLSTM LSTM maLSNNb GRU indrnn LMU ssimplernn rsimplernn reslru
+    # maLSNN cLSTM LSTM maLSNNb GRU indrnn LMU ssimplernn rsimplernn reslru lru
     net = 'reslru'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
-    stack = 3
-    n_neurons = 32
+    stack = '2:2'
+    n_neurons = 2
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task in language_tasks else False
     comments = 'allns_36_nogradreset_dropout:0'
-    # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_pretrained_tsteps:2_test'
+    # comments = 'lscdepth:1_36_embproj_nogradreset_dropout:0_findLSC_radius_pretrained_tsteps:2_test'
     # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain_pretrained_lsclr:0.0001_nbs:16_tsteps:10'
     # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain_pretrained_lsclr:0.0001_nbs:16_targetnorm:.5'
     # comments = ''
@@ -166,7 +166,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
             time_start = time.perf_counter()
             print('Finding the LSC...')
             n_samples = str2val(comments, 'normsamples', int, default=-1)
-            lscrec = bool(str2val(comments, 'lscrec', int, default=1))
+            lscrec = bool(str2val(comments, 'lscrec', int, default=0))
             lscdepth = bool(str2val(comments, 'lscdepth', int, default=0))
             lscout = bool(str2val(comments, 'lscout', int, default=0))
             lscin = bool(str2val(comments, 'lscin', int, default=0))

@@ -49,6 +49,11 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
         hss = []
         for hlm1 in lower_states:
             hs = [tape.batch_jacobian(hl, hlm1, experimental_use_pfor=True) for hl in upper_states]
+            # hs_aux = [tape.batch_jacobian(hlm1,hl,  experimental_use_pfor=True) for hl in upper_states]
+            # print(tape.gradient(upper_states[0], hlm1))
+            # print(tape.gradient(hlm1, upper_states[0]))
+            print(hs)
+            # print(hs_aux)
             hss.append(tf.concat(hs, axis=1))
 
         if len(hss) > 1:
@@ -154,37 +159,9 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
 
     loss += well_loss(min_value=target_norm, max_value=target_norm, walls_type='squared', axis='all')(norms)
 
-    naswot_score = None
-    if not naswot == 0:
-        batch_size = td.shape[0]
-        t = tf.reshape(td, (batch_size, -1))
 
-        if not 'v2naswot' in comments:
-            t = sample_axis(t, max_dim=batch_size)
-            std = tf.math.reduce_std(t)
-            t = t + tf.random.normal(t.shape) * std / 10
-            t = tf.tanh(t)
 
-        else:
-            std = tf.math.reduce_std(t)
-            t = t + tf.random.normal(t.shape) * std / 10
-
-            t = tf.transpose(t, (1, 0))
-            t = tfp.stats.correlation(t)
-
-        naswot_score = tf.abs(tf.linalg.slogdet(t)[1])
-
-        naswot_loss = well_loss(min_value=0, max_value=0, walls_type='relu', axis='all')(naswot_score)
-        naswot_loss = naswot_loss if not tf.math.is_inf(naswot_loss) else tf.ones_like(naswot_loss)
-
-        if naswot == 1:
-            scale_factor = tf.stop_gradient(loss / naswot_loss)
-            loss += scale_factor * naswot_loss
-        elif naswot == -1:
-            scale_factor = 1  # tf.stop_gradient(1 / naswot_loss)
-            loss = scale_factor * naswot_loss
-
-    return tf.abs(norms), loss, naswot_score
+    return tf.abs(norms), loss, None
 
 
 def load_LSC_model(path):
@@ -254,7 +231,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
             hi, ci = 0, 1
             n_states = 2
 
-    elif 'LSTM' in net_name:
+    elif 'LSTM' in net_name or 'lru' in net_name:
         hi, ci = 0, 1
         n_states = 2
 
@@ -262,11 +239,9 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
         hi, ci = 0, None
         n_states = 1
 
-    states_dtype = tf.float32 if not 'reslru' in net_name else tf.complex64
-
     for width in stack:
         for _ in range(n_states):
-            states.append(tf.zeros((batch_size, width), dtype=states_dtype))
+            states.append(tf.Variable(tf.zeros((batch_size, width), dtype=tf.float32)))
 
     pbar1 = tqdm(total=steps_per_epoch, position=1)
     epsilon_steps = 0
@@ -353,7 +328,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                 save_norms[f'batch {step} {nt} layer {i}'] = []
 
         batch = gen_train.__getitem__(step)
-        batch = [tf.convert_to_tensor(tf.cast(b, tf.float32), dtype=tf.float32) for b in batch[0]],
+        batch = [tf.Variable(tf.convert_to_tensor(tf.cast(b, tf.float32), dtype=tf.float32)) for b in batch[0]],
 
         if 'gausslsc' in comments:
             batch = [tf.random.normal(b.shape) for b in batch[0]],
@@ -383,8 +358,8 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
 
             # if True:
             try:
-                bt = batch[0][0][:, t, :][:, None]
-                wt = batch[0][1][:, t][:, None]
+                bt = tf.Variable(batch[0][0][:, t, :][:, None])
+                wt = tf.Variable(batch[0][1][:, t][:, None])
 
                 tf.keras.backend.clear_session()
                 model, tape = None, None
@@ -404,14 +379,14 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
 
                     if not 'ptb' in task_name:
                         bflat = tf.reshape(bt, [bt.shape[0], -1])
-                        breshaped = tf.reshape(bflat, bt.shape)
+                        breshaped = tf.Variable(tf.reshape(bflat, bt.shape))
 
                         outputs = model([breshaped, wt, *states])
                     else:
                         bt = embedding_model(bt)
 
                         bflat = tf.reshape(bt, [bt.shape[0], -1])
-                        breshaped = tf.reshape(bflat, bt.shape)
+                        breshaped = tf.Variable(tf.reshape(bflat, bt.shape))
 
                         outputs = noemb_model([breshaped, wt, *states])
 
@@ -472,11 +447,13 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
 
                         if depth_norm and r3 < .5:
                             if not state_below is None:
+                                print('depth', '-' * 40)
                                 norms, loss, naswot_score = get_norms(tape=tape, lower_states=state_below,
                                                                       upper_states=sl,
                                                                       n_samples=n_samples, norm_pow=norm_pow,
                                                                       naswot=naswot,
                                                                       comments=comments, target_norm=target_norm)
+                                # print('here?!', norms)
                                 save_norms[f'batch {step} depth layer {i}'].append(tf.reduce_mean(norms).numpy())
                                 norms_names.append(f'depth l{i}')
 
@@ -504,18 +481,6 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                                 mean_loss += l() * loss / n_norms
 
                         del htp1, ht, ctp1, ct
-
-                if 'reducevar' in comments:
-                    print('nice')
-                    print(mean_loss)
-                    print(tf.math.reduce_std(some_losses))
-                    mean_loss += l() * tf.math.reduce_std(some_losses) / 10
-
-                # if 'reducevar' in comments:
-                #     print('interesting!')
-                #     sn = [tf.reduce_mean(n) for n in some_norms]
-                #     mean_loss += l() * tf.math.reduce_variance(sn)
-                #     mean_loss += l() * tf.math.reduce_mean(sn)
 
                 mean_norm = tf.reduce_mean(some_norms)
                 ma_loss = loss if ma_loss is None else ma_loss * 9 / 10 + loss / 10
