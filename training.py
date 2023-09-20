@@ -53,7 +53,7 @@ def config():
 
     # net
     # maLSNN cLSTM LSTM maLSNNb GRU indrnn LMU ssimplernn rsimplernn reslru lru
-    net = 'reslru'
+    net = 'reslruffn'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
     stack = '2:2'
     n_neurons = 2

@@ -50,8 +50,8 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
         for hlm1 in lower_states:
             hs = [tape.batch_jacobian(hl, hlm1, experimental_use_pfor=True) for hl in upper_states]
             # hs_aux = [tape.batch_jacobian(hlm1,hl,  experimental_use_pfor=True) for hl in upper_states]
-            # print(tape.gradient(upper_states[0], hlm1))
-            # print(tape.gradient(hlm1, upper_states[0]))
+            print(tape.gradient(upper_states[0], hlm1))
+            print(tape.gradient(hlm1, upper_states[0]))
             print(hs)
             # print(hs_aux)
             hss.append(tf.concat(hs, axis=1))
@@ -142,9 +142,6 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
         elif norm_pow == 2:
             norms = tf.linalg.svd(td, compute_uv=False)[..., 0]
 
-        else:
-            raise NotImplementedError
-
     elif n_samples > 0:
         x = tf.random.normal((td.shape[0], td.shape[-1], n_samples))
         x_norm = tf.norm(x, ord=norm_pow, axis=1)
@@ -158,8 +155,6 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
         norms = tf.math.reduce_max(tf.abs(tf.linalg.eigvals(std)), axis=-1)
 
     loss += well_loss(min_value=target_norm, max_value=target_norm, walls_type='squared', axis='all')(norms)
-
-
 
     return tf.abs(norms), loss, None
 
@@ -223,6 +218,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
     # hi, ci = (1, 2) if 'LSNN' in net_name else (0, 1)
     # n_states = 4 if 'LSNN' in net_name else 2
 
+    ms = 1  # state size multiplier
     if 'LSNN' in net_name:
         if not 'reoldspike' in comments:
             hi, ci = 1, 2
@@ -234,6 +230,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
     elif 'LSTM' in net_name or 'lru' in net_name:
         hi, ci = 0, 1
         n_states = 2
+        ms = 2
 
     else:
         hi, ci = 0, None
@@ -241,7 +238,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
 
     for width in stack:
         for _ in range(n_states):
-            states.append(tf.Variable(tf.zeros((batch_size, width), dtype=tf.float32)))
+            states.append(tf.Variable(tf.zeros((batch_size, ms * width), dtype=tf.float32)))
 
     pbar1 = tqdm(total=steps_per_epoch, position=1)
     epsilon_steps = 0
@@ -356,8 +353,8 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
         for t in range(ts):
             iterations += 1
 
-            # if True:
-            try:
+            if True:
+                # try:
                 bt = tf.Variable(batch[0][0][:, t, :][:, None])
                 wt = tf.Variable(batch[0][1][:, t][:, None])
 
@@ -691,9 +688,9 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                     f"fail rate {failures / iterations * 100:.1f}%; "
                 )
 
-            except Exception as e:
-                failures += 1
-                print(e)
+            # except Exception as e:
+            #     failures += 1
+            #     print(e)
 
         del batch
 
