@@ -44,7 +44,7 @@ def config():
     # task and net
     # ps_mnist heidelberg s_mnist
     # wordptb sl_mnist lralistops
-    task = 'lra_listops'
+    task = 'wordptb'
 
     # test configuration
     epochs = 2
