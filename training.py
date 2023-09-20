@@ -43,8 +43,8 @@ def config():
 
     # task and net
     # ps_mnist heidelberg s_mnist
-    # wordptb sl_mnist lralistops
-    task = 'wordptb'
+    # wordptb sl_mnist lra_listops lra_text
+    task = 'lra_text'
 
     # test configuration
     epochs = 2
@@ -70,7 +70,7 @@ def config():
     optimizer_name = 'AdaBeliefLA'  # AdaBelief AdamW SWAAdaBelief AdaBeliefLA
     lr_schedule = ''  # 'warmup_cosine_restarts'
     weight_decay_prop_lr = None
-    weight_decay = 0. # weight_decay_prop_lr * lr
+    weight_decay = 0.  # weight_decay_prop_lr * lr
     clipnorm = None  # not 1., to avoid NaN in the embedding, only ptb though
 
     loss_name = 'sparse_categorical_crossentropy'  # categorical_crossentropy categorical_focal_loss contrastive_loss
@@ -81,7 +81,6 @@ def config():
 
     # 22h=79200 s, 21h=75600 s, 20h=72000 s, 12h = 43200 s, 6h = 21600 s, 72h = 259200
     stop_time = 21600
-
 
 
 @ex.capture
@@ -271,6 +270,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
                         name=task_name, train_val_test='test', maxlen=maxlen, comments=comments)
 
         checkpoint_filepath = os.path.join(models_dir, 'checkpoint')
+
         callbacks = [
             LearningRateLogger(),
             TimeStopping(stop_time, 1),
@@ -279,10 +279,16 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
                 filepath=checkpoint_filepath, save_weights_only=True, monitor='val_loss', mode='min',
                 save_best_only=True
             ),
-            MultipleValidationSets({'v': gen_val, 't': gen_test}, verbose=0),
+        ]
+        if not 'lru' in net_name and not 'lra_' in task_name:
+            callbacks.append(
+                MultipleValidationSets({'v': gen_val, 't': gen_test}, verbose=0)
+            )
+
+        callbacks.extend([
             tf.keras.callbacks.CSVLogger(history_path),
             tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=10, restore_best_weights=True)
-        ]
+        ])
 
         if ostack in [3, 5, 7]:
             callbacks.append(
