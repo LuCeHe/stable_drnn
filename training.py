@@ -70,7 +70,7 @@ def config():
     optimizer_name = 'AdaBeliefLA'  # AdaBelief AdamW SWAAdaBelief AdaBeliefLA
     lr_schedule = ''  # 'warmup_cosine_restarts'
     weight_decay_prop_lr = None
-    weight_decay = 0.  # weight_decay_prop_lr * lr
+    weight_decay = 0. if not 'lra_' in task else 0.1
     clipnorm = None  # not 1., to avoid NaN in the embedding, only ptb though
 
     loss_name = 'sparse_categorical_crossentropy'  # categorical_crossentropy categorical_focal_loss contrastive_loss
@@ -292,7 +292,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
 
         if ostack in [3, 5, 6, 7]:
             callbacks.append(
-                ClearMemory(end_of_batch=True, verbose=1, show_gpu=False),
+                ClearMemory(end_of_batch=True, verbose=0, show_gpu=False),
             )
 
         if 'tenb' in comments:
