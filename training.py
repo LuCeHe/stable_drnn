@@ -1,6 +1,7 @@
 import os, shutil, logging, json, copy
 import pandas as pd
 
+from pyaromatics.keras_tools.esoteric_tasks import language_tasks
 from pyaromatics.keras_tools.silence_tensorflow import silence_tf
 
 silence_tf()
@@ -22,7 +23,7 @@ from pyaromatics.keras_tools.plot_tools import plot_history
 from pyaromatics.stay_organized.VeryCustomSacred import CustomExperiment, ChooseGPU
 from pyaromatics.stay_organized.utils import setReproducible, str2val, NumpyEncoder, save_results
 from pyaromatics.keras_tools.esoteric_callbacks.several_validations import MultipleValidationSets
-from pyaromatics.keras_tools.esoteric_tasks.time_task_redirection import Task, checkTaskMeanVariance, language_tasks
+from pyaromatics.keras_tools.esoteric_tasks.time_task_redirection import Task, checkTaskMeanVariance
 
 from sg_design_lif.neural_models.full_model import build_model
 from alif_sg.neural_models.recLSC import apply_LSC
