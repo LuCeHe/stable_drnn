@@ -44,7 +44,7 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
 
     norms = None
     loss = 0
-    upper_states = [tf.squeeze(hl) for hl in upper_states]
+    # upper_states = [tf.squeeze(hl) for hl in upper_states]
     if not test:
         hss = []
         for hlm1 in lower_states:
