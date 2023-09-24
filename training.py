@@ -45,7 +45,7 @@ def config():
     # task and net
     # ps_mnist heidelberg s_mnist
     # wordptb sl_mnist lra_listops lra_text
-    task = 'sl_mnist'
+    task = 'lra_scifar'
 
     # test configuration
     epochs = 2
@@ -60,8 +60,8 @@ def config():
     n_neurons = 2
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task in language_tasks else False
-    # comments = 'allns_36_nogradreset_dropout:0'
-    comments = 'lscdepth:1_36_embproj_nogradreset_dropout:0_findLSC_radius_pretrained_tsteps:2_test'
+    comments = 'allns_36_nogradreset_dropout:0'
+    # comments = 'lscdepth:1_36_embproj_nogradreset_dropout:0_findLSC_radius_pretrained_tsteps:2_test'
     # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain_pretrained_lsclr:0.0001_nbs:16_tsteps:10'
     # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain_pretrained_lsclr:0.0001_nbs:16_targetnorm:.5'
     # comments = ''
@@ -111,6 +111,10 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
 
     ChooseGPU(GPU)
     setReproducible(seed)
+    gpus = tf.config.list_physical_devices('GPU')
+    if gpus:
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
 
     shutil.copytree(os.path.join(CDIR, 'neural_models'), other_dir + '/neural_models_tf')
     shutil.copyfile(FILENAME, other_dir + '/' + os.path.split(FILENAME)[-1])
