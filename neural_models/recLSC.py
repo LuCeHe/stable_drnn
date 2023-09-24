@@ -50,9 +50,9 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
         for hlm1 in lower_states:
             hs = [tape.batch_jacobian(hl, hlm1, experimental_use_pfor=True) for hl in upper_states]
             # hs_aux = [tape.batch_jacobian(hlm1,hl,  experimental_use_pfor=True) for hl in upper_states]
-            print(tape.gradient(upper_states[0], hlm1))
-            print(tape.gradient(hlm1, upper_states[0]))
-            print(hs)
+            # print(tape.gradient(upper_states[0], hlm1))
+            # print(tape.gradient(hlm1, upper_states[0]))
+            # print(hs)
             # print(hs_aux)
             hss.append(tf.concat(hs, axis=1))
 
