@@ -353,8 +353,8 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
         for t in range(ts):
             iterations += 1
 
-            if True:
-                # try:
+            # if True:
+            try:
                 bt = tf.Variable(batch[0][0][:, t, :][:, None])
                 wt = tf.Variable(batch[0][1][:, t][:, None])
 
@@ -688,9 +688,9 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                     f"fail rate {failures / iterations * 100:.1f}%; "
                 )
 
-            # except Exception as e:
-            #     failures += 1
-            #     print(e)
+            except Exception as e:
+                failures += 1
+                print(e)
 
         del batch
 
