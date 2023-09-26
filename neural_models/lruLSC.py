@@ -217,8 +217,6 @@ def lruLSC(comments='findLSC_radius', seed=0, stack=4, width=32, classes=2, voca
     ffn_weights = equivalence_and_save(comments, width, n_layers, classes, vocab_size, cells=cells,
                                        path_pretrained=path_pretrained)
 
-    # results['final_norms'] = final_norms
-    # results['norm_names'] = norm_names
     results['final_norm_dec'] = None
     results['final_norms_mean'] = mean_norm
     results['final_norms_std'] = current_std
@@ -252,37 +250,12 @@ def equivalence_and_save(comments, width, n_layers, classes, vocab_size, cells=N
     ffn_model = tf.keras.models.Sequential(
         [emb, ffn_stem] + ([dense] if not 'embproj' in comments else [])
     )
-    old_ffn_stem = ffn_stem.get_weights()
     ffn_model.set_weights(rnn_model.get_weights())
-    new_ffn_stem = ffn_stem.get_weights()
-    print('old_ffn_stem vs new', np.mean([np.mean(np.square(o - n)) for o, n in zip(old_ffn_stem, new_ffn_stem)]))
-
-    input_tensor = tf.Variable(np.random.randint(0, vocab_size, (batch_size, time_steps)))
-
-    start_time = time.time()
-    outrnn = rnn_model(input_tensor)
-    rnn_time = time.time() - start_time
-    print('outrnn')
-    print('     beginning:', outrnn[0, :3, :5])
-    print('     end:      ', outrnn[0, -3:, :5])
-
-    start_time = time.time()
-    outffn = ffn_model(input_tensor)
-    ffn_time = time.time() - start_time
-    print('outffn')
-    print('     beginning:', outffn[0, :3, :5])
-    print('     end:      ', outffn[0, -3:, :5])
-
-    print('rnn time: ', rnn_time)
-    print('ffn time: ', ffn_time)
-
-    print('Outputs difference:', tf.reduce_sum(tf.square(outffn - outrnn) / tf.square(outffn)).numpy())
 
     # save stem ffn
     if path_pretrained is not None:
         print('Saving pretrained lsc weights')
         print(path_pretrained)
-        # ffn_stem.save(path_pretrained)
         for i in range(len(ffn_stem.weights)):
             ffn_stem.weights[i]._handle_name = ffn_stem.weights[i].name + "_" + str(i)
         ffn_stem.save(path_pretrained)
