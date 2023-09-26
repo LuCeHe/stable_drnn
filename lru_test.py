@@ -4,7 +4,7 @@ import numpy as np
 from tqdm import tqdm
 
 from alif_sg.neural_models.recLSC import get_norms
-from pyaromatics.keras_tools.esoteric_layers.linear_recurrent_unit import LinearRecurrentUnitCell, ResLRUCell
+from pyaromatics.keras_tools.esoteric_layers.linear_recurrent_unit import LinearRecurrentUnitCell, ResLRUCell, ResLRUFFN
 from pyaromatics.stay_organized.utils import str2val
 
 
@@ -173,26 +173,68 @@ def lruLSC(comments='findLSC_radius', lr=1e-3):
 
 
 def test_equivalence():
-    rec = 2
-    batch_shape = 3
-    time_steps = 1
+
+    import time
+
+    vocab_size = 7
+    classes = 3
+    rec = 10
+    batch_size = 32
+    time_steps = 10
     n_layers = 6
-    ts = 2
-    tc = n_layers * 2
-    round_to = 5
-    rand = lambda shape=(rec,): tf.random.normal(shape)
 
     cells = [ResLRUCell(num_neurons=rec) for _ in range(n_layers)]
-    rnns = [tf.keras.layers.RNN(cell, return_sequences=True, return_state=True) for cell in cells]
-
-    model = tf.keras.models.Sequential([
-        tf.keras.layers.InputLayer(input_shape=(rec,)),
-        *rnns,
+    rnns = [tf.keras.layers.RNN(cell, return_sequences=True) for cell in cells]
+    rnn_stem = tf.keras.models.Sequential([
+        *rnns
     ])
 
-    pass
+    emb = tf.keras.layers.Embedding(vocab_size, rec)
+    dense = tf.keras.layers.Dense(classes)
+    rnn_model = tf.keras.models.Sequential([
+        # tf.keras.layers.InputLayer(input_shape=(None,)),
+        emb,
+        rnn_stem,
+        dense
+    ])
 
+    ffns = [ResLRUFFN(num_neurons=rec) for _ in range(n_layers)]
+    ffn_stem = tf.keras.models.Sequential([
+        *ffns
+    ])
+
+    ffn_model = tf.keras.models.Sequential([
+        # tf.keras.layers.InputLayer(input_shape=(None,)),
+        emb,
+        ffn_stem,
+        dense
+    ])
+    ffn_model.set_weights(rnn_model.get_weights())
+
+    input_tensor = tf.Variable(np.random.randint(0, vocab_size, (batch_size, time_steps)))
+
+    start_time = time.time()
+    outrnn = rnn_model(input_tensor)
+    rnn_time = time.time() - start_time
+    print('outrnn')
+    print(outrnn)
+
+    start_time = time.time()
+    outffn = ffn_model(input_tensor)
+    ffn_time = time.time() - start_time
+    print('outffn')
+    print(outffn)
+
+    print('rnn time: ', rnn_time)
+    print('ffn time: ', ffn_time)
+
+    print(tf.reduce_sum(tf.square(outffn - outrnn) / tf.square(outffn)))
+
+
+def save_layer_weights():
+    pass
 
 if __name__ == '__main__':
     # lruLSC()
     test_equivalence()
+    # save_layer_weights()
