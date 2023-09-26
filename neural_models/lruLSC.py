@@ -47,7 +47,7 @@ def lruLSC(comments='findLSC_radius', seed=0, stack=4, width=32, classes=2, voca
     time_steps = 1
 
     n_layers = int(stack)
-    ts = 50  # number of pretraining steps
+    ts = 50  if 'test' in comments else 500 # number of pretraining steps
     tc = n_layers * 2  # time constant for the moving averages
     round_to = 5
     rand = lambda shape=(width,): tf.random.normal(shape)
