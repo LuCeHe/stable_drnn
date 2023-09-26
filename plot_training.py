@@ -38,7 +38,8 @@ GEXPERIMENTS = [
     # os.path.join(CDIR, 'good_experiments', '2022-11-07--complete_set_of_exps'),
     # r'D:\work\alif_sg\experiments',
     # r'D:\work\alif_sg\good_experiments\2022-12-21--rnn',
-    r'D:\work\alif_sg\good_experiments\2023-01-20--rnn-v2',
+    # r'D:\work\alif_sg\good_experiments\2023-01-20--rnn-v2',
+    r'D:\work\alif_sg\good_experiments\2023-09-01--rnn-lru-first',
 ]
 
 expsid = 'als'  # effnet als ffnandcnns
@@ -53,7 +54,7 @@ pandas_means = True
 show_per_tasknet = False
 make_latex = False
 make_good_latex = False
-nice_bar_plot = True
+nice_bar_plot = False
 
 plot_lsc_vs_naive = False
 plot_dampenings_and_betas = False
@@ -113,7 +114,7 @@ df = experiments_to_pandas(
 # df = df[~df['comments'].str.contains('randlsc')]
 
 # print(df.to_string())
-df = df[~df['stack'].str.contains('4:3', na=False)]
+# df = df[~df['stack'].str.contains('4:3', na=False)]
 df['stack'] = df['stack'].fillna(-1).astype(int)
 df = df.replace(-1, 'None')
 df['stack'] = df['stack'].astype(str)
@@ -286,10 +287,6 @@ if 'v_^acc len' in df.columns:
         axis=1
     )
 
-    # FIXME: following is incorrect, correct it as soon as you get rid of the NaNs
-    # df['t_ppl'] = df['t_ppl m']
-    # df['t_^acc'] = df['t_^acc M']
-
 for c_name in columns_to_remove:
     df = df[df.columns.drop(list(df.filter(regex=c_name)))]
 
@@ -311,52 +308,6 @@ if not plot_only is None:
         ]
     print(adf.to_string())
 
-if one_exp_curves:
-    for _ in range(6):
-        plt.close()
-        try:
-            print(df['path'].sample(1).values[0])
-            id = '2022-12-06--20-00-13--0826--als_'
-            id = '2022-12-06--19-55-03--9822--als_'
-            id = os.path.split(df['path'].sample(1).values[0])[1]
-            print(id)
-            res_path = os.path.join(EXPERIMENTS, id, 'other_outputs', 'results.json')
-            config_path = os.path.join(EXPERIMENTS, id, '1', 'config.json')
-
-            with open(res_path) as f:
-                res = json.load(f)
-            with open(config_path) as f:
-                con = json.load(f)
-
-            fig, axs = plt.subplots(2, 2)
-            fig.suptitle(con['comments'])
-
-            for k in res.keys():
-                if 'mean' in k:
-                    curve = np.array([float(x) for x in res[k][1:-1].split(',')])
-                    axs[0, 0].plot(curve)
-                    axs[0, 0].title.set_text('mean')
-
-                if 'var' in k:
-                    print(res[k])
-                    curve = np.array([float(x) for x in res[k][1:-1].split(',')])
-                    axs[0, 1].plot(curve)
-                    axs[0, 1].title.set_text('variance')
-
-                if 'LSC_losses' in k:
-                    curve = np.array([float(x) for x in res[k][1:-1].split(',')])
-                    axs[1, 0].plot(curve)
-                    axs[1, 0].title.set_text('lsc loss')
-
-                if 'LSC_norms' in k:
-                    curve = np.array([float(x) for x in res[k][1:-1].split(',')])
-                    axs[1, 1].plot(curve)
-                    axs[1, 1].title.set_text('lsc norm')
-
-        except Exception as e:
-            print(e)
-
-        plt.show()
 
 if pandas_means:
     # group_cols = ['net', 'task', 'comments', 'stack', 'lr']
@@ -1409,80 +1360,6 @@ if plot_lsc_vs_naive:
 
         plt.show()
 
-if plot_dampenings_and_betas:
-    init = 'LSC2'  # lsc LSC LSC2
-    fig, axs = plt.subplots(1, 2, figsize=(10, 5))
-
-    idf = df[df['task'].str.contains(task)]
-    idf = idf[idf['optimizer_name'].str.contains(optimizer_name)]
-    iidf = idf[idf['comments'].str.contains(init + '_beta')]  # cdr gra blg
-    iidf['betas'] = iidf['comments'].str.replace(init + '_beta:', '').values.astype(float)
-    iidf = iidf.sort_values(by='betas')
-
-    mdf = iidf.groupby(
-        ['net', 'task', 'initializer', 'betas'], as_index=False
-    ).agg({m: ['mean', 'std'] for m in metrics_oi})
-
-    for m in metrics_oi:
-        mdf['mean_{}'.format(m)] = mdf[m]['mean']
-        mdf['std_{}'.format(m)] = mdf[m]['std']
-        mdf = mdf.drop([m], axis=1)
-    mdf = mdf.sort_values(by='betas')
-
-    print(mdf.to_string())
-
-    color = plt.cm.Oranges(3 / 6)
-
-    metric = metric.replace('val_', '')
-    means = mdf['mean_val_' + metric]
-    stds = mdf['std_val_' + metric]
-    betas = mdf['betas']
-
-    axs[0].plot(betas, means, color=color)
-    axs[0].fill_between(betas, means - stds, means + stds, alpha=0.5, color=color)
-
-    idf = df[df['task'].str.contains(task)]
-    idf = idf[idf['optimizer_name'].str.contains(optimizer_name)]
-    iidf = idf[idf['comments'].str.contains(init + '_dampening')]  # cdr gra blg
-    iidf['dampening'] = iidf['comments'].str.replace(init + '_dampening:', '').values.astype(float)
-    iidf = iidf.sort_values(by='dampening')
-
-    mdf = iidf.groupby(
-        ['net', 'task', 'initializer', 'dampening'], as_index=False
-    ).agg({m: ['mean', 'std'] for m in metrics_oi})
-
-    for m in metrics_oi:
-        mdf['mean_{}'.format(m)] = mdf[m]['mean']
-        mdf['std_{}'.format(m)] = mdf[m]['std']
-        mdf = mdf.drop([m], axis=1)
-    mdf = mdf.sort_values(by='dampening')
-
-    color = plt.cm.Oranges(3 / 6)
-
-    means = mdf['mean_val_' + metric]
-    stds = mdf['std_val_' + metric]
-    dampening = mdf['dampening']
-    axs[1].plot(dampening, means, color=color)
-    axs[1].fill_between(dampening, means - stds, means + stds, alpha=0.5, color=color)
-
-    axs[0].set_ylabel('accuracy')
-    axs[0].set_xlabel(r'$\beta$')
-    axs[1].set_xlabel('$\gamma$')
-
-    # LSC values
-    # axs.axvline(x=value, color='k', linestyle='--')
-
-    # axs[1].set_ylabel(metric)
-    # axs[1].set_title(task)
-
-    for ax in axs.reshape(-1):
-        for pos in ['right', 'left', 'bottom', 'top']:
-            ax.spines[pos].set_visible(False)
-
-    pathplot = os.path.join(CDIR, 'experiments', 'beta_dampening.png')
-    fig.savefig(pathplot, bbox_inches='tight')
-
-    plt.show()
 
 if remove_incomplete:
     import shutil
