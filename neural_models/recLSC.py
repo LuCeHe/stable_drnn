@@ -299,7 +299,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
     std_ma_norm = 1
     if 'onlyloadpretrained' in comments:
         steps_per_epoch = 1
-        time_steps = 2 if not 'test' in comments else time_steps
+        time_steps = 10 if not 'test' in comments else time_steps
         learn = False
         std_ma_norm = 0
 
@@ -573,7 +573,7 @@ def apply_LSC(train_task_args, model_args, batch_size, n_samples=-1, norm_pow=2,
                         print('multiplier to weights!')
                         new_weights = []
                         for w, _wname in zip(weights, wnames):
-                            # print(_wname)
+
                             wname = _wname
                             if len(w.shape) >= 2 or 'tau' in wname or 'bias' in wname \
                                     or 'internal_current' in wname or '/thr:' in wname \

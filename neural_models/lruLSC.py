@@ -1,29 +1,70 @@
+import os
 import tensorflow as tf
 import tensorflow_addons as tfa
 import numpy as np
 from tqdm import tqdm
 
 from alif_sg.neural_models.recLSC import get_norms
+from alif_sg.tools.admin_model_removal import get_pretrained_file
 from pyaromatics.keras_tools.esoteric_layers.linear_recurrent_unit import LinearRecurrentUnitCell, ResLRUCell, ResLRUFFN
 from pyaromatics.stay_organized.utils import str2val
 
+FILENAME = os.path.realpath(__file__)
+CDIR = os.path.dirname(FILENAME)
+GEXPERIMENTS = os.path.abspath(os.path.join(CDIR, '..', 'good_experiments'))
+os.makedirs(GEXPERIMENTS, exist_ok=True)
 
-def lruLSC(comments='findLSC_radius', lr=1e-3):
-    comments += 'wmultiplier_nosgd'
-    target_norm = str2val(comments, 'targetnorm', float, default=0.5)
 
-    rec = 32
+def load_resLSC_model(path):
+    model = tf.keras.models.load_model(
+        path,
+        custom_objects={
+            'ResLRUCell': ResLRUCell, 'ResLRUFFN': ResLRUFFN
+        },
+        compile=False
+    )
+    return model
+
+
+def lruLSC(comments='findLSC_radius', seed=0, stack=4, width=32, classes=2, vocab_size=7):
+    net_name = 'reslru'
+    task_name = 'anytask'
+
+    pretrained_file = get_pretrained_file(comments, seed, net_name, task_name, stack)
+    path_pretrained = os.path.join(GEXPERIMENTS, pretrained_file)
+    ffn_stem = None
+    if os.path.exists(path_pretrained):
+        print('Loading pretrained lsc weights')
+        ffn_stem = load_resLSC_model(path_pretrained)
+
+    # set seeds
+    tf.random.set_seed(seed)
+    np.random.seed(seed)
+
+    target_norm = str2val(comments, 'targetnorm', float, default=1)
+
     batch_shape = 8
     time_steps = 1
-    n_layers = 4
-    ts = 100
-    tc = n_layers * 2
-    round_to = 5
-    rand = lambda shape=(rec,): tf.random.normal(shape)
 
-    # cells = [LinearRecurrentUnitCell(num_neurons=rec) for _ in range(n_layers)]
-    cells = [ResLRUCell(num_neurons=rec) for _ in range(n_layers)]
+    n_layers = int(stack)
+    ts = 50  # number of pretraining steps
+    tc = n_layers * 2  # time constant for the moving averages
+    round_to = 5
+    rand = lambda shape=(width,): tf.random.normal(shape)
+
+    if 'onlyloadpretrained' in comments:
+        ts = 10
+    else:
+        comments += 'wmultiplier'
+
+    cells = [ResLRUCell(num_neurons=width) for _ in range(n_layers)]
     rnns = [tf.keras.layers.RNN(cell, return_sequences=True, return_state=True) for cell in cells]
+
+    if not ffn_stem is None:
+        rnns_nrs = [tf.keras.layers.RNN(cell, return_sequences=True) for cell in cells]
+        rnn_stem = tf.keras.models.Sequential(rnns_nrs)
+        rnn_stem.build((None, None, width))
+        rnn_stem.set_weights(ffn_stem.get_weights())
 
     pbar = tqdm(total=ts)
     li = None
@@ -37,9 +78,15 @@ def lruLSC(comments='findLSC_radius', lr=1e-3):
     std_ma_norm = None
     for t in tqdm(range(ts)):
 
-        inputs_t1 = tf.Variable(rand((batch_shape, time_steps, rec)))
-        init_states_l1_t1 = [tf.Variable(rand((batch_shape, 2 * rec))), tf.Variable(rand((batch_shape, 2 * rec)))]
-        init_states_l2_t1 = [tf.Variable(rand((batch_shape, 2 * rec))), tf.Variable(rand((batch_shape, 2 * rec)))]
+        inputs_t1 = tf.Variable(rand((batch_shape, time_steps, width)))
+        init_states_l1_t1 = [
+            tf.Variable(rand((batch_shape, 2 * width))),
+            tf.Variable(rand((batch_shape, 2 * width)))
+        ]
+        init_states_l2_t1 = [
+            tf.Variable(rand((batch_shape, 2 * width))),
+            tf.Variable(rand((batch_shape, 2 * width)))
+        ]
 
         with tf.GradientTape(persistent=True) as tape:
             tape.watch(inputs_t1)
@@ -117,8 +164,6 @@ def lruLSC(comments='findLSC_radius', lr=1e-3):
                 new_weights = []
 
                 for w, wname in zip(weights, wnames):
-                    # print(wname)
-
                     multiplier = 1
 
                     depth_radius = False
@@ -154,7 +199,7 @@ def lruLSC(comments='findLSC_radius', lr=1e-3):
             f"al {str(np.mean(a_l.numpy()).round(round_to))}/{ali}; "
         )
 
-    lsc_results = {
+    results = {
         'ma_loss': ma_loss,
         'ma_norm': ma_norm,
         'std_ma_norm': std_ma_norm,
@@ -169,47 +214,48 @@ def lruLSC(comments='findLSC_radius', lr=1e-3):
         'sti': sti,
     }
 
-    return weights, lsc_results
+    ffn_weights = equivalence_and_save(comments, width, n_layers, classes, vocab_size, cells=cells,
+                                       path_pretrained=path_pretrained)
+
+    # results['final_norms'] = final_norms
+    # results['norm_names'] = norm_names
+    results['final_norm_dec'] = None
+    results['final_norms_mean'] = mean_norm
+    results['final_norms_std'] = current_std
+    results['std_ma_norm'] = std_ma_norm
+    results['best_std_ma_norm'] = std_ma_norm
+    return ffn_weights, results
 
 
-def test_equivalence():
-
+def equivalence_and_save(comments, width, n_layers, classes, vocab_size, cells=None, path_pretrained=None):
     import time
 
-    vocab_size = 7
-    classes = 3
-    rec = 10
-    batch_size = 32
+    batch_size = 3
     time_steps = 10
-    n_layers = 6
 
-    cells = [ResLRUCell(num_neurons=rec) for _ in range(n_layers)]
+    if cells is None:
+        cells = [ResLRUCell(num_neurons=width) for _ in range(n_layers)]
+
     rnns = [tf.keras.layers.RNN(cell, return_sequences=True) for cell in cells]
-    rnn_stem = tf.keras.models.Sequential([
-        *rnns
-    ])
 
-    emb = tf.keras.layers.Embedding(vocab_size, rec)
+    rnn_stem = tf.keras.models.Sequential(rnns)
+
+    emb = tf.keras.layers.Embedding(vocab_size, width)
     dense = tf.keras.layers.Dense(classes)
-    rnn_model = tf.keras.models.Sequential([
-        # tf.keras.layers.InputLayer(input_shape=(None,)),
-        emb,
-        rnn_stem,
-        dense
-    ])
+    rnn_model = tf.keras.models.Sequential(
+        [emb, rnn_stem] + ([dense] if not 'embproj' in comments else [])
+    )
 
-    ffns = [ResLRUFFN(num_neurons=rec) for _ in range(n_layers)]
-    ffn_stem = tf.keras.models.Sequential([
-        *ffns
-    ])
+    ffns = [ResLRUFFN(num_neurons=width) for _ in range(n_layers)]
+    ffn_stem = tf.keras.models.Sequential(ffns)
 
-    ffn_model = tf.keras.models.Sequential([
-        # tf.keras.layers.InputLayer(input_shape=(None,)),
-        emb,
-        ffn_stem,
-        dense
-    ])
+    ffn_model = tf.keras.models.Sequential(
+        [emb, ffn_stem] + ([dense] if not 'embproj' in comments else [])
+    )
+    old_ffn_stem = ffn_stem.get_weights()
     ffn_model.set_weights(rnn_model.get_weights())
+    new_ffn_stem = ffn_stem.get_weights()
+    print('old_ffn_stem vs new', np.mean([np.mean(np.square(o - n)) for o, n in zip(old_ffn_stem, new_ffn_stem)]))
 
     input_tensor = tf.Variable(np.random.randint(0, vocab_size, (batch_size, time_steps)))
 
@@ -217,24 +263,34 @@ def test_equivalence():
     outrnn = rnn_model(input_tensor)
     rnn_time = time.time() - start_time
     print('outrnn')
-    print(outrnn)
+    print('     beginning:', outrnn[0, :3, :5])
+    print('     end:      ', outrnn[0, -3:, :5])
 
     start_time = time.time()
     outffn = ffn_model(input_tensor)
     ffn_time = time.time() - start_time
     print('outffn')
-    print(outffn)
+    print('     beginning:', outffn[0, :3, :5])
+    print('     end:      ', outffn[0, -3:, :5])
 
     print('rnn time: ', rnn_time)
     print('ffn time: ', ffn_time)
 
-    print(tf.reduce_sum(tf.square(outffn - outrnn) / tf.square(outffn)))
+    print('Outputs difference:', tf.reduce_sum(tf.square(outffn - outrnn) / tf.square(outffn)).numpy())
 
+    # save stem ffn
+    if path_pretrained is not None:
+        print('Saving pretrained lsc weights')
+        print(path_pretrained)
+        # ffn_stem.save(path_pretrained)
+        for i in range(len(ffn_stem.weights)):
+            ffn_stem.weights[i]._handle_name = ffn_stem.weights[i].name + "_" + str(i)
+        ffn_stem.save(path_pretrained)
 
-def save_layer_weights():
-    pass
+    return ffn_model.get_weights()
+
 
 if __name__ == '__main__':
-    # lruLSC()
-    test_equivalence()
+    lruLSC()
+    # equivalence_and_save(width=3, n_layers=2, classes=2, vocab_size=7)
     # save_layer_weights()

@@ -1,6 +1,7 @@
 import os, shutil, logging, json, copy
 import pandas as pd
 
+from alif_sg.neural_models.lruLSC import lruLSC
 from pyaromatics.keras_tools.esoteric_tasks import language_tasks
 from pyaromatics.keras_tools.silence_tensorflow import silence_tf
 
@@ -45,7 +46,7 @@ def config():
     # task and net
     # ps_mnist heidelberg s_mnist
     # wordptb sl_mnist lra_listops lra_text
-    task = 'lra_scifar'
+    task = 'wordptb'
 
     # test configuration
     epochs = 2
@@ -54,14 +55,14 @@ def config():
 
     # net
     # maLSNN cLSTM LSTM maLSNNb GRU indrnn LMU ssimplernn rsimplernn reslru lru reslruffn
-    net = 'reslru'
+    net = 'reslruffn'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
-    stack = '2:2'
-    n_neurons = 2
+    stack = 3
+    n_neurons = 32
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task in language_tasks else False
-    comments = 'allns_36_nogradreset_dropout:0'
-    # comments = 'lscdepth:1_36_embproj_nogradreset_dropout:0_findLSC_radius_pretrained_tsteps:2_test'
+    # comments = 'allns_36_nogradreset_dropout:0'
+    comments = 'lscdepth:1_36_embproj_nogradreset_dropout:0_findLSC_radius_pretrained_tsteps:2_test'
     # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain_pretrained_lsclr:0.0001_nbs:16_tsteps:10'
     # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain_pretrained_lsclr:0.0001_nbs:16_targetnorm:.5'
     # comments = ''
@@ -217,7 +218,13 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
         print(json.dumps(new_model_args, indent=4, cls=NumpyEncoder))
         lsclr = str2val(comments, 'lsclr', float, default=lsclr)
 
-        if 'deslice' in comments:
+        if 'reslru' in net_name:
+            weights, lsc_results = lruLSC(
+                comments=comments, seed=seed, stack=stack, width=n_neurons, classes=gen_train.out_dim,
+                vocab_size=gen_train.vocab_size
+            )
+
+        elif 'deslice' in comments:
             from pyaromatics.keras_tools.esoteric_optimizers.AdamW import AdamW as AdamW2
             from pyaromatics.keras_tools.esoteric_layers import AddLossLayer, AddMetricsLayer, \
                 SymbolAndPositionEmbedding
