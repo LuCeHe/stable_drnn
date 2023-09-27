@@ -48,7 +48,7 @@ h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 lsc_epsilon = 0.02  # 0.02
 
 check_for_new = True
-plot_losses = True
+plot_losses = False
 one_exp_curves = False
 pandas_means = True
 show_per_tasknet = False
@@ -73,19 +73,19 @@ truely_remove = False
 truely_remove_pretrained = False
 check_all_norms = False
 
-task = 'ps_mnist'  # heidelberg wordptb sl_mnist all ps_mnist
-incomplete_comments = '36_embproj_nogradreset_dropout:.3_timerepeat:2_lscdepth:1_pretrained_'
 
 # sparse_mode_accuracy sparse_categorical_crossentropy bpc sparse_mode_accuracy_test_10
 # val_sparse_mode_accuracy test_perplexity
 metric = 'v_mode_acc'  # 'v_ppl min'
+metric = 'val_ppl m'  # 'v_ppl min'
 metric = shorten_losses(metric)
-optimizer_name = 'SWAAdaBelief'  # SGD SWAAdaBelief
 metrics_oi = [
     # 't_ppl min', 't_mode_acc max', 'v_ppl min', 'v_mode_acc max',
-    't_ppl', 't_mode_acc', 'v_ppl', 'v_mode_acc', 'val_ppl m', 'val_mode_acc M',
-    'LSC_norms i', 'LSC_norms f', 'LSC_norms mean',
-    'final_norms_mean', 'final_norms_std', 'best_std_ma_norm', 'std_ma_norm',
+    # 't_ppl', 't_mode_acc', 'v_ppl', 'v_mode_acc',
+    'val_ppl m', 'val_mode_acc M', 'test_ppl', 'test_mode_acc',
+    # 'LSC_norms i', 'LSC_norms f', 'LSC_norms mean',
+    'ma_norm', 'ni',
+    # 'final_norms_mean', 'final_norms_std', 'best_std_ma_norm', 'std_ma_norm',
 ]
 metrics_oi = [shorten_losses(m) for m in metrics_oi]
 
@@ -119,6 +119,7 @@ df = df.replace(-1, 'None')
 df['stack'] = df['stack'].astype(str)
 df['comments'] = df['comments'].str.replace('simplereadout', 'embproj')
 df['batch_size'] = df['batch_size'].astype(str)
+df['ni'] = df['ni'].astype(float)
 df['comments'] = df['comments'].str.replace('_pretrained', '')
 df['comments'] = df['comments'].astype(str)
 df.replace(['nan'], np.nan, inplace=True)
@@ -144,7 +145,6 @@ if 'n_params' in df.columns:
     df['n_params'] = df['n_params'].apply(lambda x: large_num_to_reasonable_string(x, 1))
 
 print(list(df.columns))
-
 
 print(list(df.columns))
 
@@ -298,7 +298,6 @@ if not plot_only is None:
         ]
     print(adf.to_string())
 
-
 if pandas_means:
     # group_cols = ['net', 'task', 'comments', 'stack', 'lr']
     group_cols = ['net', 'task', 'comments', 'stack']
@@ -354,7 +353,6 @@ if pandas_means:
                     idf = idf[cols]
 
                     print(idf.to_string())
-
 
 if nice_bar_plot:
     df = df.copy()
@@ -452,7 +450,6 @@ if nice_bar_plot:
                 'one_better_than_none': one_better_than_none / tot,
             })
 
-
         for stack in ['None', '5']:
             idf = df[
                 df['stack'].eq(stack)
@@ -528,15 +525,14 @@ if nice_bar_plot:
     # Adding Xticks
     # plt.xlabel('Branch', fontweight='bold', fontsize=15)
     plt.ylabel('Percentage\nof experiments', fontweight='bold', fontsize=17)
-    plt.xticks([r + barWidth/2 for r in range(len(stack_2))],
+    plt.xticks([r + barWidth / 2 for r in range(len(stack_2))],
                # ['half > one', 'half > none', 'one > none\n(ALIFs)', ],
                [r'$\rho_t=0.5$' + '\nbetter than\n' + r'$\rho_t=1$',
                 r'$\rho_t=0.5$' + '\nbetter than\nnone',
-                r'$\rho_t=1$'+'\nbetter than\nnone\n(ALIFs)',
-                r'$\rho_t=1$'+'\nbetter than\nnone\n(no ALIFs)',
+                r'$\rho_t=1$' + '\nbetter than\nnone\n(ALIFs)',
+                r'$\rho_t=1$' + '\nbetter than\nnone\n(no ALIFs)',
                 ],
                rotation=10, fontsize=15)
-
 
     legend_elements = [
         Line2D([0], [0], color=c_2, lw=4, label='2 layers'),
@@ -959,7 +955,6 @@ if plot_bars:
 
     plt.show()
 
-
 if plot_norms_pretraining:
     moi = 'norms'  # losses norms
     ref = 0 if metric == 'losses' else 1
@@ -988,8 +983,6 @@ if plot_norms_pretraining:
     axs[i, j].legend()
     plt.show()
 
-
-    
 if remove_incomplete:
     import shutil
 

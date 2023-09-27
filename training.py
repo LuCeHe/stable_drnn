@@ -221,7 +221,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
         if 'reslru' in net_name:
             weights, lsc_results = lruLSC(
                 comments=comments, seed=seed, stack=stack, width=n_neurons, classes=gen_train.out_dim,
-                vocab_size=gen_train.vocab_size
+                vocab_size=gen_train.vocab_size, maxlen=gen_train.out_len
             )
 
         elif 'deslice' in comments:

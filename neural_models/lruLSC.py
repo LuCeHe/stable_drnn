@@ -26,7 +26,7 @@ def load_resLSC_model(path):
     return model
 
 
-def lruLSC(comments='findLSC_radius', seed=0, stack=4, width=32, classes=2, vocab_size=7):
+def lruLSC(comments='findLSC_radius', seed=0, stack=4, width=32, classes=2, vocab_size=7, maxlen=1):
     net_name = 'reslru'
     task_name = 'anytask'
 
@@ -47,7 +47,7 @@ def lruLSC(comments='findLSC_radius', seed=0, stack=4, width=32, classes=2, voca
     time_steps = 1
 
     n_layers = int(stack)
-    ts = 50  if 'test' in comments else 500 # number of pretraining steps
+    ts = 50 if 'test' in comments else 500  # number of pretraining steps
     tc = n_layers * 2  # time constant for the moving averages
     round_to = 5
     rand = lambda shape=(width,): tf.random.normal(shape)
@@ -176,11 +176,19 @@ def lruLSC(comments='findLSC_radius', seed=0, stack=4, width=32, classes=2, voca
 
                     if depth_radius:
                         local_norm = a_l
-                        multiplier = target_norm / local_norm
+                        tn = target_norm
+                        if target_norm == 0.5 and 'unbalanced' in comments:
+                            tn = n_layers / (n_layers + maxlen)
+
+                        multiplier = tn / local_norm
 
                     elif rec_radius:
                         local_norm = a_t
-                        multiplier = target_norm / local_norm
+                        tn = target_norm
+                        if target_norm == 0.5 and 'unbalanced' in comments:
+                            tn = maxlen / (n_layers + maxlen)
+
+                        multiplier = tn / local_norm
 
                     m = tf.reduce_mean(multiplier).numpy()
                     m = np.clip(m, 0.95, 1.05)
@@ -226,11 +234,6 @@ def lruLSC(comments='findLSC_radius', seed=0, stack=4, width=32, classes=2, voca
 
 
 def equivalence_and_save(comments, width, n_layers, classes, vocab_size, cells=None, path_pretrained=None):
-    import time
-
-    batch_size = 3
-    time_steps = 10
-
     if cells is None:
         cells = [ResLRUCell(num_neurons=width) for _ in range(n_layers)]
 
@@ -264,6 +267,6 @@ def equivalence_and_save(comments, width, n_layers, classes, vocab_size, cells=N
 
 
 if __name__ == '__main__':
-    lruLSC()
+    lruLSC(comments='findLSC_radius_targetnorm:0.5_unbalanced', seed=0, stack=4, width=32, classes=2, vocab_size=7, maxlen=100)
     # equivalence_and_save(width=3, n_layers=2, classes=2, vocab_size=7)
     # save_layer_weights()
