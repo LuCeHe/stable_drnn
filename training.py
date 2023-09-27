@@ -93,6 +93,9 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
     task_name = task
     net_name = net
 
+    if 'clipping' in comments:
+        clipnorm = 1.
+
     # comments += '_dampf:.5_v0m'
     comments += '_dampf:.5'
 

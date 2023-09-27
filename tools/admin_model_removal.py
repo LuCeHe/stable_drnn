@@ -62,6 +62,9 @@ def get_pretrained_file(comments, s, net_name, task_name, ostack):
     if 'learndamp' in comments:
         c += '_ld'
 
+    if 'unbalanced' in comments:
+        c += '_unbalanced'
+
     lsct = get_lsctype(comments)
     return f"pretrained_s{s}_{net_name}_{lsct}_{task_name}_stack{str(stack).replace(':', 'c')}{c}.h5"
 
