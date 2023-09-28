@@ -25,7 +25,7 @@ class IMDB(SequenceDataset):
     def init_defaults(self):
         return {
             "l_max": 4096,
-            "level": "word",
+            "level": "char",
             "min_freq": 15,
             "seed": 42,
             "val_split": 0.0,
@@ -644,7 +644,7 @@ class AAN(SequenceDataset):
             },
             delimiter="\t",
             column_names=["label", "input1_id", "input2_id", "text1", "text2"],
-            keep_in_memory=True,
+            keep_in_memory=False,
         )  # True)
         dataset = dataset.remove_columns(["input1_id", "input2_id"])
         new_features = dataset["train"].features.copy()
@@ -656,6 +656,8 @@ class AAN(SequenceDataset):
         l_max = self.l_max - int(self.append_bos) - int(self.append_eos)
 
         def tokenize(example):
+            print(example["text1"])
+            print(tokenizer(example["text1"])[:l_max])
             {
                 "tokens1": tokenizer(example["text1"])[:l_max],
                 "tokens2": tokenizer(example["text2"])[:l_max],
