@@ -669,13 +669,13 @@ class AAN(SequenceDataset):
             num_proc=max(self.n_workers, 1),
             batched=True,
         )
+
+        specials = ["<pad>", "<unk>"] \
+                   + (["<bos>"] if self.append_bos else []) \
+                   + (["<eos>"] if self.append_eos else [])
         vocab = torchtext.vocab.build_vocab_from_iterator(
             dataset["train"]["tokens1"] + dataset["train"]["tokens2"],
-            specials=(
-                    ["<pad>", "<unk>"]
-                    + (["<bos>"] if self.append_bos else [])
-                    + (["<eos>"] if self.append_eos else [])
-            ),
+            specials=specials,
         )
         vocab.set_default_index(vocab["<unk>"])
 
