@@ -4,6 +4,9 @@ import tensorflow_addons as tfa
 import numpy as np
 from tqdm import tqdm
 
+# from tensorflow.python.ops.numpy_ops import np_config
+# np_config.enable_numpy_behavior()
+
 from alif_sg.neural_models.recLSC import get_norms
 from alif_sg.tools.admin_model_removal import get_pretrained_file
 from pyaromatics.keras_tools.esoteric_layers.linear_recurrent_unit import LinearRecurrentUnitCell, ResLRUCell, ResLRUFFN
@@ -96,7 +99,6 @@ def lruLSC(comments='findLSC_radius', seed=0, stack=4, width=32, classes=2, voca
             # pick 2 rnns randomly
             np.random.shuffle(rnns)
             rnn_l1 = rnns[0]
-            print(rnn_l1.name)
             rnn_l2 = rnns[1]
 
             # concatenate states
@@ -194,7 +196,7 @@ def lruLSC(comments='findLSC_radius', seed=0, stack=4, width=32, classes=2, voca
                     m = tf.reduce_mean(multiplier).numpy()
                     m = np.clip(m, 0.95, 1.05)
 
-                    w = m * w
+                    w = m * w.numpy()
 
                     if 'wshuff' in comments:
                         oshape = w.shape
@@ -311,6 +313,6 @@ def compare_to_default_scales(width, n_layers, pretrained_cells):
 
 
 if __name__ == '__main__':
-    lruLSC(comments='findLSC_radius_targetnorm:0.5_unbalanced_test', seed=0, stack=4, width=32, classes=2, vocab_size=7, maxlen=100)
+    lruLSC(comments='findLSC_radius_targetnorm:0.5_unbalanced_test', seed=0, stack=4, width=64, classes=2, vocab_size=7, maxlen=100)
     # equivalence_and_save(width=3, n_layers=2, classes=2, vocab_size=7)
     # save_layer_weights()

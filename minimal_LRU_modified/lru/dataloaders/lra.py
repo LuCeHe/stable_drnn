@@ -685,9 +685,8 @@ class AAN(SequenceDataset):
             print(text)
             print(len(text))
             vocab(
-                (["<bos>"] if self.append_bos else [])
-                + text
-                + (["<eos>"] if self.append_eos else [])
+                [('<bos>' if self.append_bos else '') + t + ('<eos>' if self.append_eos else '')
+                 for t in text]
             )
 
         def numericalize(example):
