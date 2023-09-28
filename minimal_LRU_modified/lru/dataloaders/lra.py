@@ -687,10 +687,9 @@ class AAN(SequenceDataset):
             )
 
         def numericalize(example):
-            {
-                "input_ids1": encode(example["tokens1"]),
-                "input_ids2": encode(example["tokens2"]),
-            }
+            example["input_ids1"] = encode(example["tokens1"])
+            example["input_ids2"] = encode(example["tokens2"])
+            return example
 
         dataset = dataset.map(
             numericalize,
