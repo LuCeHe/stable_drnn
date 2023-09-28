@@ -53,6 +53,7 @@ def lruLSC(comments='findLSC_radius', seed=0, stack=4, width=32, classes=2, voca
     ts = 50 if 'test' in comments else 500  # number of pretraining steps
     tc = n_layers * 2  # time constant for the moving averages
     round_to = 5
+    decay = .97
     rand = lambda shape=(width,): tf.random.normal(shape)
 
     if 'onlyloadpretrained' in comments:
@@ -118,15 +119,22 @@ def lruLSC(comments='findLSC_radius', seed=0, stack=4, width=32, classes=2, voca
             states_l3_conc = tf.concat(states_l2_t2, axis=-1)
 
         # M_t jacobian of states_l2_conc w.r.t. states_l1_conc
+        tn_t = target_norm
+        if target_norm == 0.5 and 'unbalanced' in comments:
+            tn_t = maxlen / (n_layers + maxlen)
         a_t, loss_t, _ = get_norms(
             tape=tape, lower_states=[states_l1_conc], upper_states=[states_l2_conc], comments=comments,
-            target_norm=target_norm
+            target_norm=tn_t
         )
 
         # M_l jacobian of states_l3_conc w.r.t. states_l1_conc
+        tn_l = target_norm
+        if target_norm == 0.5 and 'unbalanced' in comments:
+            tn_l = n_layers / (n_layers + maxlen)
+
         a_l, loss_l, _ = get_norms(
             tape=tape, lower_states=[states_l1_conc], upper_states=[states_l3_conc], comments=comments,
-            target_norm=target_norm
+            target_norm=tn_l
         )
 
         mean_loss = tf.reduce_mean(loss_t + loss_l).numpy().astype(np.float32)
@@ -174,24 +182,16 @@ def lruLSC(comments='findLSC_radius', seed=0, stack=4, width=32, classes=2, voca
                         depth_radius = True
 
                     rec_radius = False
-                    if 'lambda_nu' in wname:
+                    if 'lambda_nu' in wname and pair == 1:
                         rec_radius = True
 
                     if depth_radius:
                         local_norm = a_l
-                        tn = target_norm
-                        if target_norm == 0.5 and 'unbalanced' in comments:
-                            tn = n_layers / (n_layers + maxlen)
-
-                        multiplier = tn / local_norm
+                        multiplier = tn_l / local_norm
 
                     elif rec_radius:
                         local_norm = a_t
-                        tn = target_norm
-                        if target_norm == 0.5 and 'unbalanced' in comments:
-                            tn = maxlen / (n_layers + maxlen)
-
-                        multiplier = tn / local_norm
+                        multiplier = tn_t / local_norm
 
                     m = tf.reduce_mean(multiplier).numpy()
                     m = np.clip(m, 0.95, 1.05)
@@ -213,8 +213,8 @@ def lruLSC(comments='findLSC_radius', seed=0, stack=4, width=32, classes=2, voca
             f"loss {str(np.array(ma_loss).round(round_to))}/{li}; "
             f"mean norms {np.array(ma_norm).round(round_to)}/{ni}; "
             f"ma std norms {str(np.array(std_ma_norm).round(round_to))}/{sti}; "
-            f"at {str(np.mean(a_t.numpy()).round(round_to))}/{ati}; "
-            f"al {str(np.mean(a_l.numpy()).round(round_to))}/{ali}; "
+            f"at {str(np.mean(a_t.numpy()).round(round_to))}/{ati} ({str(np.array(tn_t).round(round_to))}); "
+            f"al {str(np.mean(a_l.numpy()).round(round_to))}/{ali} ({str(np.array(tn_l).round(round_to))}); "
         )
 
     results = {
@@ -230,6 +230,10 @@ def lruLSC(comments='findLSC_radius', seed=0, stack=4, width=32, classes=2, voca
         'ali': ali,
         'ati': ati,
         'sti': sti,
+        'target_norm': target_norm,
+        'tn_t': tn_t,
+        'tn_l': tn_l,
+        'lsc_comments': comments,
     }
 
     scales = compare_to_default_scales(width, n_layers, cells)
@@ -313,6 +317,6 @@ def compare_to_default_scales(width, n_layers, pretrained_cells):
 
 
 if __name__ == '__main__':
-    lruLSC(comments='findLSC_radius_targetnorm:0.5_unbalanced_test', seed=0, stack=4, width=64, classes=2, vocab_size=7, maxlen=100)
+    lruLSC(comments='findLSC_radius_targetnorm:0.5_unbalanced', seed=0, stack=4, width=64, classes=2, vocab_size=7, maxlen=100)
     # equivalence_and_save(width=3, n_layers=2, classes=2, vocab_size=7)
     # save_layer_weights()

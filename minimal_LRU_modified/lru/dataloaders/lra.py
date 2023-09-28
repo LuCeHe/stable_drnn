@@ -684,10 +684,12 @@ class AAN(SequenceDataset):
 
             print(text)
             print(len(text))
-            vocab(
+            idxs = vocab(
                 [('<bos>' if self.append_bos else '') + t + ('<eos>' if self.append_eos else '')
                  for t in text]
             )
+            print(idxs)
+            return idxs
 
         def numericalize(example):
             example["input_ids1"] = encode(example["tokens1"])
