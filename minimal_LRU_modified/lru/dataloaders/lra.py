@@ -680,6 +680,7 @@ class AAN(SequenceDataset):
         vocab.set_default_index(vocab["<unk>"])
 
         def encode(text):
+            print(text)
             vocab(
                 (["<bos>"] if self.append_bos else [])
                 + text
@@ -695,8 +696,9 @@ class AAN(SequenceDataset):
             numericalize,
             remove_columns=["tokens1", "tokens2"],
             keep_in_memory=True,
-            load_from_cache_file=False,
+            load_from_cache_file=True,
             num_proc=max(self.n_workers, 1),
+            batched=True,
         )
 
         if cache_dir is not None:
