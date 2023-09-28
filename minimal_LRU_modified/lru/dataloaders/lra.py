@@ -659,9 +659,12 @@ class AAN(SequenceDataset):
             # print(example["text1"])
             # print(tokenizer(example["text1"])[:l_max])
             {
-                "tokens1": tokenizer(example["text1"])[:l_max],
-                "tokens2": tokenizer(example["text2"])[:l_max],
+                "tokens1": list(tokenizer(example["text1"])[:l_max]),
+                "tokens2": list(tokenizer(example["text2"])[:l_max]),
             }
+
+        # ds = ds.add_column("new_column", new_column)
+        # ds = ds.add_column("new_column", new_column)
 
         dataset = dataset.map(
             tokenize,
@@ -670,6 +673,7 @@ class AAN(SequenceDataset):
             load_from_cache_file=False,
             num_proc=max(self.n_workers, 1),
         )
+        print(dataset["train"])
         print(dataset["train"]["tokens1"])
         vocab = torchtext.vocab.build_vocab_from_iterator(
             dataset["train"]["tokens1"] + dataset["train"]["tokens2"],
