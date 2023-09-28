@@ -25,7 +25,7 @@ class IMDB(SequenceDataset):
     def init_defaults(self):
         return {
             "l_max": 4096,
-            "level": "char",
+            "level": "word",
             "min_freq": 15,
             "seed": 42,
             "val_split": 0.0,
