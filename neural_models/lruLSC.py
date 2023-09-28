@@ -55,7 +55,7 @@ def lruLSC(comments='findLSC_radius', seed=0, stack=4, width=32, classes=2, voca
     if 'onlyloadpretrained' in comments:
         ts = 10
     else:
-        comments += 'wmultiplier'
+        comments += 'wmultiplier_wshuff'
 
     cells = [ResLRUCell(num_neurons=width) for _ in range(n_layers)]
     rnns = [tf.keras.layers.RNN(cell, return_sequences=True, return_state=True) for cell in cells]
@@ -96,6 +96,7 @@ def lruLSC(comments='findLSC_radius', seed=0, stack=4, width=32, classes=2, voca
             # pick 2 rnns randomly
             np.random.shuffle(rnns)
             rnn_l1 = rnns[0]
+            print(rnn_l1.name)
             rnn_l2 = rnns[1]
 
             # concatenate states
@@ -194,6 +195,13 @@ def lruLSC(comments='findLSC_radius', seed=0, stack=4, width=32, classes=2, voca
                     m = np.clip(m, 0.95, 1.05)
 
                     w = m * w
+
+                    if 'wshuff' in comments:
+                        oshape = w.shape
+                        w = w.reshape(-1)
+                        np.random.shuffle(w)
+                        w = w.reshape(oshape)
+
                     new_weights.append(w)
 
                 rnn.set_weights(new_weights)
@@ -222,6 +230,9 @@ def lruLSC(comments='findLSC_radius', seed=0, stack=4, width=32, classes=2, voca
         'sti': sti,
     }
 
+    scales = compare_to_default_scales(width, n_layers, cells)
+    results.update(scales)
+
     ffn_weights = equivalence_and_save(comments, width, n_layers, classes, vocab_size, cells=cells,
                                        path_pretrained=path_pretrained)
 
@@ -231,6 +242,8 @@ def lruLSC(comments='findLSC_radius', seed=0, stack=4, width=32, classes=2, voca
     results['std_ma_norm'] = std_ma_norm
     results['best_std_ma_norm'] = std_ma_norm
     return ffn_weights, results
+
+
 
 
 def equivalence_and_save(comments, width, n_layers, classes, vocab_size, cells=None, path_pretrained=None):
@@ -266,7 +279,38 @@ def equivalence_and_save(comments, width, n_layers, classes, vocab_size, cells=N
     return ffn_model.get_weights()
 
 
+def compare_to_default_scales(width, n_layers, pretrained_cells):
+    new_cells = [ResLRUCell(num_neurons=width) for _ in range(n_layers)]
+    new_rnns = [tf.keras.layers.RNN(cell, return_sequences=True) for cell in new_cells]
+    new_rnn_stem = tf.keras.models.Sequential(new_rnns)
+
+    pretrained_rnns = [tf.keras.layers.RNN(pretrained_cells, return_sequences=True) for cell in new_cells]
+    pretrained_rnn_stem = tf.keras.models.Sequential(pretrained_rnns)
+
+    new_rnn_stem.build((None, None, width))
+    pretrained_rnn_stem.build((None, None, width))
+
+    weight_names = [weight.name for weight in pretrained_rnn_stem.weights]
+    pretrained_weights = pretrained_rnn_stem.get_weights()
+    new_weights = new_rnn_stem.get_weights()
+    scales = {}
+    for wn, pw, nw in zip(weight_names, pretrained_weights, new_weights):
+
+        if not np.std(nw) == 0:
+            scale = np.std(pw) / np.std(nw)
+        elif np.std(pw) == np.std(nw):
+            scale = 1
+        else:
+            scale = np.inf
+
+        scales[wn + '_scale'] = scale
+        print(wn, scale)
+    return scales
+
+
+
+
 if __name__ == '__main__':
-    lruLSC(comments='findLSC_radius_targetnorm:0.5_unbalanced', seed=0, stack=4, width=32, classes=2, vocab_size=7, maxlen=100)
+    lruLSC(comments='findLSC_radius_targetnorm:0.5_unbalanced_test', seed=0, stack=4, width=32, classes=2, vocab_size=7, maxlen=100)
     # equivalence_and_save(width=3, n_layers=2, classes=2, vocab_size=7)
     # save_layer_weights()

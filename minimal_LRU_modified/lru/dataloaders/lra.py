@@ -680,7 +680,10 @@ class AAN(SequenceDataset):
         vocab.set_default_index(vocab["<unk>"])
 
         def encode(text):
+            print('\n\n\n')
+
             print(text)
+            print(len(text))
             vocab(
                 (["<bos>"] if self.append_bos else [])
                 + text
