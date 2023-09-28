@@ -13,7 +13,8 @@ from einops.layers.torch import Rearrange, Reduce
 from PIL import Image  # Only used for Pathfinder
 from datasets import DatasetDict, Value, load_dataset
 
-from alif_sg.minimal_LRU_modified.lru.dataloaders.base import default_data_path, SequenceDataset, ImageResolutionSequenceDataset
+from alif_sg.minimal_LRU_modified.lru.dataloaders.base import default_data_path, SequenceDataset, \
+    ImageResolutionSequenceDataset
 
 
 class IMDB(SequenceDataset):
@@ -113,9 +114,9 @@ class IMDB(SequenceDataset):
             dataset["train"]["tokens"],
             min_freq=self.min_freq,
             specials=(
-                ["<pad>", "<unk>"]
-                + (["<bos>"] if self.append_bos else [])
-                + (["<eos>"] if self.append_eos else [])
+                    ["<pad>", "<unk>"]
+                    + (["<bos>"] if self.append_bos else [])
+                    + (["<eos>"] if self.append_eos else [])
             ),
         )
         vocab.set_default_index(vocab["<unk>"])
@@ -172,12 +173,12 @@ class IMDB(SequenceDataset):
 
 class TabularDataset(torch.utils.data.Dataset):
     def __init__(
-        self,
-        path,
-        format,
-        col_idx=None,
-        skip_header=False,
-        csv_reader_params=None,
+            self,
+            path,
+            format,
+            col_idx=None,
+            skip_header=False,
+            csv_reader_params=None,
     ):
         """
         col_idx: the indices of the columns.
@@ -315,9 +316,9 @@ class ListOps(SequenceDataset):
         vocab = torchtext.vocab.build_vocab_from_iterator(
             dataset["train"]["tokens"],
             specials=(
-                ["<pad>", "<unk>"]
-                + (["<bos>"] if self.append_bos else [])
-                + (["<eos>"] if self.append_eos else [])
+                    ["<pad>", "<unk>"]
+                    + (["<bos>"] if self.append_bos else [])
+                    + (["<eos>"] if self.append_eos else [])
             ),
         )
         vocab.set_default_index(vocab["<unk>"])
@@ -644,7 +645,7 @@ class AAN(SequenceDataset):
             },
             delimiter="\t",
             column_names=["label", "input1_id", "input2_id", "text1", "text2"],
-            keep_in_memory=False,
+            keep_in_memory=True,
         )  # True)
         dataset = dataset.remove_columns(["input1_id", "input2_id"])
         new_features = dataset["train"].features.copy()
@@ -656,12 +657,10 @@ class AAN(SequenceDataset):
         l_max = self.l_max - int(self.append_bos) - int(self.append_eos)
 
         def tokenize(example):
-            # print(example["text1"])
-            # print(tokenizer(example["text1"])[:l_max])
-            {
-                "tokens1": list(tokenizer(example["text1"])[:l_max]),
-                "tokens2": list(tokenizer(example["text2"])[:l_max]),
-            }
+            # print(type(tokenizer(example["text1"])[:l_max]))
+            example["tokens1"] = tokenizer(example["text1"])[:l_max]
+            example["tokens2"] = tokenizer(example["text2"])[:l_max]
+            return example
 
         # ds = ds.add_column("new_column", new_column)
         # ds = ds.add_column("new_column", new_column)
@@ -678,9 +677,9 @@ class AAN(SequenceDataset):
         vocab = torchtext.vocab.build_vocab_from_iterator(
             dataset["train"]["tokens1"] + dataset["train"]["tokens2"],
             specials=(
-                ["<pad>", "<unk>"]
-                + (["<bos>"] if self.append_bos else [])
-                + (["<eos>"] if self.append_eos else [])
+                    ["<pad>", "<unk>"]
+                    + (["<bos>"] if self.append_bos else [])
+                    + (["<eos>"] if self.append_eos else [])
             ),
         )
         vocab.set_default_index(vocab["<unk>"])
