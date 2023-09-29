@@ -358,6 +358,10 @@ def create_lra_aan_classification_dataset(
 
     aux_loaders = {}
 
+    print(N_CLASSES)
+    print(SEQ_LENGTH)
+    print(IN_DIM)
+
     return (
         trn_loader,
         val_loader,

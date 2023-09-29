@@ -44,13 +44,11 @@ def train(args):
         dense_targets = True
     else:
         dense_targets = False
-    if args.dataset in ["imdb-classification", "listops-classification", "aan-classification"]:
-        if args.dataset in ["aan-classification"]:
-            # Use retrieval model for document matching
-            retrieval = True
-            print("Using retrieval model for document matching")
-        else:
-            retrieval = False
+
+    if args.dataset in ["aan-classification"]:
+        # Use retrieval model for document matching
+        retrieval = True
+        print("Using retrieval model for document matching")
     else:
         retrieval = False
 
@@ -71,10 +69,10 @@ def train(args):
     lru = partial(
         LRU, d_hidden=args.d_hidden, d_model=args.d_model, r_min=args.r_min, r_max=args.r_max
     )
-    if retrieval:
-        raise NotImplementedError("Retrieval model not implemented yet")
-    else:
-        model_cls = partial(
+    # if retrieval:
+    #     raise NotImplementedError("Retrieval model not implemented yet")
+    # else:
+    model_cls = partial(
             BatchClassificationModel,
             lru=lru,
             d_output=n_classes,

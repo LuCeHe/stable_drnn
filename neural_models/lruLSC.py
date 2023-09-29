@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 from alif_sg.neural_models.recLSC import get_norms
 from alif_sg.tools.admin_model_removal import get_pretrained_file
-from pyaromatics.keras_tools.esoteric_layers.linear_recurrent_unit import LinearRecurrentUnitCell, ResLRUCell, ResLRUFFN
+from pyaromatics.keras_tools.esoteric_layers.linear_recurrent_unit import ResLRUCell, ResLRUFFN
 from pyaromatics.stay_organized.utils import str2val
 
 FILENAME = os.path.realpath(__file__)
@@ -160,11 +160,11 @@ def lruLSC(comments='findLSC_radius', seed=0, stack=4, width=32, classes=2, voca
         if sti == None:
             sti = str(np.std([*a_t.numpy().tolist(), *a_l.numpy().tolist()]).round(round_to))
 
-        wnames_2 = [weight.name for weight in rnn_l2.weights]
         wnames_1 = [weight.name for weight in rnn_l1.weights]
+        wnames_2 = [weight.name for weight in rnn_l2.weights]
 
-        weights_2 = rnn_l2.trainable_weights
         weights_1 = rnn_l1.trainable_weights
+        weights_2 = rnn_l2.trainable_weights
 
         if 'wmultiplier' in comments:
             for pair, (weights, wnames, rnn) in enumerate(zip(
@@ -182,7 +182,7 @@ def lruLSC(comments='findLSC_radius', seed=0, stack=4, width=32, classes=2, voca
                         depth_radius = True
 
                     rec_radius = False
-                    if 'lambda_nu' in wname and pair == 1:
+                    if 'lambda_nu' in wname:
                         rec_radius = True
 
                     if depth_radius:
@@ -207,6 +207,26 @@ def lruLSC(comments='findLSC_radius', seed=0, stack=4, width=32, classes=2, voca
                     new_weights.append(w)
 
                 rnn.set_weights(new_weights)
+
+            w1 = rnn_l1.get_weights()
+            w2 = rnn_l2.get_weights()
+
+            # mix half of the weights
+            for i in range(len(w1)):
+                w1i = w1[i]
+                w2i = w2[i]
+                oshape = w1i.shape
+                w1i = w1i.reshape(-1)
+                w2i = w2i.reshape(-1)
+                # move half the weights to the other rnn
+                w1i[:len(w1i)//2], w2i[:len(w2i)//2] = w2i[:len(w2i)//2], w1i[:len(w1i)//2]
+                w1i = w1i.reshape(oshape)
+                w2i = w2i.reshape(oshape)
+                w1[i] = w1i
+                w2[i] = w2i
+
+            rnn_l1.set_weights(w1)
+            rnn_l2.set_weights(w2)
 
         pbar.set_description(
             f"Step {t}; "
