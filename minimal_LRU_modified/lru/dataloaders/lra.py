@@ -635,6 +635,8 @@ class AAN(SequenceDataset):
         self._collate_fn = collate_batch
 
     def process_dataset(self):
+        print(self.cache_dir / self._cache_dir_name)
+
         cache_dir = None if self.cache_dir is None else self.cache_dir / self._cache_dir_name
         if cache_dir is not None:
             if cache_dir.is_dir():
@@ -683,15 +685,17 @@ class AAN(SequenceDataset):
         )
         vocab.set_default_index(vocab["<unk>"])
 
+        bos = '<bos>' if self.append_bos else ''
+        eos = '<eos>' if self.append_eos else ''
+
         def encode(text):
             print('\n\n\n')
 
             print(text)
             print(len(text))
-            idxs = vocab(
-                [('<bos>' if self.append_bos else '') + t + ('<eos>' if self.append_eos else '')
-                 for t in text]
-            )
+            idxs = [
+                vocab(bos + t + eos)
+                for t in text]
             print(idxs)
             return idxs
 
