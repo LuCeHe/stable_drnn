@@ -688,7 +688,7 @@ class AAN(SequenceDataset):
         dataset = dataset.map(
             tokenize_function,
             batched=True,
-            num_proc=4,
+            # num_proc=4,
             remove_columns=["text1", "text2"],
         )
         #
