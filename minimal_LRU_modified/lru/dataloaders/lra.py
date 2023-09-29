@@ -684,7 +684,6 @@ class AAN(SequenceDataset):
 
             return examples
 
-        # % time
         dataset = dataset.map(
             tokenize_function,
             batched=True,
