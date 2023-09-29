@@ -596,7 +596,7 @@ class AAN(SequenceDataset):
         # self.vocab_size = len(self.vocab)
         print("AAN vocab size:", len(self.vocab))
 
-        dataset.set_format(type="torch", columns=["input_ids1", "input_ids2", "label"])
+        dataset.set_format(type="torch", columns=["input_ids", "label"])
         self.dataset_train, self.dataset_val, self.dataset_test = (
             dataset["train"],
             dataset["val"],
