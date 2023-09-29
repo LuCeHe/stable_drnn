@@ -673,7 +673,7 @@ class AAN(SequenceDataset):
         from transformers import CanineTokenizer, PreTrainedTokenizerFast
         dataset = dataset["train"].select(range(3000))
 
-        tokenizer = PreTrainedTokenizerFast.from_pretrained("google/canine-c")
+        tokenizer = CanineTokenizer.from_pretrained("google/canine-c")
 
         print('tokenizer.is_fast', tokenizer.is_fast)
         def tokenize_function(examples):
