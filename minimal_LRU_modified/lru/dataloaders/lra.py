@@ -643,7 +643,6 @@ class AAN(SequenceDataset):
         # self._collate_fn = collate_batch
 
     def process_dataset(self):
-        print(self.cache_dir / self._cache_dir_name)
 
         cache_dir = None if self.cache_dir is None else self.cache_dir / self._cache_dir_name
         if cache_dir is not None:
@@ -663,6 +662,7 @@ class AAN(SequenceDataset):
         )  # True)
         dataset = dataset.remove_columns(["input1_id", "input2_id"])
         new_features = dataset["train"].features.copy()
+        print('new_features', new_features)
         new_features["label"] = Value("int32")
         dataset = dataset.cast(new_features)
 
@@ -671,7 +671,7 @@ class AAN(SequenceDataset):
         l_max = self.l_max//2 - int(self.append_bos) - int(self.append_eos)
 
         from transformers import CanineTokenizer
-        dataset = dataset.take(3000)
+        dataset = dataset[:3000]
 
         tokenizer = CanineTokenizer.from_pretrained("google/canine-c")
 
@@ -709,11 +709,11 @@ class AAN(SequenceDataset):
         specials = ["<pad>", "<unk>"] \
                    + (["<bos>"] if self.append_bos else []) \
                    + (["<eos>"] if self.append_eos else [])
-        vocab = torchtext.vocab.build_vocab_from_iterator(
-            dataset["train"]["tokens1"] + dataset["train"]["tokens2"],
-            specials=specials,
-        )
-        vocab.set_default_index(vocab["<unk>"])
+        # vocab = torchtext.vocab.build_vocab_from_iterator(
+        #     dataset["train"]["tokens1"] + dataset["train"]["tokens2"],
+        #     specials=specials,
+        # )
+        # vocab.set_default_index(vocab["<unk>"])
 
         bos = '<bos>' if self.append_bos else ''
         eos = '<eos>' if self.append_eos else ''
