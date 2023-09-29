@@ -337,6 +337,8 @@ def compare_to_default_scales(width, n_layers, pretrained_cells):
 
 
 if __name__ == '__main__':
-    lruLSC(comments='findLSC_radius_targetnorm:0.5_unbalanced', seed=0, stack=4, width=64, classes=2, vocab_size=7, maxlen=100)
+    # lruLSC(comments='findLSC_radius_targetnorm:0.5_unbalanced', seed=0, stack=4, width=64, classes=2, vocab_size=7, maxlen=100)
+    # lruLSC(comments='findLSC_radius_targetnorm:0.5_unbalanced', seed=0, stack=4, width=64, classes=2, vocab_size=7, maxlen=100)
+    lruLSC(comments='findLSC_radius', seed=0, stack=4, width=64, classes=2, vocab_size=7, maxlen=100)
     # equivalence_and_save(width=3, n_layers=2, classes=2, vocab_size=7)
     # save_layer_weights()
