@@ -643,6 +643,7 @@ class AAN(SequenceDataset):
         # self._collate_fn = collate_batch
 
     def process_dataset(self):
+        print(self.cache_dir / self._cache_dir_name)
 
         cache_dir = None if self.cache_dir is None else self.cache_dir / self._cache_dir_name
         if cache_dir is not None:
@@ -659,71 +660,38 @@ class AAN(SequenceDataset):
             delimiter="\t",
             column_names=["label", "input1_id", "input2_id", "text1", "text2"],
             keep_in_memory=True,
-        )
+        )  # True)
         dataset = dataset.remove_columns(["input1_id", "input2_id"])
-        # new_features = dataset["train"].features.copy()
-        # print('new_features', new_features)
-        # new_features["label"] = Value("int32")
-        # dataset = dataset.cast(new_features)
+        new_features = dataset["train"].features.copy()
+        new_features["label"] = Value("int32")
+        dataset = dataset.cast(new_features)
 
-        # tokenizer = list  # Just convert a string to a list of chars
+        tokenizer = list  # Just convert a string to a list of chars
         # Account for <bos> and <eos> tokens
-        l_max = self.l_max // 2 - int(self.append_bos) - int(self.append_eos)
+        l_max = self.l_max//2 - int(self.append_bos) - int(self.append_eos)
 
-        from transformers import CanineTokenizer, PreTrainedTokenizerFast
-        dataset = dataset["train"].select(range(3000))
-
-        tokenizer = CanineTokenizer.from_pretrained("google/canine-c")
-
-        # def chain_sentences(example):
-        #     # print(example["text1"])
-        #     example["text"] = example["text1"] + "<eos>" + example["text2"]
-        #     return example
-        #
-        # dataset = dataset.map(
-        #     chain_sentences,
-        #     # batched=True,
-        #     remove_columns=["text1", "text2"],
-        #     load_from_cache_file=True,
-        # )
-
-        print('tokenizer.is_fast', tokenizer.is_fast)
-
-        def tokenize_function(examples):
-            examples['input_ids1'] = tokenizer(examples["text1"], truncation=True, max_length=l_max)
-            examples['input_ids2'] = tokenizer(examples["text2"], truncation=True, max_length=l_max)
-            print(examples['input_ids2'][0])
-            return examples
+        def tokenize(example):
+            example["tokens1"] = tokenizer(example["text1"])[:l_max]
+            example["tokens2"] = tokenizer(example["text2"])[:l_max]
+            return example
 
         dataset = dataset.map(
-            tokenize_function,
-            batched=True,
+            tokenize,
             remove_columns=["text1", "text2"],
+            keep_in_memory=True,
             load_from_cache_file=True,
+            num_proc=max(self.n_workers, 1),
+            batched=True,
         )
-        #
-        # def tokenize(example):
-        #     example["tokens1"] = tokenizer(example["text1"])[:l_max]
-        #     example["tokens2"] = tokenizer(example["text2"])[:l_max]
-        #     return example
-        #
-        # dataset = dataset.map(
-        #     tokenize,
-        #     remove_columns=["text1", "text2"],
-        #     keep_in_memory=True,
-        #     load_from_cache_file=True,
-        #     num_proc=max(self.n_workers, 1),
-        #     batched=True,
-        # )
 
         specials = ["<pad>", "<unk>"] \
                    + (["<bos>"] if self.append_bos else []) \
                    + (["<eos>"] if self.append_eos else [])
-        # vocab = torchtext.vocab.build_vocab_from_iterator(
-        #     dataset["train"]["tokens1"] + dataset["train"]["tokens2"],
-        #     specials=specials,
-        # )
-        # vocab.set_default_index(vocab["<unk>"])
+        vocab = torchtext.vocab.build_vocab_from_iterator(
+            dataset["train"]["tokens1"] + dataset["train"]["tokens2"],
+            specials=specials,
+        )
+        vocab.set_default_index(vocab["<unk>"])
 
         bos = '<bos>' if self.append_bos else ''
         eos = '<eos>' if self.append_eos else ''
@@ -733,24 +701,24 @@ class AAN(SequenceDataset):
         #     idxs = [vocab(bos + t + eos) for t in text]
         #     return idxs
 
-        # def numericalize(example):
-        #     print('len tokens1', len(example["tokens1"]))
-        #     print('len tokens2', len(example["tokens2"]))
-        #     tokens = [bos + t1 + eos + bos + t2 + eos for t1, t2 in zip(example["tokens1"], example["tokens2"])]
-        #     print(tokens[0])
-        #     # print(example["tokens1"][0])
-        #
-        #     example['input_ids'] = [vocab(tokenizer(t)) for t in tokens]
-        #     return example
-        #
-        # dataset = dataset.map(
-        #     numericalize,
-        #     remove_columns=["tokens1", "tokens2"],
-        #     keep_in_memory=True,
-        #     load_from_cache_file=True,
-        #     num_proc=max(self.n_workers, 1),
-        #     batched=True,
-        # )
+        def numericalize(example):
+            print('len tokens1', len(example["tokens1"]))
+            print('len tokens2', len(example["tokens2"]))
+            tokens = [bos + t1 + eos + bos + t2 + eos for t1, t2 in zip(example["tokens1"], example["tokens2"])]
+            print(tokens[0])
+            # print(example["tokens1"][0])
+
+            example['input_ids'] = [vocab(tokenizer(t)) for t in tokens]
+            return example
+
+        dataset = dataset.map(
+            numericalize,
+            remove_columns=["tokens1", "tokens2"],
+            keep_in_memory=True,
+            load_from_cache_file=True,
+            num_proc=max(self.n_workers, 1),
+            batched=True,
+        )
 
         if cache_dir is not None:
             self._save_to_cache(dataset, tokenizer, vocab, cache_dir)
