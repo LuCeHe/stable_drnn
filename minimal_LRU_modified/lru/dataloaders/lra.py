@@ -661,17 +661,17 @@ class AAN(SequenceDataset):
             keep_in_memory=True,
         )  # True)
         dataset = dataset.remove_columns(["input1_id", "input2_id"])
-        new_features = dataset["train"].features.copy()
-        print('new_features', new_features)
-        new_features["label"] = Value("int32")
-        dataset = dataset.cast(new_features)
+        # new_features = dataset["train"].features.copy()
+        # print('new_features', new_features)
+        # new_features["label"] = Value("int32")
+        # dataset = dataset.cast(new_features)
 
         # tokenizer = list  # Just convert a string to a list of chars
         # Account for <bos> and <eos> tokens
         l_max = self.l_max//2 - int(self.append_bos) - int(self.append_eos)
 
         from transformers import CanineTokenizer
-        dataset = dataset[:3000]
+        dataset = dataset["train"].select(range(3000))
 
         tokenizer = CanineTokenizer.from_pretrained("google/canine-c")
 
