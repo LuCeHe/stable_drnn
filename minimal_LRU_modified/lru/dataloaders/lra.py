@@ -666,23 +666,45 @@ class AAN(SequenceDataset):
         new_features["label"] = Value("int32")
         dataset = dataset.cast(new_features)
 
-        tokenizer = list  # Just convert a string to a list of chars
+        # tokenizer = list  # Just convert a string to a list of chars
         # Account for <bos> and <eos> tokens
         l_max = self.l_max//2 - int(self.append_bos) - int(self.append_eos)
 
-        def tokenize(example):
-            example["tokens1"] = tokenizer(example["text1"])[:l_max]
-            example["tokens2"] = tokenizer(example["text2"])[:l_max]
-            return example
+        from transformers import CanineTokenizer
+        dataset = dataset.take(3000)
 
+        tokenizer = CanineTokenizer.from_pretrained("google/canine-c")
+
+        print('tokenizer.is_fast', tokenizer.is_fast)
+        def tokenize_function(examples):
+            a = tokenizer(examples["text1"], truncation=True, num_proc=4, max_length=l_max)
+            print(a)
+            examples["idx1"] = tokenizer(examples["text1"], truncation=True, num_proc=4, max_length=l_max)
+            examples["idx2"] = tokenizer(examples["text2"], truncation=True, num_proc=4, max_length=l_max)
+
+            return examples
+
+        # % time
         dataset = dataset.map(
-            tokenize,
-            remove_columns=["text1", "text2"],
-            keep_in_memory=True,
-            load_from_cache_file=True,
-            num_proc=max(self.n_workers, 1),
+            tokenize_function,
             batched=True,
+            num_proc=4,
+            remove_columns=["text1", "text2"],
         )
+        #
+        # def tokenize(example):
+        #     example["tokens1"] = tokenizer(example["text1"])[:l_max]
+        #     example["tokens2"] = tokenizer(example["text2"])[:l_max]
+        #     return example
+        #
+        # dataset = dataset.map(
+        #     tokenize,
+        #     remove_columns=["text1", "text2"],
+        #     keep_in_memory=True,
+        #     load_from_cache_file=True,
+        #     num_proc=max(self.n_workers, 1),
+        #     batched=True,
+        # )
 
         specials = ["<pad>", "<unk>"] \
                    + (["<bos>"] if self.append_bos else []) \
