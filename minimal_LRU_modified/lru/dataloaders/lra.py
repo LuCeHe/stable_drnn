@@ -659,7 +659,7 @@ class AAN(SequenceDataset):
             delimiter="\t",
             column_names=["label", "input1_id", "input2_id", "text1", "text2"],
             keep_in_memory=True,
-        )  # True)
+        )
         dataset = dataset.remove_columns(["input1_id", "input2_id"])
         # new_features = dataset["train"].features.copy()
         # print('new_features', new_features)
