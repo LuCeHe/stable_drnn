@@ -551,7 +551,7 @@ class AAN(SequenceDataset):
     @property
     def init_defaults(self):
         return {
-            "l_max": 4000,
+            "l_max": 8000,
             # 'max_vocab': 100, # Full size 98
             "append_bos": False,
             "append_eos": True,
@@ -603,37 +603,44 @@ class AAN(SequenceDataset):
             dataset["test"],
         )
 
-        def collate_batch(batch):
-            print('\n\n\n')
-            print(batch)
-            xs1, xs2, ys = zip(
-                *[(data["input_ids1"], data["input_ids2"], data["label"]) for data in batch]
-            )
-            lengths1 = torch.tensor([len(x) for x in xs1])
-            lengths2 = torch.tensor([len(x) for x in xs2])
-            xs1 = nn.utils.rnn.pad_sequence(
-                xs1, padding_value=self.vocab["<pad>"], batch_first=True
-            )
-            xs2 = nn.utils.rnn.pad_sequence(
-                xs2, padding_value=self.vocab["<pad>"], batch_first=True
-            )
-            # Pad both to same length
-            # Shape (batch, length)
-            L = max(xs1.size(1), xs2.size(1))
-            xs1 = F.pad(xs1, (0, L - xs1.size(1)), value=self.vocab["<pad>"])
-            xs2 = F.pad(xs2, (0, L - xs2.size(1)), value=self.vocab["<pad>"])
+        def _collate_fn(self, batch):
+            xs, ys = zip(*[(data["input_ids"], data["label"]) for data in batch])
+            lengths = torch.tensor([len(x) for x in xs])
+            xs = nn.utils.rnn.pad_sequence(xs, padding_value=self.vocab["<pad>"], batch_first=True)
             ys = torch.tensor(ys)
-            # return xs1, xs2, ys, lengths1, lengths2
-
-            # Concatenate two batches
-            xs = torch.cat([xs1, xs2], dim=0)
-            lengths = torch.cat([lengths1, lengths2], dim=0)
-
             print('shapes', xs.shape, ys.shape, lengths.shape)
             return xs, ys, {"lengths": lengths}
 
-        self._collate_fn = collate_batch
+        # def collate_batch(batch):
+        #     print('\n\n\n')
+        #     print(batch)
+        #     xs1, xs2, ys = zip(
+        #         *[(data["input_ids1"], data["input_ids2"], data["label"]) for data in batch]
+        #     )
+        #     lengths1 = torch.tensor([len(x) for x in xs1])
+        #     lengths2 = torch.tensor([len(x) for x in xs2])
+        #     xs1 = nn.utils.rnn.pad_sequence(
+        #         xs1, padding_value=self.vocab["<pad>"], batch_first=True
+        #     )
+        #     xs2 = nn.utils.rnn.pad_sequence(
+        #         xs2, padding_value=self.vocab["<pad>"], batch_first=True
+        #     )
+        #     # Pad both to same length
+        #     # Shape (batch, length)
+        #     L = max(xs1.size(1), xs2.size(1))
+        #     xs1 = F.pad(xs1, (0, L - xs1.size(1)), value=self.vocab["<pad>"])
+        #     xs2 = F.pad(xs2, (0, L - xs2.size(1)), value=self.vocab["<pad>"])
+        #     ys = torch.tensor(ys)
+        #     # return xs1, xs2, ys, lengths1, lengths2
+        #
+        #     # Concatenate two batches
+        #     xs = torch.cat([xs1, xs2], dim=0)
+        #     lengths = torch.cat([lengths1, lengths2], dim=0)
+        #
+        #     print('shapes', xs.shape, ys.shape, lengths.shape)
+        #     return xs, ys, {"lengths": lengths}
 
+        # self._collate_fn = collate_batch
 
     def process_dataset(self):
         print(self.cache_dir / self._cache_dir_name)
@@ -661,7 +668,7 @@ class AAN(SequenceDataset):
 
         tokenizer = list  # Just convert a string to a list of chars
         # Account for <bos> and <eos> tokens
-        l_max = self.l_max - int(self.append_bos) - int(self.append_eos)
+        l_max = self.l_max//2 - int(self.append_bos) - int(self.append_eos)
 
         def tokenize(example):
             example["tokens1"] = tokenizer(example["text1"])[:l_max]
@@ -689,20 +696,19 @@ class AAN(SequenceDataset):
         bos = '<bos>' if self.append_bos else ''
         eos = '<eos>' if self.append_eos else ''
 
-        def encode(text):
-            print('\n\n\n')
-
-            print(text)
-            print(len(text))
-            idxs = [
-                vocab(bos + t + eos)
-                for t in text]
-            print(idxs)
-            return idxs
+        # def encode(text):
+        #     print('\n' text[0])
+        #     idxs = [vocab(bos + t + eos) for t in text]
+        #     return idxs
 
         def numericalize(example):
-            example["input_ids1"] = encode(example["tokens1"])
-            example["input_ids2"] = encode(example["tokens2"])
+            print('len tokens1', len(example["tokens1"]))
+            print('len tokens2', len(example["tokens2"]))
+            tokens = [bos + t1 + eos + bos + t2 + eos for t1, t2 in zip(example["tokens1"], example["tokens2"])]
+            print(tokens[0])
+            print(example["tokens1"][0])
+
+            example['input_ids'] = [vocab(t) for t in tokens]
             return example
 
         dataset = dataset.map(
