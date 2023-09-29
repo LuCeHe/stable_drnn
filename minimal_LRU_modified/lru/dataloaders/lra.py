@@ -677,8 +677,9 @@ class AAN(SequenceDataset):
 
         print('tokenizer.is_fast', tokenizer.is_fast)
         def tokenize_function(examples):
-            a = tokenizer(examples["text1"], truncation=True, max_length=l_max)
-            print(a.keys())
+            a = tokenizer(examples["text1"], truncation=True, max_length=l_max).inputs_ids
+            # 'input_ids', 'token_type_ids', 'attention_mask'
+            print(a)
             examples["idx1"] = tokenizer(examples["text1"], truncation=True, max_length=l_max)
             examples["idx2"] = tokenizer(examples["text2"], truncation=True, max_length=l_max)
 
