@@ -670,14 +670,14 @@ class AAN(SequenceDataset):
         # Account for <bos> and <eos> tokens
         l_max = self.l_max//2 - int(self.append_bos) - int(self.append_eos)
 
-        from transformers import CanineTokenizer
+        from transformers import CanineTokenizer, PreTrainedTokenizerFast
         dataset = dataset["train"].select(range(3000))
 
-        tokenizer = CanineTokenizer.from_pretrained("google/canine-c")
+        tokenizer = PreTrainedTokenizerFast.from_pretrained("google/canine-c")
 
         print('tokenizer.is_fast', tokenizer.is_fast)
         def tokenize_function(examples):
-            a = tokenizer(examples["text1"], truncation=True, max_length=l_max).inputs_ids
+            a = tokenizer(examples["text1"], truncation=True, max_length=l_max)['inputs_ids']
             # 'input_ids', 'token_type_ids', 'attention_mask'
             print(a)
             examples["idx1"] = tokenizer(examples["text1"], truncation=True, max_length=l_max)
