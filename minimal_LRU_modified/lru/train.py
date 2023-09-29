@@ -64,7 +64,8 @@ def train(args):
         in_dim,
         train_size,
     ) = create_dataset_fn(args.dir_name, seed=args.jax_seed, batch_size=args.batch_size)
-    print(f"[*] Starting training on `{args.dataset}` =>> Initializing...")
+    print(f"\n\n[*] Starting training on `{args.dataset}` =>> Initializing...")
+    print(f"N Classes: {n_classes}, Seq Len: {seq_len}, In Dim: {in_dim}")
 
     lru = partial(
         LRU, d_hidden=args.d_hidden, d_model=args.d_model, r_min=args.r_min, r_max=args.r_max
