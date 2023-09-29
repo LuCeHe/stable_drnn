@@ -634,6 +634,7 @@ class AAN(SequenceDataset):
 
         self._collate_fn = collate_batch
 
+
     def process_dataset(self):
         print(self.cache_dir / self._cache_dir_name)
 
