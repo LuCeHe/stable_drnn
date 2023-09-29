@@ -603,7 +603,7 @@ class AAN(SequenceDataset):
             dataset["test"],
         )
 
-        def _collate_fn(self, batch):
+        def collate_batch(self, batch):
             xs, ys = zip(*[(data["input_ids"], data["label"]) for data in batch])
             lengths = torch.tensor([len(x) for x in xs])
             xs = nn.utils.rnn.pad_sequence(xs, padding_value=self.vocab["<pad>"], batch_first=True)
@@ -640,7 +640,7 @@ class AAN(SequenceDataset):
         #     print('shapes', xs.shape, ys.shape, lengths.shape)
         #     return xs, ys, {"lengths": lengths}
 
-        # self._collate_fn = collate_batch
+        self._collate_fn = collate_batch
 
     def process_dataset(self):
         print(self.cache_dir / self._cache_dir_name)
