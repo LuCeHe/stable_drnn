@@ -604,6 +604,8 @@ class AAN(SequenceDataset):
         )
 
         def collate_batch(batch):
+            print('\n\n\n')
+            print(batch)
             xs1, xs2, ys = zip(
                 *[(data["input_ids1"], data["input_ids2"], data["label"]) for data in batch]
             )
@@ -626,6 +628,8 @@ class AAN(SequenceDataset):
             # Concatenate two batches
             xs = torch.cat([xs1, xs2], dim=0)
             lengths = torch.cat([lengths1, lengths2], dim=0)
+
+            print('shapes', xs.shape, ys.shape, lengths.shape)
             return xs, ys, {"lengths": lengths}
 
         self._collate_fn = collate_batch
