@@ -676,12 +676,13 @@ class AAN(SequenceDataset):
         tokenizer = CanineTokenizer.from_pretrained("google/canine-c")
 
         def chain_sentences(example):
+            print(example["text1"])
             example["text"] = example["text1"] + "<eos>" + example["text2"]
             return example
 
         dataset = dataset.map(
             chain_sentences,
-            batched=True,
+            # batched=True,
             remove_columns=["text1", "text2"],
             load_from_cache_file=True,
         )
