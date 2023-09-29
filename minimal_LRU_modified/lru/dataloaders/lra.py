@@ -702,10 +702,10 @@ class AAN(SequenceDataset):
         #     return idxs
 
         def numericalize(example):
-            print('len tokens1', len(example["tokens1"]))
-            print('len tokens2', len(example["tokens2"]))
+            # print('len tokens1', len(example["tokens1"]))
+            # print('len tokens2', len(example["tokens2"]))
             tokens = [bos + t1 + eos + bos + t2 + eos for t1, t2 in zip(example["tokens1"], example["tokens2"])]
-            print(tokens[0])
+            # print(tokens[0])
             # print(example["tokens1"][0])
 
             example['input_ids'] = [vocab(tokenizer(t)) for t in tokens]
