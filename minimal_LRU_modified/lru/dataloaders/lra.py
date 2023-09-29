@@ -668,28 +668,35 @@ class AAN(SequenceDataset):
 
         # tokenizer = list  # Just convert a string to a list of chars
         # Account for <bos> and <eos> tokens
-        l_max = self.l_max//2 - int(self.append_bos) - int(self.append_eos)
+        l_max = self.l_max // 2 - int(self.append_bos) - int(self.append_eos)
 
         from transformers import CanineTokenizer, PreTrainedTokenizerFast
         dataset = dataset["train"].select(range(3000))
 
         tokenizer = CanineTokenizer.from_pretrained("google/canine-c")
 
-        print('tokenizer.is_fast', tokenizer.is_fast)
-        def tokenize_function(examples):
-            a = tokenizer(examples["text1"], truncation=True, max_length=l_max)['inputs_ids']
-            # 'input_ids', 'token_type_ids', 'attention_mask'
-            print(a)
-            examples["idx1"] = tokenizer(examples["text1"], truncation=True, max_length=l_max)
-            examples["idx2"] = tokenizer(examples["text2"], truncation=True, max_length=l_max)
+        def chain_sentences(example):
+            example["text"] = example["text1"] + "<eos>" + example["text2"]
+            return example
 
+        dataset = dataset.map(
+            chain_sentences,
+            batched=True,
+            remove_columns=["text1", "text2"],
+            load_from_cache_file=True,
+        )
+
+        print('tokenizer.is_fast', tokenizer.is_fast)
+
+        def tokenize_function(examples):
+            examples['input_ids'] = tokenizer(examples["text"], truncation=True, max_length=l_max)
             return examples
 
         dataset = dataset.map(
             tokenize_function,
             batched=True,
-            # num_proc=4,
-            remove_columns=["text1", "text2"],
+            remove_columns=["text"],
+            load_from_cache_file=True,
         )
         #
         # def tokenize(example):
@@ -723,24 +730,24 @@ class AAN(SequenceDataset):
         #     idxs = [vocab(bos + t + eos) for t in text]
         #     return idxs
 
-        def numericalize(example):
-            print('len tokens1', len(example["tokens1"]))
-            print('len tokens2', len(example["tokens2"]))
-            tokens = [bos + t1 + eos + bos + t2 + eos for t1, t2 in zip(example["tokens1"], example["tokens2"])]
-            print(tokens[0])
-            # print(example["tokens1"][0])
-
-            example['input_ids'] = [vocab(tokenizer(t)) for t in tokens]
-            return example
-
-        dataset = dataset.map(
-            numericalize,
-            remove_columns=["tokens1", "tokens2"],
-            keep_in_memory=True,
-            load_from_cache_file=True,
-            num_proc=max(self.n_workers, 1),
-            batched=True,
-        )
+        # def numericalize(example):
+        #     print('len tokens1', len(example["tokens1"]))
+        #     print('len tokens2', len(example["tokens2"]))
+        #     tokens = [bos + t1 + eos + bos + t2 + eos for t1, t2 in zip(example["tokens1"], example["tokens2"])]
+        #     print(tokens[0])
+        #     # print(example["tokens1"][0])
+        #
+        #     example['input_ids'] = [vocab(tokenizer(t)) for t in tokens]
+        #     return example
+        #
+        # dataset = dataset.map(
+        #     numericalize,
+        #     remove_columns=["tokens1", "tokens2"],
+        #     keep_in_memory=True,
+        #     load_from_cache_file=True,
+        #     num_proc=max(self.n_workers, 1),
+        #     batched=True,
+        # )
 
         if cache_dir is not None:
             self._save_to_cache(dataset, tokenizer, vocab, cache_dir)
