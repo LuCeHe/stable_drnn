@@ -338,8 +338,27 @@ def compare_to_default_scales(width, n_layers, pretrained_cells):
 
 
 if __name__ == '__main__':
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--type",
+                        # default='deslice_findLSC_meanaxis_truersplit',
+                        default='chunked_meanaxis_sameemb_noimagloss_normri_findLSC_radius_deflect',
+                        # default='pretrained_deslice_sameemb_truersplit_findLSC_supsubnpsd',
+                        # default='',
+                        type=str, help="String to activate extra behaviors")
+    args = parser.parse_args()
+    comments = ''
+    if 'unbalanced' in args.type:
+        comments = 'findLSC_radius_targetnorm:0.5_unbalanced'
+    elif 'p5' in args.type:
+        comments = 'findLSC_radius_targetnorm:0.5'
+    elif 'one' in args.type:
+        comments = 'findLSC_radius'
+
+
     lruLSC(
-        comments='findLSC_radius_targetnorm:0.5_unbalanced', seed=0, stack=4, width=64, classes=2, vocab_size=7,
+        comments=comments, seed=0, stack=4, width=128, classes=2, vocab_size=7,
            maxlen=100, batch_shape=32)
     # lruLSC(comments='findLSC_radius_targetnorm:0.5_unbalanced', seed=0, stack=4, width=64, classes=2, vocab_size=7, maxlen=100)
     # lruLSC(comments='findLSC_radius', seed=0, stack=4, width=64, classes=2, vocab_size=7, maxlen=100)
