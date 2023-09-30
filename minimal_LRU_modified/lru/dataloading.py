@@ -18,7 +18,7 @@ dataset_fn = Callable[[str, Optional[int], Optional[int]], ReturnType]
 
 # Example interface for making a loader.
 def custom_loader(cache_dir: str,
-				  bsz: int = 50,
+				  batch_size: int = 50,
 				  seed: int = 42) -> ReturnType:
 	...
 
@@ -58,12 +58,12 @@ def make_data_loader(dset,
 
 
 def create_lra_imdb_classification_dataset(cache_dir: Union[str, Path] = DEFAULT_CACHE_DIR_ROOT,
-										   bsz: int = 50,
+										   batch_size: int = 50,
 										   seed: int = 42) -> ReturnType:
 	"""
 
 	:param cache_dir:		(str):		Not currently used.
-	:param bsz:				(int):		Batch size.
+	:param batch_size:				(int):		Batch size.
 	:param seed:			(int)		Seed for shuffling data.
 	:return:
 	"""
@@ -75,8 +75,8 @@ def create_lra_imdb_classification_dataset(cache_dir: Union[str, Path] = DEFAULT
 	dataset_obj.cache_dir = Path(cache_dir) / name
 	dataset_obj.setup()
 
-	trainloader = make_data_loader(dataset_obj.dataset_train, dataset_obj, seed=seed, batch_size=bsz)
-	testloader = make_data_loader(dataset_obj.dataset_test, dataset_obj, seed=seed, batch_size=bsz, drop_last=False, shuffle=False)
+	trainloader = make_data_loader(dataset_obj.dataset_train, dataset_obj, seed=seed, batch_size=batch_size)
+	testloader = make_data_loader(dataset_obj.dataset_test, dataset_obj, seed=seed, batch_size=batch_size, drop_last=False, shuffle=False)
 	valloader = None
 
 	N_CLASSES = dataset_obj.d_output
@@ -90,7 +90,7 @@ def create_lra_imdb_classification_dataset(cache_dir: Union[str, Path] = DEFAULT
 
 
 def create_lra_listops_classification_dataset(cache_dir: Union[str, Path] = DEFAULT_CACHE_DIR_ROOT,
-											  bsz: int = 50,
+											  batch_size: int = 50,
 											  seed: int = 42) -> ReturnType:
 	"""
 	See abstract template.
@@ -104,9 +104,9 @@ def create_lra_listops_classification_dataset(cache_dir: Union[str, Path] = DEFA
 	dataset_obj.cache_dir = Path(cache_dir) / name
 	dataset_obj.setup()
 
-	trn_loader = make_data_loader(dataset_obj.dataset_train, dataset_obj, seed=seed, batch_size=bsz)
-	val_loader = make_data_loader(dataset_obj.dataset_val, dataset_obj, seed=seed, batch_size=bsz, drop_last=False, shuffle=False)
-	tst_loader = make_data_loader(dataset_obj.dataset_test, dataset_obj, seed=seed, batch_size=bsz, drop_last=False, shuffle=False)
+	trn_loader = make_data_loader(dataset_obj.dataset_train, dataset_obj, seed=seed, batch_size=batch_size)
+	val_loader = make_data_loader(dataset_obj.dataset_val, dataset_obj, seed=seed, batch_size=batch_size, drop_last=False, shuffle=False)
+	tst_loader = make_data_loader(dataset_obj.dataset_test, dataset_obj, seed=seed, batch_size=batch_size, drop_last=False, shuffle=False)
 
 	N_CLASSES = dataset_obj.d_output
 	SEQ_LENGTH = dataset_obj.l_max
@@ -119,7 +119,7 @@ def create_lra_listops_classification_dataset(cache_dir: Union[str, Path] = DEFA
 
 
 def create_lra_path32_classification_dataset(cache_dir: Union[str, Path] = DEFAULT_CACHE_DIR_ROOT,
-											 bsz: int = 50,
+											 batch_size: int = 50,
 											 seed: int = 42) -> ReturnType:
 	"""
 	See abstract template.
@@ -134,9 +134,9 @@ def create_lra_path32_classification_dataset(cache_dir: Union[str, Path] = DEFAU
 	dataset_obj.cache_dir = Path(cache_dir) / name
 	dataset_obj.setup()
 
-	trn_loader = make_data_loader(dataset_obj.dataset_train, dataset_obj, seed=seed, batch_size=bsz)
-	val_loader = make_data_loader(dataset_obj.dataset_val, dataset_obj, seed=seed, batch_size=bsz, drop_last=False, shuffle=False)
-	tst_loader = make_data_loader(dataset_obj.dataset_test, dataset_obj, seed=seed, batch_size=bsz, drop_last=False, shuffle=False)
+	trn_loader = make_data_loader(dataset_obj.dataset_train, dataset_obj, seed=seed, batch_size=batch_size)
+	val_loader = make_data_loader(dataset_obj.dataset_val, dataset_obj, seed=seed, batch_size=batch_size, drop_last=False, shuffle=False)
+	tst_loader = make_data_loader(dataset_obj.dataset_test, dataset_obj, seed=seed, batch_size=batch_size, drop_last=False, shuffle=False)
 
 	N_CLASSES = dataset_obj.d_output
 	SEQ_LENGTH = dataset_obj.dataset_train.tensors[0].shape[1]
@@ -149,7 +149,7 @@ def create_lra_path32_classification_dataset(cache_dir: Union[str, Path] = DEFAU
 
 
 def create_lra_pathx_classification_dataset(cache_dir: Union[str, Path] = DEFAULT_CACHE_DIR_ROOT,
-											bsz: int = 50,
+											batch_size: int = 50,
 											seed: int = 42) -> ReturnType:
 	"""
 	See abstract template.
@@ -164,9 +164,9 @@ def create_lra_pathx_classification_dataset(cache_dir: Union[str, Path] = DEFAUL
 	dataset_obj.cache_dir = Path(cache_dir) / name
 	dataset_obj.setup()
 
-	trn_loader = make_data_loader(dataset_obj.dataset_train, dataset_obj, seed=seed, batch_size=bsz)
-	val_loader = make_data_loader(dataset_obj.dataset_val, dataset_obj, seed=seed, batch_size=bsz, drop_last=False, shuffle=False)
-	tst_loader = make_data_loader(dataset_obj.dataset_test, dataset_obj, seed=seed, batch_size=bsz, drop_last=False, shuffle=False)
+	trn_loader = make_data_loader(dataset_obj.dataset_train, dataset_obj, seed=seed, batch_size=batch_size)
+	val_loader = make_data_loader(dataset_obj.dataset_val, dataset_obj, seed=seed, batch_size=batch_size, drop_last=False, shuffle=False)
+	tst_loader = make_data_loader(dataset_obj.dataset_test, dataset_obj, seed=seed, batch_size=batch_size, drop_last=False, shuffle=False)
 
 	N_CLASSES = dataset_obj.d_output
 	SEQ_LENGTH = dataset_obj.dataset_train.tensors[0].shape[1]
@@ -180,7 +180,7 @@ def create_lra_pathx_classification_dataset(cache_dir: Union[str, Path] = DEFAUL
 
 def create_lra_image_classification_dataset(cache_dir: Union[str, Path] = DEFAULT_CACHE_DIR_ROOT,
 											seed: int = 42,
-											bsz: int=128) -> ReturnType:
+											batch_size: int=128) -> ReturnType:
 	"""
 	See abstract template.
 
@@ -198,9 +198,9 @@ def create_lra_image_classification_dataset(cache_dir: Union[str, Path] = DEFAUL
 	dataset_obj = CIFAR10(name, data_dir=cache_dir, **kwargs)  # TODO - double check what the dir here does.
 	dataset_obj.setup()
 
-	trn_loader = make_data_loader(dataset_obj.dataset_train, dataset_obj, seed=seed, batch_size=bsz)
-	val_loader = make_data_loader(dataset_obj.dataset_val, dataset_obj, seed=seed, batch_size=bsz, drop_last=False, shuffle=False)
-	tst_loader = make_data_loader(dataset_obj.dataset_test, dataset_obj, seed=seed, batch_size=bsz, drop_last=False, shuffle=False)
+	trn_loader = make_data_loader(dataset_obj.dataset_train, dataset_obj, seed=seed, batch_size=batch_size)
+	val_loader = make_data_loader(dataset_obj.dataset_val, dataset_obj, seed=seed, batch_size=batch_size, drop_last=False, shuffle=False)
+	tst_loader = make_data_loader(dataset_obj.dataset_test, dataset_obj, seed=seed, batch_size=batch_size, drop_last=False, shuffle=False)
 
 	N_CLASSES = dataset_obj.d_output
 	SEQ_LENGTH = 32 * 32
@@ -213,7 +213,7 @@ def create_lra_image_classification_dataset(cache_dir: Union[str, Path] = DEFAUL
 
 
 def create_lra_aan_classification_dataset(cache_dir: Union[str, Path] = DEFAULT_CACHE_DIR_ROOT,
-										  bsz: int = 50,
+										  batch_size: int = 50,
 										  seed: int = 42, ) -> ReturnType:
 	"""
 	See abstract template.
@@ -232,9 +232,9 @@ def create_lra_aan_classification_dataset(cache_dir: Union[str, Path] = DEFAULT_
 	dataset_obj.cache_dir = Path(cache_dir) / name
 	dataset_obj.setup()
 
-	trn_loader = make_data_loader(dataset_obj.dataset_train, dataset_obj, seed=seed, batch_size=bsz)
-	val_loader = make_data_loader(dataset_obj.dataset_val, dataset_obj, seed=seed, batch_size=bsz, drop_last=False, shuffle=False)
-	tst_loader = make_data_loader(dataset_obj.dataset_test, dataset_obj, seed=seed, batch_size=bsz, drop_last=False, shuffle=False)
+	trn_loader = make_data_loader(dataset_obj.dataset_train, dataset_obj, seed=seed, batch_size=batch_size)
+	val_loader = make_data_loader(dataset_obj.dataset_val, dataset_obj, seed=seed, batch_size=batch_size, drop_last=False, shuffle=False)
+	tst_loader = make_data_loader(dataset_obj.dataset_test, dataset_obj, seed=seed, batch_size=batch_size, drop_last=False, shuffle=False)
 
 	N_CLASSES = dataset_obj.d_output
 	SEQ_LENGTH = dataset_obj.l_max
@@ -248,7 +248,7 @@ def create_lra_aan_classification_dataset(cache_dir: Union[str, Path] = DEFAULT_
 
 def create_cifar_classification_dataset(cache_dir: Union[str, Path] = DEFAULT_CACHE_DIR_ROOT,
 										seed: int = 42,
-										bsz: int=128) -> ReturnType:
+										batch_size: int=128) -> ReturnType:
 	"""
 	See abstract template.
 
@@ -266,9 +266,9 @@ def create_cifar_classification_dataset(cache_dir: Union[str, Path] = DEFAULT_CA
 	dataset_obj = CIFAR10(name, data_dir=cache_dir, **kwargs)
 	dataset_obj.setup()
 
-	trn_loader = make_data_loader(dataset_obj.dataset_train, dataset_obj, seed=seed, batch_size=bsz)
-	val_loader = make_data_loader(dataset_obj.dataset_val, dataset_obj, seed=seed, batch_size=bsz, drop_last=False, shuffle=False)
-	tst_loader = make_data_loader(dataset_obj.dataset_test, dataset_obj, seed=seed, batch_size=bsz, drop_last=False, shuffle=False)
+	trn_loader = make_data_loader(dataset_obj.dataset_train, dataset_obj, seed=seed, batch_size=batch_size)
+	val_loader = make_data_loader(dataset_obj.dataset_val, dataset_obj, seed=seed, batch_size=batch_size, drop_last=False, shuffle=False)
+	tst_loader = make_data_loader(dataset_obj.dataset_test, dataset_obj, seed=seed, batch_size=batch_size, drop_last=False, shuffle=False)
 
 	N_CLASSES = dataset_obj.d_output
 	SEQ_LENGTH = 32 * 32
@@ -282,7 +282,7 @@ def create_cifar_classification_dataset(cache_dir: Union[str, Path] = DEFAULT_CA
 
 def create_mnist_classification_dataset(cache_dir: Union[str, Path] = DEFAULT_CACHE_DIR_ROOT,
 																				seed: int = 42,
-																				bsz: int=128) -> ReturnType:
+																				batch_size: int=128) -> ReturnType:
 	"""
 	See abstract template.
 
@@ -300,9 +300,9 @@ def create_mnist_classification_dataset(cache_dir: Union[str, Path] = DEFAULT_CA
 	dataset_obj = MNIST(name, data_dir=cache_dir, **kwargs)
 	dataset_obj.setup()
 
-	trn_loader = make_data_loader(dataset_obj.dataset_train, dataset_obj, seed=seed, batch_size=bsz)
-	val_loader = make_data_loader(dataset_obj.dataset_val, dataset_obj, seed=seed, batch_size=bsz, drop_last=False, shuffle=False)
-	tst_loader = make_data_loader(dataset_obj.dataset_test, dataset_obj, seed=seed, batch_size=bsz, drop_last=False, shuffle=False)
+	trn_loader = make_data_loader(dataset_obj.dataset_train, dataset_obj, seed=seed, batch_size=batch_size)
+	val_loader = make_data_loader(dataset_obj.dataset_val, dataset_obj, seed=seed, batch_size=batch_size, drop_last=False, shuffle=False)
+	tst_loader = make_data_loader(dataset_obj.dataset_test, dataset_obj, seed=seed, batch_size=batch_size, drop_last=False, shuffle=False)
 
 	N_CLASSES = dataset_obj.d_output
 	SEQ_LENGTH = 28 * 28
@@ -314,7 +314,7 @@ def create_mnist_classification_dataset(cache_dir: Union[str, Path] = DEFAULT_CA
 
 def create_pmnist_classification_dataset(cache_dir: Union[str, Path] = DEFAULT_CACHE_DIR_ROOT,
 																				seed: int = 42,
-																				bsz: int=128) -> ReturnType:
+																				batch_size: int=128) -> ReturnType:
 	"""
 	See abstract template.
 
@@ -332,9 +332,9 @@ def create_pmnist_classification_dataset(cache_dir: Union[str, Path] = DEFAULT_C
 	dataset_obj = MNIST(name, data_dir=cache_dir, **kwargs)
 	dataset_obj.setup()
 
-	trn_loader = make_data_loader(dataset_obj.dataset_train, dataset_obj, seed=seed, batch_size=bsz)
-	val_loader = make_data_loader(dataset_obj.dataset_val, dataset_obj, seed=seed, batch_size=bsz, drop_last=False, shuffle=False)
-	tst_loader = make_data_loader(dataset_obj.dataset_test, dataset_obj, seed=seed, batch_size=bsz, drop_last=False, shuffle=False)
+	trn_loader = make_data_loader(dataset_obj.dataset_train, dataset_obj, seed=seed, batch_size=batch_size)
+	val_loader = make_data_loader(dataset_obj.dataset_val, dataset_obj, seed=seed, batch_size=batch_size, drop_last=False, shuffle=False)
+	tst_loader = make_data_loader(dataset_obj.dataset_test, dataset_obj, seed=seed, batch_size=batch_size, drop_last=False, shuffle=False)
 
 	N_CLASSES = dataset_obj.d_output
 	SEQ_LENGTH = 28 * 28
