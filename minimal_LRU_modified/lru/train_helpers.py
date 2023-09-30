@@ -75,7 +75,7 @@ def map_nested_fn(fn):
     return map_fn
 
 
-def create_train_state(model_cls, rng, in_dim, batch_size, seq_len, weight_decay, norm, ssm_lr, lr):
+def create_train_state(model_cls, rng, in_dim, batch_size, seq_len, weight_decay, norm, ssm_lr, lr, args=None):
     """Initializes the training state using optax"""
 
     dummy_input = jnp.ones((batch_size, seq_len, in_dim))
@@ -104,10 +104,13 @@ def create_train_state(model_cls, rng, in_dim, batch_size, seq_len, weight_decay
         ssm_fn,
     )
 
-    tx = optax.chain(
-        tx,
-        optax.clip_by_global_norm(1.0)
-    )
+    if not args is None:
+        if 'clipping' in args.comments:
+
+            tx = optax.chain(
+                tx,
+                optax.clip_by_global_norm(1.0)
+            )
     def fn_is_complex(x):
         return x.dtype in [jnp.complex64, jnp.complex128]
 

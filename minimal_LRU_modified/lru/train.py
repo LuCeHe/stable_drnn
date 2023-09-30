@@ -96,6 +96,7 @@ def train(args):
         norm=args.norm,
         ssm_lr=ssm_lr,
         lr=lr,
+        args=args,
     )
 
     # Training Loop over epochs
