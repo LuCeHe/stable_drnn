@@ -222,6 +222,7 @@ def train_step(state, rng, inputs, labels, masks, model, norm):
         return loss_fn(logits, labels, masks), vars
 
     (loss, vars), grads = jax.value_and_grad(_loss, has_aux=True)(state.params)
+    print(grads)
 
     if norm in ["batch"]:
         state = state.apply_gradients(grads=grads, batch_stats=vars["batch_stats"])

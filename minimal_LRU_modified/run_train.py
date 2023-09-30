@@ -34,7 +34,7 @@ if __name__ == "__main__":
         help="name of directory where data is cached",
     )
     parser.add_argument(
-        "--dataset", type=str, choices=Datasets.keys(), default="aan-classification"
+        "--dataset", type=str, choices=Datasets.keys(), default="mnist-classification"
     )
     parser.add_argument("--jax_seed", type=int, default=1919, help="seed randomness")
 

@@ -29,7 +29,10 @@ def load_resLSC_model(path):
     return model
 
 
-def lruLSC(comments='findLSC_radius', seed=0, stack=4, width=32, classes=2, vocab_size=7, maxlen=1):
+def lruLSC(
+        comments='findLSC_radius', seed=0, stack=4, width=32, classes=2, vocab_size=7, maxlen=1,
+        batch_shape=8
+):
     net_name = 'reslru'
     task_name = 'anytask'
 
@@ -46,7 +49,6 @@ def lruLSC(comments='findLSC_radius', seed=0, stack=4, width=32, classes=2, voca
 
     target_norm = str2val(comments, 'targetnorm', float, default=1)
 
-    batch_shape = 8
     time_steps = 1
 
     n_layers = int(stack)
@@ -81,161 +83,164 @@ def lruLSC(comments='findLSC_radius', seed=0, stack=4, width=32, classes=2, voca
     ma_norm = None
     std_ma_norm = None
     for t in tqdm(range(ts)):
+        try:
 
-        inputs_t1 = tf.Variable(rand((batch_shape, time_steps, width)))
-        init_states_l1_t1 = [
-            tf.Variable(rand((batch_shape, 2 * width))),
-            tf.Variable(rand((batch_shape, 2 * width)))
-        ]
-        init_states_l2_t1 = [
-            tf.Variable(rand((batch_shape, 2 * width))),
-            tf.Variable(rand((batch_shape, 2 * width)))
-        ]
+            inputs_t1 = tf.Variable(rand((batch_shape, time_steps, width)))
+            init_states_l1_t1 = [
+                tf.Variable(rand((batch_shape, 2 * width))),
+                tf.Variable(rand((batch_shape, 2 * width)))
+            ]
+            init_states_l2_t1 = [
+                tf.Variable(rand((batch_shape, 2 * width))),
+                tf.Variable(rand((batch_shape, 2 * width)))
+            ]
 
-        with tf.GradientTape(persistent=True) as tape:
-            tape.watch(inputs_t1)
-            tape.watch(init_states_l1_t1)
-            tape.watch(init_states_l2_t1)
+            with tf.GradientTape(persistent=True) as tape:
+                tape.watch(inputs_t1)
+                tape.watch(init_states_l1_t1)
+                tape.watch(init_states_l2_t1)
 
-            # pick 2 rnns randomly
-            np.random.shuffle(rnns)
-            rnn_l1 = rnns[0]
-            rnn_l2 = rnns[1]
+                # pick 2 rnns randomly
+                np.random.shuffle(rnns)
+                rnn_l1 = rnns[0]
+                rnn_l2 = rnns[1]
 
-            # concatenate states
-            states_l1_conc = tf.concat(init_states_l1_t1, axis=-1)
-            # deconcatenate states
-            states_l1_deconc = tf.split(states_l1_conc, 2, axis=-1)
-            all_outs_l1_t1 = rnn_l1(inputs_t1, states_l1_deconc)
-            output_l1_t2, states_l1_t2 = all_outs_l1_t1[0], all_outs_l1_t1[1:]
+                # concatenate states
+                states_l1_conc = tf.concat(init_states_l1_t1, axis=-1)
+                # deconcatenate states
+                states_l1_deconc = tf.split(states_l1_conc, 2, axis=-1)
+                all_outs_l1_t1 = rnn_l1(inputs_t1, states_l1_deconc)
+                output_l1_t2, states_l1_t2 = all_outs_l1_t1[0], all_outs_l1_t1[1:]
 
-            # concatenate states
-            states_l2_conc = tf.concat(states_l1_t2, axis=-1)
+                # concatenate states
+                states_l2_conc = tf.concat(states_l1_t2, axis=-1)
 
-            all_outs_l2_t1 = rnn_l2(output_l1_t2, init_states_l2_t1)
-            output_l2_t2, states_l2_t2 = all_outs_l2_t1[0], all_outs_l2_t1[1:]
+                all_outs_l2_t1 = rnn_l2(output_l1_t2, init_states_l2_t1)
+                output_l2_t2, states_l2_t2 = all_outs_l2_t1[0], all_outs_l2_t1[1:]
 
-            # concatenate states
-            states_l3_conc = tf.concat(states_l2_t2, axis=-1)
+                # concatenate states
+                states_l3_conc = tf.concat(states_l2_t2, axis=-1)
 
-        # M_t jacobian of states_l2_conc w.r.t. states_l1_conc
-        tn_t = target_norm
-        if target_norm == 0.5 and 'unbalanced' in comments:
-            tn_t = maxlen / (n_layers + maxlen)
-        a_t, loss_t, _ = get_norms(
-            tape=tape, lower_states=[states_l1_conc], upper_states=[states_l2_conc], comments=comments,
-            target_norm=tn_t
-        )
+            # M_t jacobian of states_l2_conc w.r.t. states_l1_conc
+            tn_t = target_norm
+            if target_norm == 0.5 and 'unbalanced' in comments:
+                tn_t = maxlen / (n_layers + maxlen)
+            a_t, loss_t, _ = get_norms(
+                tape=tape, lower_states=[states_l1_conc], upper_states=[states_l2_conc], comments=comments,
+                target_norm=tn_t
+            )
 
-        # M_l jacobian of states_l3_conc w.r.t. states_l1_conc
-        tn_l = target_norm
-        if target_norm == 0.5 and 'unbalanced' in comments:
-            tn_l = n_layers / (n_layers + maxlen)
+            # M_l jacobian of states_l3_conc w.r.t. states_l1_conc
+            tn_l = target_norm
+            if target_norm == 0.5 and 'unbalanced' in comments:
+                tn_l = n_layers / (n_layers + maxlen)
 
-        a_l, loss_l, _ = get_norms(
-            tape=tape, lower_states=[states_l1_conc], upper_states=[states_l3_conc], comments=comments,
-            target_norm=tn_l
-        )
+            a_l, loss_l, _ = get_norms(
+                tape=tape, lower_states=[states_l1_conc], upper_states=[states_l3_conc], comments=comments,
+                target_norm=tn_l
+            )
 
-        mean_loss = tf.reduce_mean(loss_t + loss_l).numpy().astype(np.float32)
-        mean_norm = tf.reduce_mean((a_t + a_l) / 2).numpy().astype(np.float32)
+            mean_loss = tf.reduce_mean(loss_t + loss_l).numpy().astype(np.float32)
+            mean_norm = tf.reduce_mean((a_t + a_l) / 2).numpy().astype(np.float32)
 
-        ma_loss = mean_loss if ma_loss is None else ma_loss * (tc - 1) / tc + mean_loss / tc
-        ma_norm = mean_norm if ma_norm is None else ma_norm * (tc - 1) / tc + mean_norm / tc
-        current_std = np.std([*a_t.numpy().tolist(), *a_l.numpy().tolist()])
-        std_ma_norm = current_std if std_ma_norm is None else std_ma_norm * (tc - 1) / tc + np.std(current_std) / tc
+            ma_loss = mean_loss if ma_loss is None else ma_loss * (tc - 1) / tc + mean_loss / tc
+            ma_norm = mean_norm if ma_norm is None else ma_norm * (tc - 1) / tc + mean_norm / tc
+            current_std = np.std([*a_t.numpy().tolist(), *a_l.numpy().tolist()])
+            std_ma_norm = current_std if std_ma_norm is None else std_ma_norm * (tc - 1) / tc + np.std(current_std) / tc
 
-        if li == None:
-            li = str(mean_loss.round(round_to))
+            if li == None:
+                li = str(mean_loss.round(round_to))
 
-        if ni == None:
-            ni = str(mean_norm.round(round_to))
+            if ni == None:
+                ni = str(mean_norm.round(round_to))
 
-        if ali == None:
-            ali = str(np.mean(a_l.numpy()).round(round_to))
+            if ali == None:
+                ali = str(np.mean(a_l.numpy()).round(round_to))
 
-        if ati == None:
-            ati = str(np.mean(a_t.numpy()).round(round_to))
+            if ati == None:
+                ati = str(np.mean(a_t.numpy()).round(round_to))
 
-        if sti == None:
-            sti = str(np.std([*a_t.numpy().tolist(), *a_l.numpy().tolist()]).round(round_to))
+            if sti == None:
+                sti = str(np.std([*a_t.numpy().tolist(), *a_l.numpy().tolist()]).round(round_to))
 
-        wnames_1 = [weight.name for weight in rnn_l1.weights]
-        wnames_2 = [weight.name for weight in rnn_l2.weights]
+            wnames_1 = [weight.name for weight in rnn_l1.weights]
+            wnames_2 = [weight.name for weight in rnn_l2.weights]
 
-        weights_1 = rnn_l1.trainable_weights
-        weights_2 = rnn_l2.trainable_weights
+            weights_1 = rnn_l1.trainable_weights
+            weights_2 = rnn_l2.trainable_weights
 
-        if 'wmultiplier' in comments:
-            for pair, (weights, wnames, rnn) in enumerate(zip(
-                    [weights_1, weights_2],
-                    [wnames_1, wnames_2],
-                    [rnn_l1, rnn_l2])
-            ):
-                new_weights = []
+            if 'wmultiplier' in comments:
+                for pair, (weights, wnames, rnn) in enumerate(zip(
+                        [weights_1, weights_2],
+                        [wnames_1, wnames_2],
+                        [rnn_l1, rnn_l2])
+                ):
+                    new_weights = []
 
-                for w, wname in zip(weights, wnames):
-                    multiplier = 1
+                    for w, wname in zip(weights, wnames):
+                        multiplier = 1
 
-                    depth_radius = False
-                    if ('C_re' in wname or 'B_re' in wname or 'B_im' in wname or 'C_im' in wname) and pair == 1:
-                        depth_radius = True
+                        depth_radius = False
+                        if ('C_re' in wname or 'B_re' in wname or 'B_im' in wname or 'C_im' in wname) and pair == 1:
+                            depth_radius = True
 
-                    rec_radius = False
-                    if 'lambda_nu' in wname:
-                        rec_radius = True
+                        rec_radius = False
+                        if 'lambda_nu' in wname:
+                            rec_radius = True
 
-                    if depth_radius:
-                        local_norm = a_l
-                        multiplier = tn_l / local_norm
+                        if depth_radius:
+                            local_norm = a_l
+                            multiplier = tn_l / local_norm
 
-                    elif rec_radius:
-                        local_norm = a_t
-                        multiplier = tn_t / local_norm
+                        elif rec_radius:
+                            local_norm = a_t
+                            multiplier = tn_t / local_norm
 
-                    m = tf.reduce_mean(multiplier).numpy()
-                    m = np.clip(m, 0.95, 1.05)
+                        m = tf.reduce_mean(multiplier).numpy()
+                        m = np.clip(m, 0.95, 1.05)
 
-                    w = m * w.numpy()
+                        w = m * w.numpy()
 
-                    if 'wshuff' in comments:
-                        oshape = w.shape
-                        w = w.reshape(-1)
-                        np.random.shuffle(w)
-                        w = w.reshape(oshape)
+                        if 'wshuff' in comments:
+                            oshape = w.shape
+                            w = w.reshape(-1)
+                            np.random.shuffle(w)
+                            w = w.reshape(oshape)
 
-                    new_weights.append(w)
+                        new_weights.append(w)
 
-                rnn.set_weights(new_weights)
+                    rnn.set_weights(new_weights)
 
-            w1 = rnn_l1.get_weights()
-            w2 = rnn_l2.get_weights()
+                w1 = rnn_l1.get_weights()
+                w2 = rnn_l2.get_weights()
 
-            # mix half of the weights
-            for i in range(len(w1)):
-                w1i = w1[i]
-                w2i = w2[i]
-                oshape = w1i.shape
-                w1i = w1i.reshape(-1)
-                w2i = w2i.reshape(-1)
-                # move half the weights to the other rnn
-                w1i[:len(w1i)//2], w2i[:len(w2i)//2] = w2i[:len(w2i)//2], w1i[:len(w1i)//2]
-                w1i = w1i.reshape(oshape)
-                w2i = w2i.reshape(oshape)
-                w1[i] = w1i
-                w2[i] = w2i
+                # mix half of the weights
+                for i in range(len(w1)):
+                    w1i = w1[i]
+                    w2i = w2[i]
+                    oshape = w1i.shape
+                    w1i = w1i.reshape(-1)
+                    w2i = w2i.reshape(-1)
+                    # move half the weights to the other rnn
+                    w1i[:len(w1i) // 2], w2i[:len(w2i) // 2] = w2i[:len(w2i) // 2], w1i[:len(w1i) // 2]
+                    w1i = w1i.reshape(oshape)
+                    w2i = w2i.reshape(oshape)
+                    w1[i] = w1i
+                    w2[i] = w2i
 
-            rnn_l1.set_weights(w1)
-            rnn_l2.set_weights(w2)
+                rnn_l1.set_weights(w1)
+                rnn_l2.set_weights(w2)
 
-        pbar.set_description(
-            f"Step {t}; "
-            f"loss {str(np.array(ma_loss).round(round_to))}/{li}; "
-            f"mean norms {np.array(ma_norm).round(round_to)}/{ni}; "
-            f"ma std norms {str(np.array(std_ma_norm).round(round_to))}/{sti}; "
-            f"at {str(np.mean(a_t.numpy()).round(round_to))}/{ati} ({str(np.array(tn_t).round(round_to))}); "
-            f"al {str(np.mean(a_l.numpy()).round(round_to))}/{ali} ({str(np.array(tn_l).round(round_to))}); "
-        )
+            pbar.set_description(
+                f"Step {t}; "
+                f"loss {str(np.array(ma_loss).round(round_to))}/{li}; "
+                f"mean norms {np.array(ma_norm).round(round_to)}/{ni}; "
+                f"ma std norms {str(np.array(std_ma_norm).round(round_to))}/{sti}; "
+                f"at {str(np.mean(a_t.numpy()).round(round_to))}/{ati} ({str(np.array(tn_t).round(round_to))}); "
+                f"al {str(np.mean(a_l.numpy()).round(round_to))}/{ali} ({str(np.array(tn_l).round(round_to))}); "
+            )
+        except Exception as e :
+            print(e)
 
     results = {
         'ma_loss': ma_loss,
@@ -268,8 +273,6 @@ def lruLSC(comments='findLSC_radius', seed=0, stack=4, width=32, classes=2, voca
     results['std_ma_norm'] = std_ma_norm
     results['best_std_ma_norm'] = std_ma_norm
     return ffn_weights, results
-
-
 
 
 def equivalence_and_save(comments, width, n_layers, classes, vocab_size, cells=None, path_pretrained=None):
@@ -334,11 +337,12 @@ def compare_to_default_scales(width, n_layers, pretrained_cells):
     return scales
 
 
-
-
 if __name__ == '__main__':
+    lruLSC(
+        comments='findLSC_radius_targetnorm:0.5_unbalanced', seed=0, stack=4, width=64, classes=2, vocab_size=7,
+           maxlen=100, batch_shape=32)
     # lruLSC(comments='findLSC_radius_targetnorm:0.5_unbalanced', seed=0, stack=4, width=64, classes=2, vocab_size=7, maxlen=100)
-    # lruLSC(comments='findLSC_radius_targetnorm:0.5_unbalanced', seed=0, stack=4, width=64, classes=2, vocab_size=7, maxlen=100)
-    lruLSC(comments='findLSC_radius', seed=0, stack=4, width=64, classes=2, vocab_size=7, maxlen=100)
+    # lruLSC(comments='findLSC_radius', seed=0, stack=4, width=64, classes=2, vocab_size=7, maxlen=100)
+    # lruLSC(comments='test', seed=0, stack=4, width=64, classes=2, vocab_size=7, maxlen=100)
     # equivalence_and_save(width=3, n_layers=2, classes=2, vocab_size=7)
     # save_layer_weights()
