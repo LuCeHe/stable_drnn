@@ -4,10 +4,7 @@ import tensorflow_addons as tfa
 import numpy as np
 from tqdm import tqdm
 
-# from tensorflow.python.ops.numpy_ops import np_config
-# np_config.enable_numpy_behavior()
-
-from alif_sg.neural_models.recLSC import get_norms
+from alif_sg.neural_models.normify import get_norms
 from alif_sg.tools.admin_model_removal import get_pretrained_file
 from pyaromatics.keras_tools.esoteric_layers.linear_recurrent_unit import ResLRUCell, ResLRUFFN
 from pyaromatics.stay_organized.utils import str2val

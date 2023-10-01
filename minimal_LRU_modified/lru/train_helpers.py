@@ -106,11 +106,14 @@ def create_train_state(model_cls, rng, in_dim, batch_size, seq_len, weight_decay
 
     if not args is None:
         if 'clipping' in args.comments:
+            # FIXME: not working
 
             tx = optax.chain(
                 tx,
                 optax.clip_by_global_norm(1.0)
             )
+
+
     def fn_is_complex(x):
         return x.dtype in [jnp.complex64, jnp.complex128]
 
