@@ -258,7 +258,7 @@ def train_epoch(state, rng, model, trainloader, seq_len, in_dim, norm, lr_params
         batch_losses.append(loss)  # log loss value
 
         lr_params = (decay_function, ssm_lr, lr, step, end_step, lr_min)
-        state, step = update_learning_rate_per_step(lr_params, state)
+        # state, step = update_learning_rate_per_step(lr_params, state)
 
     # Return average loss over batches
     return state, jnp.mean(jnp.array(batch_losses)), step
