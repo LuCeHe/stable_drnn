@@ -106,6 +106,7 @@ def create_train_state(model_cls, rng, in_dim, batch_size, seq_len, weight_decay
 
     if not args is None:
         if 'clipping' in args.comments:
+            print('here?! clipping!')
             # FIXME: not working
 
             tx = optax.chain(
