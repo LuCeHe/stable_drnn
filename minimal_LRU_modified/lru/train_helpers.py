@@ -109,9 +109,17 @@ def create_train_state(model_cls, rng, in_dim, batch_size, seq_len, weight_decay
             print('here?! clipping!')
             # FIXME: not working
 
+            txclip = optax.multi_transform(
+                {
+                    "ssm": optax.clip_by_global_norm(1.0),
+                    "regular": optax.clip_by_global_norm(1.0),
+                },
+                ssm_fn,
+            )
+
             tx = optax.chain(
                 tx,
-                optax.clip_by_global_norm(1.0)
+                txclip
             )
 
 
@@ -258,7 +266,7 @@ def train_epoch(state, rng, model, trainloader, seq_len, in_dim, norm, lr_params
         batch_losses.append(loss)  # log loss value
 
         lr_params = (decay_function, ssm_lr, lr, step, end_step, lr_min)
-        # state, step = update_learning_rate_per_step(lr_params, state)
+        state, step = update_learning_rate_per_step(lr_params, state)
 
     # Return average loss over batches
     return state, jnp.mean(jnp.array(batch_losses)), step
