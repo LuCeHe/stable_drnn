@@ -19,7 +19,6 @@ def deprecated(cls_or_func):
 
 # Default data path is environment variable or hippo/data
 default_data_path = Path(__file__).parent.parent.parent.parent.parent.absolute()
-print(f"Default data path: {default_data_path}")
 default_data_path = default_data_path / 'data' / 'lra'
 default_cache_path = default_data_path / 'cache'
 
