@@ -82,11 +82,14 @@ def create_train_state(model_cls, rng, in_dim, batch_size, seq_len, weight_decay
     model = model_cls(training=True)
     init_rng, dropout_rng = jax.random.split(rng, num=2)
     variables = model.init({"params": init_rng, "dropout": dropout_rng}, dummy_input)
-    if norm in ["batch"]:
-        params = variables["params"].unfreeze()
-        batch_stats = variables["batch_stats"]
-    else:
+
+    if hasattr(variables["params"], "unfreeze"):
         params = variables["params"].unfreeze()  # NOTE: unfreeze is for optax
+    else:
+        params = variables["params"]
+
+    if norm in ["batch"]:
+        batch_stats = variables["batch_stats"]
 
     # Smaller lr and no weight decay for lambda, gamma and B
     ssm_fn = map_nested_fn(

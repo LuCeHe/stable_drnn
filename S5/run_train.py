@@ -23,7 +23,7 @@ if __name__ == "__main__":
 						help="dataset name")
 
 	# Model Parameters
-	parser.add_argument("--n_layers", type=int, default=6,
+	parser.add_argument("--n_layers", type=int, default=2,
 						help="Number of layers in the network")
 	parser.add_argument("--d_model", type=int, default=128,
 						help="Number of features, i.e. H, "

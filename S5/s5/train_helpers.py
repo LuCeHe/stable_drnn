@@ -131,12 +131,14 @@ def create_train_state(model_cls,
                             "dropout": dropout_rng},
                            dummy_input, integration_timesteps,
                            )
-    if batchnorm:
-        params = variables["params"].unfreeze()
-        batch_stats = variables["batch_stats"]
+
+    if hasattr(variables["params"], "unfreeze"):
+        params = variables["params"].unfreeze()  # NOTE: unfreeze is for optax
     else:
-        params = variables["params"].unfreeze()
-        # Note: `unfreeze()` is for using Optax.
+        params = variables["params"]
+
+    if batchnorm:
+        batch_stats = variables["batch_stats"]
 
     if opt_config in ["standard"]:
         """This option applies weight decay to C, but B is kept with the
@@ -249,13 +251,6 @@ def create_train_state(model_cls,
             },
             ssm_fn,
         )
-
-
-    # FIXME: not working
-    tx = optax.chain(
-        tx,
-        optax.clip_by_global_norm(1.0)
-    )
 
 
     fn_is_complex = lambda x: x.dtype in [np.complex64, np.complex128]
