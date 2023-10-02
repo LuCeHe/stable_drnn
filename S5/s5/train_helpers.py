@@ -92,7 +92,8 @@ def create_train_state(model_cls,
                        opt_config="standard",
                        ssm_lr=1e-3,
                        lr=1e-3,
-                       dt_global=False
+                       dt_global=False,
+                       args=None
                        ):
     """
     Initializes the training state using optax
@@ -127,7 +128,12 @@ def create_train_state(model_cls,
 
     model = model_cls(training=True)
     init_rng, dropout_rng = jax.random.split(rng, num=2)
-    variables = model.init({"params": init_rng,
+
+    if args.lru:
+        variables = model.init({"params": init_rng, "dropout": dropout_rng}, dummy_input)
+
+    else:
+        variables = model.init({"params": init_rng,
                             "dropout": dropout_rng},
                            dummy_input, integration_timesteps,
                            )
@@ -140,7 +146,24 @@ def create_train_state(model_cls,
     if batchnorm:
         batch_stats = variables["batch_stats"]
 
-    if opt_config in ["standard"]:
+    if args.lru:
+        # Smaller lr and no weight decay for lambda, gamma and B
+        ssm_fn = map_nested_fn(
+            lambda k, _: "ssm"
+            if k in ["nu_log", "theta_log", "gamma_log", "B_re", "B_im"]
+            else "regular"
+        )
+        tx = optax.multi_transform(
+            {
+                "ssm": optax.inject_hyperparams(optax.adam)(learning_rate=ssm_lr),
+                "regular": optax.inject_hyperparams(optax.adamw)(
+                    learning_rate=lr, weight_decay=weight_decay
+                ),
+            },
+            ssm_fn,
+        )
+
+    elif opt_config in ["standard"]:
         """This option applies weight decay to C, but B is kept with the
             SSM parameters with no weight decay.
         """
