@@ -80,6 +80,19 @@ def map_nested_fn(fn):
     return map_fn
 
 
+class ClippedTrainState(train_state.TrainState):
+    def apply_gradients(self, *, grads, **kwargs):
+        updates, new_opt_state = self.tx.update(grads, self.opt_state, self.params)
+        updates, new_opt_state = optax.clip_by_global_norm(1.0).update(updates, self.opt_state, self.params)
+        new_params = optax.apply_updates(self.params, updates)
+        return self.replace(
+            step=self.step + 1,
+            params=new_params,
+            opt_state=new_opt_state,
+            **kwargs,
+        )
+
+
 def create_train_state(model_cls,
                        rng,
                        padded,
@@ -143,8 +156,7 @@ def create_train_state(model_cls,
     else:
         params = variables["params"]
 
-    if batchnorm:
-        batch_stats = variables["batch_stats"]
+    # if batchnorm:
 
     if args.lru:
         # Smaller lr and no weight decay for lambda, gamma and B
@@ -280,12 +292,18 @@ def create_train_state(model_cls,
     param_sizes = map_nested_fn(lambda k, param: param.size * (2 if fn_is_complex(param) else 1))(params)
     print(f"[*] Trainable Parameters: {sum(jax.tree_leaves(param_sizes))}")
 
+    if 'clipping' in args.comments:
+        TS = ClippedTrainState
+    else:
+        TS = train_state.TrainState
+
     if batchnorm:
-        class TrainState(train_state.TrainState):
+        batch_stats = variables["batch_stats"]
+        class TrainState(TS):
             batch_stats: Any
         return TrainState.create(apply_fn=model.apply, params=params, tx=tx, batch_stats=batch_stats)
     else:
-        return train_state.TrainState.create(apply_fn=model.apply, params=params, tx=tx)
+        return TS.create(apply_fn=model.apply, params=params, tx=tx)
 
 
 # Train and eval steps
