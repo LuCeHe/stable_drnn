@@ -130,7 +130,7 @@ def create_train_state(model_cls,
     init_rng, dropout_rng = jax.random.split(rng, num=2)
 
     if args.lru:
-        variables = model.init({"params": init_rng, "dropout": dropout_rng}, dummy_input)
+        variables = model.init({"params": init_rng, "dropout": dropout_rng}, dummy_input, integration_timesteps,)
 
     else:
         variables = model.init({"params": init_rng,

@@ -32,7 +32,10 @@ class SequenceLayer(nn.Module):
     def setup(self):
         """Initializes the ssm, batch/layer norm and dropout
         """
-        self.seq = self.ssm(step_rescale=self.step_rescale)
+        if hasattr(self.ssm, "step_rescale"):
+            self.seq = self.ssm(step_rescale=self.step_rescale)
+        else:
+            self.seq = self.ssm()
 
         if self.activation in ["full_glu"]:
             self.out1 = nn.Dense(self.d_model)
