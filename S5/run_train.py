@@ -1,9 +1,23 @@
-import argparse
+import argparse, os, time,string, random, shutil, json
 
 from alif_sg.S5.s5.dataloaders.base import default_cache_path
 from s5.utils.util import str2bool
 from s5.train import train
 from s5.dataloading import Datasets
+
+FILENAME = os.path.realpath(__file__)
+CDIR = os.path.dirname(FILENAME)
+EXPERIMENTS = os.path.join(CDIR, 'experiments')
+named_tuple = time.localtime()  # get struct_time
+time_string = time.strftime("%Y-%m-%d--%H-%M-%S--", named_tuple)
+
+characters = string.ascii_letters + string.digits
+random_string = ''.join(random.choice(characters) for i in range(5))
+EXPERIMENT = os.path.join(EXPERIMENTS, time_string + random_string + '_s5lru')
+
+os.makedirs(EXPERIMENTS, exist_ok=True)
+os.makedirs(EXPERIMENT, exist_ok=True)
+
 
 if __name__ == "__main__":
 
@@ -17,6 +31,8 @@ if __name__ == "__main__":
 	parser.add_argument("--wandb_entity", type=str, default=None,
 						help="wandb entity name, e.g. username")
 	parser.add_argument("--dir_name", type=str, default=default_cache_path,
+						help="name of directory where data is cached")
+	parser.add_argument("--exp_dir", type=str, default=EXPERIMENT,
 						help="name of directory where data is cached")
 	parser.add_argument("--dataset", type=str, choices=Datasets.keys(),
 						default='mnist-classification',
@@ -108,6 +124,15 @@ if __name__ == "__main__":
 	parser.add_argument("--r_min", type=float, default=0.5, help="|lambda|_min for LRU")
 	parser.add_argument("--r_max", type=float, default=0.99, help="|lambda|_max for LRU")
 
-	train(parser.parse_args())
+	args = parser.parse_args()
+	string_result = json.dumps(vars(args), indent=4)
+	print(string_result)
 
+	results_filename = os.path.join(EXPERIMENT, 'results.json')
+	with open(results_filename, "w") as f:
+		f.write(string_result)
+
+
+	train(args)
+	shutil.make_archive(EXPERIMENT, 'zip', EXPERIMENT)
 
