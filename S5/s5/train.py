@@ -237,7 +237,7 @@ def train(args):
             # else use test set as validation set (e.g. IMDB)
             print(f"[*] Running Epoch {epoch + 1} Test...")
             val_loss, val_acc = validate(
-                state, model_cls, testloader, seq_len, in_dim, args.batchnorm
+                state, model_cls, testloader, seq_len, in_dim, args.batchnorm, args=args
             )
 
             print(f"\n=>> Epoch {epoch + 1} Metrics ===")

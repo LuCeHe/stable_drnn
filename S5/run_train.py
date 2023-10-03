@@ -8,7 +8,7 @@ from s5.dataloading import Datasets
 
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
-EXPERIMENTS = os.path.join(CDIR, '..', 'experiments')
+EXPERIMENTS = os.path.abspath(os.path.join(CDIR, '..', 'experiments'))
 named_tuple = time.localtime()  # get struct_time
 time_string = time.strftime("%Y-%m-%d--%H-%M-%S--", named_tuple)
 
