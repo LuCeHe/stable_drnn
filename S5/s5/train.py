@@ -1,9 +1,11 @@
+import os, json
 from functools import partial
 from jax import random
 import jax.numpy as np
 from jax.scipy.linalg import block_diag
 import wandb
 
+from pyaromatics.stay_organized.utils import NumpyEncoder
 from .train_helpers import create_train_state, reduce_lr_on_plateau, \
     linear_warmup, cosine_annealing, constant_lr, train_epoch, validate
 from .dataloading import Datasets
@@ -17,6 +19,8 @@ def train(args):
     """
     Main function to train over a certain number of epochs
     """
+
+    results = {}
 
     best_test_loss = 100000000
     best_test_acc = -10000.0
@@ -150,7 +154,7 @@ def train(args):
         )
 
     # initialize training state
-    state = create_train_state(
+    state, n_params = create_train_state(
         model_cls,
         init_rng,
         padded,
@@ -173,6 +177,17 @@ def train(args):
     lr_count, opt_acc = 0, -100000000.0  # This line is for learning rate decay
     step = 0  # for per step learning rate decay
     steps_per_epoch = int(train_size / args.bsz)
+
+    results = {
+        "n_params": n_params,
+        "train_loss": [],
+        "val_loss": [],
+        "val_acc": [],
+        "test_loss": [],
+        "test_acc": [],
+    }
+
+    train_loss, val_loss, val_acc, test_loss, test_acc = 0, 0, 0, 0, 0
     for epoch in range(args.epochs):
         print(f"[*] Starting Training Epoch {epoch + 1}...")
 
@@ -196,31 +211,20 @@ def train(args):
         lr_params = (decay_function, ssm_lr, lr, step, end_step, args.opt_config, args.lr_min)
 
         train_rng, skey = random.split(train_rng)
-        state, train_loss, step = train_epoch(state,
-                                              skey,
-                                              model_cls,
-                                              trainloader,
-                                              seq_len,
-                                              in_dim,
-                                              args.batchnorm,
-                                              lr_params)
+        state, train_loss, step = train_epoch(
+            state, skey, model_cls, trainloader, seq_len, in_dim, args.batchnorm, lr_params, args=args
+        )
 
         if valloader is not None:
             print(f"[*] Running Epoch {epoch + 1} Validation...")
-            val_loss, val_acc = validate(state,
-                                         model_cls,
-                                         valloader,
-                                         seq_len,
-                                         in_dim,
-                                         args.batchnorm)
+            val_loss, val_acc = validate(
+                state, model_cls, valloader, seq_len, in_dim, args.batchnorm, args=args
+            )
 
             print(f"[*] Running Epoch {epoch + 1} Test...")
-            test_loss, test_acc = validate(state,
-                                           model_cls,
-                                           testloader,
-                                           seq_len,
-                                           in_dim,
-                                           args.batchnorm)
+            test_loss, test_acc = validate(
+                state, model_cls, testloader, seq_len, in_dim, args.batchnorm, args=args
+            )
 
             print(f"\n=>> Epoch {epoch + 1} Metrics ===")
             print(
@@ -232,12 +236,9 @@ def train(args):
         else:
             # else use test set as validation set (e.g. IMDB)
             print(f"[*] Running Epoch {epoch + 1} Test...")
-            val_loss, val_acc = validate(state,
-                                         model_cls,
-                                         testloader,
-                                         seq_len,
-                                         in_dim,
-                                         args.batchnorm)
+            val_loss, val_acc = validate(
+                state, model_cls, testloader, seq_len, in_dim, args.batchnorm
+            )
 
             print(f"\n=>> Epoch {epoch + 1} Metrics ===")
             print(
@@ -345,6 +346,18 @@ def train(args):
                     "ssm_lr": state.opt_state.inner_states['ssm'].inner_state.hyperparams['learning_rate']
                 }
             )
+
+        results["train_loss"].append(float(train_loss))
+        results["val_loss"].append(float(val_loss))
+        results["val_acc"].append(float(val_acc))
+        results["test_loss"].append(float(test_loss))
+        results["test_acc"].append(float(test_acc))
+
+        string_result = json.dumps(results, indent=4, cls=NumpyEncoder)
+        path = os.path.join(args.exp_dir, 'results.txt')
+        with open(path, "w") as f:
+            f.write(string_result)
+
         wandb.run.summary["Best Val Loss"] = best_loss
         wandb.run.summary["Best Val Accuracy"] = best_acc
         wandb.run.summary["Best Epoch"] = best_epoch
@@ -353,3 +366,5 @@ def train(args):
 
         if count > args.early_stop_patience:
             break
+
+    return results

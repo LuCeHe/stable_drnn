@@ -42,7 +42,7 @@ def reduce_lr_on_plateau(input, factor=0.2, patience=20, lr_min=1e-6):
     return lr, ssm_lr, count, opt_acc
 
 
-def constant_lr(step, base_lr, end_step,  lr_min=None):
+def constant_lr(step, base_lr, end_step, lr_min=None):
     return base_lr
 
 
@@ -55,12 +55,15 @@ def update_learning_rate_per_step(lr_params, state):
     step += 1
 
     # Update state
-    state.opt_state.inner_states['regular'].inner_state.hyperparams['learning_rate'] = np.array(lr_val, dtype=np.float32)
-    state.opt_state.inner_states['ssm'].inner_state.hyperparams['learning_rate'] = np.array(ssm_lr_val, dtype=np.float32)
+    state.opt_state.inner_states['regular'].inner_state.hyperparams['learning_rate'] = np.array(lr_val,
+                                                                                                dtype=np.float32)
+    state.opt_state.inner_states['ssm'].inner_state.hyperparams['learning_rate'] = np.array(ssm_lr_val,
+                                                                                            dtype=np.float32)
     if opt_config in ["BandCdecay"]:
         # In this case we are applying the ssm learning rate to B, even though
         # we are also using weight decay on B
-        state.opt_state.inner_states['none'].inner_state.hyperparams['learning_rate'] = np.array(ssm_lr_val, dtype=np.float32)
+        state.opt_state.inner_states['none'].inner_state.hyperparams['learning_rate'] = np.array(ssm_lr_val,
+                                                                                                 dtype=np.float32)
 
     return state, step
 
@@ -130,26 +133,26 @@ def create_train_state(model_cls,
     if padded:
         if retrieval:
             # For retrieval tasks we have two different sets of "documents"
-            dummy_input = (np.ones((2*bsz, seq_len, in_dim)), np.ones(2*bsz))
-            integration_timesteps = np.ones((2*bsz, seq_len,))
+            dummy_input = (np.ones((2 * bsz, seq_len, in_dim)), np.ones(2 * bsz))
+            integration_timesteps = np.ones((2 * bsz, seq_len,))
         else:
             dummy_input = (np.ones((bsz, seq_len, in_dim)), np.ones(bsz))
             integration_timesteps = np.ones((bsz, seq_len,))
     else:
         dummy_input = np.ones((bsz, seq_len, in_dim))
-        integration_timesteps = np.ones((bsz, seq_len, ))
+        integration_timesteps = np.ones((bsz, seq_len,))
 
     model = model_cls(training=True)
     init_rng, dropout_rng = jax.random.split(rng, num=2)
 
     if args.lru:
-        variables = model.init({"params": init_rng, "dropout": dropout_rng}, dummy_input, integration_timesteps,)
+        variables = model.init({"params": init_rng, "dropout": dropout_rng}, dummy_input, integration_timesteps, )
 
     else:
         variables = model.init({"params": init_rng,
-                            "dropout": dropout_rng},
-                           dummy_input, integration_timesteps,
-                           )
+                                "dropout": dropout_rng},
+                               dummy_input, integration_timesteps,
+                               )
 
     if hasattr(variables["params"], "unfreeze"):
         params = variables["params"].unfreeze()  # NOTE: unfreeze is for optax
@@ -287,10 +290,10 @@ def create_train_state(model_cls,
             ssm_fn,
         )
 
-
     fn_is_complex = lambda x: x.dtype in [np.complex64, np.complex128]
     param_sizes = map_nested_fn(lambda k, param: param.size * (2 if fn_is_complex(param) else 1))(params)
-    print(f"[*] Trainable Parameters: {sum(jax.tree_leaves(param_sizes))}")
+    n_params = sum(jax.tree_util.tree_leaves(param_sizes))
+    print(f"[*] Trainable Parameters: {n_params}")
 
     if 'clipping' in args.comments:
         TS = ClippedTrainState
@@ -299,11 +302,13 @@ def create_train_state(model_cls,
 
     if batchnorm:
         batch_stats = variables["batch_stats"]
+
         class TrainState(TS):
             batch_stats: Any
-        return TrainState.create(apply_fn=model.apply, params=params, tx=tx, batch_stats=batch_stats)
+
+        return TrainState.create(apply_fn=model.apply, params=params, tx=tx, batch_stats=batch_stats), n_params
     else:
-        return TS.create(apply_fn=model.apply, params=params, tx=tx)
+        return TS.create(apply_fn=model.apply, params=params, tx=tx), n_params
 
 
 # Train and eval steps
@@ -373,7 +378,7 @@ def prep_batch(batch: tuple,
     return full_inputs, targets.astype(float), integration_timesteps
 
 
-def train_epoch(state, rng, model, trainloader, seq_len, in_dim, batchnorm, lr_params):
+def train_epoch(state, rng, model, trainloader, seq_len, in_dim, batchnorm, lr_params, args=None):
     """
     Training function for an epoch that loops over batches.
     """
@@ -399,11 +404,15 @@ def train_epoch(state, rng, model, trainloader, seq_len, in_dim, batchnorm, lr_p
         lr_params = (decay_function, ssm_lr, lr, step, end_step, opt_config, lr_min)
         state, step = update_learning_rate_per_step(lr_params, state)
 
+        if not args is None and not args.steps_per_epoch < 0:
+            if batch_idx > args.steps_per_epoch:
+                break
+
     # Return average loss over batches
     return state, np.mean(np.array(batch_losses)), step
 
 
-def validate(state, model, testloader, seq_len, in_dim, batchnorm, step_rescale=1.0):
+def validate(state, model, testloader, seq_len, in_dim, batchnorm, step_rescale=1.0, args=None):
     """Validation function that loops over batches"""
     model = model(training=False, step_rescale=step_rescale)
     losses, accuracies, preds = np.array([]), np.array([]), np.array([])
@@ -412,6 +421,10 @@ def validate(state, model, testloader, seq_len, in_dim, batchnorm, step_rescale=
         loss, acc, pred = eval_step(inputs, labels, integration_timesteps, state, model, batchnorm)
         losses = np.append(losses, loss)
         accuracies = np.append(accuracies, acc)
+
+        if not args is None and not args.steps_per_epoch < 0:
+            if batch_idx > args.steps_per_epoch:
+                break
 
     aveloss, aveaccu = np.mean(losses), np.mean(accuracies)
     return aveloss, aveaccu
@@ -427,6 +440,7 @@ def train_step(state,
                batchnorm,
                ):
     """Performs a single training step given a batch of data"""
+
     def loss_fn(params):
 
         if batchnorm:

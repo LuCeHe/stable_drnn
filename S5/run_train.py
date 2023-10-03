@@ -1,13 +1,14 @@
-import argparse, os, time,string, random, shutil, json
+import argparse, os, time,string, random, shutil, json, socket
 
 from alif_sg.S5.s5.dataloaders.base import default_cache_path
+from pyaromatics.stay_organized.utils import NumpyEncoder
 from s5.utils.util import str2bool
 from s5.train import train
 from s5.dataloading import Datasets
 
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
-EXPERIMENTS = os.path.join(CDIR, 'experiments')
+EXPERIMENTS = os.path.join(CDIR, '..', 'experiments')
 named_tuple = time.localtime()  # get struct_time
 time_string = time.strftime("%Y-%m-%d--%H-%M-%S--", named_tuple)
 
@@ -30,9 +31,9 @@ if __name__ == "__main__":
 						help="wandb project name")
 	parser.add_argument("--wandb_entity", type=str, default=None,
 						help="wandb entity name, e.g. username")
-	parser.add_argument("--dir_name", type=str, default=default_cache_path,
+	parser.add_argument("--dir_name", type=str, default=str(default_cache_path),
 						help="name of directory where data is cached")
-	parser.add_argument("--exp_dir", type=str, default=EXPERIMENT,
+	parser.add_argument("--exp_dir", type=str, default=str(EXPERIMENT),
 						help="name of directory where data is cached")
 	parser.add_argument("--dataset", type=str, choices=Datasets.keys(),
 						default='mnist-classification',
@@ -81,8 +82,10 @@ if __name__ == "__main__":
 						help="batchnorm momentum")
 	parser.add_argument("--bsz", type=int, default=64,
 						help="batch size")
-	parser.add_argument("--epochs", type=int, default=100,
+	parser.add_argument("--epochs", type=int, default=2,
 						help="max number of epochs")
+	parser.add_argument("--steps_per_epoch", type=int, default=2,
+						help="max number steps per epoch")
 	parser.add_argument("--early_stop_patience", type=int, default=1000,
 						help="number of epochs to continue training when val loss plateaus")
 	parser.add_argument("--ssm_lr_base", type=float, default=1e-3,
@@ -125,14 +128,24 @@ if __name__ == "__main__":
 	parser.add_argument("--r_max", type=float, default=0.99, help="|lambda|_max for LRU")
 
 	args = parser.parse_args()
-	string_result = json.dumps(vars(args), indent=4)
-	print(string_result)
-
-	results_filename = os.path.join(EXPERIMENT, 'results.json')
+	string_args = json.dumps(vars(args), indent=4, cls=NumpyEncoder)
+	print(string_args)
+	results_filename = os.path.join(EXPERIMENT, 'args.json')
 	with open(results_filename, "w") as f:
+		f.write(string_args)
+
+	time_start = time.perf_counter()
+	results = train(args)
+	time_elapsed = (time.perf_counter() - time_start)
+	print('All done, in ' + str(time_elapsed) + 's')
+
+	results.update(time_elapsed=time_elapsed)
+	results.update(hostname=socket.gethostname())
+
+	string_result = json.dumps(results, indent=4, cls=NumpyEncoder)
+	path = os.path.join(EXPERIMENT, 'results.txt')
+	with open(path, "w") as f:
 		f.write(string_result)
 
-
-	train(args)
 	shutil.make_archive(EXPERIMENT, 'zip', EXPERIMENT)
 
