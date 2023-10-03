@@ -40,16 +40,16 @@ if __name__ == "__main__":
 						help="dataset name")
 
 	# Model Parameters
-	parser.add_argument("--n_layers", type=int, default=2,
+	parser.add_argument("--n_layers", type=int, default=6,
 						help="Number of layers in the network")
-	parser.add_argument("--d_model", type=int, default=128,
+	parser.add_argument("--d_model", type=int, default=256,
 						help="Number of features, i.e. H, "
 							 "dimension of layer inputs/outputs")
-	parser.add_argument("--ssm_size_base", type=int, default=256,
+	parser.add_argument("--ssm_size_base", type=int, default=192,
 						help="SSM Latent size, i.e. P")
-	parser.add_argument("--blocks", type=int, default=8,
+	parser.add_argument("--blocks", type=int, default=12,
 						help="How many blocks, J, to initialize with")
-	parser.add_argument("--C_init", type=str, default="trunc_standard_normal",
+	parser.add_argument("--C_init", type=str, default="lecun_normal",
 						choices=["trunc_standard_normal", "lecun_normal", "complex_normal"],
 						help="Options for initialization of C: \\"
 							 "trunc_standard_normal: sample from trunc. std. normal then multiply by V \\ " \
@@ -60,13 +60,13 @@ if __name__ == "__main__":
 						help="options: (for classification tasks) \\" \
 							 " pool: mean pooling \\" \
 							 "last: take last element")
-	parser.add_argument("--activation_fn", default="half_glu1", type=str,
+	parser.add_argument("--activation_fn", default="half_glu2", type=str,
 						choices=["full_glu", "half_glu1", "half_glu2", "gelu"])
 	parser.add_argument("--conj_sym", type=str2bool, default=True,
 						help="whether to enforce conjugate symmetry")
 	parser.add_argument("--clip_eigs", type=str2bool, default=False,
 						help="whether to enforce the left-half plane condition")
-	parser.add_argument("--bidirectional", type=str2bool, default=False,
+	parser.add_argument("--bidirectional", type=str2bool, default=True,
 						help="whether to use bidirectional model")
 	parser.add_argument("--dt_min", type=float, default=0.001,
 						help="min value to sample initial timescale params from")
@@ -90,7 +90,7 @@ if __name__ == "__main__":
 						help="number of epochs to continue training when val loss plateaus")
 	parser.add_argument("--ssm_lr_base", type=float, default=1e-3,
 						help="initial ssm learning rate")
-	parser.add_argument("--lr_factor", type=float, default=1,
+	parser.add_argument("--lr_factor", type=float, default=4,
 						help="global learning rate = lr_factor*ssm_lr_base")
 	parser.add_argument("--dt_global", type=str2bool, default=False,
 						help="Treat timescale parameter as global parameter or SSM parameter")
@@ -104,9 +104,9 @@ if __name__ == "__main__":
 						help="patience before decaying learning rate for lr_decay_on_val_plateau")
 	parser.add_argument("--reduce_factor", type=float, default=1.0,
 						help="factor to decay learning rate for lr_decay_on_val_plateau")
-	parser.add_argument("--p_dropout", type=float, default=0.0,
+	parser.add_argument("--p_dropout", type=float, default=0.1,
 						help="probability of dropout")
-	parser.add_argument("--weight_decay", type=float, default=0.05,
+	parser.add_argument("--weight_decay", type=float, default=0.07,
 						help="weight decay value")
 	parser.add_argument("--opt_config", type=str, default="standard", choices=['standard',
 																			   'BandCdecay',

@@ -78,7 +78,7 @@ def train(args):
     if args.lru:
         model_name = "LRU"
         lru = partial(
-            LRU, d_hidden=args.ssm_size_base, d_model=args.d_model, r_min=args.r_min, r_max=args.r_max
+            LRU, d_hidden=int(args.ssm_size_base * .7), d_model=args.d_model, r_min=args.r_min, r_max=args.r_max
         )
         ssm_init_fn = lru
     else:
