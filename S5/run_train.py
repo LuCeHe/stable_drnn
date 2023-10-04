@@ -89,7 +89,7 @@ if __name__ == "__main__":
                         help="max number of epochs")
     parser.add_argument("--steps_per_epoch", type=int, default=2,
                         help="max number steps per epoch")
-    parser.add_argument("--early_stop_patience", type=int, default=1000,
+    parser.add_argument("--early_stop_patience", type=int, default=10,
                         help="number of epochs to continue training when val loss plateaus")
     parser.add_argument("--ssm_lr_base", type=float, default=1e-3,
                         help="initial ssm learning rate")
