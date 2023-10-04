@@ -24,7 +24,7 @@ if __name__ == "__main__":
 
 	parser = argparse.ArgumentParser()
 
-	parser.add_argument("--comments", type=str, default='clipping', help="String for extra behaviours")
+	parser.add_argument("--comments", type=str, default='', help="String for extra behaviours")
 	parser.add_argument("--USE_WANDB", type=str2bool, default=False,
 						help="log with wandb?")
 	parser.add_argument("--wandb_project", type=str, default=None,

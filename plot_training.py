@@ -42,13 +42,13 @@ GEXPERIMENTS = [
     r'D:\work\alif_sg\good_experiments\2023-09-01--rnn-lru-first',
 ]
 
-expsid = 'als'  # effnet als ffnandcnns
+expsid = 's5lru'  # effnet als ffnandcnns s5lru
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 lsc_epsilon = 0.02  # 0.02
 
 check_for_new = True
-plot_losses = True
+plot_losses = False
 one_exp_curves = False
 pandas_means = True
 show_per_tasknet = False
@@ -73,7 +73,6 @@ truely_remove = False
 truely_remove_pretrained = False
 check_all_norms = False
 
-
 # sparse_mode_accuracy sparse_categorical_crossentropy bpc sparse_mode_accuracy_test_10
 # val_sparse_mode_accuracy test_perplexity
 metric = 'v_mode_acc'  # 'v_ppl min'
@@ -87,6 +86,7 @@ metrics_oi = [
     'ma_norm', 'ni',
     # 'final_norms_mean', 'final_norms_std', 'best_std_ma_norm', 'std_ma_norm',
 ]
+
 metrics_oi = [shorten_losses(m) for m in metrics_oi]
 
 plot_only = ['seed', 'net', 'task', 'n_params', 'stack', 'comments', 'path', 'lr', 'host_hostname',
@@ -105,24 +105,32 @@ force_keep_column = [
     'final_norms_mean', 'final_norms_std'
 ]
 
+if expsid == 's5lru':
+    metric = 'val_ppl m'  # 'v_ppl min'
+    metrics_oi = [
+        'val_loss m', 'val_acc M', 'test_loss m', 'test_acc M',
+    ]
+
+    plot_only = ['jax_seed', 'lru', 'dataset', 'n_params', 'n_layers', 'comments', 'time_elapsed',
+             'v_ppl argm', 'v_ppl len', ] + metrics_oi
+
+
 df = experiments_to_pandas(
     h5path=h5path, zips_folder=GEXPERIMENTS, unzips_folder=EXPERIMENTS, experiments_identifier=expsid,
     exclude_files=['cout.txt'], check_for_new=check_for_new,
     exclude_columns=columns_to_remove, force_keep_column=force_keep_column
 )
-# df = df[~df['comments'].str.contains('randlsc')]
 
-# print(df.to_string())
-# df = df[~df['stack'].str.contains('4:3', na=False)]
-df['stack'] = df['stack'].fillna(-1).astype(int)
-df = df.replace(-1, 'None')
-df['stack'] = df['stack'].astype(str)
-df['comments'] = df['comments'].str.replace('simplereadout', 'embproj')
-df['batch_size'] = df['batch_size'].astype(str)
-df['ni'] = df['ni'].astype(float)
-df['comments'] = df['comments'].str.replace('_pretrained', '')
-df['comments'] = df['comments'].astype(str)
-df.replace(['nan'], np.nan, inplace=True)
+if 'als' == expsid:
+    df['stack'] = df['stack'].fillna(-1).astype(int)
+    df['stack'] = df['stack'].replace(-1, 'None')
+    df['stack'] = df['stack'].astype(str)
+    df['comments'] = df['comments'].str.replace('simplereadout', 'embproj')
+    df['batch_size'] = df['batch_size'].astype(str)
+    df['ni'] = df['ni'].astype(float)
+    df['comments'] = df['comments'].str.replace('_pretrained', '')
+    df['comments'] = df['comments'].astype(str)
+    df.replace(['nan'], np.nan, inplace=True)
 
 new_column_names = {c_name: shorten_losses(c_name) for c_name in df.columns}
 df.rename(columns=new_column_names, inplace=True)
@@ -133,7 +141,7 @@ for c in ['t_ppl', 't_^acc', 'v_ppl', 'v_^acc']:
         df[c] = np.nan
 
 for cname in ['net', 'task']:
-    if isinstance(df[cname], pd.DataFrame):
+    if cname in df.columns and isinstance(df[cname], pd.DataFrame):
         c = df[cname].iloc[:, 0].fillna(df[cname].iloc[:, 1])
         df = df.drop([cname], axis=1)
         df[cname] = c
@@ -287,16 +295,8 @@ print(list(df.columns))
 if not plot_only is None:
     df = df.reindex(plot_only, axis=1)
     plotdf = df[plot_only]
-    # plotdf = plotdf[plotdf['task'].str.contains('PTB')]
     print(plotdf.to_string())
 
-    print('\n\n\n')
-    adf = plotdf[
-        plotdf['task'].str.contains('PTB')
-        & plotdf['net'].str.contains('ALIF')
-        & plotdf['comments'].str.contains('target')
-        ]
-    print(adf.to_string())
 
 if pandas_means:
     # group_cols = ['net', 'task', 'comments', 'stack', 'lr']
