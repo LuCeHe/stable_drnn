@@ -48,10 +48,10 @@ h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 lsc_epsilon = 0.02  # 0.02
 
 check_for_new = True
-plot_losses = False
+plot_losses = True
 one_exp_curves = False
 pandas_means = True
-show_per_tasknet = False
+show_per_tasknet = True
 make_latex = False
 make_good_latex = False
 nice_bar_plot = False
@@ -105,21 +105,40 @@ force_keep_column = [
     'final_norms_mean', 'final_norms_std'
 ]
 
+group_cols = ['net', 'task', 'comments', 'stack']
+task_flag = 'task'  # task dataset
+net_flag = 'net'  # net lru
+depth_flag = 'n_depth'  # 'stack'
+stats_oi = ['mean', 'std']
+
+plot_metric = 'rec_norms list'
+plot_metric = 'val_ppl list'
 if expsid == 's5lru':
-    metric = 'val_ppl m'  # 'v_ppl min'
+    plot_metric = 'val_acc list'
+    task_flag = 'dataset'  # task dataset
+    net_flag = 'lru'  # net lru
+
+    metric = 'val_acc M'  # 'v_ppl min'
     metrics_oi = [
-        'val_loss m', 'val_acc M', 'test_loss m', 'test_acc M',
+        'val_loss m', 'val_acc M', 'test_loss m', 'test_acc M', 'time_elapsed'
     ]
 
-    plot_only = ['jax_seed', 'lru', 'dataset', 'n_params', 'n_layers', 'comments', 'time_elapsed',
-             'v_ppl argm', 'v_ppl len', ] + metrics_oi
+    plot_only = [
+                    'jax_seed', 'lru', 'dataset', 'n_params', 'n_depth', 'comments',
+                ] + metrics_oi
+    group_cols = ['lru', 'dataset', 'comments', 'n_depth']
 
+    columns_to_remove = []
+    stats_oi = ['mean']
 
 df = experiments_to_pandas(
     h5path=h5path, zips_folder=GEXPERIMENTS, unzips_folder=EXPERIMENTS, experiments_identifier=expsid,
     exclude_files=['cout.txt'], check_for_new=check_for_new,
     exclude_columns=columns_to_remove, force_keep_column=force_keep_column
 )
+
+df[task_flag] = df[task_flag].astype(str)
+df[net_flag] = df[net_flag].astype(str)
 
 if 'als' == expsid:
     df['stack'] = df['stack'].fillna(-1).astype(int)
@@ -145,9 +164,6 @@ for cname in ['net', 'task']:
         c = df[cname].iloc[:, 0].fillna(df[cname].iloc[:, 1])
         df = df.drop([cname], axis=1)
         df[cname] = c
-
-if 'net' in df.columns: df['net'] = df['net'].astype(str)
-if 'task' in df.columns: df['task'] = df['task'].astype(str)
 
 if 'n_params' in df.columns:
     df['n_params'] = df['n_params'].apply(lambda x: large_num_to_reasonable_string(x, 1))
@@ -208,13 +224,13 @@ if plot_pretrained_weights:
 if plot_losses:
     df['comments'] = df['comments'].str.replace('allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_', '')
 
-    plot_metric = 'rec_norms list'
-    plot_metric = 'val_ppl list'
     # plot_metric = 'val_^acc list'
     # plot_metric = 'LSC list'
     # plot_metric = 'norms dec layer 1 list'  # enc depth rec dec
-    tasks = df['task'].unique()
-    nets = df['net'].unique()
+    # tasks = df['task'].unique()
+    # nets = df['net'].unique()
+    tasks = df[task_flag].unique()
+    nets = df[net_flag].unique()
     comments = df['comments'].unique()
     comments = [c.replace('_onlypretrain', '') for c in comments]
     df = df[~df['comments'].str.contains('randlsc')]
@@ -234,7 +250,7 @@ if plot_losses:
             if not net == 'LIF':
                 print('-===-' * 30)
                 print(task, net)
-                idf = df[df['task'].str.contains(task) & df['net'].str.contains(net)]
+                idf = df[df[task_flag].str.contains(task) & df[net_flag].str.contains(net)]
 
                 for _, row in idf.iterrows():
                     n = row['comments']
@@ -263,6 +279,10 @@ if 'task' in df.columns:
     df.loc[df['task'].eq('heidelberg'), 'task'] = 'SHD'
     df.loc[df['task'].eq('sl_mnist'), 'task'] = 'sl-MNIST'
     df.loc[df['task'].eq('wordptb'), 'task'] = 'PTB'
+
+if 'dataset' in df.columns:
+    df.loc[df['dataset'].eq('cifar-classification'), 'dataset'] = 'sCIFAR'
+    df.loc[df['dataset'].eq('imdb-classification'), 'dataset'] = 'Text'
 
 # eps column stays eps if not equal to None else it becomes the content of v_mode_acc len
 # df.loc[df['eps'].isnull(), 'eps'] = df.loc[df['eps'].isnull(), f'{metric} len']
@@ -297,15 +317,12 @@ if not plot_only is None:
     plotdf = df[plot_only]
     print(plotdf.to_string())
 
-
 if pandas_means:
     # group_cols = ['net', 'task', 'comments', 'stack', 'lr']
-    group_cols = ['net', 'task', 'comments', 'stack']
 
     counts = df.groupby(group_cols).size().reset_index(name='counts')
     # stats = ['mean', 'std']
     metrics_oi = [shorten_losses(m) for m in metrics_oi]
-    stats_oi = ['mean', 'std']
     mdf = df.groupby(
         group_cols, as_index=False
     ).agg({m: stats_oi for m in metrics_oi})
@@ -319,40 +336,46 @@ if pandas_means:
 
     mdf = mdf.sort_values(by='mean_' + metric)
 
-    tasks = sorted(np.unique(mdf['task']))
-    nets = sorted(np.unique(mdf['net']))
-    stacks = sorted(np.unique(mdf['stack']))
-
     mdf['comments'] = mdf['comments'].str.replace('__', '_', regex=True)
+    if 'mean_time_elapsed' in mdf.columns:
+        mdf['mean_time_elapsed'] = mdf['mean_time_elapsed'].apply(lambda x: timedelta(seconds=x))
+
     print(mdf.to_string())
 
     if show_per_tasknet:
+        tasks = sorted(np.unique(mdf[task_flag]))
+        nets = sorted(np.unique(mdf[net_flag]))
+        stacks = sorted(np.unique(mdf[depth_flag]))
+
         xdf = mdf.copy()
         xdf['comments'] = xdf['comments'].str.replace('allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_', '')
         for stack in stacks:
             for task in tasks:
-                for net in nets:
-                    print('-===-' * 30)
-                    print(task, net, stack)
+                # for net in nets:
+                print('-===-' * 30)
+                # print(task, net, stack)
+                print(task, stack)
 
-                    idf = xdf[
-                        xdf['task'].eq(task)
-                        & xdf['net'].eq(net)
-                        & xdf['stack'].eq(stack)
-                        ]
+                idf = xdf[
+                    xdf[task_flag].eq(task)
+                    # & xdf[net_flag].eq(net)
+                    & xdf[depth_flag].eq(stack)
+                    ]
 
-                    cols = idf.columns
-                    if not 'PTB' in task:
-                        idf = idf.sort_values(by='mean_' + metric, ascending=False)
-                        cols = [c for c in cols if not 'ppl' in c]
-                    else:
-                        idf = idf.sort_values(by='mean_v_ppl', ascending=True)
-                        cols = [c for c in cols if not 'acc' in c]
+                cols = idf.columns
+                if not 'PTB' in task:
+                    idf = idf.sort_values(by='mean_' + metric, ascending=False)
+                    cols = [c for c in cols if not 'ppl' in c]
+                else:
+                    idf = idf.sort_values(by='mean_v_ppl', ascending=True)
+                    cols = [c for c in cols if not 'acc' in c]
 
-                    idf.rename(columns=new_column_names, inplace=True)
-                    idf = idf[cols]
+                idf.rename(columns=new_column_names, inplace=True)
+                idf = idf[cols]
 
-                    print(idf.to_string())
+                idf = idf.sort_values(by=net_flag)
+
+                print(idf.to_string())
 
 if nice_bar_plot:
     df = df.copy()

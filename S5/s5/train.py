@@ -1,4 +1,4 @@
-import os, json
+import os, json, time
 from functools import partial
 from jax import random
 import jax.numpy as np
@@ -75,10 +75,16 @@ def train(args):
     trainloader, valloader, testloader, aux_dataloaders, n_classes, seq_len, in_dim, train_size = \
         create_dataset_fn(args.dir_name, seed=args.jax_seed, bsz=args.bsz)
 
+    d_model = args.d_model
     if args.lru:
         model_name = "LRU"
+        d_hidden = int(args.ssm_size_base * .7)
+        if 'lruv2' in args.comments:
+            d_model = args.ssm_size_base
+            d_hidden = int(args.d_model * .89)
+
         lru = partial(
-            LRU, d_hidden=int(args.ssm_size_base * .7), d_model=args.d_model, r_min=args.r_min, r_max=args.r_max
+            LRU, d_hidden=d_hidden, d_model=d_model, r_min=args.r_min, r_max=args.r_max
         )
         ssm_init_fn = lru
     else:
@@ -127,7 +133,7 @@ def train(args):
             RetrievalModel,
             ssm=ssm_init_fn,
             d_output=n_classes,
-            d_model=args.d_model,
+            d_model=d_model,
             n_layers=args.n_layers,
             padded=padded,
             activation=args.activation_fn,
@@ -142,7 +148,7 @@ def train(args):
             BatchClassificationModel,
             ssm=ssm_init_fn,
             d_output=n_classes,
-            d_model=args.d_model,
+            d_model=d_model,
             n_layers=args.n_layers,
             padded=padded,
             activation=args.activation_fn,
@@ -189,6 +195,10 @@ def train(args):
 
     train_loss, val_loss, val_acc, test_loss, test_acc = 0, 0, 0, 0, 0
     for epoch in range(args.epochs):
+        time_elapsed = (time.perf_counter() - args.time_start)
+        if time_elapsed > args.stop_time:
+            print("Time limit reached, ending training")
+            break
         print(f"[*] Starting Training Epoch {epoch + 1}...")
 
         if epoch < args.warmup_end:

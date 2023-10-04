@@ -86,6 +86,8 @@ class LRU(nn.Module):
         C = self.C_re + 1j * self.C_im
 
         Lambda_elements = jnp.repeat(diag_lambda[None, ...], inputs.shape[0], axis=0)
+        # print(B_norm.shape, inputs.shape)
+
         Bu_elements = jax.vmap(lambda u: B_norm @ u)(inputs)
         # Compute hidden states
         _, hidden_states = parallel_scan(binary_operator_diag, (Lambda_elements, Bu_elements))
