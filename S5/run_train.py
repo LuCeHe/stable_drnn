@@ -25,7 +25,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--comments", type=str, default='lruv2', help="String for extra behaviours")
+    parser.add_argument("--comments", type=str, default='default', help="String for extra behaviours")
     parser.add_argument("--stop_time", default=600, type=int, help="Stop time")
 
     parser.add_argument("--USE_WANDB", type=str2bool, default=False,
@@ -39,7 +39,7 @@ if __name__ == "__main__":
     parser.add_argument("--exp_dir", type=str, default=str(EXPERIMENT),
                         help="name of directory where data is cached")
     parser.add_argument("--dataset", type=str, choices=Datasets.keys(),
-                        default='mnist-classification',
+                        default='imdb-classification',
                         help="dataset name")
 
     # Model Parameters
@@ -149,6 +149,9 @@ if __name__ == "__main__":
                 arg = arg.split('=')
                 arg_name = arg[0]
                 arg_value = arg[1]
+                dtype = type(getattr(args, arg_name))
+                dtype = str(dtype).split("'")[1]
+                arg_value = eval(f"{dtype}('{arg_value}')")
                 setattr(args, arg_name, arg_value)
 
     string_args = json.dumps(vars(args), indent=4, cls=NumpyEncoder)
