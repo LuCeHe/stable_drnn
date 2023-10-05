@@ -15,6 +15,7 @@ class simpleLRU(nn.Module):
     d_model = 1
 
     def __call__(self, inputs):
+        print(inputs.shape)
         # outputs = jax.lax.associative_scan(jnp.add, inputs)
         outputs = jax.vmap(lambda u: jax.lax.associative_scan(jnp.add, u))(inputs)
         return outputs
@@ -58,11 +59,13 @@ jax_seed = 0
 key = random.PRNGKey(jax_seed)
 init_rng, train_rng = random.split(key, num=2)
 dummy_input = jnp.ones((batch_size, time_steps, features))
-integration_timesteps = jnp.ones((batch_size, time_steps))
+# integration_timesteps = jnp.ones((batch_size, time_steps))
 init_rng, dropout_rng = jax.random.split(init_rng, num=2)
-# integration_timesteps = jnp.ones((bsz, seq_len,))
 
-model.init({"params": init_rng, "dropout": dropout_rng}, dummy_input)
+variables = model.init(
+    {"params": init_rng, "dropout": dropout_rng},
+    dummy_input,
+)
 
 f = lambda x: lru(x)
 # f = lambda x: simpleLRU(d_model=features, d_hidden=features)(x)

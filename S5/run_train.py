@@ -39,7 +39,7 @@ if __name__ == "__main__":
     parser.add_argument("--exp_dir", type=str, default=str(EXPERIMENT),
                         help="name of directory where data is cached")
     parser.add_argument("--dataset", type=str, choices=Datasets.keys(),
-                        default='imdb-classification',
+                        default='cifar-classification',
                         help="dataset name")
 
     # Model Parameters
@@ -93,7 +93,7 @@ if __name__ == "__main__":
                         help="number of epochs to continue training when val loss plateaus")
     parser.add_argument("--ssm_lr_base", type=float, default=1e-3,
                         help="initial ssm learning rate")
-    parser.add_argument("--lr_factor", type=float, default=4,
+    parser.add_argument("--lr_factor", type=float, default=4.2,
                         help="global learning rate = lr_factor*ssm_lr_base")
     parser.add_argument("--dt_global", type=str2bool, default=False,
                         help="Treat timescale parameter as global parameter or SSM parameter")
