@@ -57,57 +57,5 @@ init_rng, dropout_rng = jax.random.split(init_rng, num=2)
 
 variables = layer.init({"params": init_rng, "dropout": dropout_rng}, dummy_input)
 
-f = lambda x: layer(x)
-# f = lambda x: simpleLRU(d_model=features, d_hidden=features)(x)
-
-# Jb = jax.vmap(lambda u: jax.jacfwd(f)(u))(inps)
-# print(f(inps))
-print(jax.vmap(lambda u: f(u))(inps))
-Jb = jax.jacfwd(f)(inps)
-Jb_one_step_back = Jb[:, :-1]
-print(Jb_one_step_back.shape)
-# Jb_one_step_back_no_diag = Jb_one_step_back - jnp.eye(features)[None, None, :, None, :]
-# Jb_one_step_back_no_diag = Jb_one_step_back
-
-start_time = time.perf_counter()
-print(Jb.shape)
-radiuses_t = []
-radiuses_l = []
-
-for i in range(time_steps - 1):
-    j_t = Jb_one_step_back[:, i, :, i]
-    j_l = Jb[:, i, :, i]
-
-    # jnp maximal eigenvalue
-    radius_t = jnp.linalg.norm(j_t, axis=(1, 2))
-    radius_l = jnp.linalg.norm(j_l, axis=(1, 2))
-    radiuses_t.append(radius_t)
-    radiuses_l.append(radius_l)
-
-radiuses_t = jnp.stack(radiuses_t, axis=0)
-radiuses_l = jnp.stack(radiuses_l, axis=0)
-
-print(f'For. Elapsed time: {time.perf_counter() - start_time:.3f} seconds.')
-
-# Fori Loop Option
-start_time = time.perf_counter()
-
-
-def compute_radius(i, Jb_osb):
-    j = Jb_osb[:, i, :, i]
-    radius = jnp.linalg.norm(j, axis=(1, 2))
-    return radius
-
-
-radiuses_fori = jax.vmap(lambda i: compute_radius(i, Jb_one_step_back))(jnp.arange(time_steps - 1))
-
-print(f'Fori Loop Elapsed time: {time.perf_counter() - start_time:.3f} seconds.')
-
-# Compare Results
-print('For Loop Results:')
-print(radiuses_t.shape)
-print(radiuses_t)
-print(radiuses_l)
-
-print('Fori Loop Results:')
-print(radiuses_fori.shape)
+f = lambda x: layer.apply(x)
+print(f(inps))
