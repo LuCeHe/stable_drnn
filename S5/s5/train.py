@@ -82,6 +82,8 @@ def train(args):
         if 'lruv2' in args.comments:
             d_model = args.ssm_size_base
             d_hidden = int(args.d_model * .89)
+        elif 'lruv3' in args.comments:
+            d_hidden = args.ssm_size_base
 
         lru = partial(
             LRU, d_hidden=d_hidden, d_model=d_model, r_min=args.r_min, r_max=args.r_max

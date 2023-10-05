@@ -7,70 +7,61 @@ import jax.numpy as jnp
 from jax import random
 from flax import linen as nn
 
+from alif_sg.S5.s5.layers import SequenceLayer
 from alif_sg.minimal_LRU_modified.lru.model import LRU
+
+batch_size = 1
+time_steps = 3
+features = 2
 
 
 class simpleLRU(nn.Module):
-    d_hidden = 1
-    d_model = 1
+    d_hidden: 1
+    d_model: 1
 
     def __call__(self, inputs):
         print(inputs.shape)
-        # outputs = jax.lax.associative_scan(jnp.add, inputs)
-        outputs = jax.vmap(lambda u: jax.lax.associative_scan(jnp.add, u))(inputs)
+        outputs = jax.lax.associative_scan(jnp.add, inputs)
+        # outputs = jax.vmap(lambda u: jax.lax.associative_scan(jnp.add, u))(inputs)
         return outputs
 
 
-batch_size = 1
+ssm = partial(simpleLRU, d_hidden=features, d_model=features)
+layer = SequenceLayer(
+    ssm=ssm,
+    dropout=.1,
+    d_model=features,
+)
 
-time_steps = 3
-features = 2
 inps = jnp.arange(0, time_steps)
 inps = jnp.tile(inps, (batch_size, 1))
 inps = jnp.repeat(inps[:, :, jnp.newaxis], features, axis=2)
 inps = jnp.float32(inps)
 
-
-# LRU = nn.vmap(
-#     LRU,
-#     in_axes=(0, 0),
+# lru_module = nn.vmap(
+#     simpleLRU,
+#     in_axes=(0,),
 #     out_axes=0,
 #     variable_axes={"params": None, "dropout": None, 'batch_stats': None, "cache": 0, "prime": None},
-#     split_rngs={"params": False, "dropout": True}, axis_name='batch'
-# )
+#     split_rngs={"params": False, "dropout": True}, axis_name='batch')
 #
-# lru = LRU(d_model=features, d_hidden=features)
-# # lru = partial(LRU, d_hidden=features, d_model=features)
-# model = lru
-
-
-lru_module = nn.vmap(
-    LRU,
-    in_axes=(None, 0),
-    out_axes=0,
-    variable_axes={"params": None, "dropout": None, 'batch_stats': None, "cache": 0, "prime": None},
-    split_rngs={"params": False, "dropout": True}, axis_name='batch'
-)
-
-lru = lru_module(d_model=features, d_hidden=features)
-model = lru
+# model = lru_module(d_hidden=features, d_model=features)
 
 jax_seed = 0
 key = random.PRNGKey(jax_seed)
 init_rng, train_rng = random.split(key, num=2)
 dummy_input = jnp.ones((batch_size, time_steps, features))
-# integration_timesteps = jnp.ones((batch_size, time_steps))
 init_rng, dropout_rng = jax.random.split(init_rng, num=2)
 
-variables = model.init(
-    {"params": init_rng, "dropout": dropout_rng},
-    dummy_input,
-)
+variables = layer.init({"params": init_rng, "dropout": dropout_rng}, dummy_input)
 
-f = lambda x: lru(x)
+f = lambda x: layer(x)
 # f = lambda x: simpleLRU(d_model=features, d_hidden=features)(x)
 
-Jb = jax.vmap(lambda u: jax.jacfwd(f)(u))(inps)
+# Jb = jax.vmap(lambda u: jax.jacfwd(f)(u))(inps)
+# print(f(inps))
+print(jax.vmap(lambda u: f(u))(inps))
+Jb = jax.jacfwd(f)(inps)
 Jb_one_step_back = Jb[:, :-1]
 print(Jb_one_step_back.shape)
 # Jb_one_step_back_no_diag = Jb_one_step_back - jnp.eye(features)[None, None, :, None, :]

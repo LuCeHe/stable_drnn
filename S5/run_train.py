@@ -25,7 +25,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--comments", type=str, default='default', help="String for extra behaviours")
+    parser.add_argument("--comments", type=str, default='defaultlru_lruv3', help="String for extra behaviours")
     parser.add_argument("--stop_time", default=600, type=int, help="Stop time")
 
     parser.add_argument("--USE_WANDB", type=str2bool, default=False,
@@ -134,10 +134,11 @@ if __name__ == "__main__":
     args.time_start = time_start
 
     if 'default' in args.comments:
-        path_default = os.path.join(
-            CDIR, 'bin', 'run_experiments',
-            f"run_lra_{args.dataset.replace('-classification', '')}.sh"
-        )
+        filename = f"run_lra_{args.dataset.replace('-classification', '')}.sh"
+        if 'defaultlru' in args.comments:
+            filename = filename.replace('.sh', '_lru.sh')
+        print('Loading default args from ' + filename)
+        path_default = os.path.join(CDIR, 'bin', 'run_experiments', filename)
 
         with open(path_default, 'r') as f:
             outp = f.read().replace('\n', '').replace('\\', '')
