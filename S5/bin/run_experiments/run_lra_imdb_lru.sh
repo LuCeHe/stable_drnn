@@ -1,4 +1,4 @@
-python run_train.py --activation_fn=full_glu \
+python run_train.py --activation_fn=full_glu  --bidirectional=False \
                     --batchnorm=True --bsz=50 \
                     --d_model=256 --dataset=imdb-classification \
                     --dt_global=True --epochs=35 --jax_seed=8825365 --lr_factor=0.1 \

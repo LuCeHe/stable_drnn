@@ -1,7 +1,7 @@
 import argparse, os, time, string, random, shutil, json, socket, re
 
 from alif_sg.S5.s5.dataloaders.base import default_cache_path
-from pyaromatics.stay_organized.utils import NumpyEncoder
+from pyaromatics.stay_organized.utils import NumpyEncoder, str2val
 from s5.utils.util import str2bool
 from s5.train import train
 from s5.dataloading import Datasets
@@ -89,7 +89,7 @@ if __name__ == "__main__":
                         help="max number of epochs")
     parser.add_argument("--steps_per_epoch", type=int, default=2,
                         help="max number steps per epoch")
-    parser.add_argument("--early_stop_patience", type=int, default=10,
+    parser.add_argument("--early_stop_patience", type=int, default=30,
                         help="number of epochs to continue training when val loss plateaus")
     parser.add_argument("--ssm_lr_base", type=float, default=1e-3,
                         help="initial ssm learning rate")
@@ -160,6 +160,9 @@ if __name__ == "__main__":
     results_filename = os.path.join(EXPERIMENT, 'args.json')
     with open(results_filename, "w") as f:
         f.write(string_args)
+
+    lr = str2val(args.comments, 'lr', float, default=args.ssm_lr_base)
+    args.ssm_lr_base = lr
 
     results = train(args)
     time_elapsed = (time.perf_counter() - time_start)

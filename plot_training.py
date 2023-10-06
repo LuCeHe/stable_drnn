@@ -120,15 +120,18 @@ if expsid == 's5lru':
 
     metric = 'val_acc M'  # 'v_ppl min'
     metrics_oi = [
-        'val_loss m', 'val_acc M', 'test_loss m', 'test_acc M', 'time_elapsed'
+        # 'val_loss m', 'test_loss m',
+        'val_acc M',  'test_acc M', 'time_elapsed',
+        'n_params', 'val_acc len'
     ]
 
     plot_only = [
-                    'jax_seed', 'lru', 'dataset', 'n_params', 'n_depth', 'comments',
+                    'jax_seed', 'lru', 'dataset', 'n_depth', 'comments',
                 ] + metrics_oi
     group_cols = ['lru', 'dataset', 'comments', 'n_depth']
 
     columns_to_remove = []
+    # stats_oi = ['mean']
     stats_oi = ['mean']
 
 df = experiments_to_pandas(
@@ -165,8 +168,8 @@ for cname in ['net', 'task']:
         df = df.drop([cname], axis=1)
         df[cname] = c
 
-if 'n_params' in df.columns:
-    df['n_params'] = df['n_params'].apply(lambda x: large_num_to_reasonable_string(x, 1))
+# if 'n_params' in df.columns:
+#     df['n_params'] = df['n_params'].apply(lambda x: large_num_to_reasonable_string(x, 1))
 
 print(list(df.columns))
 
@@ -282,7 +285,9 @@ if 'task' in df.columns:
 
 if 'dataset' in df.columns:
     df.loc[df['dataset'].eq('cifar-classification'), 'dataset'] = 'sCIFAR'
+    df.loc[df['dataset'].eq('lra-cifar-classification'), 'dataset'] = 'sCIFAR-2'
     df.loc[df['dataset'].eq('imdb-classification'), 'dataset'] = 'Text'
+    df.loc[df['dataset'].eq('listops-classification'), 'dataset'] = 'ListOps'
 
 # eps column stays eps if not equal to None else it becomes the content of v_mode_acc len
 # df.loc[df['eps'].isnull(), 'eps'] = df.loc[df['eps'].isnull(), f'{metric} len']
@@ -334,11 +339,14 @@ if pandas_means:
     mdf = mdf.droplevel(level=1, axis=1)
     mdf['counts'] = counts['counts']
 
-    mdf = mdf.sort_values(by='mean_' + metric)
+    # mdf = mdf.sort_values(by='mean_' + metric)
 
     mdf['comments'] = mdf['comments'].str.replace('__', '_', regex=True)
     if 'mean_time_elapsed' in mdf.columns:
         mdf['mean_time_elapsed'] = mdf['mean_time_elapsed'].apply(lambda x: timedelta(seconds=x))
+
+    if 'mean_n_params' in mdf.columns:
+        mdf['mean_n_params'] = mdf['mean_n_params'].apply(lambda x: large_num_to_reasonable_string(x, 1))
 
     print(mdf.to_string())
 
@@ -349,33 +357,34 @@ if pandas_means:
 
         xdf = mdf.copy()
         xdf['comments'] = xdf['comments'].str.replace('allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_', '')
-        for stack in stacks:
-            for task in tasks:
-                # for net in nets:
-                print('-===-' * 30)
-                # print(task, net, stack)
-                print(task, stack)
+        # for stack in stacks:
+        for task in tasks:
+            # for net in nets:
+            print('-===-' * 30)
+            # print(task, net, stack)
+            # print(task, stack)
+            print(task)
 
-                idf = xdf[
-                    xdf[task_flag].eq(task)
-                    # & xdf[net_flag].eq(net)
-                    & xdf[depth_flag].eq(stack)
-                    ]
+            idf = xdf[
+                xdf[task_flag].eq(task)
+                # & xdf[net_flag].eq(net)
+                # & xdf[depth_flag].eq(stack)
+                ]
 
-                cols = idf.columns
-                if not 'PTB' in task:
-                    idf = idf.sort_values(by='mean_' + metric, ascending=False)
-                    cols = [c for c in cols if not 'ppl' in c]
-                else:
-                    idf = idf.sort_values(by='mean_v_ppl', ascending=True)
-                    cols = [c for c in cols if not 'acc' in c]
+            cols = idf.columns
+            if not 'PTB' in task:
+                # idf = idf.sort_values(by='mean_' + metric, ascending=False)
+                cols = [c for c in cols if not 'ppl' in c]
+            else:
+                # idf = idf.sort_values(by='mean_v_ppl', ascending=True)
+                cols = [c for c in cols if not 'acc' in c]
 
-                idf.rename(columns=new_column_names, inplace=True)
-                idf = idf[cols]
+            idf.rename(columns=new_column_names, inplace=True)
+            idf = idf[cols]
 
-                idf = idf.sort_values(by=net_flag)
+            idf = idf.sort_values(by=net_flag)
 
-                print(idf.to_string())
+            print(idf.to_string())
 
 if nice_bar_plot:
     df = df.copy()
