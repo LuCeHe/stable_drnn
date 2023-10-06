@@ -284,8 +284,8 @@ if 'task' in df.columns:
     df.loc[df['task'].eq('wordptb'), 'task'] = 'PTB'
 
 if 'dataset' in df.columns:
-    df.loc[df['dataset'].eq('cifar-classification'), 'dataset'] = 'sCIFAR'
-    df.loc[df['dataset'].eq('lra-cifar-classification'), 'dataset'] = 'sCIFAR-2'
+    df.loc[df['dataset'].eq('cifar-classification'), 'dataset'] = 'sCIFAR-3'
+    df.loc[df['dataset'].eq('lra-cifar-classification'), 'dataset'] = 'sCIFAR-1'
     df.loc[df['dataset'].eq('imdb-classification'), 'dataset'] = 'Text'
     df.loc[df['dataset'].eq('listops-classification'), 'dataset'] = 'ListOps'
 

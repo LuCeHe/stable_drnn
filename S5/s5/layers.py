@@ -32,7 +32,6 @@ class SequenceLayer(nn.Module):
     def setup(self):
         """Initializes the ssm, batch/layer norm and dropout
         """
-        print('hey!')
         if hasattr(self.ssm, "step_rescale"):
             self.seq = self.ssm(step_rescale=self.step_rescale)
         else:

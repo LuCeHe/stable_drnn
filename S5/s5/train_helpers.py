@@ -155,8 +155,6 @@ def create_train_state(model_cls,
     else:
         params = variables["params"]
 
-    # if batchnorm:
-
     if args.lru:
         # Smaller lr and no weight decay for lambda, gamma and B
         ssm_fn = map_nested_fn(
