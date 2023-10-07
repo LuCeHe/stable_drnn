@@ -56,13 +56,22 @@ variables = layer.init({"params": init_rng, "dropout": dropout_rng}, dummy_input
 
 params = variables["params"]
 f = lambda x: layer.apply({'params': params}, x, rngs={'dropout': dropout_rng})
-outs = f(inps)
-print('outs.shape', outs.shape)
-print(f(inps))
+# outs = f(inps)
+# print('outs.shape', outs.shape)
+# print(f(inps))
 
 
 
 
 
-Jb = jax.vmap(lambda u: jax.jacfwd(f)(u))(inps)
+# Jb = jax.vmap(lambda u: jax.jacfwd(f)(u))(inps)
+# Jb =  jax.jacfwd(f)(inps)
+# print('Jb.shape', Jb.shape)
 
+# Define a function for jacfwd only with respect to the 'params' variable
+def jacfwd_params_fn(x):
+    return jax.jacfwd(lambda z: layer.apply({'params': params}, z, rngs={'dropout': dropout_rng}))(x)
+
+# Apply jax.jacfwd to the parameters only
+Jb = jax.vmap(jacfwd_params_fn)(inps)
+print('Jb.shape', Jb.shape)

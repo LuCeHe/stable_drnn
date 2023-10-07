@@ -25,7 +25,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--comments", type=str, default='defaultlru_lruv3', help="String for extra behaviours")
+    parser.add_argument("--comments", type=str, default='', help="String for extra behaviours")
     parser.add_argument("--stop_time", default=600, type=int, help="Stop time")
 
     parser.add_argument("--USE_WANDB", type=str2bool, default=False,
@@ -83,10 +83,8 @@ if __name__ == "__main__":
                         help="True: use batchnorm, False: use layernorm")
     parser.add_argument("--bn_momentum", type=float, default=0.95,
                         help="batchnorm momentum")
-    parser.add_argument("--bsz", type=int, default=64,
-                        help="batch size")
-    parser.add_argument("--epochs", type=int, default=2,
-                        help="max number of epochs")
+    parser.add_argument("--bsz", type=int, default=16, help="batch size")
+    parser.add_argument("--epochs", type=int, default=2, help="max number of epochs")
     parser.add_argument("--steps_per_epoch", type=int, default=2,
                         help="max number steps per epoch")
     parser.add_argument("--early_stop_patience", type=int, default=30,

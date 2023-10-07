@@ -12,7 +12,7 @@ from .dataloading import Datasets
 from .seq_model import BatchClassificationModel, RetrievalModel
 from .ssm import init_S5SSM
 from .ssm_init import make_DPLR_HiPPO
-from alif_sg.minimal_LRU_modified.lru.model import LRU
+from alif_sg.minimal_LRU_modified.lru.model import LRU, LRU2
 
 
 def train(args):
