@@ -24,11 +24,21 @@ class simpleLRU(nn.Module):
         return outputs
 
 
-ssm = partial(simpleLRU, d_hidden=features, d_model=features)
-layer = partial(SequenceLayer, ssm=ssm, dropout=.1, d_model=features)
+ssm = partial(LRU, d_hidden=features, d_model=features)
+BatchClassificationModel = nn.vmap(
+    SequenceLayer,
+    in_axes=0,    out_axes=0,
+    variable_axes={"params": None, "dropout": None, 'batch_stats': None, "cache": 0, "prime": None},
+    split_rngs={"params": False, "dropout": True}, axis_name='batch')
 
-# batchify it with nn.vmap
-layer = partial(nn.vmap(layer, (0, None), 0))(training=True)
+layer = partial(
+    BatchClassificationModel, ssm=ssm, dropout=.1, d_model=features
+)(training=True)
+
+
+
+
+
 print(layer)
 
 inps = jnp.arange(0, time_steps)
@@ -49,3 +59,10 @@ f = lambda x: layer.apply({'params': params}, x, rngs={'dropout': dropout_rng})
 outs = f(inps)
 print('outs.shape', outs.shape)
 print(f(inps))
+
+
+
+
+
+Jb = jax.vmap(lambda u: jax.jacfwd(f)(u))(inps)
+
