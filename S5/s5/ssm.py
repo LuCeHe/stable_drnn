@@ -38,7 +38,7 @@ def discretize_zoh(Lambda, B_tilde, Delta):
     """
     Identity = np.ones(Lambda.shape[0])
     Lambda_bar = np.exp(Lambda * Delta)
-    B_bar = (1/Lambda * (Lambda_bar-Identity))[..., None] * B_tilde
+    B_bar = (1 / Lambda * (Lambda_bar - Identity))[..., None] * B_tilde
     return Lambda_bar, B_bar
 
 
@@ -83,7 +83,7 @@ def apply_ssm(Lambda_bar, B_bar, C_tilde, input_sequence, conj_sym, bidirectiona
         xs = np.concatenate((xs, xs2), axis=-1)
 
     if conj_sym:
-        return jax.vmap(lambda x: 2*(C_tilde @ x).real)(xs)
+        return jax.vmap(lambda x: 2 * (C_tilde @ x).real)(xs)
     else:
         return jax.vmap(lambda x: (C_tilde @ x).real)(xs)
 
@@ -144,7 +144,7 @@ class S5SSM(nn.Module):
         if self.conj_sym:
             # Need to account for case where we actually sample real B and C, and then multiply
             # by the half sized Vinv and possibly V
-            local_P = 2*self.P
+            local_P = 2 * self.P
         else:
             local_P = self.P
 
@@ -159,12 +159,9 @@ class S5SSM(nn.Module):
         # Initialize input to state (B) matrix
         B_init = lecun_normal()
         B_shape = (local_P, self.H)
-        self.B = self.param("B",
-                            lambda rng, shape: init_VinvB(B_init,
-                                                          rng,
-                                                          shape,
-                                                          self.Vinv),
-                            B_shape)
+        self.B = self.param(
+            "B", lambda rng, shape: init_VinvB(B_init, rng, shape, self.Vinv), B_shape
+        )
         B_tilde = self.B[..., 0] + 1j * self.B[..., 1]
 
         # Initialize state to output (C) matrix
@@ -178,7 +175,7 @@ class S5SSM(nn.Module):
             C_init = normal(stddev=0.5 ** 0.5)
         else:
             raise NotImplementedError(
-                   "C_init method {} not implemented".format(self.C_init))
+                "C_init method {} not implemented".format(self.C_init))
 
         if self.C_init in ["complex_normal"]:
             if self.bidirectional:
