@@ -122,7 +122,7 @@ if __name__ == "__main__":
                         help="seed randomness")
 
     # LRU Parameters
-    parser.add_argument("--lru", type=str2bool, default=True,
+    parser.add_argument("--lru", type=str2bool, default=False,
                         help="True: use LRU, False: don't use LRU")
     parser.add_argument("--r_min", type=float, default=0.5, help="|lambda|_min for LRU")
     parser.add_argument("--r_max", type=float, default=0.99, help="|lambda|_max for LRU")

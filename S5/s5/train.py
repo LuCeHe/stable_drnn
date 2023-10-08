@@ -20,8 +20,6 @@ def train(args):
     Main function to train over a certain number of epochs
     """
 
-    results = {}
-
     best_test_loss = 100000000
     best_test_acc = -10000.0
 
@@ -31,14 +29,10 @@ def train(args):
     else:
         wandb.init(mode='offline')
 
-    ssm_size = args.ssm_size_base
-    ssm_lr = args.ssm_lr_base
 
-    # determine the size of initial blocks
-    block_size = int(ssm_size / args.blocks)
-    wandb.log({"block_size": block_size})
 
     # Set global learning rate lr (e.g. encoders, etc.) as function of ssm_lr
+    ssm_lr = args.ssm_lr_base
     lr = args.lr_factor * ssm_lr
 
     # Set randomness...
@@ -91,6 +85,11 @@ def train(args):
         ssm_init_fn = lru
     else:
         model_name = "S5"
+
+        # determine the size of initial blocks
+        ssm_size = args.ssm_size_base
+        block_size = int(ssm_size / args.blocks)
+        wandb.log({"block_size": block_size})
 
         # Initialize state matrix A using approximation to HiPPO-LegS matrix
         Lambda, _, B, V, B_orig = make_DPLR_HiPPO(block_size)
