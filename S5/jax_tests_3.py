@@ -16,7 +16,7 @@ from alif_sg.minimal_LRU_modified.lru.model import LRU
 batch_size = 2
 time_steps = 7
 features = 256
-model_name = 'slru2'  # slru lru s5 slru2
+model_name = 'lru'  # slru lru s5 slru2
 
 
 class simpleLRU(nn.Module):
@@ -30,6 +30,7 @@ class simpleLRU(nn.Module):
 
 def matrix_init(key, shape, dtype=jnp.float_, normalization=1):
     return jax.random.normal(key=key, shape=shape, dtype=dtype) / normalization
+
 
 def gamma_log_init(key, lamb):
     nu, theta = lamb
@@ -50,7 +51,8 @@ class simpleLRU2(nn.Module):
     max_phase: float = 6.28  # max phase lambda
 
     def setup(self):
-        self.gamma_log = self.param("gamma_log", gamma_log_init, (self.nu_log, self.theta_log))
+        self.gamma_log = self.param("gamma_log", partial(matrix_init, normalization=jnp.sqrt(2 * self.d_model),
+                                                         shape=(self.d_model,)))
 
         # Glorot initialized Input/Output projection matrices
         self.B_re = self.param(
@@ -63,6 +65,7 @@ class simpleLRU2(nn.Module):
             partial(matrix_init, normalization=jnp.sqrt(2 * self.d_model)),
             (self.d_hidden, self.d_model),
         )
+
     def __call__(self, inputs):
         """Forward pass of a LRU: h_t+1 = lambda * h_t + B x_t+1, y_t = Re[C h_t + D x_t]"""
         B_norm = (self.B_re + 1j * self.B_im) * jnp.expand_dims(jnp.exp(self.gamma_log), axis=-1)
@@ -75,12 +78,10 @@ class simpleLRU2(nn.Module):
         return outputs
 
 
-
-
 if model_name == 'slru':
     ssm = partial(simpleLRU, d_hidden=features, d_model=features)
 
-if model_name == 'slru2':
+elif model_name == 'slru2':
     ssm = partial(simpleLRU2, d_hidden=features, d_model=features)
 
 elif model_name == 'lru':
@@ -158,20 +159,15 @@ f = lambda x: layer.apply({'params': params}, x, rngs={'dropout': dropout_rng})
 outs = f(inps)
 print('outs.shape', outs.shape)
 
-
-# print(f(inps))
-
-
-# Jb = jax.vmap(lambda u: jax.jacfwd(f)(u))(inps)
-# Jb =  jax.jacfwd(f)(inps)
-# print('Jb.shape', Jb.shape)
-
-# Define a function for jacfwd only with respect to the 'params' variable
-def jacfwd_params_fn(x):
-    print(x.shape)
-    return jax.jacfwd(f)(x)
-
-
-# Apply jax.jacfwd to the parameters only
-Jb = jax.vmap(jacfwd_params_fn)(inps)
+Jb = jax.jacfwd(f)(inps)
 print('Jb.shape', Jb.shape)
+
+# Move the axis to the front for easy diagonal extraction
+# Jb_moved = jnp.moveaxis(Jb, [2, 5], [0, 3])
+
+# Extract diagonals for the specified axes
+Jb = jnp.diagonal(Jb, axis1=0, axis2=3)
+Jb = jnp.moveaxis(Jb, [-1,], [0,])
+
+# print('Jb_moved.shape', Jb_moved.shape)
+print('diagonals.shape', Jb.shape)

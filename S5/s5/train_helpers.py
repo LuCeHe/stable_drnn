@@ -424,6 +424,49 @@ def validate(state, model, testloader, seq_len, in_dim, batchnorm, step_rescale=
     return aveloss, aveaccu
 
 
+
+@partial(jax.jit, static_argnums=(5, 6, 7))
+def pretrain_step(state,
+               rng,
+               batch_inputs,
+               batch_labels,
+               batch_integration_timesteps,
+               model,
+               batchnorm,
+                args=None,
+               ):
+    """Performs a single training step given a batch of data"""
+
+    target_norm
+    def loss_fn(params):
+
+        if batchnorm:
+            logits, mod_vars = model.apply(
+                {"params": params, "batch_stats": state.batch_stats},
+                batch_inputs,
+                rngs={"dropout": rng},
+                mutable=["intermediates", "batch_stats"],
+            )
+        else:
+            logits, mod_vars = model.apply(
+                {"params": params},
+                batch_inputs,
+                rngs={"dropout": rng},
+                mutable=["intermediates"],
+            )
+
+        loss = np.mean(cross_entropy_loss(logits, batch_labels))
+
+        return loss, (mod_vars, logits)
+
+    (loss, (mod_vars, logits)), grads = jax.value_and_grad(loss_fn, has_aux=True)(state.params)
+
+    if batchnorm:
+        state = state.apply_gradients(grads=grads, batch_stats=mod_vars["batch_stats"])
+    else:
+        state = state.apply_gradients(grads=grads)
+    return state, loss
+
 @partial(jax.jit, static_argnums=(5, 6))
 def train_step(state,
                rng,
