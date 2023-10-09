@@ -143,6 +143,7 @@ if __name__ == "__main__":
         outp = re.sub(' +', ' ', outp)
 
         dargs = outp.split(' --')[1:]
+        # default_bsz = False if not args.bsz < 0 else True
         for arg in dargs:
             if not 'bsz' in arg and not 'jax_seed' in arg and not 'epochs' in arg:
                 arg = arg.split('=')
