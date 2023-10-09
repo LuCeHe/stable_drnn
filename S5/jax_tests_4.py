@@ -4,6 +4,7 @@ from functools import partial
 import jax
 import jax.ops
 import jax.numpy as jnp
+from flax.training.train_state import TrainState
 from jax import random
 from flax import linen as nn
 from jax.scipy.linalg import block_diag
@@ -45,66 +46,55 @@ init_rng, dropout_rng = jax.random.split(init_rng, num=2)
 variables = model.init({"params": init_rng, "dropout": dropout_rng}, dummy_input)
 
 params = variables["params"]
-f = lambda x: model.apply({'params': params}, x, rngs={'dropout': dropout_rng})
-
-outs = f(inps)
-print('outs.shape', outs.shape)
-
-Jb = jax.jacfwd(f)(inps)
-print('Jb.shape', Jb.shape)
-
-# Move the axis to the front for easy diagonal extraction
-# Jb_moved = jnp.moveaxis(Jb, [2, 5], [0, 3])
-
-# Extract diagonals for the specified axes
-Jb = jnp.diagonal(Jb, axis1=0, axis2=3)
-Jb = jnp.moveaxis(Jb, [-1, ], [0, ])
-
-# print('Jb_moved.shape', Jb_moved.shape)
-print('diagonals.shape', Jb.shape)
-
-# Jb = jax.jacfwd(f)(inps)
-Jb_back = Jb[:, 1:]
-print('Jb.shape', Jb.shape)
-
-# Fori Loop Option
-start_time = time.perf_counter()
 
 
-def compute_radius(i, Jb_osb, Jb):
-    j_t = Jb_osb[:, i, :, i]
-    radius_t = jnp.linalg.norm(j_t, axis=(1, 2))
+def get_radiuses(model, params, dropout_rng):
+    f = lambda x: model.apply({'params': params}, x, rngs={'dropout': dropout_rng})
 
-    j_l = Jb[:, i, :, i]
-    radius_l = jnp.linalg.norm(j_l, axis=(1, 2))
-    return radius_t, radius_l
+    # calculate the jacobian
+    Jb = jax.jacfwd(f)(inps)
 
+    # remove cross batch elements
+    Jb = jnp.diagonal(Jb, axis1=0, axis2=3)
+    Jb = jnp.moveaxis(Jb, [-1, ], [0, ])
 
-radiuses_fori_t, radiuses_fori_l = jax.vmap(lambda i: compute_radius(i, Jb_back, Jb))(jnp.arange(time_steps - 1))
+    # remove the first time step
+    Jb_back = Jb[:, 1:]
 
-print(f'Fori Loop Elapsed time: {time.perf_counter() - start_time:.3f} seconds.')
+    def compute_radius(i, Jb_osb, Jb):
+        j_t = Jb_osb[:, i, :, i]
+        radius_t = jnp.linalg.norm(j_t, axis=(1, 2))
 
-# Compare Results
-print('Fori Loop Results:')
-print(radiuses_fori_t.shape)
-print(radiuses_fori_l.shape)
+        j_l = Jb[:, i, :, i]
+        radius_l = jnp.linalg.norm(j_l, axis=(1, 2))
+        return radius_t, radius_l
 
-print(radiuses_fori_t)
-print(radiuses_fori_l)
+    radiuses_t, radiuses_l = jax.vmap(lambda i: compute_radius(i, Jb_back, Jb))(jnp.arange(time_steps - 1))
+    return radiuses_t, radiuses_l
+
 
 target_norm = 1
 
-TrainState.create(apply_fn=model.apply, params=params, tx=tx)
+# TrainState.create(apply_fn=model.apply, params=params, tx=tx)
+
 
 @jax.jit
-def mse(params, x_batched, y_batched):
-    # Define the squared loss for a single pair (x,y)
-    def squared_error(x, y):
-        pred = model.apply(params, x)
-        return jnp.inner(y - target_norm, y - target_norm) / 2.0
+def train_step(state, inputs, labels):
+    def loss_fn(params):
+        outputs = state.apply_fn({'params': params}, inputs)
+        loss = jnp.mean((outputs - target_norm) ** 2)
+        return loss
 
-    # Vectorize the previous to compute the average of the loss on all samples.
-    return jnp.mean(jax.vmap(squared_error)(x_batched, y_batched), axis=0)
+    loss, grads = jax.value_and_grad(loss_fn)(state.params)
+    new_state = state.update(grads=grads)
+
+    return new_state, loss
 
 
-loss = jnp.mean(()**2)
+state = TrainState.create(
+    apply_fn=model.apply,
+    params=variables['params'],
+    tx=tx,
+)
+for batch in ds.as_numpy_iterator():
+    state, loss = train_step(state, batch['image'], batch['label'])
