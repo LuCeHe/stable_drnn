@@ -20,12 +20,11 @@ os.makedirs(EXPERIMENTS, exist_ok=True)
 os.makedirs(EXPERIMENT, exist_ok=True)
 
 if __name__ == "__main__":
-
     time_start = time.perf_counter()
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--comments", type=str, default='', help="String for extra behaviours")
+    parser.add_argument("--comments", type=str, default='pretrain', help="String for extra behaviours")
     parser.add_argument("--stop_time", default=600, type=int, help="Stop time")
 
     parser.add_argument("--USE_WANDB", type=str2bool, default=False,
@@ -43,7 +42,7 @@ if __name__ == "__main__":
                         help="dataset name")
 
     # Model Parameters
-    parser.add_argument("--n_layers", type=int, default=6,
+    parser.add_argument("--n_layers", type=int, default=1,
                         help="Number of layers in the network")
     parser.add_argument("--d_model", type=int, default=256,
                         help="Number of features, i.e. H, "
@@ -83,7 +82,7 @@ if __name__ == "__main__":
                         help="True: use batchnorm, False: use layernorm")
     parser.add_argument("--bn_momentum", type=float, default=0.95,
                         help="batchnorm momentum")
-    parser.add_argument("--bsz", type=int, default=16, help="batch size")
+    parser.add_argument("--bsz", type=int, default=8, help="batch size")
     parser.add_argument("--epochs", type=int, default=2, help="max number of epochs")
     parser.add_argument("--steps_per_epoch", type=int, default=2,
                         help="max number steps per epoch")

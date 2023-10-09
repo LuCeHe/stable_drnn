@@ -424,20 +424,20 @@ def validate(state, model, testloader, seq_len, in_dim, batchnorm, step_rescale=
     return aveloss, aveaccu
 
 
-
 @partial(jax.jit, static_argnums=(5, 6, 7))
 def pretrain_step(state,
-               rng,
-               batch_inputs,
-               batch_labels,
-               batch_integration_timesteps,
-               model,
-               batchnorm,
-                args=None,
-               ):
+                  rng,
+                  batch_inputs,
+                  batch_labels,
+                  batch_integration_timesteps,
+                  model,
+                  batchnorm,
+                  args=None,
+                  ):
     """Performs a single training step given a batch of data"""
 
     target_norm
+
     def loss_fn(params):
 
         if batchnorm:
@@ -466,6 +466,7 @@ def pretrain_step(state,
     else:
         state = state.apply_gradients(grads=grads)
     return state, loss
+
 
 @partial(jax.jit, static_argnums=(5, 6))
 def train_step(state,

@@ -6,6 +6,7 @@ from jax.scipy.linalg import block_diag
 import wandb
 
 from pyaromatics.stay_organized.utils import NumpyEncoder
+from .layers import SequenceLayer
 from .train_helpers import create_train_state, reduce_lr_on_plateau, \
     linear_warmup, cosine_annealing, constant_lr, train_epoch, validate
 from .dataloading import Datasets
@@ -13,6 +14,7 @@ from .seq_model import BatchClassificationModel, RetrievalModel
 from .ssm import init_S5SSM
 from .ssm_init import make_DPLR_HiPPO
 from alif_sg.minimal_LRU_modified.lru.model import LRU, LRU2
+from alif_sg.S5.jax_pretrain import pretrain
 
 
 def train(args):
@@ -28,8 +30,6 @@ def train(args):
         wandb.init(project=args.wandb_project, job_type='model_training', config=vars(args), entity=args.wandb_entity)
     else:
         wandb.init(mode='offline')
-
-
 
     # Set global learning rate lr (e.g. encoders, etc.) as function of ssm_lr
     ssm_lr = args.ssm_lr_base
@@ -178,6 +178,43 @@ def train(args):
         args=args
     )
 
+    results = {}
+    if 'pretrain' in args.comments:
+        print("[*] Pretraining")
+        from flax import linen as nn
+        import jax
+        import json
+
+        params = state.params
+        keys = jax.tree_util.tree_leaves_with_path(params)
+        keys = [k[:-1] for k in keys]
+        print(keys)
+
+        time_steps = 100
+
+        ptr_params = {}
+        for li in range(args.n_layers):
+            VmappedSL = nn.vmap(
+                SequenceLayer,
+                in_axes=0, out_axes=0,
+                variable_axes={"params": None, "dropout": None, 'batch_stats': None, "cache": 0, "prime": None},
+                split_rngs={"params": False, "dropout": True}, axis_name='batch')
+
+            model = partial(
+                VmappedSL,
+                ssm=ssm_init_fn,
+                dropout=args.p_dropout,
+                d_model=d_model,
+                activation=args.activation_fn,
+                prenorm=args.prenorm,
+                batchnorm=args.batchnorm,
+                bn_momentum=args.bn_momentum,
+            )(training=True)
+
+            new_params, pretraining_loss = pretrain(model, args.jax_seed, batch_size=args.bsz,
+                                                    time_steps=time_steps, features=d_model, comments=args.comments)
+            results.update({f"pretraining_loss_layer_{li}": pretraining_loss})
+
     # Training Loop over epochs
     best_loss, best_acc, best_epoch = 100000000, -100000000.0, 0  # This best loss is val_loss
     count, best_val_loss = 0, 100000000  # This line is for early stopping purposes
@@ -185,14 +222,14 @@ def train(args):
     step = 0  # for per step learning rate decay
     steps_per_epoch = int(train_size / args.bsz)
 
-    results = {
+    results.update({
         "n_params": n_params,
         "train_loss": [],
         "val_loss": [],
         "val_acc": [],
         "test_loss": [],
         "test_acc": [],
-    }
+    })
 
     train_loss, val_loss, val_acc, test_loss, test_acc = 0, 0, 0, 0, 0
     for epoch in range(args.epochs):
