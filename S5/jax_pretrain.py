@@ -35,17 +35,15 @@ def get_radiuses(model, aux_dict):
             f = lambda x: model.apply(
                 {"params": params, "batch_stats": state.batch_stats}, x, rngs={"dropout": dropout_rng},
                 mutable=["intermediates", "batch_stats"],
-            )
+            )[0]
         else:
             f = lambda x: model.apply(
                 {"params": params}, x, rngs={"dropout": dropout_rng},
                 mutable=["intermediates"],
-            )
+            )[0]
 
         # calculate the jacobian
         Jb = jax.jacfwd(f)(input_batch)
-        print(Jb[0].shape, Jb[1].shape)
-        print('Jb shape: ', Jb.shape)
 
         # remove cross batch elements
         Jb = jnp.diagonal(Jb, axis1=0, axis2=3)
@@ -55,6 +53,7 @@ def get_radiuses(model, aux_dict):
         Jb_back = Jb[:, 1:]
 
         # compute the radiuses in the time and layer dimensions
+        time_steps = Jb_back.shape[1]
         radiuses_t, radiuses_l = jax.vmap(lambda i: compute_radius(i, Jb_back, Jb))(jnp.arange(time_steps - 1))
         return radiuses_t, radiuses_l
 
@@ -77,7 +76,7 @@ def train_step(state, inputs, do_rng, tnt, tnl, wshuff_rng):
     return new_state, loss
 
 
-def pretrain(model, jax_seed, batch_size, time_steps, features, comments='', pretrain_steps=3000, plot=False):
+def pretrain(model, jax_seed, batch_size, time_steps, features, comments='', pretrain_steps=3000, plot=False, loss_threshold=1e-3):
     target_norm = str2val(comments, 'targetnorm', float, default=1)
     tnt, tnl = target_norm, target_norm
     if 'unbalanced' in comments:
@@ -94,7 +93,6 @@ def pretrain(model, jax_seed, batch_size, time_steps, features, comments='', pre
     tx = optax.adabelief(learning_rate=0.05)
 
     aux_dict = {}
-    print('variables keys: ', variables.keys())
     TS = TrainState
     if 'batch_stats' in variables.keys():
         from typing import Any
@@ -116,9 +114,9 @@ def pretrain(model, jax_seed, batch_size, time_steps, features, comments='', pre
             inputs = random.normal(pretrain_rng, (batch_size, time_steps, features))
             state, loss = train_step(state, inputs, dropout_rng, tnt, tnl, wshuff_rng)
 
-            pbar.set_description(f"Loss: {loss:.4f}", refresh=True)
+            pbar.set_description(f"Pre-training Loss: {loss:.4f}", refresh=True)
             pbar.update(1)
-            if loss < 1e-3:
+            if loss < loss_threshold:
                 print('Early stopping on loss < 1e-3: ', loss)
                 break
 

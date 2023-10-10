@@ -89,7 +89,6 @@ def train(args):
         # determine the size of initial blocks
         ssm_size = args.ssm_size_base
         block_size = int(ssm_size / args.blocks)
-        wandb.log({"block_size": block_size})
 
         # Initialize state matrix A using approximation to HiPPO-LegS matrix
         Lambda, _, B, V, B_orig = make_DPLR_HiPPO(block_size)
@@ -107,10 +106,6 @@ def train(args):
         Lambda = (Lambda * np.ones((args.blocks, block_size))).ravel()
         V = block_diag(*([V] * args.blocks))
         Vinv = block_diag(*([Vc] * args.blocks))
-
-        print("Lambda.shape={}".format(Lambda.shape))
-        print("V.shape={}".format(V.shape))
-        print("Vinv.shape={}".format(Vinv.shape))
 
         ssm_init_fn = init_S5SSM(H=args.d_model,
                                  P=ssm_size,
@@ -182,17 +177,10 @@ def train(args):
     if 'pretrain' in args.comments:
         print("[*] Pretraining")
         from flax import linen as nn
-        import jax
         import json
 
         params = state.params
-        keys = jax.tree_util.tree_leaves_with_path(params)
-        keys = [k[:-1] for k in keys]
-        print(keys)
-
-        time_steps = 100
-
-        ptr_params = {}
+        time_steps = 7
         for li in range(args.n_layers):
             VmappedSL = nn.vmap(
                 SequenceLayer,
@@ -211,9 +199,14 @@ def train(args):
                 bn_momentum=args.bn_momentum,
             )(training=True)
 
-            new_params, pretraining_loss = pretrain(model, args.jax_seed, batch_size=args.bsz,
-                                                    time_steps=time_steps, features=d_model, comments=args.comments)
-            results.update({f"pretraining_loss_layer_{li}": pretraining_loss})
+            new_params, pretraining_loss = pretrain(
+                model, args.jax_seed + li, batch_size=args.bsz, pretrain_steps=3000,
+                time_steps=time_steps, features=d_model, comments=args.comments, loss_threshold=0.1
+            )
+
+            results.update({f"pretraining_loss_layer_{li}": float(pretraining_loss)})
+            params['encoder'][f'layers_{li}'] = new_params
+        state = state.replace(params=params)
 
     # Training Loop over epochs
     best_loss, best_acc, best_epoch = 100000000, -100000000.0, 0  # This best loss is val_loss

@@ -42,12 +42,12 @@ if __name__ == "__main__":
                         help="dataset name")
 
     # Model Parameters
-    parser.add_argument("--n_layers", type=int, default=1,
+    parser.add_argument("--n_layers", type=int, default=2,
                         help="Number of layers in the network")
-    parser.add_argument("--d_model", type=int, default=256,
+    parser.add_argument("--d_model", type=int, default=128,
                         help="Number of features, i.e. H, "
                              "dimension of layer inputs/outputs")
-    parser.add_argument("--ssm_size_base", type=int, default=192,
+    parser.add_argument("--ssm_size_base", type=int, default=96,
                         help="SSM Latent size, i.e. P")
     parser.add_argument("--blocks", type=int, default=12,
                         help="How many blocks, J, to initialize with")
@@ -82,7 +82,7 @@ if __name__ == "__main__":
                         help="True: use batchnorm, False: use layernorm")
     parser.add_argument("--bn_momentum", type=float, default=0.95,
                         help="batchnorm momentum")
-    parser.add_argument("--bsz", type=int, default=8, help="batch size")
+    parser.add_argument("--bsz", type=int, default=4, help="batch size")
     parser.add_argument("--epochs", type=int, default=2, help="max number of epochs")
     parser.add_argument("--steps_per_epoch", type=int, default=2,
                         help="max number steps per epoch")
