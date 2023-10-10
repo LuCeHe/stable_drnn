@@ -146,8 +146,15 @@ def pretrain(
             pbar.update(1)
 
             if 'changeopt' in ptcomments and step % 500 == 0:
-                lr = ptlr * .1
+                lr = lr * .1
                 tx2 = optax.sgd(learning_rate=lr)
+                tx2 = optax.chain(
+                    tx2,
+                    optax.zero_nans(),
+                    optax.clip_by_global_norm(1.0),
+                )
+
+
                 opt_state = tx2.init(state.params)
                 state = state.replace(tx=tx2)
                 state = state.replace(opt_state=opt_state)
