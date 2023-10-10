@@ -143,7 +143,7 @@ def pretrain(
 
             if 'changeopt' in ptcomments and step == 10:
                 state = state.replace(tx=tx2)
-                opt_state = tx.init(state.params)
+                opt_state = tx2.init(state.params)
                 state = state.replace(opt_state=opt_state)
 
                 print('Changing optimizer')
