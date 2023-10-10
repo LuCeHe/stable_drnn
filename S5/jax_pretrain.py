@@ -145,7 +145,7 @@ def pretrain(
             pbar.set_description(f"Pre-training Loss: {loss:.4f}", refresh=True)
             pbar.update(1)
 
-            if 'changeopt' in ptcomments and step % 500:
+            if 'changeopt' in ptcomments and step % 500 == 0:
                 lr = ptlr * .1
                 tx2 = optax.sgd(learning_rate=lr)
                 opt_state = tx2.init(state.params)
