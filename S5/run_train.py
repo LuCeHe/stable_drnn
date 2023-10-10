@@ -44,10 +44,10 @@ if __name__ == "__main__":
     # Model Parameters
     parser.add_argument("--n_layers", type=int, default=2,
                         help="Number of layers in the network")
-    parser.add_argument("--d_model", type=int, default=128,
+    parser.add_argument("--d_model", type=int, default=128 * 2,
                         help="Number of features, i.e. H, "
                              "dimension of layer inputs/outputs")
-    parser.add_argument("--ssm_size_base", type=int, default=96,
+    parser.add_argument("--ssm_size_base", type=int, default=96 * 2,
                         help="SSM Latent size, i.e. P")
     parser.add_argument("--blocks", type=int, default=12,
                         help="How many blocks, J, to initialize with")
@@ -126,11 +126,10 @@ if __name__ == "__main__":
     parser.add_argument("--r_min", type=float, default=0.5, help="r_min for LRU")
     parser.add_argument("--r_max", type=float, default=0.99, help="r_max for LRU")
 
-
     # Pretraining Parameters
-    parser.add_argument("--ptlr", type=float, default=0.05,
-                        help="Learning rate for pretraining")
+    parser.add_argument("--ptlr", type=float, default=0.05, help="Learning rate for pretraining")
     parser.add_argument("--ptbsz", type=int, default=8, help="Pretraining batch size")
+    parser.add_argument("--ptsteps", type=int, default=3000, help="Pretraining steps")
     args = parser.parse_args()
 
     args.time_start = time_start
