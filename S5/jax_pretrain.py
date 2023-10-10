@@ -77,7 +77,7 @@ def train_step(state, inputs, do_rng, tnt, tnl, wshuff_rng):
 
 
 def pretrain(
-        model, jax_seed, batch_size, time_steps, features, comments='', pretrain_steps=3000, plot=False,
+        model, jax_seed, batch_size, time_steps, features, comments='', ptcomments='', pretrain_steps=3000, plot=False,
              loss_threshold=1e-3, ptlr=0.05, optimizer='adam'):
     target_norm = str2val(comments, 'targetnorm', float, default=1)
     tnt, tnl = target_norm, target_norm
@@ -100,6 +100,24 @@ def pretrain(
         tx = optax.rmsprop(learning_rate=ptlr)
     elif optimizer == 'sgd':
         tx = optax.sgd(learning_rate=ptlr)
+    elif optimizer == 'nsgd':
+        tx = optax.noisy_sgd(learning_rate=ptlr)
+
+    else:
+        tx = optax.sgd(learning_rate=ptlr)
+
+    if 'doublegd' in ptcomments:
+        tx = optax.chain(
+            tx,
+            optax.adabelief(learning_rate=ptlr),
+        )
+
+    if 'nonan' in ptcomments:
+        tx = optax.chain(
+            tx,
+            optax.zero_nans(),
+        )
+
 
     aux_dict = {}
     TS = TrainState
