@@ -55,6 +55,7 @@ def get_radiuses(model, aux_dict):
         # compute the radiuses in the time and layer dimensions
         time_steps = Jb_back.shape[1]
         radiuses_t, radiuses_l = jax.vmap(lambda i: compute_radius(i, Jb_back, Jb))(jnp.arange(time_steps - 1))
+
         return radiuses_t, radiuses_l
 
     return _get_radiuses
@@ -68,7 +69,12 @@ def train_step(state, inputs, do_rng, tnt, tnl, wshuff_rng):
         #     for sk, sv in v.items():
         #         params[k][sk] = random.shuffle(wshuff_rng, sv)
         rt, rl = state.apply_fn(params, state, do_rng, inputs)
-        loss = jnp.mean((rt - tnt) ** 2) + jnp.mean((rl - tnl) ** 2)
+        print(rt.shape)
+        rtm = jnp.mean(rt, axis=(1,))
+        rlm = jnp.mean(rl, axis=(1,))
+
+        # loss = jnp.mean((rt - tnt) ** 2) + jnp.mean((rl - tnl) ** 2)
+        loss = jnp.mean((rtm - tnt) ** 2) + jnp.mean((rlm - tnl) ** 2)
         return loss
 
     loss, grads = jax.value_and_grad(loss_fn)(state.params)
@@ -114,7 +120,7 @@ def pretrain(
         )
 
     if 'changeopt' in ptcomments:
-        tx2 = optax.sgd(learning_rate=ptlr/5)
+        tx2 = optax.sgd(learning_rate=ptlr*2)
 
     aux_dict = {}
     TS = TrainState
@@ -144,8 +150,8 @@ def pretrain(
             pbar.update(1)
 
             if 'changeopt' in ptcomments and step == 1000:
-                state = state.replace(tx=tx2)
                 opt_state = tx2.init(state.params)
+                state = state.replace(tx=tx2)
                 state = state.replace(opt_state=opt_state)
 
                 print('Changing optimizer')
