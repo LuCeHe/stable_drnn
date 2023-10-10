@@ -132,7 +132,7 @@ def pretrain(
         tx=tx, **aux_dict
     )
 
-    lr = ptlr
+    lr = 0.05
     shuffling = True
     with tqdm(total=pretrain_steps) as pbar:
         for step in range(1, pretrain_steps+1):
@@ -147,8 +147,8 @@ def pretrain(
             pbar.update(1)
 
             if 'changeopt' in ptcomments and step % 500 == 0:
-                lr = lr * .1
-                tx2 = optax.sgd(learning_rate=lr)
+                lr = lr * .3
+                tx2 = optax.adabelief(learning_rate=lr)
                 tx2 = optax.chain(
                     tx2,
                     optax.zero_nans(),
