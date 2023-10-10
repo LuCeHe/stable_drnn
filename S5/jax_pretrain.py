@@ -115,8 +115,6 @@ def pretrain(
             optax.clip_by_global_norm(1.0),
         )
 
-    if 'changeopt' in ptcomments:
-        tx2 = optax.sgd(learning_rate=ptlr * .1)
 
     aux_dict = {}
     TS = TrainState
@@ -134,6 +132,7 @@ def pretrain(
         tx=tx, **aux_dict
     )
 
+    lr = ptlr
     with tqdm(total=pretrain_steps) as pbar:
         for step in range(pretrain_steps):
             # inputs as random samples of shape (batch_size, time_steps, features)
@@ -146,7 +145,9 @@ def pretrain(
             pbar.set_description(f"Pre-training Loss: {loss:.4f}", refresh=True)
             pbar.update(1)
 
-            if 'changeopt' in ptcomments and step == 1000:
+            if 'changeopt' in ptcomments and step % 500:
+                lr = ptlr * .1
+                tx2 = optax.sgd(learning_rate=lr)
                 opt_state = tx2.init(state.params)
                 state = state.replace(tx=tx2)
                 state = state.replace(opt_state=opt_state)
