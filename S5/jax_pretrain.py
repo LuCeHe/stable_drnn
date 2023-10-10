@@ -64,9 +64,9 @@ def get_radiuses(model, aux_dict):
 def train_step(state, inputs, do_rng, tnt, tnl, wshuff_rng):
     def loss_fn(params):
         # shuffling weights during pretraining
-        # for k, v in params.items():
-        #     for sk, sv in v.items():
-        #         params[k][sk] = random.shuffle(wshuff_rng, sv)
+        for k, v in params.items():
+            for sk, sv in v.items():
+                params[k][sk] = random.shuffle(wshuff_rng, sv)
         rt, rl = state.apply_fn(params, state, do_rng, inputs)
         loss = jnp.mean((rt - tnt) ** 2) + jnp.mean((rl - tnl) ** 2)
         return loss
