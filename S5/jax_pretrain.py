@@ -158,7 +158,7 @@ def pretrain(
 
                 print('Changing optimizer')
 
-            if 'wshuffle' in ptcomments and step % 200 == 0:
+            if 'wshuffle' in ptcomments and step % 100 == 0:
                 wshuff_rng, new_wshuff_rng = random.split(wshuff_rng)
                 for k, v in state.params.items():
                     for sk, sv in v.items():
