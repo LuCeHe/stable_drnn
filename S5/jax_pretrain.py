@@ -114,7 +114,7 @@ def pretrain(
         )
 
     if 'changeopt' in ptcomments:
-        tx2 = optax.sgd(learning_rate=ptlr/100)
+        tx2 = optax.sgd(learning_rate=ptlr/5)
 
     aux_dict = {}
     TS = TrainState
@@ -147,6 +147,15 @@ def pretrain(
                 state = state.replace(opt_state=opt_state)
 
                 print('Changing optimizer')
+
+            if 'wshuffle' in ptcomments and step % 200 == 0:
+                wshuff_rng, new_wshuff_rng = random.split(wshuff_rng)
+                for k, v in state.params.items():
+                    for sk, sv in v.items():
+                        state.params[k][sk] = random.shuffle(new_wshuff_rng, sv)
+                state = state.replace(params=state.params)
+
+                print('Shuffling weights')
 
             if loss < loss_threshold:
                 print('Early stopping on loss < 1e-3: ', loss)
