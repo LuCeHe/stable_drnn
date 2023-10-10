@@ -118,6 +118,7 @@ def pretrain(
         tx = optax.chain(
             tx,
             optax.zero_nans(),
+            optax.clip_by_global_norm(1.0),
         )
 
     if 'changeopt' in ptcomments:
