@@ -114,7 +114,7 @@ def pretrain(
         )
 
     if 'changeopt' in ptcomments:
-        tx2 = optax.adabelief(learning_rate=ptlr/10)
+        tx2 = optax.sgd(learning_rate=ptlr/10)
 
     aux_dict = {}
     TS = TrainState
