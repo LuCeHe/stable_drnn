@@ -69,12 +69,13 @@ def train_step(state, inputs, do_rng, tnt, tnl, wshuff_rng):
         #     for sk, sv in v.items():
         #         params[k][sk] = random.shuffle(wshuff_rng, sv)
         rt, rl = state.apply_fn(params, state, do_rng, inputs)
-        print(rt.shape)
+
         rtm = jnp.mean(rt, axis=(1,))
         rlm = jnp.mean(rl, axis=(1,))
 
         # loss = jnp.mean((rt - tnt) ** 2) + jnp.mean((rl - tnl) ** 2)
-        loss = jnp.mean((rtm - tnt) ** 2) + jnp.mean((rlm - tnl) ** 2)
+        # loss = jnp.mean((rtm - tnt) ** 2) + jnp.mean((rlm - tnl) ** 2)
+        loss = jnp.mean(jnp.abs(rtm - tnt)) + jnp.mean(jnp.abs(rlm - tnl))
         return loss
 
     loss, grads = jax.value_and_grad(loss_fn)(state.params)
@@ -120,7 +121,7 @@ def pretrain(
         )
 
     if 'changeopt' in ptcomments:
-        tx2 = optax.sgd(learning_rate=ptlr*2)
+        tx2 = optax.sgd(learning_rate=ptlr*1.2)
 
     aux_dict = {}
     TS = TrainState
