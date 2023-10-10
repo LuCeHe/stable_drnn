@@ -76,7 +76,9 @@ def train_step(state, inputs, do_rng, tnt, tnl, wshuff_rng):
     return new_state, loss
 
 
-def pretrain(model, jax_seed, batch_size, time_steps, features, comments='', pretrain_steps=3000, plot=False, loss_threshold=1e-3):
+def pretrain(
+        model, jax_seed, batch_size, time_steps, features, comments='', pretrain_steps=3000, plot=False,
+             loss_threshold=1e-3, ptlr=0.05):
     target_norm = str2val(comments, 'targetnorm', float, default=1)
     tnt, tnl = target_norm, target_norm
     if 'unbalanced' in comments:
@@ -90,7 +92,7 @@ def pretrain(model, jax_seed, batch_size, time_steps, features, comments='', pre
 
     variables = model.init({"params": init_rng, "dropout": dropout_rng}, dummy_input)
 
-    tx = optax.adabelief(learning_rate=0.05)
+    tx = optax.adabelief(learning_rate=ptlr)
 
     aux_dict = {}
     TS = TrainState

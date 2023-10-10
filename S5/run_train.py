@@ -123,9 +123,14 @@ if __name__ == "__main__":
     # LRU Parameters
     parser.add_argument("--lru", type=str2bool, default=False,
                         help="True: use LRU, False: don't use LRU")
-    parser.add_argument("--r_min", type=float, default=0.5, help="|lambda|_min for LRU")
-    parser.add_argument("--r_max", type=float, default=0.99, help="|lambda|_max for LRU")
+    parser.add_argument("--r_min", type=float, default=0.5, help="r_min for LRU")
+    parser.add_argument("--r_max", type=float, default=0.99, help="r_max for LRU")
 
+
+    # Pretraining Parameters
+    parser.add_argument("--ptlr", type=float, default=0.05,
+                        help="Learning rate for pretraining")
+    parser.add_argument("--ptbsz", type=int, default=8, help="Pretraining batch size")
     args = parser.parse_args()
 
     args.time_start = time_start
