@@ -64,17 +64,11 @@ def get_radiuses(model, aux_dict):
 @jax.jit
 def train_step(state, inputs, do_rng, tnt, tnl, wshuff_rng):
     def loss_fn(params):
-        # shuffling weights during pretraining
-        # for k, v in params.items():
-        #     for sk, sv in v.items():
-        #         params[k][sk] = random.shuffle(wshuff_rng, sv)
         rt, rl = state.apply_fn(params, state, do_rng, inputs)
 
         rtm = jnp.mean(rt, axis=(1,))
         rlm = jnp.mean(rl, axis=(1,))
 
-        # loss = jnp.mean((rt - tnt) ** 2) + jnp.mean((rl - tnl) ** 2)
-        # loss = jnp.mean((rtm - tnt) ** 2) + jnp.mean((rlm - tnl) ** 2)
         loss = jnp.mean(jnp.abs(rtm - tnt)) + jnp.mean(jnp.abs(rlm - tnl))
         return loss
 
@@ -85,7 +79,7 @@ def train_step(state, inputs, do_rng, tnt, tnl, wshuff_rng):
 
 def pretrain(
         model, jax_seed, batch_size, time_steps, features, comments='', ptcomments='', pretrain_steps=3000, plot=False,
-             loss_threshold=1e-3, ptlr=0.05, optimizer='adam'):
+        loss_threshold=1e-3, ptlr=0.05, optimizer='adam'):
     target_norm = str2val(comments, 'targetnorm', float, default=1)
     tnt, tnl = target_norm, target_norm
     if 'unbalanced' in comments:
@@ -122,7 +116,7 @@ def pretrain(
         )
 
     if 'changeopt' in ptcomments:
-        tx2 = optax.sgd(learning_rate=ptlr*1.2)
+        tx2 = optax.sgd(learning_rate=ptlr * .1)
 
     aux_dict = {}
     TS = TrainState
@@ -145,7 +139,8 @@ def pretrain(
             # inputs as random samples of shape (batch_size, time_steps, features)
             # inputs = random.normal(pretrain_rng, (batch_size, time_steps, features))
             # uniform samples
-            inputs = random.uniform(pretrain_rng, (batch_size, time_steps, features), minval=-jnp.sqrt(3), maxval=jnp.sqrt(3))
+            inputs = random.uniform(pretrain_rng, (batch_size, time_steps, features), minval=-jnp.sqrt(3),
+                                    maxval=jnp.sqrt(3))
             state, loss = train_step(state, inputs, dropout_rng, tnt, tnl, wshuff_rng)
 
             pbar.set_description(f"Pre-training Loss: {loss:.4f}", refresh=True)
@@ -158,7 +153,7 @@ def pretrain(
 
                 print('Changing optimizer')
 
-            if 'wshuffle' in ptcomments and step % 100 == 0:
+            if 'wshuffle' in ptcomments and step % 50 == 0:
                 wshuff_rng, new_wshuff_rng = random.split(wshuff_rng)
                 for k, v in state.params.items():
                     for sk, sv in v.items():
