@@ -201,7 +201,8 @@ def train(args):
 
             new_params, pretraining_loss = pretrain(
                 model, args.jax_seed + li, batch_size=args.ptbsz, pretrain_steps=args.ptsteps,
-                time_steps=time_steps, features=d_model, comments=args.comments, loss_threshold=0.1, ptlr=args.ptlr
+                time_steps=time_steps, features=d_model, comments=args.comments, loss_threshold=0.1, ptlr=args.ptlr,
+                optimizer=args.ptopt
             )
 
             results.update({f"pretraining_loss_layer_{li}": float(pretraining_loss)})
