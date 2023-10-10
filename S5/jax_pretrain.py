@@ -135,7 +135,9 @@ def pretrain(
     with tqdm(total=pretrain_steps) as pbar:
         for step in range(pretrain_steps):
             # inputs as random samples of shape (batch_size, time_steps, features)
-            inputs = random.normal(pretrain_rng, (batch_size, time_steps, features))
+            # inputs = random.normal(pretrain_rng, (batch_size, time_steps, features))
+            # uniform samples
+            inputs = random.uniform(pretrain_rng, (batch_size, time_steps, features), minval=-jnp.sqrt(3), maxval=jnp.sqrt(3))
             state, loss = train_step(state, inputs, dropout_rng, tnt, tnl, wshuff_rng)
 
             pbar.set_description(f"Pre-training Loss: {loss:.4f}", refresh=True)
