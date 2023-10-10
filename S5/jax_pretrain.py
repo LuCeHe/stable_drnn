@@ -135,7 +135,7 @@ def pretrain(
     lr = ptlr
     shuffling = True
     with tqdm(total=pretrain_steps) as pbar:
-        for step in range(pretrain_steps):
+        for step in range(1, pretrain_steps+1):
             # inputs as random samples of shape (batch_size, time_steps, features)
             # inputs = random.normal(pretrain_rng, (batch_size, time_steps, features))
             # uniform samples
@@ -154,7 +154,6 @@ def pretrain(
                     optax.zero_nans(),
                     optax.clip_by_global_norm(1.0),
                 )
-
 
                 opt_state = tx2.init(state.params)
                 state = state.replace(tx=tx2)
