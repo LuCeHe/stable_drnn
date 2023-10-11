@@ -149,10 +149,11 @@ def pretrain(
             pbar.set_description(f"Pre-training Loss: {loss:.4f}", refresh=True)
             pbar.update(1)
 
-            if 'changeopt' in ptcomments and step % 500 == 0:
+            if 'changeopt' in ptcomments and step % 300 == 0:
                 lr = lr * .3
-                lr = 0.3
-                tx2 = optax.dpsgd(learning_rate=lr, noise_multiplier=1.1, l2_norm_clip=1.0, noise_seed=0)
+                lr = 1
+                tx2 = optax.sgd(learning_rate=lr, momentum=0.7)
+                # tx2 = optax.dpsgd(learning_rate=lr, noise_multiplier=1.1, l2_norm_clip=1.0, noise_seed=0)
                 tx2 = optax.chain(
                     tx2,
                     optax.zero_nans(),
