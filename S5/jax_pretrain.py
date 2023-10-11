@@ -70,8 +70,8 @@ def train_step(state, inputs, do_rng, tnt, tnl, wshuff_rng):
         rlm = jnp.mean(rl, axis=(1,))
 
         # loss = jnp.mean(jnp.abs(rtm - tnt)) + jnp.mean(jnp.abs(rlm - tnl))
-        # loss = jnp.mean((rtm - tnt)**2) + jnp.mean((rlm - tnl)**2)
-        loss = jnp.sqrt(jnp.mean((rtm - tnt)**2) + jnp.mean((rlm - tnl)**2))
+        loss = jnp.mean((rtm - tnt)**2) + jnp.mean((rlm - tnl)**2)
+        # loss = jnp.sqrt(jnp.mean((rtm - tnt)**2) + jnp.mean((rlm - tnl)**2))
         return loss
 
     loss, grads = jax.value_and_grad(loss_fn)(state.params)
@@ -163,7 +163,7 @@ def pretrain(
                 state = state.replace(tx=tx2)
                 state = state.replace(opt_state=opt_state)
 
-                shuffling = True
+                shuffling = False
                 shuff_period = 300
                 print('Changing optimizer')
 
