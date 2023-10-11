@@ -175,7 +175,7 @@ def pretrain(
                     tx2,
                     optax.zero_nans(),
                     optax.clip_by_global_norm(1.0),
-                    optax.ema(0.9),
+                    optax.ema(0.8),
                 )
 
                 opt_state = tx2.init(state.params)
