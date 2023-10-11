@@ -159,7 +159,7 @@ def pretrain(
                     print('Adam')
                     lr = 0.01
                     # tx2 = optax.sgd(learning_rate=lr, momentum=0.7)
-                    tx2 = optax.adamw(learning_rate=lr)
+                    tx2 = optax.adamw(learning_rate=lr, weight_decay=0.01)
                     # tx2 = optax.optimistic_gradient_descent(learning_rate=lr)
                     shuff_period = 400
                 else:
