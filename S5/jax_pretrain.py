@@ -148,7 +148,7 @@ def pretrain(
 
             if 'changeopt' in ptcomments and step % 500 == 0:
                 lr = lr * .3
-                lr = 0.03
+                lr = 0.1
                 tx2 = optax.fromage(learning_rate=lr)
                 tx2 = optax.chain(
                     tx2,
@@ -160,7 +160,7 @@ def pretrain(
                 state = state.replace(tx=tx2)
                 state = state.replace(opt_state=opt_state)
 
-                # shuffling = False
+                shuffling = False
                 print('Changing optimizer')
 
             if 'wshuffle' in ptcomments and step % 50 == 0 and shuffling:
