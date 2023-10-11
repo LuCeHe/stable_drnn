@@ -152,7 +152,7 @@ def pretrain(
             if 'changeopt' in ptcomments and step % 500 == 0:
                 lr = lr * .3
                 lr = 0.3
-                tx2 = optax.dpsgd(learning_rate=lr)
+                tx2 = optax.dpsgd(learning_rate=lr, noise_multiplier=1.1, l2_norm_clip=1.0)
                 tx2 = optax.chain(
                     tx2,
                     optax.zero_nans(),
