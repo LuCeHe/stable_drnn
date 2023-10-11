@@ -148,8 +148,8 @@ def pretrain(
 
             if 'changeopt' in ptcomments and step % 500 == 0:
                 lr = lr * .3
-                lr = 0.1
-                tx2 = optax.fromage(learning_rate=lr)
+                lr = 0.02
+                tx2 = optax.optimistic_gradient_descent(learning_rate=lr)
                 tx2 = optax.chain(
                     tx2,
                     optax.zero_nans(),
