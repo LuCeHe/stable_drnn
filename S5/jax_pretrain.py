@@ -119,7 +119,7 @@ def pretrain(
             optax.zero_nans(),
             optax.clip_by_global_norm(1.0),
             optax.ema(0.8),
-            optax.add_decayed_weights(weight_decay=0.03),
+            optax.add_decayed_weights(weight_decay=0.1),
         )
 
     aux_dict = {}
