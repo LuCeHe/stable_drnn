@@ -154,7 +154,7 @@ def pretrain(
             pbar.set_description(f"Pre-training Loss: {loss:.4f}", refresh=True)
             pbar.update(1)
 
-            if 'changeopt' in ptcomments and step % 500 == 0:
+            if 'changeopt' in ptcomments and step % 300 == 0:
                 opt_changes += 1
                 lr = lr * .3
                 if opt_changes % 2 == 1:
@@ -164,7 +164,7 @@ def pretrain(
                     # tx2 = optax.adamw(learning_rate=lr, weight_decay=0.01)
                     tx2 = optax.adabelief(learning_rate=lr)
                     # tx2 = optax.optimistic_gradient_descent(learning_rate=lr)
-                    shuff_period = 500
+                    shuff_period = 300
                 else:
                     print('SGD')
                     lr = 1
@@ -176,6 +176,7 @@ def pretrain(
                     optax.zero_nans(),
                     optax.clip_by_global_norm(1.0),
                     optax.ema(0.8),
+                    optax.add_decayed_weights(weight_decay=0.01),
                 )
 
                 opt_state = tx2.init(state.params)
