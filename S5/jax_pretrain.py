@@ -69,8 +69,8 @@ def train_step(state, inputs, do_rng, tnt, tnl, wshuff_rng):
         rtm = jnp.mean(rt, axis=(1,))
         rlm = jnp.mean(rl, axis=(1,))
 
-        # loss = jnp.mean(jnp.abs(rtm - tnt)) + jnp.mean(jnp.abs(rlm - tnl))
-        loss = jnp.mean((rtm - tnt)**2) + jnp.mean((rlm - tnl)**2)
+        loss = jnp.mean(jnp.abs(rtm - tnt)) + jnp.mean(jnp.abs(rlm - tnl))
+        # loss = jnp.mean((rtm - tnt)**2) + jnp.mean((rlm - tnl)**2)
         # loss = jnp.sqrt(jnp.mean((rtm - tnt)**2) + jnp.mean((rlm - tnl)**2))
         return loss
 
@@ -102,7 +102,7 @@ def pretrain(
     elif optimizer == 'rmsprop':
         tx = optax.rmsprop(learning_rate=ptlr)
     elif optimizer == 'sgd':
-        tx = optax.sgd(learning_rate=ptlr, momentum=0.7)
+        tx = optax.sgd(learning_rate=ptlr, momentum=0.3)
     elif optimizer == 'nsgd':
         tx = optax.noisy_sgd(learning_rate=ptlr)
     elif optimizer == 'lion':
@@ -151,7 +151,7 @@ def pretrain(
 
             if 'changeopt' in ptcomments and step % 300 == 0:
                 lr = lr * .3
-                lr = 1
+                lr = 0.3
                 # tx2 = optax.sgd(learning_rate=lr, momentum=0.7)
                 tx2 = optax.adamw(learning_rate=lr)
                 tx2 = optax.chain(
