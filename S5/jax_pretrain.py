@@ -118,6 +118,7 @@ def pretrain(
             tx,
             optax.zero_nans(),
             optax.clip_by_global_norm(1.0),
+            optax.ema(0.8),
         )
 
     aux_dict = {}
@@ -159,7 +160,7 @@ def pretrain(
                     print('Adam')
                     lr = 0.01
                     # tx2 = optax.sgd(learning_rate=lr, momentum=0.7)
-                    tx2 = optax.adamw(learning_rate=lr, weight_decay=0.1)
+                    tx2 = optax.adamw(learning_rate=lr, weight_decay=0.01)
                     # tx2 = optax.adabelief(learning_rate=lr, weight_decay=0.1)
                     # tx2 = optax.optimistic_gradient_descent(learning_rate=lr)
                     shuff_period = 500
