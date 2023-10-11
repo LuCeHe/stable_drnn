@@ -180,7 +180,7 @@ def train(args):
         import json
 
         params = state.params
-        time_steps = 7
+        time_steps = 4
         for li in range(args.n_layers):
             VmappedSL = nn.vmap(
                 SequenceLayer,
