@@ -2,9 +2,9 @@ import argparse, os, time, string, random, shutil, json, socket, re
 
 from alif_sg.S5.s5.dataloaders.base import default_cache_path
 from pyaromatics.stay_organized.utils import NumpyEncoder, str2val
-from s5.utils.util import str2bool
-from s5.train import train
-from s5.dataloading import Datasets
+from alif_sg.S5.s5.utils.util import str2bool
+from alif_sg.S5.s5.train import train
+from alif_sg.S5.s5.dataloading import Datasets
 
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
