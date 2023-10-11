@@ -151,7 +151,7 @@ def pretrain(
 
             if 'changeopt' in ptcomments and step % 400 == 0:
                 lr = lr * .3
-                lr = 0.3
+                lr = 0.03
                 # tx2 = optax.sgd(learning_rate=lr, momentum=0.7)
                 tx2 = optax.adamw(learning_rate=lr)
                 # tx2 = optax.chain(
