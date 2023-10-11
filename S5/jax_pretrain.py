@@ -141,7 +141,7 @@ def pretrain(
     lr = 0.1
     shuffling = True
     shuff_period = 50
-    optch_period = 300
+    optch_period = 400
     opt_changes = 0
     with tqdm(total=pretrain_steps) as pbar:
         for step in range(1, pretrain_steps + 1):
@@ -157,14 +157,7 @@ def pretrain(
 
             if 'changeopt' in ptcomments and step % optch_period == 0:
                 opt_changes += 1
-                lr = lr * .3
                 if opt_changes % 2 == 1:
-                    # print('Adam')
-                    # lr = 0.07
-                    # tx2 = optax.adamw(learning_rate=lr)
-                    # shuff_period = 200
-                    # optch_period = 500
-                    # shuffling = False
                     lr = .07
                     tx2 = optax.sgd(learning_rate=lr, momentum=0.7)
                     shuff_period = 100
