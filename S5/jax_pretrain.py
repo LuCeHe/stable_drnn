@@ -117,7 +117,6 @@ def pretrain(
             optax.clip_by_global_norm(1.0),
         )
 
-
     aux_dict = {}
     TS = TrainState
     if 'batch_stats' in variables.keys():
@@ -137,8 +136,9 @@ def pretrain(
     lr = 0.1
     shuffling = True
     shuff_period = 50
+    opt_changes = 0
     with tqdm(total=pretrain_steps) as pbar:
-        for step in range(1, pretrain_steps+1):
+        for step in range(1, pretrain_steps + 1):
             # inputs as random samples of shape (batch_size, time_steps, features)
             # inputs = random.normal(pretrain_rng, (batch_size, time_steps, features))
             # uniform samples
@@ -150,11 +150,18 @@ def pretrain(
             pbar.update(1)
 
             if 'changeopt' in ptcomments and step % 500 == 0:
+                opt_changes += 1
                 lr = lr * .3
-                lr = 0.07
-                # tx2 = optax.sgd(learning_rate=lr, momentum=0.7)
-                tx2 = optax.adamw(learning_rate=lr)
-                # tx2 = optax.optimistic_gradient_descent(learning_rate=lr)
+                if opt_changes % 2 == 1:
+                    print('Adam')
+                    lr = 0.01
+                    # tx2 = optax.sgd(learning_rate=lr, momentum=0.7)
+                    tx2 = optax.adamw(learning_rate=lr)
+                    # tx2 = optax.optimistic_gradient_descent(learning_rate=lr)
+                else:
+                    print('SGD')
+                    lr = 0.1
+                    tx2 = optax.sgd(learning_rate=lr, momentum=0.7)
 
                 tx2 = optax.chain(
                     tx2,
@@ -167,7 +174,7 @@ def pretrain(
                 state = state.replace(opt_state=opt_state)
 
                 # shuffling = False
-                shuff_period = 200
+                shuff_period = 400
                 print('Changing optimizer')
 
             if 'wshuffle' in ptcomments and step % shuff_period == 0 and shuffling:
