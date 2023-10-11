@@ -166,24 +166,24 @@ def pretrain(
                     # optch_period = 500
                     # shuffling = False
                     lr = .07
-                    tx2 = optax.sgd(learning_rate=lr, momentum=0.3)
+                    tx2 = optax.sgd(learning_rate=lr, momentum=0.7)
                     shuff_period = 100
                     optch_period = 200
                     shuffling = False
                     print(f'SGD lr={lr}')
                 else:
                     lr = .3
-                    tx2 = optax.sgd(learning_rate=lr, momentum=0.3)
+                    tx2 = optax.sgd(learning_rate=lr, momentum=0.7)
                     shuff_period = 100
                     optch_period = 200
-                    shuffling = True
+                    shuffling = False
                     print(f'SGD lr={lr}')
 
                 tx2 = optax.chain(
                     tx2,
                     optax.zero_nans(),
                     optax.clip_by_global_norm(1.0),
-                    # optax.ema(0.3),
+                    optax.ema(0.3),
                 )
 
                 opt_state = tx2.init(state.params)
