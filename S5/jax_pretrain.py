@@ -83,10 +83,13 @@ def pretrain(
         model, jax_seed, batch_size, time_steps, features, comments='', ptcomments='', pretrain_steps=3000, plot=False,
         loss_threshold=1e-3, ptlr=0.05, optimizer='adam'):
     target_norm = str2val(comments, 'targetnorm', float, default=1)
+
     tnt, tnl = target_norm, target_norm
     if 'unbalanced' in comments:
         tnl = 0.1
         tnt = .9
+
+    print(f'Targets: tl={tnl}, tt={tnt}')
 
     key = random.PRNGKey(jax_seed)
     init_rng, pretrain_rng, wshuff_rng = random.split(key, num=3)
@@ -158,10 +161,12 @@ def pretrain(
                     # tx2 = optax.sgd(learning_rate=lr, momentum=0.7)
                     tx2 = optax.adamw(learning_rate=lr)
                     # tx2 = optax.optimistic_gradient_descent(learning_rate=lr)
+                    shuff_period = 400
                 else:
                     print('SGD')
-                    lr = 0.1
+                    lr = 1
                     tx2 = optax.sgd(learning_rate=lr, momentum=0.7)
+                    shuff_period = 100
 
                 tx2 = optax.chain(
                     tx2,
@@ -174,7 +179,6 @@ def pretrain(
                 state = state.replace(opt_state=opt_state)
 
                 # shuffling = False
-                shuff_period = 400
                 print('Changing optimizer')
 
             if 'wshuffle' in ptcomments and step % shuff_period == 0 and shuffling:
