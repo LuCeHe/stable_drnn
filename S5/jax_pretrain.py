@@ -81,7 +81,7 @@ def train_step(state, inputs, do_rng, tnt, tnl, wshuff_rng):
 
 def pretrain(
         model, jax_seed, batch_size, time_steps, features, comments='', ptcomments='', pretrain_steps=3000, plot=False,
-        loss_threshold=1e-3, ptlr=0.05, optimizer='adam'):
+        loss_threshold=3.7, ptlr=0.05, optimizer='adam'):
     target_norm = str2val(comments, 'targetnorm', float, default=1)
 
     tnt, tnl = target_norm, target_norm
@@ -169,14 +169,14 @@ def pretrain(
                     tx2 = optax.sgd(learning_rate=lr, momentum=0.7)
                     shuff_period = 100
                     optch_period = 300
-                    shuffling = False
+                    shuffling = float(loss) > 4
                     print(f'SGD lr={lr}')
                 else:
-                    lr = .3
+                    lr = .01
                     tx2 = optax.adamw(learning_rate=lr)
                     shuff_period = 100
                     optch_period = 200
-                    shuffling = False
+                    shuffling = float(loss) > 4
                     print(f'AdamW lr={lr}')
 
                 tx2 = optax.chain(
