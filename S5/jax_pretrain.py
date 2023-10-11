@@ -159,19 +159,25 @@ def pretrain(
                 opt_changes += 1
                 lr = lr * .3
                 if opt_changes % 2 == 1:
-                    print('Adam')
-                    lr = 0.07
-                    tx2 = optax.adamw(learning_rate=lr)
-                    shuff_period = 200
-                    optch_period = 500
-                    shuffling = False
-                else:
-                    print('SGD')
+                    # print('Adam')
+                    # lr = 0.07
+                    # tx2 = optax.adamw(learning_rate=lr)
+                    # shuff_period = 200
+                    # optch_period = 500
+                    # shuffling = False
                     lr = .07
                     tx2 = optax.sgd(learning_rate=lr, momentum=0.3)
                     shuff_period = 100
                     optch_period = 200
                     shuffling = False
+                    print(f'SGD lr={lr}')
+                else:
+                    lr = .3
+                    tx2 = optax.sgd(learning_rate=lr, momentum=0.3)
+                    shuff_period = 100
+                    optch_period = 200
+                    shuffling = False
+                    print(f'SGD lr={lr}')
 
                 tx2 = optax.chain(
                     tx2,
