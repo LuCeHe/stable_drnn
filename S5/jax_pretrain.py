@@ -149,23 +149,23 @@ def pretrain(
             pbar.set_description(f"Pre-training Loss: {loss:.4f}", refresh=True)
             pbar.update(1)
 
-            if 'changeopt' in ptcomments and step % 400 == 0:
+            if 'changeopt' in ptcomments and step % 500 == 0:
                 lr = lr * .3
-                lr = 0.03
+                lr = 0.07
                 # tx2 = optax.sgd(learning_rate=lr, momentum=0.7)
                 tx2 = optax.adamw(learning_rate=lr)
-                # tx2 = optax.chain(
-                #     tx2,
-                #     optax.zero_nans(),
-                #     optax.clip_by_global_norm(1.0),
-                # )
+                tx2 = optax.chain(
+                    tx2,
+                    optax.zero_nans(),
+                    optax.clip_by_global_norm(1.0),
+                )
 
                 opt_state = tx2.init(state.params)
                 state = state.replace(tx=tx2)
                 state = state.replace(opt_state=opt_state)
 
                 shuffling = False
-                shuff_period = 300
+                shuff_period = 200
                 print('Changing optimizer')
 
             if 'wshuffle' in ptcomments and step % shuff_period == 0 and shuffling:
