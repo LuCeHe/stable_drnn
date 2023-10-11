@@ -102,7 +102,7 @@ def pretrain(
     elif optimizer == 'rmsprop':
         tx = optax.rmsprop(learning_rate=ptlr)
     elif optimizer == 'sgd':
-        tx = optax.sgd(learning_rate=ptlr, momentum=0.5)
+        tx = optax.sgd(learning_rate=ptlr, momentum=0.7)
     elif optimizer == 'nsgd':
         tx = optax.noisy_sgd(learning_rate=ptlr)
     elif optimizer == 'lion':
@@ -152,8 +152,8 @@ def pretrain(
             if 'changeopt' in ptcomments and step % 300 == 0:
                 lr = lr * .3
                 lr = 1
-                tx2 = optax.sgd(learning_rate=lr, momentum=0.7)
-                # tx2 = optax.dpsgd(learning_rate=lr, noise_multiplier=1.1, l2_norm_clip=1.0, noise_seed=0)
+                # tx2 = optax.sgd(learning_rate=lr, momentum=0.7)
+                tx2 = optax.adamw(learning_rate=lr)
                 tx2 = optax.chain(
                     tx2,
                     optax.zero_nans(),
