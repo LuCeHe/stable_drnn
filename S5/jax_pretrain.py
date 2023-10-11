@@ -134,6 +134,7 @@ def pretrain(
 
     lr = 0.1
     shuffling = True
+    shuff_period = 50
     with tqdm(total=pretrain_steps) as pbar:
         for step in range(1, pretrain_steps+1):
             # inputs as random samples of shape (batch_size, time_steps, features)
@@ -161,9 +162,10 @@ def pretrain(
                 state = state.replace(opt_state=opt_state)
 
                 # shuffling = False
+                shuff_period = 100
                 print('Changing optimizer')
 
-            if 'wshuffle' in ptcomments and step % 50 == 0 and shuffling:
+            if 'wshuffle' in ptcomments and step % shuff_period == 0 and shuffling:
                 wshuff_rng, new_wshuff_rng = random.split(wshuff_rng)
                 for k, v in state.params.items():
                     for sk, sv in v.items():
