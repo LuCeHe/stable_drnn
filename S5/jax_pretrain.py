@@ -167,7 +167,7 @@ def pretrain(
                 else:
                     lr = .02
                     tx2 = optax.adamw(learning_rate=lr)
-                    shuff_period = 100
+                    shuff_period = 150
                     optch_period = 300
                     shuffling = float(loss) > 4
                     print(f'AdamW lr={lr}')
