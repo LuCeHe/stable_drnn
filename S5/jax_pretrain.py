@@ -153,7 +153,9 @@ def pretrain(
                 lr = lr * .3
                 lr = 0.07
                 # tx2 = optax.sgd(learning_rate=lr, momentum=0.7)
-                tx2 = optax.adamw(learning_rate=lr)
+                # tx2 = optax.adamw(learning_rate=lr)
+                tx2 = optax.optimistic_gradient_descent(learning_rate=lr)
+
                 tx2 = optax.chain(
                     tx2,
                     optax.zero_nans(),
@@ -164,7 +166,7 @@ def pretrain(
                 state = state.replace(tx=tx2)
                 state = state.replace(opt_state=opt_state)
 
-                shuffling = False
+                # shuffling = False
                 shuff_period = 200
                 print('Changing optimizer')
 
