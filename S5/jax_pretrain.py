@@ -165,7 +165,7 @@ def pretrain(
                     shuffling = False
                     print(f'SGD lr={lr}')
                 else:
-                    lr = .02
+                    lr = .1
                     tx2 = optax.adamw(learning_rate=lr)
                     shuff_period = 150
                     optch_period = 300
