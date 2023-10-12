@@ -11,7 +11,7 @@ from flax import linen as nn
 import optax
 
 from alif_sg.S5.s5.layers import SequenceLayer
-from alif_sg.minimal_LRU_modified.lru.model import LRU
+from alif_sg.S5.s5.lru_model import LRU
 from pyaromatics.stay_organized.utils import str2val
 
 
@@ -69,7 +69,7 @@ def train_step(state, inputs, do_rng, tnt, tnl, wshuff_rng):
         rlm = jnp.mean(rl, axis=(1,))
 
         loss = jnp.mean(jnp.abs(rtm - tnt)) + jnp.mean(jnp.abs(rlm - tnl))
-        return loss, [jnp.mean(rtm), jnp.mean(rlm)]
+        return loss, [jnp.mean(rtm), jnp.mean(rlm), jnp.std(rtm), jnp.std(rlm)]
 
     (loss, norms), grads = jax.value_and_grad(loss_fn, has_aux=True)(state.params)
     new_state = state.apply_gradients(grads=grads)
@@ -142,8 +142,11 @@ def pretrain(
     opt_changes = 0
 
     ptlosses = []
-    lnorms = []
     tnorms = []
+    lnorms = []
+    tnorms_std = []
+    lnorms_std = []
+
     with tqdm(total=pretrain_steps) as pbar:
         for step in range(1, pretrain_steps + 1):
             # inputs as random samples of shape (batch_size, time_steps, features)
@@ -152,10 +155,14 @@ def pretrain(
             inputs = random.uniform(pretrain_rng, (batch_size, time_steps, features), minval=-jnp.sqrt(3),
                                     maxval=jnp.sqrt(3))
             state, loss, norms = train_step(state, inputs, dropout_rng, tnt, tnl, wshuff_rng)
-            tnorms.append(norms[0])
-            lnorms.append(norms[1])
+            tnorms.append(float(norms[0]))
+            lnorms.append(float(norms[1]))
+            tnorms_std.append(float(norms[2]))
+            lnorms_std.append(float(norms[3]))
 
-            pbar.set_description(f"Pre-training Loss: {loss:.4f}, nt: {norms[0]:.2f}, nl: {norms[1]:.2f}", refresh=True)
+            pbar.set_description(
+                f"Pre-training Loss: {loss:.4f}, nt: {norms[0]:.2f}\u00B1{norms[2]:.2f}, nl: {norms[1]:.2f}\u00B1{norms[3]:.2f}",
+                refresh=True)
             pbar.update(1)
 
             if 'changeopt' in ptcomments and step % optch_period == 0:
@@ -234,7 +241,10 @@ def pretrain(
 
     new_params = state.params
 
-    results = {'pretraining_loss': ptlosses, 'tnorms': tnorms, 'lnorms': lnorms}
+    results = {
+        'pretraining_loss': ptlosses, 'tnorms': tnorms, 'lnorms': lnorms,
+        'tnorms_std': tnorms_std, 'lnorms_std': lnorms_std
+    }
     return new_params, results
 
 
@@ -258,6 +268,6 @@ if __name__ == '__main__':
     print(model)
 
     new_params, presults = pretrain(
-        model, 0, batch_size=batch_size, pretrain_steps=1,
+        model, 0, batch_size=batch_size, pretrain_steps=10,
         time_steps=time_steps, features=features, loss_threshold=0.1
     )
