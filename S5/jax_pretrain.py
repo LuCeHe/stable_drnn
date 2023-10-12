@@ -55,7 +55,6 @@ def get_radiuses(model, aux_dict):
         # compute the radiuses in the time and layer dimensions
         time_steps = Jb_back.shape[1]
         radiuses_t, radiuses_l = jax.vmap(lambda i: compute_radius(i, Jb_back, Jb))(jnp.arange(time_steps - 1))
-
         return radiuses_t, radiuses_l
 
     return _get_radiuses
@@ -70,13 +69,11 @@ def train_step(state, inputs, do_rng, tnt, tnl, wshuff_rng):
         rlm = jnp.mean(rl, axis=(1,))
 
         loss = jnp.mean(jnp.abs(rtm - tnt)) + jnp.mean(jnp.abs(rlm - tnl))
-        # loss = jnp.mean((rtm - tnt)**2) + jnp.mean((rlm - tnl)**2)
-        # loss = jnp.sqrt(jnp.mean((rtm - tnt)**2) + jnp.mean((rlm - tnl)**2))
-        return loss
+        return loss, [jnp.mean(rtm), jnp.mean(rlm)]
 
-    loss, grads = jax.value_and_grad(loss_fn)(state.params)
+    (loss, norms), grads = jax.value_and_grad(loss_fn, has_aux=True)(state.params)
     new_state = state.apply_gradients(grads=grads)
-    return new_state, loss
+    return new_state, loss, norms
 
 
 def pretrain(
@@ -143,6 +140,10 @@ def pretrain(
     shuff_period = 50
     optch_period = 400
     opt_changes = 0
+
+    ptlosses = []
+    lnorms = []
+    tnorms = []
     with tqdm(total=pretrain_steps) as pbar:
         for step in range(1, pretrain_steps + 1):
             # inputs as random samples of shape (batch_size, time_steps, features)
@@ -150,9 +151,11 @@ def pretrain(
             # uniform samples
             inputs = random.uniform(pretrain_rng, (batch_size, time_steps, features), minval=-jnp.sqrt(3),
                                     maxval=jnp.sqrt(3))
-            state, loss = train_step(state, inputs, dropout_rng, tnt, tnl, wshuff_rng)
+            state, loss, norms = train_step(state, inputs, dropout_rng, tnt, tnl, wshuff_rng)
+            tnorms.append(norms[0])
+            lnorms.append(norms[1])
 
-            pbar.set_description(f"Pre-training Loss: {loss:.4f}", refresh=True)
+            pbar.set_description(f"Pre-training Loss: {loss:.4f}, nt: {norms[0]:.2f}, nl: {norms[1]:.2f}", refresh=True)
             pbar.update(1)
 
             if 'changeopt' in ptcomments and step % optch_period == 0:
@@ -195,8 +198,9 @@ def pretrain(
 
                 print('Shuffling weights')
 
+            ptlosses.append(float(loss))
             if loss < loss_threshold:
-                print('Early stopping on loss < 1e-3: ', loss)
+                print(f'Early stopping on loss < {loss_threshold}: {loss}')
                 break
 
     if plot:
@@ -229,7 +233,9 @@ def pretrain(
         plt.show()
 
     new_params = state.params
-    return new_params, loss
+
+    results = {'pretraining_loss': ptlosses, 'tnorms': tnorms, 'lnorms': lnorms}
+    return new_params, results
 
 
 if __name__ == '__main__':
@@ -251,14 +257,7 @@ if __name__ == '__main__':
 
     print(model)
 
-    jax_seed = 0
-    key = random.PRNGKey(jax_seed)
-    init_rng, pretrain_rng, wshuff_rng = random.split(key, num=3)
-    dummy_input = jnp.ones((batch_size, time_steps, features))
-    init_rng, dropout_rng = jax.random.split(init_rng, num=2)
-
-    variables = model.init({"params": init_rng, "dropout": dropout_rng}, dummy_input)
-
-    # params = variables["params"]
-
-    new_params, pretraining_loss = pretrain(model, variables)
+    new_params, presults = pretrain(
+        model, 0, batch_size=batch_size, pretrain_steps=1,
+        time_steps=time_steps, features=features, loss_threshold=0.1
+    )

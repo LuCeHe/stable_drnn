@@ -13,8 +13,9 @@ from .dataloading import Datasets
 from .seq_model import BatchClassificationModel, RetrievalModel
 from .ssm import init_S5SSM
 from .ssm_init import make_DPLR_HiPPO
-from alif_sg.minimal_LRU_modified.lru.model import LRU, LRU2
+# from alif_sg.minimal_LRU_modified.lru.model import LRU
 from alif_sg.S5.jax_pretrain import pretrain
+from alif_sg.S5.s5.lru_model import LRU
 
 
 def train(args):
@@ -78,6 +79,9 @@ def train(args):
             d_hidden = int(args.d_model * .89)
         elif 'lruv3' in args.comments:
             d_hidden = args.ssm_size_base
+
+        # d_hidden = N
+        # d_model = H
 
         lru = partial(
             LRU, d_hidden=d_hidden, d_model=d_model, r_min=args.r_min, r_max=args.r_max
@@ -177,7 +181,6 @@ def train(args):
     if 'pretrain' in args.comments:
         print("[*] Pretraining")
         from flax import linen as nn
-        import json
 
         params = state.params
         time_steps = 4
@@ -199,14 +202,15 @@ def train(args):
                 bn_momentum=args.bn_momentum,
             )(training=True)
 
-            new_params, pretraining_loss = pretrain(
+            new_params, presults = pretrain(
                 model, args.jax_seed + li, batch_size=args.ptbsz, pretrain_steps=args.ptsteps,
                 time_steps=time_steps, features=d_model, comments=args.comments, ptcomments=args.ptcomments,
                 loss_threshold=0.1, ptlr=args.ptlr,
                 optimizer=args.ptopt
             )
+            presults = {f'l{li}_' + k: v for k,v in presults.items()}
 
-            results.update({f"pretraining_loss_layer_{li}": float(pretraining_loss)})
+            results.update(presults)
             params['encoder'][f'layers_{li}'] = new_params
         state = state.replace(params=params)
 

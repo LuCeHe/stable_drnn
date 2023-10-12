@@ -48,7 +48,7 @@ h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 lsc_epsilon = 0.02  # 0.02
 
 check_for_new = True
-plot_losses = True
+plot_losses = False
 one_exp_curves = False
 pandas_means = True
 show_per_tasknet = True
@@ -121,12 +121,13 @@ if expsid == 's5lru':
     metric = 'val_acc M'  # 'v_ppl min'
     metrics_oi = [
         # 'val_loss m', 'test_loss m',
-        'val_acc M',  'test_acc M', 'time_elapsed',
-        'n_params', 'val_acc len'
+        'val_acc M', 'test_acc M', 'time_elapsed',
+        'n_params', 'conveps'
     ]
 
     plot_only = [
                     'jax_seed', 'lru', 'dataset', 'n_depth', 'comments',
+                    'val_acc len', 'val_acc argM',
                 ] + metrics_oi
     group_cols = ['lru', 'dataset', 'comments', 'n_depth']
 
@@ -157,6 +158,12 @@ if 'als' == expsid:
 new_column_names = {c_name: shorten_losses(c_name) for c_name in df.columns}
 df.rename(columns=new_column_names, inplace=True)
 
+if 'v_ppl argm' in df.columns and 'v_ppl len' in df.columns:
+    df['conveps'] = df['v_ppl len'] - df['v_ppl argm']
+
+if 'val_acc argM' in df.columns and 'val_acc len' in df.columns:
+    df['conveps'] = df['val_acc len'].astype(float) - df['val_acc argM'].astype(float)
+
 for c in ['t_ppl', 't_^acc', 'v_ppl', 'v_^acc']:
     # if column doesn't exist, create a NaN column
     if c not in df.columns:
@@ -167,11 +174,6 @@ for cname in ['net', 'task']:
         c = df[cname].iloc[:, 0].fillna(df[cname].iloc[:, 1])
         df = df.drop([cname], axis=1)
         df[cname] = c
-
-# if 'n_params' in df.columns:
-#     df['n_params'] = df['n_params'].apply(lambda x: large_num_to_reasonable_string(x, 1))
-
-print(list(df.columns))
 
 print(list(df.columns))
 
@@ -369,7 +371,7 @@ if pandas_means:
                 xdf[task_flag].eq(task)
                 # & xdf[net_flag].eq(net)
                 # & xdf[depth_flag].eq(stack)
-                ]
+            ]
 
             cols = idf.columns
             if not 'PTB' in task:

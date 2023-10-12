@@ -21,7 +21,7 @@ def matrix_init(key, shape, dtype=jnp.float_, normalization=1):
 
 def nu_init(key, shape, r_min, r_max, dtype=jnp.float_):
     u = jax.random.uniform(key=key, shape=shape, dtype=dtype)
-    return jnp.log(-0.5 * jnp.log(u * (r_max**2 - r_min**2) + r_min**2))
+    return jnp.log(-0.5 * jnp.log(u * (r_max ** 2 - r_min ** 2) + r_min ** 2))
 
 
 def theta_init(key, shape, max_phase, dtype=jnp.float_):
@@ -97,28 +97,6 @@ class LRU(nn.Module):
 
         return outputs
 
-
-
-
-class LRU2(LRU):
-
-    def __call__(self, inputs):
-        """Forward pass of a LRU: h_t+1 = lambda * h_t + B x_t+1, y_t = Re[C h_t + D x_t]"""
-        diag_lambda = jnp.exp(-jnp.exp(self.nu_log) + 1j * jnp.exp(self.theta_log))
-        B_norm = (self.B_re + 1j * self.B_im) * jnp.expand_dims(jnp.exp(self.gamma_log), axis=-1)
-        C = self.C_re + 1j * self.C_im
-
-        Lambda_elements = jnp.repeat(diag_lambda[None, ...], inputs.shape[0], axis=0)
-        # print(B_norm.shape, inputs.shape)
-
-        Bu_elements = B_norm @ inputs
-        # Compute hidden states
-        _, hidden_states = parallel_scan(binary_operator_diag, (Lambda_elements, Bu_elements))
-
-        # Use them to compute the output of the module
-        outputs = (C @ hidden_states).real + self.D * inputs
-
-        return outputs
 
 class SequenceLayer(nn.Module):
     """Single layer, with one LRU module, GLU, dropout and batch/layer norm"""
@@ -230,5 +208,5 @@ BatchClassificationModel = nn.vmap(
     axis_name="batch",
 )
 
-if __name__ =='__main__':
+if __name__ == '__main__':
     pass
