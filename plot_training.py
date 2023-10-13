@@ -39,7 +39,8 @@ GEXPERIMENTS = [
     # r'D:\work\alif_sg\experiments',
     # r'D:\work\alif_sg\good_experiments\2022-12-21--rnn',
     # r'D:\work\alif_sg\good_experiments\2023-01-20--rnn-v2',
-    r'D:\work\alif_sg\good_experiments\2023-09-01--rnn-lru-first',
+    # r'D:\work\alif_sg\good_experiments\2023-09-01--rnn-lru-first',
+    r'D:\work\alif_sg\good_experiments\2023-10-10--s5lru',
 ]
 
 expsid = 's5lru'  # effnet als ffnandcnns s5lru
@@ -48,7 +49,7 @@ h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 lsc_epsilon = 0.02  # 0.02
 
 check_for_new = True
-plot_losses = False
+plot_losses = True
 one_exp_curves = False
 pandas_means = True
 show_per_tasknet = True
@@ -122,7 +123,9 @@ if expsid == 's5lru':
     metrics_oi = [
         # 'val_loss m', 'test_loss m',
         'val_acc M', 'test_acc M', 'time_elapsed',
-        'n_params', 'conveps'
+        'n_params', 'conveps',
+        *[f'l{i}_tnorms f' for i in range(8)],
+        *[f'l{i}_lnorms f' for i in range(8)]
     ]
 
     plot_only = [

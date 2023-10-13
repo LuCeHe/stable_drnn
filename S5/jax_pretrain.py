@@ -1,6 +1,8 @@
 import time
 from functools import partial
+
 from tqdm.auto import tqdm
+from pyaromatics.stay_organized.utils import str2val
 
 import jax
 import jax.ops
@@ -9,10 +11,6 @@ from flax.training.train_state import TrainState
 from jax import random
 from flax import linen as nn
 import optax
-
-from alif_sg.S5.s5.layers import SequenceLayer
-from alif_sg.S5.s5.lru_model import LRU
-from pyaromatics.stay_organized.utils import str2val
 
 
 def compute_radius(i, Jb_osb, Jb):
@@ -135,7 +133,6 @@ def pretrain(
         tx=tx, **aux_dict
     )
 
-    lr = 0.1
     shuffling = True
     shuff_period = 50
     optch_period = 400
@@ -155,6 +152,7 @@ def pretrain(
             inputs = random.uniform(pretrain_rng, (batch_size, time_steps, features), minval=-jnp.sqrt(3),
                                     maxval=jnp.sqrt(3))
             state, loss, norms = train_step(state, inputs, dropout_rng, tnt, tnl, wshuff_rng)
+            nt, nl = norms[0], norms[1]
             tnorms.append(float(norms[0]))
             lnorms.append(float(norms[1]))
             tnorms_std.append(float(norms[2]))
@@ -205,6 +203,40 @@ def pretrain(
 
                 print('Shuffling weights')
 
+            if 'wmultiplier' in ptcomments:
+                print('Multiplying weights')
+
+                for k, v in state.params.items():
+                    for sk, sv in v.items():
+                        print(k, sk)
+                        m = 1
+
+                        time_multiplier = False
+                        depth_multiplier = False
+
+                        # if 'nu_log' in sk:
+                        #     time_multiplier = True
+
+                        # elif 'Lambda_re' in sk or 'Lambda_im' in sk:
+                        #     time_multiplier = True
+
+                        if 'C_re' in sk or 'C_im' in sk:
+                            depth_multiplier = True
+
+                        elif 'C1' in sk or 'C2' in sk:
+                            depth_multiplier = True
+
+                        if time_multiplier:
+                            m = tnt / nt
+
+                        if depth_multiplier:
+                            m = tnl / nl
+
+                        m = jnp.clip(m, .85, 1.15)
+                        print('multiplier:', m)
+                        state.params[k][sk] = m * sv
+                state = state.replace(params=state.params)
+
             ptlosses.append(float(loss))
             if loss < loss_threshold:
                 print(f'Early stopping on loss < {loss_threshold}: {loss}')
@@ -249,11 +281,56 @@ def pretrain(
 
 
 if __name__ == '__main__':
+    from alif_sg.S5.s5.layers import SequenceLayer
+
     batch_size = 8
     time_steps = 7
-    features = 16
+    features = 128
+    model_name = 'lru'  # lru s5
 
-    ssm = partial(LRU, d_hidden=features, d_model=features)
+    if model_name == 'lru':
+        from alif_sg.S5.s5.lru_model import LRU
+        d_hidden = int(features * 1.5)
+
+        ssm = partial(LRU, d_hidden=d_hidden, d_model=features)
+    elif model_name == 's5':
+        from alif_sg.S5.s5.ssm import init_S5SSM
+        from alif_sg.S5.s5.ssm_init import make_DPLR_HiPPO
+        from jax._src.scipy.linalg import block_diag
+
+        blocks = 4
+        # determine the size of initial blocks
+        ssm_size = int(features * 1.5 // 2)
+        block_size = int(ssm_size / blocks)
+
+        # Initialize state matrix A using approximation to HiPPO-LegS matrix
+        Lambda, _, B, V, B_orig = make_DPLR_HiPPO(block_size)
+
+        Lambda = Lambda[:block_size]
+        V = V[:, :block_size]
+        Vc = V.conj().T
+
+        # If initializing state matrix A as block-diagonal, put HiPPO approximation
+        # on each block
+        Lambda = (Lambda * jnp.ones((blocks, block_size))).ravel()
+        V = block_diag(*([V] * blocks))
+        Vinv = block_diag(*([Vc] * blocks))
+
+        ssm = init_S5SSM(
+            H=features,
+            P=ssm_size,
+            Lambda_re_init=Lambda.real,
+            Lambda_im_init=Lambda.imag,
+            V=V,
+            Vinv=Vinv,
+            C_init='lecun_normal',
+            discretization='zoh',
+            dt_min=1,
+            dt_max=2,
+            conj_sym=False,
+            clip_eigs=False,
+            bidirectional=True
+        )
 
     BatchClassificationModel = nn.vmap(
         SequenceLayer,
@@ -269,5 +346,6 @@ if __name__ == '__main__':
 
     new_params, presults = pretrain(
         model, 0, batch_size=batch_size, pretrain_steps=10,
-        time_steps=time_steps, features=features, loss_threshold=0.1
+        time_steps=time_steps, features=features, loss_threshold=0.1,
+        # ptcomments='wmultiplier'
     )
