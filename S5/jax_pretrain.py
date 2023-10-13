@@ -133,9 +133,9 @@ def pretrain(
         tx=tx, **aux_dict
     )
 
-    multiply = False
+    multiply = True
     shuffling = True
-    mult_period = 10
+    mult_period = 50
     shuff_period = 50
     optch_period = 400
     opt_changes = 0
@@ -241,6 +241,9 @@ def pretrain(
 
                         if depth_multiplier:
                             m = tnl / nl
+
+                        if sk == 'bias' or sk == 'scale':
+                            m = 1/m
 
                         m = jnp.clip(m, .9, 1.1)
                         print('multiplier:', m)
