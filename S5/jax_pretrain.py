@@ -133,6 +133,7 @@ def pretrain(
         tx=tx, **aux_dict
     )
 
+    multiply = False
     shuffling = True
     shuff_period = 50
     optch_period = 400
@@ -164,6 +165,7 @@ def pretrain(
             pbar.update(1)
 
             if 'changeopt' in ptcomments and step % optch_period == 0:
+                multiply = True
                 opt_changes += 1
                 if opt_changes % 2 == 1:
                     lr = .07
@@ -203,7 +205,7 @@ def pretrain(
 
                 print('Shuffling weights')
 
-            if 'wmultiplier' in ptcomments:
+            if 'wmultiplier' in ptcomments and multiply:
                 print('Multiplying weights')
 
                 for k, v in state.params.items():
@@ -220,7 +222,7 @@ def pretrain(
                         # elif 'Lambda_re' in sk or 'Lambda_im' in sk:
                         #     time_multiplier = True
 
-                        if 'C_re' == sk or 'C_im' == sk:
+                        if 'C_re' == sk or 'C_im' == sk or 'B_re' == sk or 'B_im' == sk:
                             depth_multiplier = True
 
                         elif 'C1' == sk or 'C2' == sk or 'B' == sk or 'D' == sk:
@@ -293,6 +295,7 @@ if __name__ == '__main__':
 
     if model_name == 'lru':
         from alif_sg.S5.s5.lru_model import LRU
+
         d_hidden = int(features * 1.5)
 
         ssm = partial(LRU, d_hidden=d_hidden, d_model=features)
