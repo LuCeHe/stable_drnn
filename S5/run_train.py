@@ -127,10 +127,10 @@ if __name__ == "__main__":
     parser.add_argument("--r_max", type=float, default=0.99, help="r_max for LRU")
 
     # Pretraining Parameters
-    parser.add_argument("--ptlr", type=float, default=10., help="Learning rate for pretraining")
+    parser.add_argument("--ptlr", type=float, default=1., help="Learning rate for pretraining")
     parser.add_argument("--ptbsz", type=int, default=8, help="Pretraining batch size")
     parser.add_argument("--ptsteps", type=int, default=3000, help="Pretraining steps")
-    parser.add_argument("--ptopt", type=str, default='sgd', help="Pretraining optimizer")
+    parser.add_argument("--ptopt", type=str, default='adamw', help="Pretraining optimizer")
     parser.add_argument("--ptcomments", type=str, default='nonan_wshuffle_changeopt', help="Pretraining comments")
     args = parser.parse_args()
 
@@ -159,14 +159,17 @@ if __name__ == "__main__":
                 arg_value = eval(f"{dtype}('{arg_value}')")
                 setattr(args, arg_name, arg_value)
 
+    if 'pretrain' in args.comments:
+        args.prenorm = False
+
+    lr = str2val(args.comments, 'lr', float, default=args.ssm_lr_base)
+    args.ssm_lr_base = lr
+
     string_args = json.dumps(vars(args), indent=4, cls=NumpyEncoder)
     print(string_args)
     results_filename = os.path.join(EXPERIMENT, 'args.json')
     with open(results_filename, "w") as f:
         f.write(string_args)
-
-    lr = str2val(args.comments, 'lr', float, default=args.ssm_lr_base)
-    args.ssm_lr_base = lr
 
     results = train(args)
     time_elapsed = (time.perf_counter() - time_start)

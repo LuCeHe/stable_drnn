@@ -97,6 +97,8 @@ def pretrain(
         tx = optax.adam(learning_rate=ptlr)
     elif optimizer == 'adabelief':
         tx = optax.adabelief(learning_rate=ptlr)
+    elif optimizer == 'adamw':
+        tx = optax.adamw(learning_rate=ptlr)
     elif optimizer == 'rmsprop':
         tx = optax.rmsprop(learning_rate=ptlr)
     elif optimizer == 'sgd':
