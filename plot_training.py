@@ -49,7 +49,7 @@ h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 lsc_epsilon = 0.02  # 0.02
 
 check_for_new = True
-plot_losses = True
+plot_losses = False
 one_exp_curves = False
 pandas_means = True
 show_per_tasknet = True
@@ -68,7 +68,7 @@ plot_bars = False
 plot_new_bars = False
 chain_norms = False
 
-missing_exps = False
+missing_exps = True
 remove_incomplete = False
 truely_remove = False
 truely_remove_pretrained = False
@@ -109,7 +109,7 @@ force_keep_column = [
 group_cols = ['net', 'task', 'comments', 'stack']
 task_flag = 'task'  # task dataset
 net_flag = 'net'  # net lru
-depth_flag = 'n_depth'  # 'stack'
+depth_flag = 'stack'  # 'stack'
 stats_oi = ['mean', 'std']
 
 plot_metric = 'rec_norms list'
@@ -118,6 +118,7 @@ if expsid == 's5lru':
     plot_metric = 'val_acc list'
     task_flag = 'dataset'  # task dataset
     net_flag = 'lru'  # net lru
+    depth_flag = 'n_depth'  # 'stack'
 
     metric = 'val_acc M'  # 'v_ppl min'
     metrics_oi = [
@@ -130,7 +131,7 @@ if expsid == 's5lru':
 
     plot_only = [
                     'jax_seed', 'lru', 'dataset', 'n_depth', 'comments',
-                    'val_acc len', 'val_acc argM',
+                    'val_acc len', 'val_acc argM', 'path', 'eps', 'spe', 'bsz'
                 ] + metrics_oi
     group_cols = ['lru', 'dataset', 'comments', 'n_depth']
 
@@ -283,16 +284,27 @@ if 'net' in df.columns:
     df.loc[df['net'].eq('maLSNNb'), 'net'] = 'ALIFb'
     df.loc[df['net'].eq('maLSNN'), 'net'] = 'ALIF'
 
+task_name_pairs = []
 if 'task' in df.columns:
-    df.loc[df['task'].eq('heidelberg'), 'task'] = 'SHD'
-    df.loc[df['task'].eq('sl_mnist'), 'task'] = 'sl-MNIST'
-    df.loc[df['task'].eq('wordptb'), 'task'] = 'PTB'
+    task_name_pairs = [
+        ('SHD', 'heidelberg'),
+        ('sl-MNIST', 'sl_mnist'),
+        ('PTB', 'wordptb'),
+        ]
 
 if 'dataset' in df.columns:
-    df.loc[df['dataset'].eq('cifar-classification'), 'dataset'] = 'sCIFAR-3'
-    df.loc[df['dataset'].eq('lra-cifar-classification'), 'dataset'] = 'sCIFAR-1'
-    df.loc[df['dataset'].eq('imdb-classification'), 'dataset'] = 'Text'
-    df.loc[df['dataset'].eq('listops-classification'), 'dataset'] = 'ListOps'
+    task_name_pairs = [
+        ('sCIFAR-3', 'cifar-classification'),
+        ('sCIFAR-1', 'lra-cifar-classification'),
+        ('Text', 'imdb-classification'),
+        ('ListOps', 'listops-classification'),
+        ('Retrieval', 'aan-classification'),
+        ('Pathfinder', 'pathfinder-classification'),
+        ('PathX', 'pathx-classification'),
+    ]
+
+for nice, brute in task_name_pairs:
+    df.loc[df[task_flag].eq(brute), task_flag] = nice
 
 # eps column stays eps if not equal to None else it becomes the content of v_mode_acc len
 # df.loc[df['eps'].isnull(), 'eps'] = df.loc[df['eps'].isnull(), f'{metric} len']
@@ -1030,26 +1042,36 @@ if remove_incomplete:
     print('-=***=-' * 10)
     print('\n\n')
 
-    print('Eliminate if f_norms_std too large')
+    print('Eliminate pretrain')
     rdf = plotdf[
-        (plotdf['f_norms_std'] > .2)
-        & plotdf['comments'].str.contains('findLSC')
+        plotdf['comments'].str.contains('pretrain')
         ]
     ardf = rdf.copy()
     print(rdf.to_string())
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
 
+
+    print('Eliminate if f_norms_std too large')
+    # rdf = plotdf[
+    #     (plotdf['f_norms_std'] > .2)
+    #     & plotdf['comments'].str.contains('findLSC')
+    #     ]
+    # ardf = rdf.copy()
+    # print(rdf.to_string())
+    # print(rdf.shape, df.shape)
+    # rdfs.append(rdf)
+
     print('Eliminate if std_ma_norm too large')
-    rdf = plotdf[
-        (plotdf['std_ma_norm'] > .2)
-        & plotdf['comments'].str.contains('findLSC')
-        # & plotdf['comments'].str.contains('onlypretrain')
-        ]
-    brdf = rdf.copy()
-    print(rdf.to_string())
-    print(rdf.shape, df.shape)
-    rdfs.append(rdf)
+    # rdf = plotdf[
+    #     (plotdf['std_ma_norm'] > .2)
+    #     & plotdf['comments'].str.contains('findLSC')
+    #     # & plotdf['comments'].str.contains('onlypretrain')
+    #     ]
+    # brdf = rdf.copy()
+    # print(rdf.to_string())
+    # print(rdf.shape, df.shape)
+    # rdfs.append(rdf)
 
     print('Eliminate if best_std_ma_norm too large')
     # rdf = plotdf[
@@ -1066,63 +1088,63 @@ if remove_incomplete:
     # from LSC_norms final column, select those that are epsilon away from 1
     # make a column target equal to .5 if targetnorm:.5 is in comments else 1 if findLSC is in comments
     # else nan
-    plotdf['target'] = plotdf['comments'].apply(
-        lambda x: 0.5 if 'targetnorm:.5' in x else 1 if 'findLSC' in x else np.nan
-    )
+    # plotdf['target'] = plotdf['comments'].apply(
+    #     lambda x: 0.5 if 'targetnorm:.5' in x else 1 if 'findLSC' in x else np.nan
+    # )
 
     # plotdf['diff_target'] = abs(plotdf['LSC f'] - plotdf['target'])
     # plotdf['vs_epsilon'] = plotdf['diff_target'] > lsc_epsilon
-    plotdf['vs_epsilon'] = ((abs(plotdf['LSC a'] - plotdf['target']) > lsc_epsilon)
-                            & plotdf['comments'].str.contains('onlyloadpretrained')) \
-                           | ((abs(plotdf['LSC f'] - plotdf['target']) > lsc_epsilon)
-                              & plotdf['comments'].str.contains('onlypretrain'))
-
-    rdf = plotdf[
-        plotdf['comments'].str.contains('findLSC')
-        & plotdf['vs_epsilon']
-        ]
-    print(rdf.to_string())
-    print(rdf.shape, df.shape)
-    rdfs.append(rdf)
+    # plotdf['vs_epsilon'] = ((abs(plotdf['LSC a'] - plotdf['target']) > lsc_epsilon)
+    #                         & plotdf['comments'].str.contains('onlyloadpretrained')) \
+    #                        | ((abs(plotdf['LSC f'] - plotdf['target']) > lsc_epsilon)
+    #                           & plotdf['comments'].str.contains('onlypretrain'))
+    #
+    # rdf = plotdf[
+    #     plotdf['comments'].str.contains('findLSC')
+    #     & plotdf['vs_epsilon']
+    #     ]
+    # print(rdf.to_string())
+    # print(rdf.shape, df.shape)
+    # rdfs.append(rdf)
     # 105
 
     print('Check if LSC didnt change much')
-    irdf = rdf[
-        abs(rdf['LSC f'] - rdf['LSC i']) < lsc_epsilon
-        ]
-    print(irdf.to_string())
-    print(irdf.shape, df.shape)
+    # irdf = rdf[
+    #     abs(rdf['LSC f'] - rdf['LSC i']) < lsc_epsilon
+    #     ]
+    # print(irdf.to_string())
+    # print(irdf.shape, df.shape)
 
     print('Remove onlypretrain of the onlyloadpretrained that did not satisfy the lsc')
-    nrdf = rdf[rdf['comments'].str.contains('onlyloadpretrained')].copy()
-    ardf = ardf[ardf['comments'].str.contains('onlyloadpretrained')]
-    brdf = brdf[brdf['comments'].str.contains('onlyloadpretrained')]
-
-    # concatenate these 3 pandas
-    nrdf = pd.concat([nrdf, ardf, brdf])
-
-    listem = []
-    for _, row in nrdf.iterrows():
-        net = row['net']
-        task = row['task']
-        seed = row['seed']
-        stack = row['stack']
-        comments = row['comments'].replace('onlyloadpretrained', 'onlypretrain')
-        # print(net, task, seed, stack, comments)
-        rdf = plotdf[
-            plotdf['net'].eq(net)
-            & plotdf['task'].eq(task)
-            & plotdf['seed'].eq(seed)
-            & plotdf['stack'].eq(stack)
-            & plotdf['comments'].eq(comments)
-            ]
-        listem.append(rdf)
-        rdfs.append(rdf)
-
-    if len(listem) > 0:
-        listem = pd.concat(listem)
-        print(listem.to_string())
-        print(listem.shape, df.shape)
+    # nrdf = rdf[rdf['comments'].str.contains('onlyloadpretrained')].copy()
+    # ardf = ardf[ardf['comments'].str.contains('onlyloadpretrained')]
+    # brdf = brdf[brdf['comments'].str.contains('onlyloadpretrained')]
+    #
+    # # concatenate these 3 pandas
+    # nrdf = pd.concat([nrdf, ardf, brdf])
+    #
+    # listem = []
+    # for _, row in nrdf.iterrows():
+    #     net = row['net']
+    #     task = row['task']
+    #     seed = row['seed']
+    #     stack = row['stack']
+    #     comments = row['comments'].replace('onlyloadpretrained', 'onlypretrain')
+    #     # print(net, task, seed, stack, comments)
+    #     rdf = plotdf[
+    #         plotdf['net'].eq(net)
+    #         & plotdf['task'].eq(task)
+    #         & plotdf['seed'].eq(seed)
+    #         & plotdf['stack'].eq(stack)
+    #         & plotdf['comments'].eq(comments)
+    #         ]
+    #     listem.append(rdf)
+    #     rdfs.append(rdf)
+    #
+    # if len(listem) > 0:
+    #     listem = pd.concat(listem)
+    #     print(listem.to_string())
+    #     print(listem.shape, df.shape)
 
     # print('Keep pretraining')
     # rdf = plotdf[plotdf['comments'].str.contains('findLSC')]
@@ -1143,86 +1165,86 @@ if remove_incomplete:
     # 86
 
     print('Remove lsc na')
-    rdf = plotdf[
-        plotdf['LSC f'].isna()
-    ]
-    remove_models = rdf.copy()
-    print(rdf.to_string())
-    print(rdf.shape, df.shape)
-    rdfs.append(rdf)
+    # rdf = plotdf[
+    #     plotdf['LSC f'].isna()
+    # ]
+    # remove_models = rdf.copy()
+    # print(rdf.to_string())
+    # print(rdf.shape, df.shape)
+    # rdfs.append(rdf)
 
     print('Remove ppl and acc na and inf')
-    rdf = plotdf[
-        plotdf['comments'].str.contains('onlyloadpretrained')
-        & (
-                plotdf['t_ppl'].isna()
-                | plotdf['v_ppl'].isna()
-                | plotdf['t_^acc'].isna()
-                | plotdf['v_^acc'].isna()
-                # or is infinity
-                | plotdf['t_ppl'].eq(np.inf)
-                | plotdf['v_ppl'].eq(np.inf)
-                | plotdf['t_^acc'].eq(np.inf)
-                | plotdf['v_^acc'].eq(np.inf)
-        )
-        ]
-    infrdf = rdf.copy()
-    print(rdf.to_string())
-    print(rdf.shape, df.shape)
-    rdfs.append(rdf)
+    # rdf = plotdf[
+    #     plotdf['comments'].str.contains('onlyloadpretrained')
+    #     & (
+    #             plotdf['t_ppl'].isna()
+    #             | plotdf['v_ppl'].isna()
+    #             | plotdf['t_^acc'].isna()
+    #             | plotdf['v_^acc'].isna()
+    #             # or is infinity
+    #             | plotdf['t_ppl'].eq(np.inf)
+    #             | plotdf['v_ppl'].eq(np.inf)
+    #             | plotdf['t_^acc'].eq(np.inf)
+    #             | plotdf['v_^acc'].eq(np.inf)
+    #     )
+    #     ]
+    # infrdf = rdf.copy()
+    # print(rdf.to_string())
+    # print(rdf.shape, df.shape)
+    # rdfs.append(rdf)
 
     print('Remove pretrain that gave ppl and acc na and inf')
-    for _, row in infrdf.iterrows():
-        net = row['net']
-        task = row['task']
-        seed = row['seed']
-        stack = row['stack']
-        comments = row['comments'].replace('onlyloadpretrained', 'onlypretrain')
-        rdf = plotdf[
-            plotdf['net'].eq(net)
-            & plotdf['task'].eq(task)
-            & plotdf['seed'].eq(seed)
-            & plotdf['stack'].eq(stack)
-            & plotdf['comments'].eq(comments)
-            ]
-        print(rdf.to_string())
-        print(rdf.shape, df.shape)
-        rdfs.append(rdf)
+    # for _, row in infrdf.iterrows():
+    #     net = row['net']
+    #     task = row['task']
+    #     seed = row['seed']
+    #     stack = row['stack']
+    #     comments = row['comments'].replace('onlyloadpretrained', 'onlypretrain')
+    #     rdf = plotdf[
+    #         plotdf['net'].eq(net)
+    #         & plotdf['task'].eq(task)
+    #         & plotdf['seed'].eq(seed)
+    #         & plotdf['stack'].eq(stack)
+    #         & plotdf['comments'].eq(comments)
+    #         ]
+    #     print(rdf.to_string())
+    #     print(rdf.shape, df.shape)
+    #     rdfs.append(rdf)
 
     print('Remove repeated experiments')
-    brdf = mdf[mdf['counts'] > 4]
-    print(brdf.to_string())
+    # brdf = mdf[mdf['counts'] > 4]
+    # print(brdf.to_string())
 
-    for _, row in brdf.iterrows():
-        print('-' * 80)
-        srdf = plotdf[
-            # (df['lr'] == row['lr'])
-            (plotdf['comments'].eq(row['comments']))
-            & (plotdf['stack'] == row['stack'])
-            & (plotdf['task'] == row['task'])
-            & (plotdf['net'] == row['net'])
-            ].copy()
-
-        # order wrt path column
-        srdf = srdf.sort_values(by=['path'], ascending=False)
-
-        # no duplicates
-        gsrdf = srdf.drop_duplicates(subset=['seed'])
-
-        # remainder
-        rdf = srdf[~srdf.apply(tuple, 1).isin(gsrdf.apply(tuple, 1))]
-        print(srdf.to_string())
-        print(rdf.to_string())
-        print(rdf.shape)
-        rdfs.append(rdf)
+    # for _, row in brdf.iterrows():
+    #     print('-' * 80)
+    #     srdf = plotdf[
+    #         # (df['lr'] == row['lr'])
+    #         (plotdf['comments'].eq(row['comments']))
+    #         & (plotdf[depth_flag] == row[depth_flag])
+    #         & (plotdf[task_flag] == row[task_flag])
+    #         & (plotdf[net_flag] == row[net_flag])
+    #         ].copy()
+    #
+    #     # order wrt path column
+    #     srdf = srdf.sort_values(by=['path'], ascending=False)
+    #
+    #     # no duplicates
+    #     gsrdf = srdf.drop_duplicates(subset=['seed'])
+    #
+    #     # remainder
+    #     rdf = srdf[~srdf.apply(tuple, 1).isin(gsrdf.apply(tuple, 1))]
+    #     print(srdf.to_string())
+    #     print(rdf.to_string())
+    #     print(rdf.shape)
+    #     rdfs.append(rdf)
 
     allrdfs = pd.concat(rdfs)
     allrdfs = allrdfs.drop_duplicates()
     print(f'Remove {allrdfs.shape} of {plotdf.shape}')
-    trueallrdfs = allrdfs.drop_duplicates(subset=['seed', 'task', 'net', 'comments', 'stack'])
-    print(f'Remove actually {trueallrdfs.shape} of {plotdf.shape}')
-    allrdfs = allrdfs[allrdfs['comments'].str.contains('onlypretrain')]
-    print(f'Remove instead {allrdfs.shape} of {plotdf.shape}')
+    # trueallrdfs = allrdfs.drop_duplicates(subset=['seed', 'task', 'net', 'comments', 'stack'])
+    # print(f'Remove actually {trueallrdfs.shape} of {plotdf.shape}')
+    # allrdfs = allrdfs[allrdfs['comments'].str.contains('onlypretrain')]
+    # print(f'Remove instead {allrdfs.shape} of {plotdf.shape}')
 
     if truely_remove_pretrained:
 
@@ -1264,7 +1286,7 @@ if remove_incomplete:
                     os.remove(gexp_path)
         os.remove(h5path)
 
-if missing_exps:
+if missing_exps and not expsid == 's5lru':
     # columns of interest
     coi = ['seed', 'task', 'net', 'comments', 'stack']
 
@@ -1400,6 +1422,75 @@ if missing_exps:
             # for e in experiments:
             # if e['net'] == ['maLSNN']:
             # print(e)
+
+if missing_exps and expsid == 's5lru':
+    # columns of interest
+    coi = ['jax_seed', 'dataset', 'lru', 'comments', 'epochs', 'steps_per_epoch', 'bsz']
+
+    # import pandas as pd
+
+    sdf = df.copy()
+
+    for nice, brute in task_name_pairs:
+        sdf.loc[df[task_flag].eq(nice), task_flag] = brute
+
+    sdf.rename(columns={
+        'eps': 'epochs', 'spe': 'steps_per_epoch'
+    }, inplace=True)
+
+    print(f'Experiments already done: {sdf.shape}, len cols = {len(sdf.columns)}')
+    sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
+    sdf = sdf.astype({'lru': 'string', 'dataset': 'string', 'comments': 'string'})
+    print(sdf.head())
+    # get column types
+    print(sdf.dtypes)
+
+    seed = 0
+    n_seeds = 4
+    seeds = [l + seed for l in range(n_seeds)]
+
+    experiments = []
+    datasets = [
+        'cifar-classification',
+        'imdb-classification',
+        'listops-classification',
+        'aan-classification',
+        'pathfinder-classification',
+        'pathx-classification'
+    ]
+
+    ci = lambda islru: 'default' if not islru else 'defaultlru_lruv3'
+    for lru in [True, False]:
+        for dataset in datasets:
+            if 'pathx' in dataset:
+                bsz = 8
+            elif 'pathfinder' in dataset or 'aan' in dataset:
+                bsz = 16
+            else:
+                bsz = 32
+
+            experiment = {
+                'jax_seed': seeds,
+                'epochs': [300], 'steps_per_epoch': [-1], 'dataset': [dataset], 'bsz': [bsz],
+                'lru': [str(lru)],
+                'comments': [
+                    ci(lru),
+                    ci(lru) + '_pretrain_targetnorm:1',
+                    ci(lru) + '_pretrain_targetnorm:0.5',
+                    ci(lru) + '_pretrain_unbalanced',
+                    ci(lru) + '_clipping',
+                ],
+            }
+            experiments.append(experiment)
+
+    ds = dict2iter(experiments)
+    _, experiments_left = complete_missing_exps(sdf, ds, coi)
+    np.random.shuffle(experiments_left)
+    experiments = experiments_left
+
+    np.random.shuffle(experiments)
+    print(f'experiments =', experiments)
+    print(f'# {len(experiments)}/{len(ds)}')
 
 if check_all_norms:
     dirs = [d for d in os.listdir(EXPERIMENTS) if 'als' in d][:1000]
