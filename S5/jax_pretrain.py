@@ -229,6 +229,9 @@ def pretrain(
                         elif 'C1' == sk or 'C2' == sk or 'B' == sk or 'D' == sk:
                             depth_multiplier = True
 
+                        elif k == 'out2' and sk == 'kernel':
+                            depth_multiplier = True
+
                         # elif 'kernel' in sk:
                         #     depth_multiplier = True
 
