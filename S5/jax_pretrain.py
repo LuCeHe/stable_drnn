@@ -220,10 +220,10 @@ def pretrain(
                         # elif 'Lambda_re' in sk or 'Lambda_im' in sk:
                         #     time_multiplier = True
 
-                        if 'C_re' in sk or 'C_im' in sk:
+                        if 'C_re' == sk or 'C_im' == sk:
                             depth_multiplier = True
 
-                        elif 'C1' in sk or 'C2' in sk:
+                        elif 'C1' == sk or 'C2' == sk or 'B' == sk or 'D' == sk:
                             depth_multiplier = True
 
                         if time_multiplier:
