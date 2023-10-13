@@ -171,14 +171,14 @@ def pretrain(
                 multiply = True
                 opt_changes += 1
                 if opt_changes % 2 == 1:
-                    lr = .07
+                    lr = ptlr * .1
                     tx2 = optax.sgd(learning_rate=lr, momentum=0.7)
                     shuff_period = 100
                     optch_period = 300
                     shuffling = False
                     print(f'SGD lr={lr}')
                 else:
-                    lr = .1
+                    lr = ptlr * .1
                     tx2 = optax.adamw(learning_rate=lr)
                     shuff_period = 150
                     optch_period = 300
@@ -245,7 +245,7 @@ def pretrain(
                             m = tnl / nl
 
                         if sk == 'bias' or sk == 'scale':
-                            m = 1/m
+                            m = 1 / m
 
                         m = jnp.clip(m, .9, 1.1)
                         print('multiplier:', m)
