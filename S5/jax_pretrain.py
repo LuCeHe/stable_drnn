@@ -138,7 +138,7 @@ def pretrain(
     multiply = True
     shuffling = True
     mult_period = 50
-    shuff_period = 50
+    shuff_period = 100
     optch_period = 400
     opt_changes = 0
 
