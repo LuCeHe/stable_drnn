@@ -231,6 +231,7 @@ def pretrain(
 
                         elif sk == 'bias' or sk == 'scale':
                             depth_multiplier = True
+                            print(sk, jnp.mean(sv), jnp.std(sv))
 
                         # elif 'kernel' in sk:
                         #     depth_multiplier = True
