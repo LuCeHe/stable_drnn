@@ -135,6 +135,7 @@ def pretrain(
 
     multiply = False
     shuffling = True
+    mult_period = 10
     shuff_period = 50
     optch_period = 400
     opt_changes = 0
@@ -205,7 +206,7 @@ def pretrain(
 
                 print('Shuffling weights')
 
-            if 'wmultiplier' in ptcomments and multiply:
+            if 'wmultiplier' in ptcomments and multiply and step % mult_period == 0:
                 print('Multiplying weights')
 
                 for k, v in state.params.items():
@@ -237,7 +238,7 @@ def pretrain(
                         if depth_multiplier:
                             m = tnl / nl
 
-                        m = jnp.clip(m, .85, 1.15)
+                        m = jnp.clip(m, .9, 1.1)
                         print('multiplier:', m)
                         state.params[k][sk] = m * sv
                 state = state.replace(params=state.params)
