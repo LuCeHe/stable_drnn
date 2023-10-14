@@ -202,10 +202,11 @@ def train(args):
                 bn_momentum=args.bn_momentum,
             )(training=True)
 
+            loss_threshold = 0.005 if not args.lru else 0.05
             new_params, presults = pretrain(
                 model, args.jax_seed + li, batch_size=args.ptbsz, pretrain_steps=args.ptsteps,
                 time_steps=time_steps, features=d_model, comments=args.comments, ptcomments=args.ptcomments,
-                loss_threshold=0.005, ptlr=args.ptlr,
+                loss_threshold=loss_threshold, ptlr=args.ptlr,
                 optimizer=args.ptopt
             )
             presults = {f'l{li}_' + k: v for k,v in presults.items()}
