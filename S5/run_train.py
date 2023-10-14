@@ -127,7 +127,7 @@ if __name__ == "__main__":
     parser.add_argument("--r_max", type=float, default=0.99, help="r_max for LRU")
 
     # Pretraining Parameters
-    parser.add_argument("--ptlr", type=float, default=.03, help="Learning rate for pretraining")
+    parser.add_argument("--ptlr", type=float, default=.01, help="Learning rate for pretraining")
     parser.add_argument("--ptbsz", type=int, default=8, help="Pretraining batch size")
     parser.add_argument("--ptsteps", type=int, default=3000, help="Pretraining steps")
     parser.add_argument("--ptopt", type=str, default='adam', help="Pretraining optimizer")
