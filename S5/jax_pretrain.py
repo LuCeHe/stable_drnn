@@ -177,14 +177,14 @@ def pretrain(
 
                     shuff_period = 10
                     optch_period = 200
-                    shuffling = False
+                    shuffling = True
                     print(f'AdaBelief lr={lr}')
                 else:
                     lr = ptlr * .1
                     tx2 = optax.adamw(learning_rate=lr)
                     shuff_period = 10
                     optch_period = 200
-                    shuffling = float(loss) > 4
+                    shuffling = True
                     print(f'AdamW lr={lr}')
 
                 tx2 = optax.chain(
