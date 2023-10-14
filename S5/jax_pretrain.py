@@ -151,10 +151,10 @@ def pretrain(
     with tqdm(total=pretrain_steps) as pbar:
         for step in range(1, pretrain_steps + 1):
             # inputs as random samples of shape (batch_size, time_steps, features)
-            # inputs = random.normal(pretrain_rng, (batch_size, time_steps, features))
+            inputs = random.normal(pretrain_rng, (batch_size, time_steps, features))
             # uniform samples
-            inputs = random.uniform(pretrain_rng, (batch_size, time_steps, features), minval=-jnp.sqrt(3),
-                                    maxval=jnp.sqrt(3))
+            # inputs = random.uniform(pretrain_rng, (batch_size, time_steps, features), minval=-jnp.sqrt(3),
+            #                         maxval=jnp.sqrt(3))
             state, loss, norms = train_step(state, inputs, dropout_rng, tnt, tnl, wshuff_rng)
             nt, nl = norms[0], norms[1]
             tnorms.append(float(norms[0]))
@@ -175,15 +175,15 @@ def pretrain(
                     # tx2 = optax.sgd(learning_rate=lr, momentum=0.7)
                     tx2 = optax.adabelief(learning_rate=lr)
 
-                    shuff_period = 100
-                    optch_period = 50
+                    shuff_period = 10
+                    optch_period = 200
                     shuffling = False
                     print(f'AdaBelief lr={lr}')
                 else:
                     lr = ptlr * .1
                     tx2 = optax.adamw(learning_rate=lr)
-                    shuff_period = 150
-                    optch_period = 50
+                    shuff_period = 10
+                    optch_period = 200
                     shuffling = float(loss) > 4
                     print(f'AdamW lr={lr}')
 
