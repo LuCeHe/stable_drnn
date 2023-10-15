@@ -68,7 +68,7 @@ plot_bars = False
 plot_new_bars = False
 chain_norms = False
 
-missing_exps = True
+missing_exps = False
 remove_incomplete = False
 truely_remove = False
 truely_remove_pretrained = False

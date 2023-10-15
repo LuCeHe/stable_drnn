@@ -15,10 +15,14 @@ import optax
 
 def compute_radius(i, Jb_osb, Jb):
     j_t = Jb_osb[:, i, :, i]
-    radius_t = jnp.linalg.norm(j_t, axis=(1, 2))
+    eigs_t = jax.numpy.linalg.eigvals(j_t)
+    radius_t = jnp.max(jnp.abs(eigs_t), axis=(-1,))
+    # radius_t = jnp.linalg.norm(j_t, axis=(1, 2))
 
     j_l = Jb[:, i, :, i]
-    radius_l = jnp.linalg.norm(j_l, axis=(1, 2))
+    eigs_l = jax.numpy.linalg.eigvals(j_l)
+    radius_l = jnp.max(jnp.abs(eigs_l), axis=(-1,))
+
     return radius_t, radius_l
 
 

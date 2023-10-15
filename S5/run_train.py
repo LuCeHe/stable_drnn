@@ -128,7 +128,7 @@ if __name__ == "__main__":
 
     # Pretraining Parameters
     parser.add_argument("--ptlr", type=float, default=.01, help="Learning rate for pretraining")
-    parser.add_argument("--ptbsz", type=int, default=8, help="Pretraining batch size")
+    parser.add_argument("--ptbsz", type=int, default=10, help="Pretraining batch size")
     parser.add_argument("--ptsteps", type=int, default=3000, help="Pretraining steps")
     parser.add_argument("--ptopt", type=str, default='adam', help="Pretraining optimizer")
     parser.add_argument("--ptcomments", type=str, default='nonan_wshuffle_changeopt', help="Pretraining comments")
