@@ -49,7 +49,7 @@ h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 lsc_epsilon = 0.02  # 0.02
 
 check_for_new = True
-plot_losses = True
+plot_losses = False
 one_exp_curves = False
 pandas_means = True
 show_per_tasknet = True
@@ -69,7 +69,7 @@ plot_new_bars = False
 chain_norms = False
 
 missing_exps = False
-remove_incomplete = False
+remove_incomplete = True
 truely_remove = False
 truely_remove_pretrained = False
 check_all_norms = False
@@ -114,6 +114,13 @@ stats_oi = ['mean', 'std']
 
 plot_metric = 'rec_norms list'
 plot_metric = 'val_ppl list'
+
+task_name_pairs = [
+    ('SHD', 'heidelberg'),
+    ('sl-MNIST', 'sl_mnist'),
+    ('PTB', 'wordptb'),
+]
+
 if expsid == 's5lru':
     plot_metric = 'val_acc list'
     task_flag = 'dataset'  # task dataset
@@ -138,6 +145,15 @@ if expsid == 's5lru':
     columns_to_remove = []
     # stats_oi = ['mean']
     stats_oi = ['mean']
+    task_name_pairs = [
+        ('sCIFAR-3', 'cifar-classification'),
+        ('sCIFAR-1', 'lra-cifar-classification'),
+        ('Text', 'imdb-classification'),
+        ('ListOps', 'listops-classification'),
+        ('Retrieval', 'aan-classification'),
+        ('Pathfinder', 'pathfinder-classification'),
+        ('PathX', 'pathx-classification'),
+    ]
 
 df = experiments_to_pandas(
     h5path=h5path, zips_folder=GEXPERIMENTS, unzips_folder=EXPERIMENTS, experiments_identifier=expsid,
@@ -283,25 +299,6 @@ if 'net' in df.columns:
     # df.loc[df['comments'].str.contains('noalif'), 'net'] = 'LIF'
     df.loc[df['net'].eq('maLSNNb'), 'net'] = 'ALIFb'
     df.loc[df['net'].eq('maLSNN'), 'net'] = 'ALIF'
-
-task_name_pairs = []
-if 'task' in df.columns:
-    task_name_pairs = [
-        ('SHD', 'heidelberg'),
-        ('sl-MNIST', 'sl_mnist'),
-        ('PTB', 'wordptb'),
-        ]
-
-if 'dataset' in df.columns:
-    task_name_pairs = [
-        ('sCIFAR-3', 'cifar-classification'),
-        ('sCIFAR-1', 'lra-cifar-classification'),
-        ('Text', 'imdb-classification'),
-        ('ListOps', 'listops-classification'),
-        ('Retrieval', 'aan-classification'),
-        ('Pathfinder', 'pathfinder-classification'),
-        ('PathX', 'pathx-classification'),
-    ]
 
 for nice, brute in task_name_pairs:
     df.loc[df[task_flag].eq(brute), task_flag] = nice
@@ -1045,7 +1042,16 @@ if remove_incomplete:
     print('Eliminate pretrain')
     rdf = plotdf[
         plotdf['comments'].str.contains('pretrain')
-        ]
+    ]
+    ardf = rdf.copy()
+    print(rdf.to_string())
+    print(rdf.shape, df.shape)
+    rdfs.append(rdf)
+
+    print('Eliminate imdb')
+    rdf = plotdf[
+        plotdf['dataset'].str.contains('Text')
+    ]
     ardf = rdf.copy()
     print(rdf.to_string())
     print(rdf.shape, df.shape)

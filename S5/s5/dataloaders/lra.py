@@ -28,7 +28,7 @@ class IMDB(SequenceDataset):
             "level": "char",
             "min_freq": 15,
             "seed": 42,
-            "val_split": 0.0,
+            "val_split": 0.15,
             "append_bos": False,
             "append_eos": True,
             # 'max_vocab': 135,
