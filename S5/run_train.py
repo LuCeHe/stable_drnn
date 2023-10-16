@@ -27,12 +27,6 @@ if __name__ == "__main__":
     parser.add_argument("--comments", type=str, default='pretrain', help="String for extra behaviours")
     parser.add_argument("--stop_time", default=600, type=int, help="Stop time")
 
-    parser.add_argument("--USE_WANDB", type=str2bool, default=False,
-                        help="log with wandb?")
-    parser.add_argument("--wandb_project", type=str, default=None,
-                        help="wandb project name")
-    parser.add_argument("--wandb_entity", type=str, default=None,
-                        help="wandb entity name, e.g. username")
     parser.add_argument("--dir_name", type=str, default=str(default_cache_path),
                         help="name of directory where data is cached")
     parser.add_argument("--exp_dir", type=str, default=str(EXPERIMENT),

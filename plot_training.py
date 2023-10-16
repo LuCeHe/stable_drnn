@@ -130,6 +130,7 @@ if expsid == 's5lru':
     metric = 'val_acc M'  # 'v_ppl min'
     metrics_oi = [
         # 'val_loss m', 'test_loss m',
+        'train_loss i', 'train_loss f',
         'val_acc M', 'test_acc M', 'time_elapsed',
         'n_params', 'conveps',
         *[f'l{i}_tnorms f' for i in range(8)],
@@ -1047,6 +1048,16 @@ if remove_incomplete:
     print(rdf.to_string())
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
+
+    print('Eliminate IMDB')
+    rdf = plotdf[
+        plotdf['dataset'].str.contains('Text')
+    ]
+    ardf = rdf.copy()
+    print(rdf.to_string())
+    print(rdf.shape, df.shape)
+    rdfs.append(rdf)
+
 
     print('Eliminate if f_norms_std too large')
     # rdf = plotdf[

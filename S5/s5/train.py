@@ -3,7 +3,6 @@ from functools import partial
 from jax import random
 import jax.numpy as np
 from jax.scipy.linalg import block_diag
-import wandb
 
 from pyaromatics.stay_organized.utils import NumpyEncoder
 from .layers import SequenceLayer
@@ -26,11 +25,6 @@ def train(args):
     best_test_loss = 100000000
     best_test_acc = -10000.0
 
-    if args.USE_WANDB:
-        # Make wandb config dictionary
-        wandb.init(project=args.wandb_project, job_type='model_training', config=vars(args), entity=args.wandb_entity)
-    else:
-        wandb.init(mode='offline')
 
     # Set global learning rate lr (e.g. encoders, etc.) as function of ssm_lr
     ssm_lr = args.ssm_lr_base
@@ -183,7 +177,7 @@ def train(args):
         from flax import linen as nn
 
         params = state.params
-        time_steps = 4
+        time_steps = 3
         for li in range(args.n_layers):
             VmappedSL = nn.vmap(
                 SequenceLayer,
@@ -202,7 +196,7 @@ def train(args):
                 bn_momentum=args.bn_momentum,
             )(training=True)
 
-            loss_threshold = 0.05
+            loss_threshold = 0.02
             new_params, presults = pretrain(
                 model, args.jax_seed + li, batch_size=args.ptbsz, pretrain_steps=args.ptsteps,
                 time_steps=time_steps, features=d_model, comments=args.comments, ptcomments=args.ptcomments,
@@ -345,55 +339,6 @@ def train(args):
             f" {best_test_acc:.4f} at Epoch {best_epoch + 1}\n"
         )
 
-        if valloader is not None:
-            if speech:
-                wandb.log(
-                    {
-                        "Training Loss": train_loss,
-                        "Val loss": val_loss,
-                        "Val Accuracy": val_acc,
-                        "Test Loss": test_loss,
-                        "Test Accuracy": test_acc,
-                        "Val2 loss": val2_loss,
-                        "Val2 Accuracy": val2_acc,
-                        "Test2 Loss": test2_loss,
-                        "Test2 Accuracy": test2_acc,
-                        "count": count,
-                        "Learning rate count": lr_count,
-                        "Opt acc": opt_acc,
-                        "lr": state.opt_state.inner_states['regular'].inner_state.hyperparams['learning_rate'],
-                        "ssm_lr": state.opt_state.inner_states['ssm'].inner_state.hyperparams['learning_rate']
-                    }
-                )
-            else:
-                wandb.log(
-                    {
-                        "Training Loss": train_loss,
-                        "Val loss": val_loss,
-                        "Val Accuracy": val_acc,
-                        "Test Loss": test_loss,
-                        "Test Accuracy": test_acc,
-                        "count": count,
-                        "Learning rate count": lr_count,
-                        "Opt acc": opt_acc,
-                        "lr": state.opt_state.inner_states['regular'].inner_state.hyperparams['learning_rate'],
-                        "ssm_lr": state.opt_state.inner_states['ssm'].inner_state.hyperparams['learning_rate']
-                    }
-                )
-
-        else:
-            wandb.log(
-                {
-                    "Training Loss": train_loss,
-                    "Val loss": val_loss,
-                    "Val Accuracy": val_acc,
-                    "count": count,
-                    "Learning rate count": lr_count,
-                    "Opt acc": opt_acc,
-                    "lr": state.opt_state.inner_states['regular'].inner_state.hyperparams['learning_rate'],
-                    "ssm_lr": state.opt_state.inner_states['ssm'].inner_state.hyperparams['learning_rate']
-                }
-            )
 
         results["train_loss"].append(float(train_loss))
         results["val_loss"].append(float(val_loss))
@@ -405,12 +350,6 @@ def train(args):
         path = os.path.join(args.exp_dir, 'results.txt')
         with open(path, "w") as f:
             f.write(string_result)
-
-        wandb.run.summary["Best Val Loss"] = best_loss
-        wandb.run.summary["Best Val Accuracy"] = best_acc
-        wandb.run.summary["Best Epoch"] = best_epoch
-        wandb.run.summary["Best Test Loss"] = best_test_loss
-        wandb.run.summary["Best Test Accuracy"] = best_test_acc
 
         if count > args.early_stop_patience:
             break

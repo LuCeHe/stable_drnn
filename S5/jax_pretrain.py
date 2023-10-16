@@ -1,6 +1,10 @@
 import time
 from functools import partial
 
+import flax
+from flax.core import frozen_dict
+from flax import traverse_util
+
 from tqdm.auto import tqdm
 from pyaromatics.stay_organized.utils import str2val
 
@@ -123,6 +127,15 @@ def pretrain(
             optax.ema(0.9),
             # optax.add_decayed_weights(weight_decay=0.01),
         )
+    #
+    # tx = optax.multi_transform({'grad': tx, 'zero': optax.set_to_zero()},
+    #                       frozen_dict.freeze({"params": {"norm": "zero", "out1": "grad", "out2": "grad",
+    #                                                      "seq": "zero"}}))
+
+    # partition_optimizers = {'trainable': tx, 'frozen': optax.set_to_zero()}
+    # param_partitions = flax.core.freeze(traverse_util.path_aware_map(
+    #     lambda path, v: 'frozen' if 'out' in path else 'trainable', variables['params']))
+    # tx = optax.multi_transform(partition_optimizers, param_partitions)
 
     aux_dict = {}
     TS = TrainState
@@ -133,6 +146,7 @@ def pretrain(
 
         class TS(TrainState):
             batch_stats: Any
+    print(variables['params'].keys())
 
     state = TS.create(
         apply_fn=get_radiuses(model, aux_dict),
@@ -141,7 +155,7 @@ def pretrain(
     )
 
     multiply = True
-    shuffling = True
+    shuffling = False
     mult_period = 50
     shuff_period = 50
     optch_period = 400
@@ -153,6 +167,8 @@ def pretrain(
     tnorms_std = []
     lnorms_std = []
 
+    ma_loss = None
+    tc = 5
     with tqdm(total=pretrain_steps) as pbar:
         for step in range(1, pretrain_steps + 1):
             # inputs as random samples of shape (batch_size, time_steps, features)
@@ -161,6 +177,7 @@ def pretrain(
             # inputs = random.uniform(pretrain_rng, (batch_size, time_steps, features), minval=-jnp.sqrt(3),
             #                         maxval=jnp.sqrt(3))
             state, loss, norms = train_step(state, inputs, dropout_rng, tnt, tnl, wshuff_rng)
+            ma_loss = loss if ma_loss is None else (tc-1)/tc * ma_loss + 1/tc * loss
             nt, nl = norms[0], norms[1]
             tnorms.append(float(norms[0]))
             lnorms.append(float(norms[1]))
@@ -168,7 +185,7 @@ def pretrain(
             lnorms_std.append(float(norms[3]))
 
             pbar.set_description(
-                f"Pre-training Loss: {loss:.4f}, nt: {norms[0]:.2f}\u00B1{norms[2]:.2f}, nl: {norms[1]:.2f}\u00B1{norms[3]:.2f}",
+                f"Pre-training Loss: {loss:.4f}, MA Loss: {ma_loss:.4f}, nt: {norms[0]:.2f}\u00B1{norms[2]:.2f}, nl: {norms[1]:.2f}\u00B1{norms[3]:.2f}",
                 refresh=True)
             pbar.update(1)
 
@@ -260,8 +277,8 @@ def pretrain(
                 state = state.replace(params=state.params)
 
             ptlosses.append(float(loss))
-            if loss < loss_threshold:
-                print(f'Early stopping on loss < {loss_threshold}: {loss}')
+            if ma_loss < loss_threshold:
+                print(f'Early stopping on MA Loss < {loss_threshold}: {ma_loss}')
                 break
 
     if plot:
