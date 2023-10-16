@@ -76,7 +76,10 @@ def create_lra_imdb_classification_dataset(cache_dir: Union[str, Path] = DEFAULT
 
 	trainloader = make_data_loader(dataset_obj.dataset_train, dataset_obj, seed=seed, batch_size=bsz)
 	testloader = make_data_loader(dataset_obj.dataset_test, dataset_obj, seed=seed, batch_size=bsz, drop_last=False, shuffle=False)
-	valloader = None
+	if not dataset_obj.dataset_val is None:
+		valloader = make_data_loader(dataset_obj.dataset_val, dataset_obj, seed=seed, batch_size=bsz, drop_last=False, shuffle=False)
+	else:
+		valloader = None
 
 	N_CLASSES = dataset_obj.d_output
 	SEQ_LENGTH = dataset_obj.l_max
