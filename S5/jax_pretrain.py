@@ -146,7 +146,6 @@ def pretrain(
 
         class TS(TrainState):
             batch_stats: Any
-    print(variables['params'].keys())
 
     state = TS.create(
         apply_fn=get_radiuses(model, aux_dict),
