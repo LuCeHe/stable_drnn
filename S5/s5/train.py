@@ -276,7 +276,7 @@ def train(args):
 
             print(f"\n=>> Epoch {epoch + 1} Metrics ===")
             print(
-                f"\tTrain Loss: {train_loss:.5f} -- Val Loss: {val_loss:.5f} --Test Loss: {test_loss:.5f} --"
+                f"\tTrain Loss: {train_loss:.5f} -- Val Loss: {val_loss:.5f} -- Test Loss: {test_loss:.5f} --"
                 f" Val Accuracy: {val_acc:.4f}"
                 f" Test Accuracy: {test_acc:.4f}"
             )
@@ -290,7 +290,7 @@ def train(args):
 
             print(f"\n=>> Epoch {epoch + 1} Metrics ===")
             print(
-                f"\tTrain Loss: {train_loss:.5f}  --Test Loss: {val_loss:.5f} --"
+                f"\tTrain Loss: {train_loss:.5f}  -- Test Loss: {val_loss:.5f} --"
                 f" Test Accuracy: {val_acc:.4f}"
             )
 
