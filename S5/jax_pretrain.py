@@ -6,6 +6,8 @@ from flax.core import frozen_dict
 from flax import traverse_util
 
 from tqdm.auto import tqdm
+
+from alif_sg.S5.s5.train_helpers import map_nested_fn
 from pyaromatics.stay_organized.utils import str2val
 
 import jax
@@ -83,9 +85,25 @@ def train_step(state, inputs, do_rng, tnt, tnl, wshuff_rng):
     return new_state, loss, norms
 
 
+def print_params_tree(params):
+    def print_recursive(params, current_path=[]):
+        frozen_params = {}
+        for key, value in params.items():
+            # depth = sum(map(lambda x: 1 if '/' in x else 0, current_path))
+            depth = len(current_path)
+            print('  ' * depth, key)
+            new_path = current_path + [key]
+            if isinstance(value, dict):
+                frozen_params[key] = print_recursive(value, current_path=new_path)
+        return frozen_dict.freeze(frozen_params)
+
+    return print_recursive(params)
+
+
 def pretrain(
         model, jax_seed, batch_size, time_steps, features, comments='', ptcomments='', pretrain_steps=3000, plot=False,
-        loss_threshold=3.7, ptlr=0.05, optimizer='adam'):
+        loss_threshold=3.7, ptlr=0.05, optimizer='adam'
+):
     target_norm = str2val(comments, 'targetnorm', float, default=1)
 
     tnt, tnl = target_norm, target_norm
@@ -101,6 +119,7 @@ def pretrain(
     init_rng, dropout_rng = jax.random.split(init_rng, num=2)
 
     variables = model.init({"params": init_rng, "dropout": dropout_rng}, dummy_input)
+    print_params_tree(variables)
 
     if optimizer == 'adam':
         tx = optax.adam(learning_rate=ptlr)
@@ -116,6 +135,8 @@ def pretrain(
         tx = optax.noisy_sgd(learning_rate=ptlr)
     elif optimizer == 'lion':
         tx = optax.lion(learning_rate=ptlr)
+    elif optimizer == 'zero':
+        tx = optax.set_to_zero()
     else:
         tx = optax.sgd(learning_rate=ptlr)
 
@@ -127,15 +148,24 @@ def pretrain(
             optax.ema(0.9),
             # optax.add_decayed_weights(weight_decay=0.01),
         )
-    #
-    # tx = optax.multi_transform({'grad': tx, 'zero': optax.set_to_zero()},
-    #                       frozen_dict.freeze({"params": {"norm": "zero", "out1": "grad", "out2": "grad",
-    #                                                      "seq": "zero"}}))
 
-    # partition_optimizers = {'trainable': tx, 'frozen': optax.set_to_zero()}
-    # param_partitions = flax.core.freeze(traverse_util.path_aware_map(
-    #     lambda path, v: 'frozen' if 'out' in path else 'trainable', variables['params']))
-    # tx = optax.multi_transform(partition_optimizers, param_partitions)
+    if 'updatesome' in ptcomments:
+        # if k in ["B", 'C', 'C1', 'C2', 'Lambda_im', 'Lambda_re']
+        ssm_fn = map_nested_fn(
+            lambda k, _: "zero"
+            if k in [
+                'B', 'C', 'C1', 'C2', 'Lambda_im', 'Lambda_re',
+                'nu_log', 'theta_log', 'gamma_log', 'B_im', 'B_re', 'C_im', 'C_re'
+            ]
+            else "regular"
+        )
+        tx = optax.multi_transform(
+            {
+                "zero": optax.set_to_zero(),
+                "regular": tx,
+            },
+            ssm_fn,
+        )
 
     aux_dict = {}
     TS = TrainState
@@ -155,9 +185,9 @@ def pretrain(
 
     multiply = True
     shuffling = False
-    mult_period = 50
+    mult_period = 1
     shuff_period = 50
-    optch_period = 400
+    optch_period = 100
     opt_changes = 0
 
     ptlosses = []
@@ -168,6 +198,7 @@ def pretrain(
 
     ma_loss = None
     tc = 5
+    li, nti, nli = None, None, None
     with tqdm(total=pretrain_steps) as pbar:
         for step in range(1, pretrain_steps + 1):
             # inputs as random samples of shape (batch_size, time_steps, features)
@@ -176,37 +207,42 @@ def pretrain(
             # inputs = random.uniform(pretrain_rng, (batch_size, time_steps, features), minval=-jnp.sqrt(3),
             #                         maxval=jnp.sqrt(3))
             state, loss, norms = train_step(state, inputs, dropout_rng, tnt, tnl, wshuff_rng)
-            ma_loss = loss if ma_loss is None else (tc-1)/tc * ma_loss + 1/tc * loss
+            ma_loss = loss if ma_loss is None else (tc - 1) / tc * ma_loss + 1 / tc * loss
             nt, nl = norms[0], norms[1]
             tnorms.append(float(norms[0]))
             lnorms.append(float(norms[1]))
             tnorms_std.append(float(norms[2]))
             lnorms_std.append(float(norms[3]))
 
+            if li is None:
+                li = loss
+                nti = nt
+                nli = nl
             pbar.set_description(
-                f"Pre-training Loss: {loss:.4f}, MA Loss: {ma_loss:.4f}, nt: {norms[0]:.2f}\u00B1{norms[2]:.2f}, nl: {norms[1]:.2f}\u00B1{norms[3]:.2f}",
+                f"Pre-training Loss: {loss:.4f}/{li:.4f}, MA Loss: {ma_loss:.4f}, nt: {norms[0]:.2f}\u00B1{norms[2]:.2f}/{nti:.4f}, nl: {norms[1]:.2f}\u00B1{norms[3]:.2f}/{nli:.4f}",
                 refresh=True)
             pbar.update(1)
 
             if 'changeopt' in ptcomments and step % optch_period == 0:
+                print('Changing optimizer')
                 multiply = True
                 opt_changes += 1
                 if opt_changes % 2 == 1:
-                    lr = ptlr * .5
+                    lr = ptlr * .05
                     # tx2 = optax.sgd(learning_rate=lr, momentum=0.7)
-                    tx2 = optax.adabelief(learning_rate=lr)
+                    tx2 = optax.adamw(learning_rate=lr)
 
                     shuff_period = 20
-                    optch_period = 200
+                    optch_period = 100
                     shuffling = False
-                    print(f'AdaBelief lr={lr}')
+                    print(f'\nAdamW lr={lr}')
                 else:
-                    lr = ptlr * .1
+                    lr = ptlr * .005
                     tx2 = optax.adamw(learning_rate=lr)
                     shuff_period = 20
-                    optch_period = 200
+                    optch_period = 100
                     shuffling = False
-                    print(f'AdamW lr={lr}')
+                    print(f'\nAdamW lr={lr}')
 
                 tx2 = optax.chain(
                     tx2,
@@ -220,7 +256,6 @@ def pretrain(
                 state = state.replace(opt_state=opt_state)
 
                 # shuffling = False
-                print('Changing optimizer')
 
             if 'wshuffle' in ptcomments and step % shuff_period == 0 and shuffling:
                 wshuff_rng, new_wshuff_rng = random.split(wshuff_rng)
@@ -242,24 +277,25 @@ def pretrain(
                         time_multiplier = False
                         depth_multiplier = False
 
-                        # if 'nu_log' in sk:
-                        #     time_multiplier = True
+                        # S5
 
-                        # elif 'Lambda_re' in sk or 'Lambda_im' in sk:
-                        #     time_multiplier = True
+                        if 'C1' in sk or 'C2' in sk:
+                            time_multiplier = True
 
-                        if 'C_re' == sk or 'C_im' == sk or 'B_re' == sk or 'B_im' == sk:
-                            depth_multiplier = True
-
-                        elif 'C1' == sk or 'C2' == sk or 'B' == sk or 'D' == sk:
-                            depth_multiplier = True
-
-                        elif sk == 'bias' or sk == 'scale':
-                            depth_multiplier = True
-                            print(sk, jnp.mean(sv), jnp.std(sv))
-
-                        # elif 'kernel' in sk:
+                        # if 'D' == sk:
                         #     depth_multiplier = True
+
+                        if 'log_step' == sk:
+                            depth_multiplier = True
+
+                        if 'Lambda_re' == sk or 'Lambda_im' == sk:
+                            depth_multiplier = True
+
+                        if 'scale' == sk:
+                            depth_multiplier = True
+
+                        if 'C_re' in sk or 'C_im' in sk or 'nu_log' in sk:
+                            time_multiplier = True
 
                         if time_multiplier:
                             m = tnt / nt
@@ -267,11 +303,13 @@ def pretrain(
                         if depth_multiplier:
                             m = tnl / nl
 
-                        if sk == 'bias' or sk == 'scale':
-                            m = 1 / m
+                        # if sk == 'C_re':
+                        #     m = 1 / m
+                        # if is not nan use it
 
-                        m = jnp.clip(m, .9, 1.1)
+                        m = jnp.clip(m, .95, 1.05)
                         print('multiplier:', m)
+                        print(f'mean/std:  {jnp.mean(sv)}/{jnp.std(sv)}')
                         state.params[k][sk] = m * sv
                 state = state.replace(params=state.params)
 
@@ -324,6 +362,7 @@ if __name__ == '__main__':
     batch_size = 8
     time_steps = 7
     features = 128
+    features = 16
     model_name = 'lru'  # lru s5
 
     if model_name == 'lru':
@@ -332,6 +371,7 @@ if __name__ == '__main__':
         d_hidden = int(features * 1.5)
 
         ssm = partial(LRU, d_hidden=d_hidden, d_model=features)
+
     elif model_name == 's5':
         from alif_sg.S5.s5.ssm import init_S5SSM
         from alif_sg.S5.s5.ssm_init import make_DPLR_HiPPO
@@ -382,9 +422,14 @@ if __name__ == '__main__':
     )(training=True)
 
     print(model)
-
+    comments = 'unbalanced'
+    comments = 'targetnorm:.5'
+    # comments = ''
     new_params, presults = pretrain(
-        model, 0, batch_size=batch_size, pretrain_steps=10,
+        model, 0, batch_size=batch_size, pretrain_steps=500,
+        comments=comments,
         time_steps=time_steps, features=features, loss_threshold=0.1,
-        # ptcomments='wmultiplier'
+        optimizer='sgd', ptlr=10,
+        ptcomments='nonan_updatesome_changeopt',
+        # ptcomments = 'nonan',
     )

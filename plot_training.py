@@ -1445,12 +1445,9 @@ if missing_exps and expsid == 's5lru':
         'eps': 'epochs', 'spe': 'steps_per_epoch'
     }, inplace=True)
 
-    print(f'Experiments already done: {sdf.shape}, len cols = {len(sdf.columns)}')
+    print(f'Experiments already done: {sdf.shape[0]}, len cols = {len(sdf.columns)}')
     sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
     sdf = sdf.astype({'lru': 'string', 'dataset': 'string', 'comments': 'string'})
-    print(sdf.head())
-    # get column types
-    print(sdf.dtypes)
 
     seed = 0
     n_seeds = 4
@@ -1484,7 +1481,7 @@ if missing_exps and expsid == 's5lru':
                     ci(lru),
                     ci(lru) + '_pretrain_targetnorm:1',
                     ci(lru) + '_pretrain_targetnorm:0.5',
-                    ci(lru) + '_pretrain_unbalanced',
+                    # ci(lru) + '_pretrain_unbalanced',
                     ci(lru) + '_clipping',
                 ],
             }

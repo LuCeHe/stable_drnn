@@ -78,7 +78,7 @@ def train(args):
         # d_model = H
 
         lru = partial(
-            LRU, d_hidden=d_hidden, d_model=d_model, r_min=args.r_min, r_max=args.r_max
+            LRU, d_hidden=d_hidden, d_model=d_model, r_min=args.r_min, r_max=args.r_max, max_phase=args.max_phase
         )
         ssm_init_fn = lru
     else:
