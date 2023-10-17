@@ -1049,9 +1049,18 @@ if remove_incomplete:
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
 
-    print('Eliminate IMDB')
+    # print('Eliminate IMDB')
+    # rdf = plotdf[
+    #     plotdf['dataset'].str.contains('Text')
+    # ]
+    # ardf = rdf.copy()
+    # print(rdf.to_string())
+    # print(rdf.shape, df.shape)
+    # rdfs.append(rdf)
+
+    print('Eliminate LRU')
     rdf = plotdf[
-        plotdf['dataset'].str.contains('Text')
+        plotdf['lru'].str.contains('True')
     ]
     ardf = rdf.copy()
     print(rdf.to_string())
