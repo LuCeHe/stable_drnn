@@ -55,15 +55,22 @@ def update_learning_rate_per_step(lr_params, state):
     step += 1
 
     # Update state
-    state.opt_state.inner_states['regular'].inner_state.hyperparams['learning_rate'] = np.array(lr_val,
-                                                                                                dtype=np.float32)
-    state.opt_state.inner_states['ssm'].inner_state.hyperparams['learning_rate'] = np.array(ssm_lr_val,
-                                                                                            dtype=np.float32)
+    if isinstance(state.opt_state, tuple):
+        opt_state = state.opt_state[0]
+    else:
+        opt_state = state.opt_state
+
+    opt_state.inner_states['regular'].inner_state.hyperparams['learning_rate'] = np.array(lr_val, dtype=np.float32)
+    opt_state.inner_states['ssm'].inner_state.hyperparams['learning_rate'] = np.array(ssm_lr_val, dtype=np.float32)
     if opt_config in ["BandCdecay"]:
         # In this case we are applying the ssm learning rate to B, even though
         # we are also using weight decay on B
-        state.opt_state.inner_states['none'].inner_state.hyperparams['learning_rate'] = np.array(ssm_lr_val,
-                                                                                                 dtype=np.float32)
+        opt_state.inner_states['none'].inner_state.hyperparams['learning_rate'] = np.array(ssm_lr_val, dtype=np.float32)
+
+    if isinstance(state.opt_state, tuple):
+        state = state.replace(opt_state=(opt_state, state.opt_state[1], state.opt_state[2]))
+    else:
+        state = state.replace(opt_state=opt_state)
 
     return state, step
 
@@ -282,6 +289,15 @@ def create_train_state(model_cls,
                                                                  weight_decay=weight_decay),
             },
             ssm_fn,
+        )
+
+    if 'emaopt' in args.comments:
+        print('here!')
+
+        tx = optax.chain(
+            tx,
+            optax.zero_nans(),
+            optax.ema(0.8),
         )
 
     fn_is_complex = lambda x: x.dtype in [np.complex64, np.complex128]

@@ -24,7 +24,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--comments", type=str, default='pretrain', help="String for extra behaviours")
+    parser.add_argument("--comments", type=str, default='emaopt', help="String for extra behaviours")
     parser.add_argument("--stop_time", default=600, type=int, help="Stop time")
 
     parser.add_argument("--dir_name", type=str, default=str(default_cache_path),

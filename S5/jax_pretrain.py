@@ -19,6 +19,10 @@ from flax import linen as nn
 import optax
 
 
+def flatten(x):
+    return jnp.reshape(x, (-1,))
+
+
 def compute_radius(i, Jb_osb, Jb):
     j_t = Jb_osb[:, i, :, i]
     Sigma_t = jnp.linalg.svd(j_t, compute_uv=False)
@@ -99,6 +103,25 @@ def print_params_tree(params):
 
     return print_recursive(params)
 
+def nestify(tx):
+    # if k in ["B", 'C', 'C1', 'C2', 'Lambda_im', 'Lambda_re']
+    ssm_fn = map_nested_fn(
+        lambda k, _: "zero"
+        if k in [
+            'B', 'C', 'C1', 'C2', 'Lambda_im', 'Lambda_re',
+            'nu_log', 'theta_log', 'gamma_log', 'B_im', 'B_re', 'C_im', 'C_re'
+        ]
+        else "regular"
+    )
+    tx = optax.multi_transform(
+        {
+            "zero": optax.set_to_zero(),
+            "regular": tx,
+        },
+        ssm_fn,
+    )
+    return tx
+
 
 def pretrain(
         model, jax_seed, batch_size, time_steps, features, comments='', ptcomments='', pretrain_steps=3000, plot=False,
@@ -150,22 +173,7 @@ def pretrain(
         )
 
     if 'updatesome' in ptcomments:
-        # if k in ["B", 'C', 'C1', 'C2', 'Lambda_im', 'Lambda_re']
-        ssm_fn = map_nested_fn(
-            lambda k, _: "zero"
-            if k in [
-                'B', 'C', 'C1', 'C2', 'Lambda_im', 'Lambda_re',
-                'nu_log', 'theta_log', 'gamma_log', 'B_im', 'B_re', 'C_im', 'C_re'
-            ]
-            else "regular"
-        )
-        tx = optax.multi_transform(
-            {
-                "zero": optax.set_to_zero(),
-                "regular": tx,
-            },
-            ssm_fn,
-        )
+        tx = nestify(tx)
 
     aux_dict = {}
     TS = TrainState
@@ -250,6 +258,8 @@ def pretrain(
                     optax.clip_by_global_norm(1.0),
                     optax.ema(0.3),
                 )
+                if 'updatesome' in ptcomments:
+                    tx2 = nestify(tx2)
 
                 opt_state = tx2.init(state.params)
                 state = state.replace(tx=tx2)
@@ -347,6 +357,30 @@ def pretrain(
 
         plt.show()
 
+    if 'updatesome' in ptcomments:
+        print('Check that only some weights were updated')
+        if 'B' in variables['params']['seq'].keys():
+            print('B')
+            t = flatten(variables['params']['seq']['B'])[:10]
+            print('Before:', t)
+            t = flatten(state.params['seq']['B'])[:10]
+            print('After: ', t)
+
+        if 'B_im' in variables['params']['seq'].keys():
+            print('B_im')
+            t = flatten(variables['params']['seq']['B_im'])[:10]
+            print('Before:', t)
+            t = flatten(state.params['seq']['B_im'])[:10]
+            print('After: ', t)
+
+        if 'norm' in variables['params'].keys():
+            print('scale norm')
+
+            t = flatten(variables['params']['norm']['scale'])[:10]
+            print('Before:', t)
+            t = flatten(state.params['norm']['scale'])[:10]
+            print('After: ', t)
+
     new_params = state.params
 
     results = {
@@ -363,7 +397,7 @@ if __name__ == '__main__':
     time_steps = 7
     features = 128
     features = 16
-    model_name = 'lru'  # lru s5
+    model_name = 's5'  # lru s5
 
     if model_name == 'lru':
         from alif_sg.S5.s5.lru_model import LRU
@@ -387,7 +421,7 @@ if __name__ == '__main__':
 
         Lambda = Lambda[:block_size]
         V = V[:, :block_size]
-        Vc = V.conj().T
+        Vc = V.conj ().T
 
         # If initializing state matrix A as block-diagonal, put HiPPO approximation
         # on each block
@@ -426,7 +460,7 @@ if __name__ == '__main__':
     comments = 'targetnorm:.5'
     # comments = ''
     new_params, presults = pretrain(
-        model, 0, batch_size=batch_size, pretrain_steps=500,
+        model, 0, batch_size=batch_size, pretrain_steps=200,
         comments=comments,
         time_steps=time_steps, features=features, loss_threshold=0.1,
         optimizer='sgd', ptlr=10,

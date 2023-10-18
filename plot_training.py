@@ -1058,16 +1058,6 @@ if remove_incomplete:
     # print(rdf.shape, df.shape)
     # rdfs.append(rdf)
 
-    print('Eliminate LRU')
-    rdf = plotdf[
-        plotdf['lru'].str.contains('True')
-    ]
-    ardf = rdf.copy()
-    print(rdf.to_string())
-    print(rdf.shape, df.shape)
-    rdfs.append(rdf)
-
-
     print('Eliminate if f_norms_std too large')
     # rdf = plotdf[
     #     (plotdf['f_norms_std'] > .2)
@@ -1459,17 +1449,17 @@ if missing_exps and expsid == 's5lru':
     sdf = sdf.astype({'lru': 'string', 'dataset': 'string', 'comments': 'string'})
 
     seed = 0
-    n_seeds = 4
+    n_seeds = 2
     seeds = [l + seed for l in range(n_seeds)]
 
     experiments = []
     datasets = [
         'cifar-classification',
-        'imdb-classification',
+        # 'imdb-classification',
         'listops-classification',
         'aan-classification',
-        'pathfinder-classification',
-        'pathx-classification'
+        # 'pathfinder-classification',
+        # 'pathx-classification'
     ]
 
     ci = lambda islru: 'default' if not islru else 'defaultlru_lruv3'
@@ -1490,6 +1480,8 @@ if missing_exps and expsid == 's5lru':
                     ci(lru),
                     ci(lru) + '_pretrain_targetnorm:1',
                     ci(lru) + '_pretrain_targetnorm:0.5',
+                    ci(lru) + '_pretrain_targetnorm:1_emaopt',
+                    ci(lru) + '_pretrain_targetnorm:0.5_emaopt',
                     # ci(lru) + '_pretrain_unbalanced',
                     ci(lru) + '_clipping',
                 ],
