@@ -39,11 +39,11 @@ GEXPERIMENTS = [
     # r'D:\work\alif_sg\experiments',
     # r'D:\work\alif_sg\good_experiments\2022-12-21--rnn',
     # r'D:\work\alif_sg\good_experiments\2023-01-20--rnn-v2',
-    # r'D:\work\alif_sg\good_experiments\2023-09-01--rnn-lru-first',
-    r'D:\work\alif_sg\good_experiments\2023-10-10--s5lru',
+    r'D:\work\alif_sg\good_experiments\2023-09-01--rnn-lru-first',
+    # r'D:\work\alif_sg\good_experiments\2023-10-10--s5lru',
 ]
 
-expsid = 's5lru'  # effnet als ffnandcnns s5lru
+expsid = 'als'  # effnet als ffnandcnns s5lru
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 lsc_epsilon = 0.02  # 0.02
@@ -67,8 +67,9 @@ plot_lrs = False
 plot_bars = False
 plot_new_bars = False
 chain_norms = False
+lruptb2latex = True
 
-missing_exps = True
+missing_exps = False
 remove_incomplete = False
 truely_remove = False
 truely_remove_pretrained = False
@@ -400,6 +401,9 @@ if pandas_means:
             idf = idf.sort_values(by=net_flag)
 
             print(idf.to_string())
+
+if lruptb2latex:
+    print('nice')
 
 if nice_bar_plot:
     df = df.copy()
@@ -1040,23 +1044,23 @@ if remove_incomplete:
     print('-=***=-' * 10)
     print('\n\n')
 
-    print('Eliminate pretrain')
-    rdf = plotdf[
-        plotdf['comments'].str.contains('pretrain')
-    ]
-    ardf = rdf.copy()
-    print(rdf.to_string())
-    print(rdf.shape, df.shape)
-    rdfs.append(rdf)
-
-    # print('Eliminate IMDB')
+    # print('Eliminate pretrain')
     # rdf = plotdf[
-    #     plotdf['dataset'].str.contains('Text')
+    #     plotdf['comments'].str.contains('pretrain')
     # ]
     # ardf = rdf.copy()
     # print(rdf.to_string())
     # print(rdf.shape, df.shape)
     # rdfs.append(rdf)
+
+    print('Eliminate test')
+    rdf = plotdf[
+        plotdf['comments'].str.contains('tsteps:2_test')
+    ]
+    ardf = rdf.copy()
+    print(rdf.to_string())
+    print(rdf.shape, df.shape)
+    rdfs.append(rdf)
 
     print('Eliminate if f_norms_std too large')
     # rdf = plotdf[
