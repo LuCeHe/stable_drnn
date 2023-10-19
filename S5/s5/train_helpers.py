@@ -55,7 +55,7 @@ def update_learning_rate_per_step(lr_params, state):
     step += 1
 
     # Update state
-    if isinstance(state.opt_state, tuple):
+    if len(state.opt_state) > 1:
         opt_state = state.opt_state[0]
     else:
         opt_state = state.opt_state
@@ -67,8 +67,10 @@ def update_learning_rate_per_step(lr_params, state):
         # we are also using weight decay on B
         opt_state.inner_states['none'].inner_state.hyperparams['learning_rate'] = np.array(ssm_lr_val, dtype=np.float32)
 
-    if isinstance(state.opt_state, tuple):
-        state = state.replace(opt_state=(opt_state, state.opt_state[1], state.opt_state[2]))
+    if len(state.opt_state) > 1:
+        new_opt_state = tuple([opt_state] + list(state.opt_state[1:]))
+        # state = state.replace(opt_state=(opt_state, state.opt_state[1], state.opt_state[2]))
+        state = state.replace(opt_state=new_opt_state)
     else:
         state = state.replace(opt_state=opt_state)
 
@@ -292,8 +294,6 @@ def create_train_state(model_cls,
         )
 
     if 'emaopt' in args.comments:
-        print('here!')
-
         tx = optax.chain(
             tx,
             optax.zero_nans(),

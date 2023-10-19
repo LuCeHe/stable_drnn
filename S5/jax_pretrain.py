@@ -103,14 +103,15 @@ def print_params_tree(params):
 
     return print_recursive(params)
 
-def nestify(tx):
-    # if k in ["B", 'C', 'C1', 'C2', 'Lambda_im', 'Lambda_re']
-    ssm_fn = map_nested_fn(
-        lambda k, _: "zero"
-        if k in [
-            'B', 'C', 'C1', 'C2', 'Lambda_im', 'Lambda_re',
+skip_weights = [
+            'B', 'C', 'C1', 'C2', 'D', 'Lambda_im', 'Lambda_re', 'log_step',
             'nu_log', 'theta_log', 'gamma_log', 'B_im', 'B_re', 'C_im', 'C_re'
         ]
+
+def nestify(tx):
+    ssm_fn = map_nested_fn(
+        lambda k, _: "zero"
+        if k in skip_weights
         else "regular"
     )
     tx = optax.multi_transform(
@@ -192,9 +193,9 @@ def pretrain(
     )
 
     multiply = True
-    shuffling = False
+    shuffling = True
     mult_period = 1
-    shuff_period = 50
+    shuff_period = 5
     optch_period = 100
     opt_changes = 0
 
@@ -242,14 +243,14 @@ def pretrain(
 
                     shuff_period = 20
                     optch_period = 100
-                    shuffling = False
+                    shuffling = True
                     print(f'\nAdamW lr={lr}')
                 else:
                     lr = ptlr * .005
                     tx2 = optax.adamw(learning_rate=lr)
                     shuff_period = 20
                     optch_period = 100
-                    shuffling = False
+                    shuffling = True
                     print(f'\nAdamW lr={lr}')
 
                 tx2 = optax.chain(
@@ -421,7 +422,7 @@ if __name__ == '__main__':
 
         Lambda = Lambda[:block_size]
         V = V[:, :block_size]
-        Vc = V.conj ().T
+        Vc = V.conj().T
 
         # If initializing state matrix A as block-diagonal, put HiPPO approximation
         # on each block

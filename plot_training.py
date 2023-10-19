@@ -1455,7 +1455,7 @@ if missing_exps and expsid == 's5lru':
     experiments = []
     datasets = [
         'cifar-classification',
-        # 'imdb-classification',
+        'imdb-classification',
         'listops-classification',
         'aan-classification',
         # 'pathfinder-classification',
@@ -1480,10 +1480,14 @@ if missing_exps and expsid == 's5lru':
                     ci(lru),
                     ci(lru) + '_pretrain_targetnorm:1',
                     ci(lru) + '_pretrain_targetnorm:0.5',
-                    ci(lru) + '_pretrain_targetnorm:1_emaopt',
-                    ci(lru) + '_pretrain_targetnorm:0.5_emaopt',
                     # ci(lru) + '_pretrain_unbalanced',
                     ci(lru) + '_clipping',
+                    # ================================================
+                    ci(lru) + '_emaopt',
+                    ci(lru) + '_pretrain_targetnorm:1_emaopt',
+                    ci(lru) + '_pretrain_targetnorm:0.5_emaopt',
+                    ci(lru) + '_clipping_emaopt',
+
                 ],
             }
             experiments.append(experiment)

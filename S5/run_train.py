@@ -24,24 +24,23 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--comments", type=str, default='emaopt', help="String for extra behaviours")
+    parser.add_argument("--comments", type=str, default='emaopt_pretrain', help="String for extra behaviours")
     parser.add_argument("--stop_time", default=600, type=int, help="Stop time")
-
     parser.add_argument("--dir_name", type=str, default=str(default_cache_path),
                         help="name of directory where data is cached")
     parser.add_argument("--exp_dir", type=str, default=str(EXPERIMENT),
                         help="name of directory where data is cached")
     parser.add_argument("--dataset", type=str, choices=Datasets.keys(),
-                        default='cifar-classification',
+                        default='mnist-classification',
                         help="dataset name")
 
     # Model Parameters
     parser.add_argument("--n_layers", type=int, default=2,
                         help="Number of layers in the network")
-    parser.add_argument("--d_model", type=int, default=128 * 2,
+    parser.add_argument("--d_model", type=int, default=64, # 64 * 4,
                         help="Number of features, i.e. H, "
                              "dimension of layer inputs/outputs")
-    parser.add_argument("--ssm_size_base", type=int, default=96 * 2,
+    parser.add_argument("--ssm_size_base", type=int, default=96, # 48 * 4,
                         help="SSM Latent size, i.e. P")
     parser.add_argument("--blocks", type=int, default=12,
                         help="How many blocks, J, to initialize with")
@@ -76,7 +75,7 @@ if __name__ == "__main__":
                         help="True: use batchnorm, False: use layernorm")
     parser.add_argument("--bn_momentum", type=float, default=0.95,
                         help="batchnorm momentum")
-    parser.add_argument("--bsz", type=int, default=4, help="batch size")
+    parser.add_argument("--bsz", type=int, default=2, help="batch size")
     parser.add_argument("--epochs", type=int, default=2, help="max number of epochs")
     parser.add_argument("--steps_per_epoch", type=int, default=2,
                         help="max number steps per epoch")
@@ -115,7 +114,7 @@ if __name__ == "__main__":
                         help="seed randomness")
 
     # LRU Parameters
-    parser.add_argument("--lru", type=str2bool, default=False,
+    parser.add_argument("--lru", type=str2bool, default=True,
                         help="True: use LRU, False: don't use LRU")
     parser.add_argument("--r_min", type=float, default=0.5, help="r_min for LRU")
     parser.add_argument("--r_max", type=float, default=0.99, help="r_max for LRU")
