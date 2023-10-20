@@ -39,11 +39,11 @@ GEXPERIMENTS = [
     # r'D:\work\alif_sg\experiments',
     # r'D:\work\alif_sg\good_experiments\2022-12-21--rnn',
     # r'D:\work\alif_sg\good_experiments\2023-01-20--rnn-v2',
-    r'D:\work\alif_sg\good_experiments\2023-09-01--rnn-lru-first',
-    # r'D:\work\alif_sg\good_experiments\2023-10-10--s5lru',
+    # r'D:\work\alif_sg\good_experiments\2023-09-01--rnn-lru-first',
+    r'D:\work\alif_sg\good_experiments\2023-10-10--s5lru',
 ]
 
-expsid = 'als'  # effnet als ffnandcnns s5lru
+expsid = 's5lru'  # effnet als ffnandcnns s5lru
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 lsc_epsilon = 0.02  # 0.02
@@ -67,7 +67,7 @@ plot_lrs = False
 plot_bars = False
 plot_new_bars = False
 chain_norms = False
-lruptb2latex = True
+lruptb2latex = False
 
 missing_exps = False
 remove_incomplete = False
@@ -86,6 +86,7 @@ metrics_oi = [
     'val_ppl m', 'val_mode_acc M', 'test_ppl', 'test_mode_acc',
     # 'LSC_norms i', 'LSC_norms f', 'LSC_norms mean',
     'ma_norm', 'ni',
+    'conveps',
     # 'final_norms_mean', 'final_norms_std', 'best_std_ma_norm', 'std_ma_norm',
 ]
 
@@ -181,7 +182,10 @@ new_column_names = {c_name: shorten_losses(c_name) for c_name in df.columns}
 df.rename(columns=new_column_names, inplace=True)
 
 if 'v_ppl argm' in df.columns and 'v_ppl len' in df.columns:
-    df['conveps'] = df['v_ppl len'] - df['v_ppl argm']
+    df['conveps'] = df['v_ppl len'].astype(float) - df['v_ppl argm'].astype(float)
+
+if 'val_ppl argm' in df.columns and 'val_ppl len' in df.columns:
+    df['conveps'] = df['val_ppl len'].astype(float) - df['val_ppl argm'].astype(float)
 
 if 'val_acc argM' in df.columns and 'val_acc len' in df.columns:
     df['conveps'] = df['val_acc len'].astype(float) - df['val_acc argM'].astype(float)
@@ -250,52 +254,71 @@ if plot_pretrained_weights:
 
 if plot_losses:
     df['comments'] = df['comments'].str.replace('allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_', '')
+    df = df[df['task'].str.contains('wordptb')]
 
     # plot_metric = 'val_^acc list'
     # plot_metric = 'LSC list'
     # plot_metric = 'norms dec layer 1 list'  # enc depth rec dec
     # tasks = df['task'].unique()
     # nets = df['net'].unique()
-    tasks = df[task_flag].unique()
-    nets = df[net_flag].unique()
-    comments = df['comments'].unique()
-    comments = [c.replace('_onlypretrain', '') for c in comments]
-    df = df[~df['comments'].str.contains('randlsc')]
-    print(comments)
-    print(tasks)
-    print(nets)
-    fig, axs = plt.subplots(len(tasks), len(nets), figsize=(len(nets) * 3, len(tasks) * 3),
-                            gridspec_kw={'wspace': .2, 'hspace': 0.8})
+
+    flags = [task_flag, net_flag]
+    flags = [task_flag, depth_flag]
+    assert len(flags) == 2
+    fu = {f: sorted(df[f].unique()) for f in flags}
+    # tasks = df[task_flag].unique()
+    # nets = df[net_flag].unique()
+    # depths = df[depth_flag].unique()
+    for k, v in fu.items():
+        print(k)
+        print(v)
+    # print(tasks)
+    # print(nets)
+    fig, axs = plt.subplots(
+        len(fu[flags[0]]), len(fu[flags[1]]), figsize=(6, 3),
+        gridspec_kw={'wspace': .2, 'hspace': 0.8}
+    )
     # add axis to axs if one dimensional
-    if len(tasks) == 1:
+    if len(fu[flags[0]]) == 1:
         axs = np.expand_dims(axs, axis=0)
-    if len(nets) == 1:
+    if len(fu[flags[1]]) == 1:
         axs = np.expand_dims(axs, axis=1)
 
-    for i, task in enumerate(tasks):
-        for j, net in enumerate(nets):
-            if not net == 'LIF':
-                print('-===-' * 30)
-                print(task, net)
-                idf = df[df[task_flag].str.contains(task) & df[net_flag].str.contains(net)]
+    for i in range(len(fu[flags[0]])):
+        for j in range(len(fu[flags[1]])):
+            print('-===-' * 30)
+            # print(task, net)
+            # idf = idf[idf[task_flag].str.contains(task) & idf[net_flag].str.contains(net)]
+            idf = df.copy()
+            for k, f in enumerate(flags):
+                c = i if k == 0 else j
+                idf = idf[idf[f].str.contains(fu[f][c])]
+            print(idf.to_string())
+            for _, row in idf.iterrows():
+                n = row['comments']
+                print(n)
+                if isinstance(row[plot_metric], list):
+                    linestyle = '-' if not 'clipping' in row['comments'] else '--'
+                    axs[i, j].plot(row[plot_metric], color=lsc_colors(n), label=lsc_clean_comments(n),
+                                   linestyle=linestyle)
 
-                for _, row in idf.iterrows():
-                    n = row['comments']
-                    # c = 'r' if 'LSC' in row['comments'] else 'b'
-                    # c = 'r' if 'supsub' in row['comments'] else 'b'
-                    if isinstance(row[plot_metric], list):
-                        # print(row['loss list'])
-                        print('epochs', len(row[plot_metric]), n)
-                        axs[i, j].plot(row[plot_metric], color=lsc_colors(n), label=lsc_clean_comments(n))
-                    else:
-                        print(row[plot_metric], row['path'], row['comments'])
+            axs[i, j].set_title(f'{fu[flags[1]][j]} layers')
+    metric = plot_metric.replace('val_ppl', 'Validation Perplexity').replace(' list', '')
+    axs[0, 0].set_ylabel(metric, fontsize=14)
+    for ax in axs.reshape(-1):
+        for pos in ['right', 'left', 'bottom', 'top']:
+            ax.spines[pos].set_visible(False)
+            ax.set_ylim([100, 300])
 
-                axs[i, j].set_title(f'{task} {net}')
-
+    comments = df['comments'].unique()
+    comments = [c for c in comments if not 'clipping' in c]
     legend_elements = [Line2D([0], [0], color=lsc_colors(n), lw=4, label=lsc_clean_comments(n)) for n in comments]
-    plt.legend(ncol=3, handles=legend_elements, loc='lower center')  # , bbox_to_anchor=(-.1, -1.))
+    plt.legend(ncol=2, handles=legend_elements, loc='lower center', bbox_to_anchor=(-.2, -.5))
 
     plt.show()
+
+    plotpath = os.path.join(EXPERIMENTS, 'losses_lru.pdf')
+    fig.savefig(plotpath, bbox_inches='tight')
 
 if 'net' in df.columns:
     # df.loc[df['comments'].str.contains('noalif'), 'net'] = 'LIF'
@@ -403,7 +426,65 @@ if pandas_means:
             print(idf.to_string())
 
 if lruptb2latex:
-    print('nice')
+    xdf = mdf.copy()
+    xdf = xdf[xdf['task'].str.contains('PTB')]
+    xdf['clipping'] = xdf['comments'].str.contains('clipping')
+
+    new_column_names = {
+        'mean_val_ppl m': 'mean_val_ppl',
+        'std_val_ppl m': 'std_val_ppl',
+    }
+    xdf.rename(columns=new_column_names, inplace=True)
+
+    coi = ['comments', 'clipping', 'stack', 'mean_val_ppl', 'std_val_ppl', 'mean_test_ppl', 'std_test_ppl']
+    xdf = xdf[coi]
+    coif = ['comments', 'vppl', 'tppl']
+
+    xdf['comments'] = xdf['comments'].str.replace('_clipping', '')
+    xdf['comments'] = xdf['comments'].str.replace('findLSC_radius', 'LSC')
+    xdf['comments'] = xdf['comments'].str.replace('allns_36_dropout:.0_', '')
+
+    # write $\rho=1$ as comments if comments is LSC
+    xdf['comments'] = xdf.apply(lambda row: r'$\rho=1$' if 'LSC' == row['comments'] else row['comments'], axis=1)
+    xdf['comments'] = xdf.apply(
+        lambda row: r'$\rho=0.5$' if 'LSC_targetnorm:.5' == row['comments'] else row['comments'], axis=1)
+    xdf['comments'] = xdf.apply(
+        lambda row: r'$\overline{\rho}_t=0.5$' if 'LSC_targetnorm:.5_unbalanced' == row['comments'] else row[
+            'comments'], axis=1)
+    xdf['comments'] = xdf.apply(lambda row: r'default' if '' == row['comments'] else row['comments'], axis=1)
+    xdf['comments'] = xdf.apply(lambda row: row['comments'] + ' + clip' if row['clipping'] else row['comments'], axis=1)
+
+    depths = sorted(np.unique(xdf['stack']))
+
+    for d in depths:
+        idf = xdf[xdf['stack'].eq(d)]
+        # sort by clipping column
+        idf = idf.sort_values(by='clipping', ascending=True)
+
+        metrics_cols = [c for c in idf.columns if 'ppl' in c]
+        for m in metrics_cols:
+            mode = 'max' if 'acc' in m and not 'std' in m else 'min'
+            idf[f'best_{m}'] = idf.groupby(['clipping'])[m].transform(mode)
+            idf[m] = idf.apply(bolden_best(m), axis=1)
+
+        idf['vppl'] = idf.apply(compactify_metrics('ppl', data_split='val_'), axis=1)
+        idf['tppl'] = idf.apply(compactify_metrics('ppl', data_split='test_'), axis=1)
+
+        idf = idf[coif]
+
+
+        latex_df = idf.to_latex(index=False, escape=False).replace('{lll}', '{lcc}')
+        latex_df = latex_df.replace('comments', r'\textbf{' + f'Depth {d} LRU' + r'}')
+        latex_df = latex_df.replace('vppl', r'\textbf{\shortstack{validation \\ perplexity} }')
+        latex_df = latex_df.replace('tppl', r'\textbf{\shortstack{test \\ perplexity} }')
+
+        #
+        import re
+
+        latex_df = re.sub(' +', ' ', latex_df)
+        print('\n\n')
+        print(latex_df)
+
 
 if nice_bar_plot:
     df = df.copy()
@@ -1053,14 +1134,6 @@ if remove_incomplete:
     # print(rdf.shape, df.shape)
     # rdfs.append(rdf)
 
-    print('Eliminate test')
-    rdf = plotdf[
-        plotdf['comments'].str.contains('tsteps:2_test')
-    ]
-    ardf = rdf.copy()
-    print(rdf.to_string())
-    print(rdf.shape, df.shape)
-    rdfs.append(rdf)
 
     print('Eliminate if f_norms_std too large')
     # rdf = plotdf[
@@ -1222,31 +1295,31 @@ if remove_incomplete:
     #     rdfs.append(rdf)
 
     print('Remove repeated experiments')
-    # brdf = mdf[mdf['counts'] > 4]
-    # print(brdf.to_string())
+    brdf = mdf[mdf['counts'] > 4]
+    print(brdf.to_string())
 
-    # for _, row in brdf.iterrows():
-    #     print('-' * 80)
-    #     srdf = plotdf[
-    #         # (df['lr'] == row['lr'])
-    #         (plotdf['comments'].eq(row['comments']))
-    #         & (plotdf[depth_flag] == row[depth_flag])
-    #         & (plotdf[task_flag] == row[task_flag])
-    #         & (plotdf[net_flag] == row[net_flag])
-    #         ].copy()
-    #
-    #     # order wrt path column
-    #     srdf = srdf.sort_values(by=['path'], ascending=False)
-    #
-    #     # no duplicates
-    #     gsrdf = srdf.drop_duplicates(subset=['seed'])
-    #
-    #     # remainder
-    #     rdf = srdf[~srdf.apply(tuple, 1).isin(gsrdf.apply(tuple, 1))]
-    #     print(srdf.to_string())
-    #     print(rdf.to_string())
-    #     print(rdf.shape)
-    #     rdfs.append(rdf)
+    for _, row in brdf.iterrows():
+        print('-' * 80)
+        srdf = plotdf[
+            # (df['lr'] == row['lr'])
+            (plotdf['comments'].eq(row['comments']))
+            & (plotdf[depth_flag] == row[depth_flag])
+            & (plotdf[task_flag] == row[task_flag])
+            & (plotdf[net_flag] == row[net_flag])
+            ].copy()
+
+        # order wrt path column
+        srdf = srdf.sort_values(by=['path'], ascending=False)
+
+        # no duplicates
+        gsrdf = srdf.drop_duplicates(subset=['jax_seed'])
+
+        # remainder
+        rdf = srdf[~srdf.apply(tuple, 1).isin(gsrdf.apply(tuple, 1))]
+        print(srdf.to_string())
+        print(rdf.to_string())
+        print(rdf.shape)
+        rdfs.append(rdf)
 
     allrdfs = pd.concat(rdfs)
     allrdfs = allrdfs.drop_duplicates()

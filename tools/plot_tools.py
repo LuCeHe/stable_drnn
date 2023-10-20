@@ -1,4 +1,6 @@
 import numpy as np
+
+
 def clean_weight_name(wn):
     if 'encoder' in wn or 'reg' in wn:
         layer = wn.split('_')[1]
@@ -90,8 +92,9 @@ def compactify_metrics(metric='ppl', data_split='test', round_to=2):
         round_to = '{0:.2f}'
     else:
         round_to = '{0:.3f}'
+
     def cm(row):
-        print(row.keys())
+        # print(row.keys())
         if data_split is None:
             mt = row[f'mean_t_{metric}']
             st = row[f'std_t_{metric}']
@@ -100,15 +103,15 @@ def compactify_metrics(metric='ppl', data_split='test', round_to=2):
 
             output = f"${str(mv)}\pm {str(sv)}$/${str(mt)}\pm {str(st)}$"
         else:
-            print(row[f'mean_{data_split}{metric}'])
-            print(type(row[f'mean_{data_split}{metric}']))
+            # print(row[f'mean_{data_split}{metric}'])
+            # print(type(row[f'mean_{data_split}{metric}']))
             m = row[f'mean_{data_split}{metric}']
             s = row[f'std_{data_split}{metric}']
             if not isinstance(m, str):
                 m = round_to.format(m)
                 s = round_to.format(s)
             output = f"${m}~\pm~{s}$"
-            if row['vs_epsilon']:
+            if 'vs_epsilon' in row.keys() and row['vs_epsilon']:
                 # strike through the output
                 output = r'\sout{' + output + '}'
 
@@ -126,7 +129,6 @@ def choose_metric(row):
 
 
 def bolden_best(metric='mean_t_ppl'):
-
     if 'acc' in metric or 'ppl' in metric:
         round_to = '{0:.2f}'
     else:
@@ -220,28 +222,38 @@ lsc_colors_dict = {
 
 
 def lsc_colors(name):
-    name  = name.replace('_onlypretrain', '')
-    name  = name.replace('_onlyloadpretrained', '')
+    name = name.replace('_onlypretrain', '')
+    name = name.replace('_onlyloadpretrained', '')
     if name in lsc_colors_dict.keys():
         return lsc_colors_dict[name]
+    elif 'targetnorm:.5_unbalanced' in name:
+        return lsc_colors_dict['findLSC_radius_targetnorm:.5_randlsc']
+    elif 'targetnorm:.5' in name:
+        return lsc_colors_dict['findLSC_radius_targetnorm:.5']
+    elif 'radius' in name:
+        return lsc_colors_dict['findLSC_radius']
     else:
         # assign random color
-        return np.random.rand(3)
+        return 'k'
 
 
 def lsc_clean_comments(c):
+    if not 'findLSC' in c:
+        c = 'default'
+
     if c == 'findLSC':
         c = 'sub ($L_2$)'
     c = c.replace('findLSC_', '')
 
+    if 'unbalanced' in c:
+        c = r'$\overline{\rho}_t=0.5$'
+
     if 'targetnorm:.5' in c:
-        c = r'sub ($\rho_{1/2}$)'
+        c = r'$\rho_t=0.5$'
 
     if 'radius' in c:
         # c = r'up ($\rho$)'
-        c = r'LSC ($\rho_t=1$)'
-
-
+        c = r'$\rho_t=1$'
 
     if c == '':
         c = 'Glorot'
@@ -253,11 +265,11 @@ def lsc_clean_comments(c):
     c = c.replace('npsd', '')
     # c = c.replace('2', '')
 
-
     if 'supsub' in c:
         c = 'up-low'
     if 'sup' in c:
         c = 'low'
+
     return c
 
 
