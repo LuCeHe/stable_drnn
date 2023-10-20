@@ -43,13 +43,13 @@ GEXPERIMENTS = [
     r'D:\work\alif_sg\good_experiments\2023-10-10--s5lru',
 ]
 
-expsid = 's5lru'  # effnet als ffnandcnns s5lru
+expsid = 'als'  # effnet als ffnandcnns s5lru
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 lsc_epsilon = 0.02  # 0.02
 
 check_for_new = True
-plot_losses = False
+plot_losses = True
 one_exp_curves = False
 pandas_means = True
 show_per_tasknet = True
@@ -86,13 +86,13 @@ metrics_oi = [
     'val_ppl m', 'val_mode_acc M', 'test_ppl', 'test_mode_acc',
     # 'LSC_norms i', 'LSC_norms f', 'LSC_norms mean',
     'ma_norm', 'ni',
-    'conveps',
+    'n_params', 'conveps',
     # 'final_norms_mean', 'final_norms_std', 'best_std_ma_norm', 'std_ma_norm',
 ]
 
 metrics_oi = [shorten_losses(m) for m in metrics_oi]
 
-plot_only = ['seed', 'net', 'task', 'n_params', 'stack', 'comments', 'path', 'lr', 'host_hostname',
+plot_only = ['seed', 'net', 'task', 'stack', 'comments', 'path', 'lr', 'n_neurons', 'host_hostname',
              'v_ppl argm', 'v_ppl len', ] + metrics_oi
 
 columns_to_remove = [
@@ -108,7 +108,7 @@ force_keep_column = [
     'final_norms_mean', 'final_norms_std'
 ]
 
-group_cols = ['net', 'task', 'comments', 'stack']
+group_cols = ['net', 'task', 'comments', 'stack', 'lr', 'n_neurons']
 task_flag = 'task'  # task dataset
 net_flag = 'net'  # net lru
 depth_flag = 'stack'  # 'stack'
