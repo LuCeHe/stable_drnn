@@ -132,8 +132,8 @@ def pretrain(
 
     tnt, tnl = target_norm, target_norm
     if 'unbalanced' in comments:
-        tnl = 0.1
-        tnt = .9
+        tnl = 0.02
+        tnt = .98
 
     print(f'Targets: tl={tnl}, tt={tnt}')
 
