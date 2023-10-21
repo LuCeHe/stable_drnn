@@ -92,7 +92,8 @@ metrics_oi = [
 
 metrics_oi = [shorten_losses(m) for m in metrics_oi]
 
-plot_only = ['seed', 'net', 'task', 'stack', 'comments', 'path', 'lr', 'n_neurons', 'host_hostname',
+plot_only = ['seed', 'net', 'task', 'stack', 'comments', 'path', 'lr', 'n_neurons',
+             'optimizer_name', 'host_hostname',
              'v_ppl argm', 'v_ppl len', ] + metrics_oi
 
 columns_to_remove = [
@@ -108,7 +109,7 @@ force_keep_column = [
     'final_norms_mean', 'final_norms_std'
 ]
 
-group_cols = ['net', 'task', 'comments', 'stack', 'lr', 'n_neurons']
+group_cols = ['net', 'task', 'comments', 'stack', 'lr', 'n_neurons', 'optimizer_name']
 task_flag = 'task'  # task dataset
 net_flag = 'net'  # net lru
 depth_flag = 'stack'  # 'stack'
