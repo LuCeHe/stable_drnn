@@ -49,7 +49,7 @@ h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 lsc_epsilon = 0.02  # 0.02
 
 check_for_new = True
-plot_losses = True
+plot_losses = False
 one_exp_curves = False
 pandas_means = True
 show_per_tasknet = True
@@ -388,9 +388,10 @@ if pandas_means:
     if 'mean_n_params' in mdf.columns:
         mdf['mean_n_params'] = mdf['mean_n_params'].apply(lambda x: large_num_to_reasonable_string(x, 1))
 
-    print(mdf.to_string())
+    if not show_per_tasknet:
+        print(mdf.to_string())
 
-    if show_per_tasknet:
+    else:
         tasks = sorted(np.unique(mdf[task_flag]))
         nets = sorted(np.unique(mdf[net_flag]))
         stacks = sorted(np.unique(mdf[depth_flag]))
@@ -422,10 +423,13 @@ if pandas_means:
             idf.rename(columns=new_column_names, inplace=True)
             idf = idf[cols]
 
-            idf = idf.sort_values(by=net_flag)
+            idf = idf.sort_values(by='mean_' + metric, ascending=True)
+            # idf = idf.sort_values(by='mean_test_ppl', ascending=True)
+
+            # idf = idf.sort_values(by=net_flag)
 
             print(idf.to_string())
-
+            print('here?')
 if lruptb2latex:
     xdf = mdf.copy()
     xdf = xdf[xdf['task'].str.contains('PTB')]
