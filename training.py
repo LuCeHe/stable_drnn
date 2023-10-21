@@ -1,4 +1,4 @@
-import os, shutil, logging, json, copy
+import os, shutil, logging, json, copy, time
 import pandas as pd
 
 from alif_sg.neural_models.lruLSC import lruLSC
@@ -59,7 +59,7 @@ def config():
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
     stack = 3
     n_neurons = 128
-    # 3.1M
+
     embedding = 'learned:None:None:{}'.format(n_neurons) if task in language_tasks else False
     # comments = 'allns_36_nogradreset_dropout:0'
     comments = 'lscdepth:1_36_embproj_nogradreset_dropout:0_findLSC_radius_pretrained_tsteps:2_test'
@@ -90,6 +90,8 @@ def config():
 def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
          seed, net, n_neurons, lr, stack, loss_name, embedding, optimizer_name,
          lr_schedule, weight_decay, clipnorm, initializer, stop_time, _log):
+    time_start = time.perf_counter()
+
     task_name = task
     net_name = net
 
@@ -161,8 +163,6 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
 
 
     if 'findLSC' in comments or 'onlyloadpretrained' in comments:
-        import time
-        time_start = time.perf_counter()
         print('Finding the LSC...')
         n_samples = str2val(comments, 'normsamples', int, default=-1)
         lscrec = bool(str2val(comments, 'lscrec', int, default=0))
@@ -368,6 +368,10 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
     results['full_comments'] = comments
     results['final_epochs'] = str(actual_epochs)
     results['final_steps_per_epoch'] = final_steps_per_epoch
+    time_elapsed = (time.perf_counter() - time_start)
+
+    results.update(time_elapsed=time_elapsed)
 
     save_results(other_dir, results)
-    print('DONE')
+
+    print('All done, in ' + str(time_elapsed) + 's')
