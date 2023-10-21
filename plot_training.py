@@ -304,8 +304,8 @@ if plot_losses:
                                    linestyle=linestyle)
 
             axs[i, j].set_title(f'{fu[flags[1]][j]} layers')
-    metric = plot_metric.replace('val_ppl', 'Validation Perplexity').replace(' list', '')
-    axs[0, 0].set_ylabel(metric, fontsize=14)
+    metric_ = plot_metric.replace('val_ppl', 'Validation Perplexity').replace(' list', '')
+    axs[0, 0].set_ylabel(metric_, fontsize=14)
     for ax in axs.reshape(-1):
         for pos in ['right', 'left', 'bottom', 'top']:
             ax.spines[pos].set_visible(False)
