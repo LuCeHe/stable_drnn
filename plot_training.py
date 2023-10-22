@@ -49,7 +49,7 @@ h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 lsc_epsilon = 0.02  # 0.02
 
 check_for_new = True
-plot_losses = True
+plot_losses = False
 one_exp_curves = False
 pandas_means = True
 show_per_tasknet = True
@@ -79,6 +79,7 @@ check_all_norms = False
 # val_sparse_mode_accuracy test_perplexity
 metric = 'v_mode_acc'  # 'v_ppl min'
 metric = 'val_ppl m'  # 'v_ppl min'
+metric = 'test_ppl'  # 'v_ppl min'
 metric = shorten_losses(metric)
 metrics_oi = [
     # 't_ppl min', 't_mode_acc max', 'v_ppl min', 'v_mode_acc max',
@@ -92,7 +93,7 @@ metrics_oi = [
 
 metrics_oi = [shorten_losses(m) for m in metrics_oi]
 
-plot_only = ['seed', 'net', 'task', 'stack', 'comments', 'path', 'lr', 'n_neurons',
+plot_only = ['seed', 'net', 'task', 'stack', 'comments', 'path', 'lr', 'n_neurons', 'batch_size',
              'optimizer_name', 'host_hostname',
              'v_ppl argm', 'v_ppl len', ] + metrics_oi
 
@@ -109,7 +110,7 @@ force_keep_column = [
     'final_norms_mean', 'final_norms_std'
 ]
 
-group_cols = ['net', 'task', 'comments', 'stack', 'lr', 'n_neurons', 'optimizer_name']
+group_cols = ['net', 'task', 'comments', 'stack', 'lr', 'n_neurons', 'optimizer_name', 'batch_size']
 task_flag = 'task'  # task dataset
 net_flag = 'net'  # net lru
 depth_flag = 'stack'  # 'stack'
