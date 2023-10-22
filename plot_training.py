@@ -79,7 +79,7 @@ check_all_norms = False
 # val_sparse_mode_accuracy test_perplexity
 metric = 'v_mode_acc'  # 'v_ppl min'
 metric = 'val_ppl m'  # 'v_ppl min'
-metric = 'test_ppl'  # 'v_ppl min'
+# metric = 'test_ppl'  # 'v_ppl min'
 metric = shorten_losses(metric)
 metrics_oi = [
     # 't_ppl min', 't_mode_acc max', 'v_ppl min', 'v_mode_acc max',
@@ -94,7 +94,7 @@ metrics_oi = [
 metrics_oi = [shorten_losses(m) for m in metrics_oi]
 
 plot_only = ['seed', 'net', 'task', 'stack', 'comments', 'path', 'lr', 'n_neurons', 'batch_size',
-             'optimizer_name', 'host_hostname',
+             'optimizer_name','lr_schedule', 'host_hostname',
              'v_ppl argm', 'v_ppl len', ] + metrics_oi
 
 columns_to_remove = [
@@ -110,7 +110,7 @@ force_keep_column = [
     'final_norms_mean', 'final_norms_std'
 ]
 
-group_cols = ['net', 'task', 'comments', 'stack', 'lr', 'n_neurons', 'optimizer_name', 'batch_size']
+group_cols = ['net', 'task', 'comments', 'stack', 'lr', 'n_neurons', 'optimizer_name', 'batch_size', 'lr_schedule']
 task_flag = 'task'  # task dataset
 net_flag = 'net'  # net lru
 depth_flag = 'stack'  # 'stack'
