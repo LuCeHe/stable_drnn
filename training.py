@@ -70,6 +70,7 @@ def config():
     # optimizer properties
     lr = None  # 7e-4 None
     optimizer_name = 'SWAAdaBeliefLA'  # AdaBelief AdamW SWAAdaBelief AdaBeliefLA
+    optimizer_name = 'Adam'  # AdaBelief AdamW SWAAdaBelief AdaBeliefLA
     lr_schedule = ''  # 'warmup_cosine_restarts'
     weight_decay_prop_lr = None
     weight_decay = 0. if not 'lra_' in task else 0.1
