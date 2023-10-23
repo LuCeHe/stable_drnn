@@ -65,7 +65,7 @@ def config():
     comments = 'lscdepth:1_36_embproj_nogradreset_dropout:0_findLSC_radius_pretrained_tsteps:2_test'
     # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain_pretrained_lsclr:0.0001_nbs:16_tsteps:10'
     # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain_pretrained_lsclr:0.0001_nbs:16_targetnorm:.5'
-    comments = 'allns_36_dropout:.0_hsoftpos_'
+    comments = 'allns_36_dropout:.0_embproj_mlminputs'
 
     # optimizer properties
     lr = None  # 7e-4 None

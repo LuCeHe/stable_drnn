@@ -334,7 +334,62 @@ def compare_to_default_scales(width, n_layers, pretrained_cells):
     return scales
 
 
-if __name__ == '__main__':
+
+
+
+
+
+def lruLSCffn(
+        comments='findLSC_radius', seed=0, stack=4, width=32, classes=2, vocab_size=7, maxlen=1,
+        batch_shape=8
+):
+    net_name = 'reslruffn'
+    task_name = 'anytask'
+
+    pretrained_file = get_pretrained_file(comments, seed, net_name, task_name, stack)
+    path_pretrained = os.path.join(GEXPERIMENTS, pretrained_file)
+    ffn_stem = None
+    if os.path.exists(path_pretrained):
+        print('Loading pretrained lsc weights')
+        ffn_stem = load_resLSC_model(path_pretrained)
+
+    # set seeds
+    tf.random.set_seed(seed)
+    np.random.seed(seed)
+
+    target_norm = str2val(comments, 'targetnorm', float, default=1)
+
+    time_steps = 10
+
+    n_layers = int(stack)
+    ts = 50 if 'test' in comments else 500  # number of pretraining steps
+    tc = n_layers * 2  # time constant for the moving averages
+    round_to = 5
+    decay = .97
+    rand = lambda shape=(width,): tf.random.normal(shape)
+
+    if 'onlyloadpretrained' in comments:
+        ts = 10
+    else:
+        comments += 'wmultiplier_wshuff'
+
+    ffns = [ResLRUFFN(num_neurons=width) for _ in range(n_layers)]
+
+    inputs = tf.Variable(rand((batch_shape, time_steps, width)))
+
+    ffn = ffns[0]
+
+
+    with tf.GradientTape(persistent=True) as tape:
+        tape.watch(inputs)
+        out = ffn(inputs)
+
+    print(out.shape)
+    hs = tape.batch_jacobian(out, inputs, experimental_use_pfor=True)
+    print(hs.shape)
+
+
+def test_1():
     import argparse
 
     parser = argparse.ArgumentParser()
@@ -362,3 +417,9 @@ if __name__ == '__main__':
     # lruLSC(comments='test', seed=0, stack=4, width=64, classes=2, vocab_size=7, maxlen=100)
     # equivalence_and_save(width=3, n_layers=2, classes=2, vocab_size=7)
     # save_layer_weights()
+
+def test_2():
+    lruLSCffn()
+
+if __name__ == '__main__':
+    test_2()

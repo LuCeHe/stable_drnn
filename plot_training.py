@@ -93,7 +93,7 @@ metrics_oi = [
 
 metrics_oi = [shorten_losses(m) for m in metrics_oi]
 
-plot_only = ['seed', 'net', 'task', 'stack', 'comments', 'path', 'lr', 'n_neurons', 'batch_size',
+plot_only = ['seed', 'net', 'task', 'stack', 'comments', 'path', 'lr', 'lr f', 'n_neurons', 'batch_size',
              'optimizer_name','lr_schedule', 'host_hostname',
              'v_ppl argm', 'v_ppl len', ] + metrics_oi
 
@@ -110,7 +110,7 @@ force_keep_column = [
     'final_norms_mean', 'final_norms_std'
 ]
 
-group_cols = ['net', 'task', 'comments', 'stack', 'lr', 'n_neurons', 'optimizer_name', 'batch_size', 'lr_schedule']
+group_cols = ['net', 'task', 'comments', 'stack', 'lr', 'lr f', 'n_neurons', 'optimizer_name', 'batch_size', 'lr_schedule']
 task_flag = 'task'  # task dataset
 net_flag = 'net'  # net lru
 depth_flag = 'stack'  # 'stack'
