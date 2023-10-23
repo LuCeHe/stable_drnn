@@ -71,7 +71,7 @@ def config():
     lr = None  # 7e-4 None
     optimizer_name = 'SWAAdaBeliefLA'  # AdaBelief AdamW SWAAdaBelief AdaBeliefLA
     # optimizer_name = 'Adam'  # AdaBelief AdamW SWAAdaBelief AdaBeliefLA
-    lr_schedule = 'cosine_restarts'  # 'warmup_cosine_restarts'
+    lr_schedule = ''  # 'warmup_cosine_restarts'
     weight_decay_prop_lr = None
     weight_decay = 0. if not 'lra_' in task else 0.1
     clipnorm = None  # not 1., to avoid NaN in the embedding, only ptb though
