@@ -70,8 +70,8 @@ def config():
     # optimizer properties
     lr = None  # 7e-4 None
     optimizer_name = 'SWAAdaBeliefLA'  # AdaBelief AdamW SWAAdaBelief AdaBeliefLA
-    optimizer_name = 'Adam'  # AdaBelief AdamW SWAAdaBelief AdaBeliefLA
-    lr_schedule = ''  # 'warmup_cosine_restarts'
+    # optimizer_name = 'Adam'  # AdaBelief AdamW SWAAdaBelief AdaBeliefLA
+    lr_schedule = 'cosine_restarts'  # 'warmup_cosine_restarts'
     weight_decay_prop_lr = None
     weight_decay = 0. if not 'lra_' in task else 0.1
     clipnorm = None  # not 1., to avoid NaN in the embedding, only ptb though
@@ -154,7 +154,8 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
         embedding=embedding, optimizer_name=optimizer_name, lr_schedule=lr_schedule,
         weight_decay=weight_decay, clipnorm=clipnorm, initializer=initializer, comments=comments,
         in_len=gen_train.in_len, n_in=gen_train.in_dim, out_len=gen_train.out_len, vocab_size=gen_train.vocab_size,
-        n_out=gen_train.out_dim, final_epochs=gen_train.epochs, seed=seed,
+        n_out=gen_train.out_dim, final_epochs=gen_train.epochs, final_steps_per_epoch=gen_train.steps_per_epoch,
+        seed=seed,
     )
 
     results = {}
