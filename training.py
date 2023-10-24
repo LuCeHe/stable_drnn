@@ -1,7 +1,7 @@
 import os, shutil, logging, json, copy, time
 import pandas as pd
 
-from alif_sg.neural_models.lruLSC import lruLSC
+from alif_sg.neural_models.lruLSC import lruLSC, lruLSCffn
 from pyaromatics.keras_tools.esoteric_tasks import language_tasks
 from pyaromatics.keras_tools.silence_tensorflow import silence_tf
 
@@ -58,14 +58,14 @@ def config():
     net = 'reslruffn'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
     stack = 3
-    n_neurons = 128
+    n_neurons = 4
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task in language_tasks else False
     # comments = 'allns_36_nogradreset_dropout:0'
     comments = 'lscdepth:1_36_embproj_nogradreset_dropout:0_findLSC_radius_pretrained_tsteps:2_test'
     # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain_pretrained_lsclr:0.0001_nbs:16_tsteps:10'
     # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain_pretrained_lsclr:0.0001_nbs:16_targetnorm:.5'
-    comments = 'allns_36_dropout:.0_embproj_mlminputs'
+    comments = 'allns_36_dropout:.0_embproj_mlminputs_ffnlsc_test_findLSC'
 
     # optimizer properties
     lr = None  # 7e-4 None
@@ -223,7 +223,13 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
         print(json.dumps(new_model_args, indent=4, cls=NumpyEncoder))
         lsclr = str2val(comments, 'lsclr', float, default=lsclr)
 
-        if 'reslru' in net_name:
+        if 'reslru' in net_name and 'ffnlsc' in comments:
+            weights, lsc_results = lruLSCffn(
+                comments=comments, seed=seed, stack=stack, width=n_neurons, classes=gen_train.out_dim,
+                vocab_size=gen_train.vocab_size, maxlen=gen_train.out_len
+            )
+
+        elif 'reslru' in net_name:
             weights, lsc_results = lruLSC(
                 comments=comments, seed=seed, stack=stack, width=n_neurons, classes=gen_train.out_dim,
                 vocab_size=gen_train.vocab_size, maxlen=gen_train.out_len

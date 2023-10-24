@@ -1,4 +1,4 @@
-import os
+import os, random
 import tensorflow as tf
 import tensorflow_addons as tfa
 import numpy as np
@@ -28,7 +28,7 @@ def load_resLSC_model(path):
 
 def lruLSC(
         comments='findLSC_radius', seed=0, stack=4, width=32, classes=2, vocab_size=7, maxlen=1,
-        batch_shape=8
+        batch_size=8
 ):
     net_name = 'reslru'
     task_name = 'anytask'
@@ -89,14 +89,14 @@ def lruLSC(
     for t in tqdm(range(ts)):
         try:
 
-            inputs_t1 = tf.Variable(rand((batch_shape, time_steps, width)))
+            inputs_t1 = tf.Variable(rand((batch_size, time_steps, width)))
             init_states_l1_t1 = [
-                tf.Variable(rand((batch_shape, 2 * width))),
-                tf.Variable(rand((batch_shape, 2 * width)))
+                tf.Variable(rand((batch_size, 2 * width))),
+                tf.Variable(rand((batch_size, 2 * width)))
             ]
             init_states_l2_t1 = [
-                tf.Variable(rand((batch_shape, 2 * width))),
-                tf.Variable(rand((batch_shape, 2 * width)))
+                tf.Variable(rand((batch_size, 2 * width))),
+                tf.Variable(rand((batch_size, 2 * width)))
             ]
 
             with tf.GradientTape(persistent=True) as tape:
@@ -273,13 +273,18 @@ def lruLSC(
     return ffn_weights, results
 
 
-def equivalence_and_save(comments, width, n_layers, classes, vocab_size, cells=None, path_pretrained=None):
+def equivalence_and_save(comments, width, n_layers, classes, vocab_size, cells=None, path_pretrained=None,
+                         rec_weights=None):
     if cells is None:
         cells = [ResLRUCell(num_neurons=width) for _ in range(n_layers)]
 
     rnns = [tf.keras.layers.RNN(cell, return_sequences=True) for cell in cells]
-
     rnn_stem = tf.keras.models.Sequential(rnns)
+
+    if not rec_weights is None:
+        rnn_stem = tf.keras.models.Sequential(rnns)
+        rnn_stem.build((None, None, width))
+        rnn_stem.set_weights(rec_weights)
 
     emb = tf.keras.layers.Embedding(vocab_size, width)
     dense = tf.keras.layers.Dense(classes)
@@ -336,8 +341,8 @@ def compare_to_default_scales(width, n_layers, pretrained_cells):
 
 
 def lruLSCffn(
-        comments='findLSC_radius_nosgd_test', seed=0, stack=4, width=3, classes=2, vocab_size=7, maxlen=4,
-        batch_shape=8
+        comments='findLSC_radius_test', seed=0, stack=4, width=3, classes=2, vocab_size=7, maxlen=4,
+        batch_size=8, loss_threshold=0.01, max_steps=1000
 ):
     net_name = 'reslruffn'
     task_name = 'anytask'
@@ -356,7 +361,7 @@ def lruLSCffn(
     time_steps = maxlen
 
     n_layers = int(stack)
-    ts = 50 if 'test' in comments else 500  # number of pretraining steps
+    ts = 2 if 'test' in comments else max_steps  # number of pretraining steps
     tc = n_layers * 2  # time constant for the moving averages
     round_to = 5
     decay = .97
@@ -374,24 +379,21 @@ def lruLSCffn(
     if 'onlyloadpretrained' in comments:
         ts = 10
     else:
-        # comments += '_wmultiplier_wshuff'
-        comments += '_wmultiplier'
+        comments += '_wshuff'
+        # comments += '_wmultiplier'
+        pass
 
     optimizer = None
     if not 'nosgd' in comments:
         adabelief = tfa.optimizers.AdaBelief(lr=.01, weight_decay=0.004)
         optimizer = tfa.optimizers.Lookahead(adabelief, sync_period=6, slow_step_size=0.5)
 
-    print('here')
-    print(comments)
-
     ffns = [ResLRUFFN(num_neurons=width) for _ in range(n_layers)]
 
-    inputs = tf.Variable(rand((batch_shape, time_steps, width)))
+    inputs = tf.Variable(rand((batch_size, time_steps, width)))
 
-    ffn = ffns[0]
-
-    out = ffn(inputs)
+    for ffn in ffns:
+        out = ffn(inputs)
     wnames = [weight.name for weight in ffn.weights]
     print(wnames)
 
@@ -406,36 +408,41 @@ def lruLSCffn(
     ma_norm = None
     std_ma_norm = None
     for t in tqdm(range(ts)):
-        inputs = tf.Variable(rand((batch_shape, time_steps, width)))
 
         with tf.GradientTape(persistent=True) as tape:
-            tape.watch(inputs)
+
+            # ffns = [ResLRUFFN(num_neurons=width) for _ in range(n_layers)]
+            # ffn = tf.keras.models.Sequential(ffns)
+            random.shuffle(ffns)
+            ffn = ffns[0]
+            inputs = tf.Variable(rand((batch_size, time_steps, width)))
+            # tape.watch(inputs)
             out = ffn(inputs)
 
-        hs = tape.batch_jacobian(out, inputs, experimental_use_pfor=True)
+            # compute radiuses
+            hs = tape.batch_jacobian(out, inputs, experimental_use_pfor=True)
 
-        # reorder axis to be (batch, time, time, width, width)
-        hs = tf.transpose(hs, perm=[0, 1, 3, 2, 4])
-        eigs, _ = tf.linalg.eig(hs)
+            # reorder axis to be (batch, time, time, width, width)
+            hs = tf.transpose(hs, perm=[0, 1, 3, 2, 4])
+            eigs, _ = tf.linalg.eig(hs)
 
-        radius = tf.reduce_max(tf.abs(eigs), axis=[-1])
-        radius_1 = radius[:, 1:, :-1] # this is the good one
-        # radius_1 = radius[:, 2:, :-2]
+            radius = tf.reduce_max(tf.abs(eigs), axis=[-1])
+            radius_1 = radius[:, 1:, :-1]  # this is the good one
+            # radius_1 = radius[:, 2:, :-2]
 
-        # diagonal of the radius_1
-        rt = tf.linalg.diag_part(radius_1)
-        rl = tf.linalg.diag_part(radius)
+            # diagonal of the radius_1
+            rt = tf.linalg.diag_part(radius_1)
+            rl = tf.linalg.diag_part(radius)
 
-        loss_t = tf.reduce_mean(tf.square(tf.reduce_mean(rt, axis=0) - tn_t))
-        loss_l = tf.reduce_mean(tf.square(tf.reduce_mean(rl, axis=0) - tn_l))
+            loss_t = tf.reduce_mean(tf.square(tf.reduce_mean(rt, axis=0) - tn_t))
+            loss_l = tf.reduce_mean(tf.square(tf.reduce_mean(rl, axis=0) - tn_l))
 
-        mean_loss = (loss_t + loss_l)/2
+            mean_loss = (loss_t + loss_l) / 2
 
         if not 'nosgd' in comments:
             grads = tape.gradient(mean_loss, ffn.trainable_weights)
             optimizer.apply_gradients(zip(grads, ffn.trainable_weights))
             del grads
-
 
         if 'wmultiplier' in comments:
             # print('-' * 100)
@@ -492,17 +499,9 @@ def lruLSCffn(
 
         if li == None:
             li = str(ml.round(round_to))
-
-        if ni == None:
             ni = str(mean_norm.round(round_to))
-
-        if ali == None:
             ali = str(np.mean(rl.numpy()).round(round_to))
-
-        if ati == None:
             ati = str(np.mean(rt.numpy()).round(round_to))
-
-        if sti == None:
             sti = str(current_std.round(round_to))
 
         pbar.set_description(
@@ -513,6 +512,48 @@ def lruLSCffn(
             f"at {str(np.mean(rt.numpy()).round(round_to))}/{ati} ({str(np.array(tn_t).round(round_to))}); "
             f"al {str(np.mean(rl.numpy()).round(round_to))}/{ali} ({str(np.array(tn_l).round(round_to))}); "
         )
+
+        if ma_loss < loss_threshold:
+            break
+
+    results = {
+        'ma_loss': ma_loss,
+        'ma_norm': ma_norm,
+        'std_ma_norm': std_ma_norm,
+        'a_t': np.mean(rt.numpy()),
+        'a_l': np.mean(rl.numpy()),
+        'loss_t': np.mean(loss_t.numpy()),
+        'loss_l': np.mean(loss_l.numpy()),
+        'li': li,
+        'ni': ni,
+        'ali': ali,
+        'ati': ati,
+        'sti': sti,
+        'target_norm': target_norm,
+        'tn_t': tn_t,
+        'tn_l': tn_l,
+        'lsc_comments': comments,
+    }
+
+    # scales = compare_to_default_scales(width, n_layers, cells)
+    # results.update(scales)
+
+    # ffn_weights = equivalence_and_save(comments, width, n_layers, classes, vocab_size, cells=cells,
+    #                                    path_pretrained=path_pretrained)
+
+    results['final_norm_dec'] = None
+    results['final_norms_mean'] = mean_norm
+    results['final_norms_std'] = current_std
+    results['std_ma_norm'] = std_ma_norm
+    results['best_std_ma_norm'] = std_ma_norm
+
+    rec_weights = []
+    for ffn in ffns:
+        rec_weights.extend(ffn.get_weights())
+
+    allweights = equivalence_and_save(comments, width, n_layers, classes, vocab_size, cells=None, path_pretrained=None,
+                                      rec_weights=rec_weights)
+    return allweights, results
 
 
 def test_1():
@@ -532,7 +573,7 @@ def test_1():
 
     lruLSC(
         comments=comments, seed=0, stack=4, width=128, classes=2, vocab_size=7,
-        maxlen=100, batch_shape=32)
+        maxlen=100, batch_size=32)
     # lruLSC(comments='findLSC_radius_targetnorm:0.5_unbalanced', seed=0, stack=4, width=64, classes=2, vocab_size=7, maxlen=100)
     # lruLSC(comments='findLSC_radius', seed=0, stack=4, width=64, classes=2, vocab_size=7, maxlen=100)
     # lruLSC(comments='test', seed=0, stack=4, width=64, classes=2, vocab_size=7, maxlen=100)
@@ -541,9 +582,9 @@ def test_1():
 
 
 def test_2():
-    lruLSCffn(stack=1, width=32, classes=2, vocab_size=7, maxlen=8, batch_shape=16)
+    lruLSCffn(stack=2, width=32, classes=2, vocab_size=7, maxlen=8, batch_size=8)
 
 
 if __name__ == '__main__':
-    test_1()
-    # test_2()
+    # test_1()
+    test_2()
