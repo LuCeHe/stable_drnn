@@ -79,7 +79,7 @@ check_all_norms = False
 # val_sparse_mode_accuracy test_perplexity
 metric = 'v_mode_acc'  # 'v_ppl min'
 metric = 'val_ppl m'  # 'v_ppl min'
-# metric = 'test_ppl'  # 'v_ppl min'
+metric = 'test_ppl'  # 'v_ppl min'
 metric = shorten_losses(metric)
 metrics_oi = [
     # 't_ppl min', 't_mode_acc max', 'v_ppl min', 'v_mode_acc max',
@@ -93,9 +93,12 @@ metrics_oi = [
 
 metrics_oi = [shorten_losses(m) for m in metrics_oi]
 
-plot_only = ['seed', 'net', 'task', 'stack', 'comments', 'path', 'lr', 'lr f', 'n_neurons', 'batch_size',
+plot_only = [
+                'seed', 'net', 'task', 'stack', 'comments', 'path', 'lr', #'lr f',
+             'n_neurons', 'batch_size',
              'optimizer_name','lr_schedule', 'host_hostname',
-             'v_ppl argm', 'v_ppl len', ] + metrics_oi
+             'v_ppl argm', 'v_ppl len',
+            ] + metrics_oi
 
 columns_to_remove = [
     '_var', '_mean', 'sparse_categorical_crossentropy', 'bpc', 'loss', 'artifacts',
@@ -110,7 +113,10 @@ force_keep_column = [
     'final_norms_mean', 'final_norms_std'
 ]
 
-group_cols = ['net', 'task', 'comments', 'stack', 'lr', 'lr f', 'n_neurons', 'optimizer_name', 'batch_size', 'lr_schedule']
+group_cols = [
+    'net', 'task', 'comments', 'stack', 'lr', #'lr f',
+    'n_neurons', 'optimizer_name', 'batch_size', 'lr_schedule'
+]
 task_flag = 'task'  # task dataset
 net_flag = 'net'  # net lru
 depth_flag = 'stack'  # 'stack'
@@ -389,6 +395,7 @@ if pandas_means:
     if 'mean_n_params' in mdf.columns:
         mdf['mean_n_params'] = mdf['mean_n_params'].apply(lambda x: large_num_to_reasonable_string(x, 1))
 
+
     if not show_per_tasknet:
         print(mdf.to_string())
 
@@ -400,37 +407,38 @@ if pandas_means:
         xdf = mdf.copy()
         xdf['comments'] = xdf['comments'].str.replace('allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_', '')
         # for stack in stacks:
-        for task in tasks:
-            # for net in nets:
-            print('-===-' * 30)
-            # print(task, net, stack)
-            # print(task, stack)
-            print(task)
+        for net in nets:
+            for task in tasks:
+                # for net in nets:
+                print('-===-' * 30)
+                # print(task, net, stack)
+                # print(task, stack)
+                print(task, net)
 
-            idf = xdf[
-                xdf[task_flag].eq(task)
-                # & xdf[net_flag].eq(net)
-                # & xdf[depth_flag].eq(stack)
-            ]
+                idf = xdf[
+                    xdf[task_flag].eq(task)
+                    & xdf[net_flag].eq(net)
+                    # & xdf[depth_flag].eq(stack)
+                ]
 
-            cols = idf.columns
-            if not 'PTB' in task:
-                # idf = idf.sort_values(by='mean_' + metric, ascending=False)
-                cols = [c for c in cols if not 'ppl' in c]
-            else:
-                # idf = idf.sort_values(by='mean_v_ppl', ascending=True)
-                cols = [c for c in cols if not 'acc' in c]
+                cols = [c for c in idf.columns if not net_flag in c and not task_flag in c]
+                if not 'PTB' in task:
+                    # idf = idf.sort_values(by='mean_' + metric, ascending=False)
+                    cols = [c for c in cols if not 'ppl' in c]
+                else:
+                    # idf = idf.sort_values(by='mean_v_ppl', ascending=True)
+                    cols = [c for c in cols if not 'acc' in c]
 
-            idf.rename(columns=new_column_names, inplace=True)
-            idf = idf[cols]
+                idf.rename(columns=new_column_names, inplace=True)
+                idf = idf[cols]
 
-            idf = idf.sort_values(by='mean_' + metric, ascending=True)
-            # idf = idf.sort_values(by='mean_test_ppl', ascending=True)
+                idf = idf.sort_values(by='mean_' + metric, ascending=True)
+                for c in idf.columns:
+                    if 'ppl' in c:
+                        idf[c] = idf[c].apply(lambda x: '%.3f' % x if not np.isnan(x) and int(x) < 1000 else str(x))
 
-            # idf = idf.sort_values(by=net_flag)
+                print(idf.to_string())
 
-            print(idf.to_string())
-            print('here?')
 if lruptb2latex:
     xdf = mdf.copy()
     xdf = xdf[xdf['task'].str.contains('PTB')]

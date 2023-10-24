@@ -340,7 +340,7 @@ def compare_to_default_scales(width, n_layers, pretrained_cells):
 
 
 def lruLSCffn(
-        comments='findLSC_radius', seed=0, stack=4, width=32, classes=2, vocab_size=7, maxlen=1,
+        comments='findLSC_radius', seed=0, stack=4, width=3, classes=2, vocab_size=7, maxlen=4,
         batch_shape=8
 ):
     net_name = 'reslruffn'
@@ -359,7 +359,7 @@ def lruLSCffn(
 
     target_norm = str2val(comments, 'targetnorm', float, default=1)
 
-    time_steps = 10
+    time_steps = maxlen
 
     n_layers = int(stack)
     ts = 50 if 'test' in comments else 500  # number of pretraining steps
@@ -387,6 +387,13 @@ def lruLSCffn(
     print(out.shape)
     hs = tape.batch_jacobian(out, inputs, experimental_use_pfor=True)
     print(hs.shape)
+    # reorder axis to be (batch, time, time, width, width)
+    hs = tf.transpose(hs, perm=[0, 1, 3, 2, 4])
+    eigs, _ = tf.linalg.eig(hs)
+    print(hs.shape)
+    radius = tf.reduce_max(tf.abs(eigs), axis=[-1])
+    print(eigs.shape)
+    print(radius.shape)
 
 
 def test_1():
