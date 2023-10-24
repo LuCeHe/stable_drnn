@@ -79,7 +79,7 @@ check_all_norms = False
 # val_sparse_mode_accuracy test_perplexity
 metric = 'v_mode_acc'  # 'v_ppl min'
 metric = 'val_ppl m'  # 'v_ppl min'
-metric = 'test_ppl'  # 'v_ppl min'
+# metric = 'test_ppl'  # 'v_ppl min'
 metric = shorten_losses(metric)
 metrics_oi = [
     # 't_ppl min', 't_mode_acc max', 'v_ppl min', 'v_mode_acc max',
