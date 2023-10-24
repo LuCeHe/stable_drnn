@@ -44,8 +44,6 @@ def lruLSC(
     tf.random.set_seed(seed)
     np.random.seed(seed)
 
-    target_norm = str2val(comments, 'targetnorm', float, default=1)
-
     time_steps = 1
 
     n_layers = int(stack)
@@ -54,6 +52,15 @@ def lruLSC(
     round_to = 5
     decay = .97
     rand = lambda shape=(width,): tf.random.normal(shape)
+
+    target_norm = str2val(comments, 'targetnorm', float, default=1)
+    tn_l = target_norm
+    if target_norm == 0.5 and 'unbalanced' in comments:
+        tn_l = n_layers / (n_layers + maxlen)
+
+    tn_t = target_norm
+    if target_norm == 0.5 and 'unbalanced' in comments:
+        tn_t = maxlen / (n_layers + maxlen)
 
     if 'onlyloadpretrained' in comments:
         ts = 10
@@ -119,18 +126,12 @@ def lruLSC(
                 states_l3_conc = tf.concat(states_l2_t2, axis=-1)
 
             # M_t jacobian of states_l2_conc w.r.t. states_l1_conc
-            tn_t = target_norm
-            if target_norm == 0.5 and 'unbalanced' in comments:
-                tn_t = maxlen / (n_layers + maxlen)
             a_t, loss_t, _ = get_norms(
                 tape=tape, lower_states=[states_l1_conc], upper_states=[states_l2_conc], comments=comments,
                 target_norm=tn_t
             )
 
             # M_l jacobian of states_l3_conc w.r.t. states_l1_conc
-            tn_l = target_norm
-            if target_norm == 0.5 and 'unbalanced' in comments:
-                tn_l = n_layers / (n_layers + maxlen)
 
             a_l, loss_l, _ = get_norms(
                 tape=tape, lower_states=[states_l1_conc], upper_states=[states_l3_conc], comments=comments,
@@ -236,7 +237,7 @@ def lruLSC(
                 f"at {str(np.mean(a_t.numpy()).round(round_to))}/{ati} ({str(np.array(tn_t).round(round_to))}); "
                 f"al {str(np.mean(a_l.numpy()).round(round_to))}/{ali} ({str(np.array(tn_l).round(round_to))}); "
             )
-        except Exception as e :
+        except Exception as e:
             print(e)
 
     results = {
@@ -334,13 +335,8 @@ def compare_to_default_scales(width, n_layers, pretrained_cells):
     return scales
 
 
-
-
-
-
-
 def lruLSCffn(
-        comments='findLSC_radius', seed=0, stack=4, width=3, classes=2, vocab_size=7, maxlen=4,
+        comments='findLSC_radius_nosgd_test', seed=0, stack=4, width=3, classes=2, vocab_size=7, maxlen=4,
         batch_shape=8
 ):
     net_name = 'reslruffn'
@@ -357,8 +353,6 @@ def lruLSCffn(
     tf.random.set_seed(seed)
     np.random.seed(seed)
 
-    target_norm = str2val(comments, 'targetnorm', float, default=1)
-
     time_steps = maxlen
 
     n_layers = int(stack)
@@ -368,10 +362,28 @@ def lruLSCffn(
     decay = .97
     rand = lambda shape=(width,): tf.random.normal(shape)
 
+    target_norm = str2val(comments, 'targetnorm', float, default=1)
+    tn_l = target_norm
+    if target_norm == 0.5 and 'unbalanced' in comments:
+        tn_l = n_layers / (n_layers + maxlen)
+
+    tn_t = target_norm
+    if target_norm == 0.5 and 'unbalanced' in comments:
+        tn_t = maxlen / (n_layers + maxlen)
+
     if 'onlyloadpretrained' in comments:
         ts = 10
     else:
-        comments += 'wmultiplier_wshuff'
+        # comments += '_wmultiplier_wshuff'
+        comments += '_wmultiplier'
+
+    optimizer = None
+    if not 'nosgd' in comments:
+        adabelief = tfa.optimizers.AdaBelief(lr=.01, weight_decay=0.004)
+        optimizer = tfa.optimizers.Lookahead(adabelief, sync_period=6, slow_step_size=0.5)
+
+    print('here')
+    print(comments)
 
     ffns = [ResLRUFFN(num_neurons=width) for _ in range(n_layers)]
 
@@ -379,32 +391,135 @@ def lruLSCffn(
 
     ffn = ffns[0]
 
+    out = ffn(inputs)
+    wnames = [weight.name for weight in ffn.weights]
+    print(wnames)
 
-    with tf.GradientTape(persistent=True) as tape:
-        tape.watch(inputs)
-        out = ffn(inputs)
+    pbar = tqdm(total=ts)
+    li = None
+    ni = None
+    ali = None
+    ati = None
+    sti = None
 
-    print(out.shape)
-    hs = tape.batch_jacobian(out, inputs, experimental_use_pfor=True)
-    print(hs.shape)
-    # reorder axis to be (batch, time, time, width, width)
-    hs = tf.transpose(hs, perm=[0, 1, 3, 2, 4])
-    eigs, _ = tf.linalg.eig(hs)
-    print(hs.shape)
-    radius = tf.reduce_max(tf.abs(eigs), axis=[-1])
-    print(eigs.shape)
-    print(radius.shape)
+    ma_loss = None
+    ma_norm = None
+    std_ma_norm = None
+    for t in tqdm(range(ts)):
+        inputs = tf.Variable(rand((batch_shape, time_steps, width)))
+
+        with tf.GradientTape(persistent=True) as tape:
+            tape.watch(inputs)
+            out = ffn(inputs)
+
+        hs = tape.batch_jacobian(out, inputs, experimental_use_pfor=True)
+
+        # reorder axis to be (batch, time, time, width, width)
+        hs = tf.transpose(hs, perm=[0, 1, 3, 2, 4])
+        eigs, _ = tf.linalg.eig(hs)
+
+        radius = tf.reduce_max(tf.abs(eigs), axis=[-1])
+        radius_1 = radius[:, 1:, :-1] # this is the good one
+        # radius_1 = radius[:, 2:, :-2]
+
+        # diagonal of the radius_1
+        rt = tf.linalg.diag_part(radius_1)
+        rl = tf.linalg.diag_part(radius)
+
+        loss_t = tf.reduce_mean(tf.square(tf.reduce_mean(rt, axis=0) - tn_t))
+        loss_l = tf.reduce_mean(tf.square(tf.reduce_mean(rl, axis=0) - tn_l))
+
+        mean_loss = (loss_t + loss_l)/2
+
+        if not 'nosgd' in comments:
+            grads = tape.gradient(mean_loss, ffn.trainable_weights)
+            optimizer.apply_gradients(zip(grads, ffn.trainable_weights))
+            del grads
+
+
+        if 'wmultiplier' in comments:
+            # print('-' * 100)
+            new_weights = []
+            weights = ffn.get_weights()
+
+            for w, wname in zip(weights, wnames):
+                # print(wname)
+                multiplier = 1
+
+                depth_radius = False
+                if 'C_re' in wname or 'B_re' in wname or 'B_im' in wname or 'C_im' in wname:
+                    depth_radius = True
+                # if 'kernel' in wname:
+                #     depth_radius = True
+
+                rec_radius = False
+                if 'lambda_nu' in wname:
+                    rec_radius = True
+
+                if depth_radius:
+                    local_norm = rl
+                    multiplier = tn_l / local_norm
+                    print(wname, tf.reduce_mean(multiplier).numpy())
+
+                elif rec_radius:
+                    local_norm = rt
+                    multiplier = tn_t / local_norm
+                    # multiplier = 1/multiplier
+                    print(wname, tf.reduce_mean(multiplier).numpy())
+
+                m = tf.reduce_mean(multiplier).numpy()
+                m = np.clip(m, 0.85, 1.15)
+
+                w = m * w
+
+                if 'wshuff' in comments:
+                    oshape = w.shape
+                    w = w.reshape(-1)
+                    np.random.shuffle(w)
+                    w = w.reshape(oshape)
+
+                new_weights.append(w)
+
+            ffn.set_weights(new_weights)
+
+        mean_norm = ((tf.reduce_mean(rt) + tf.reduce_mean(rl)) / 2).numpy().astype(np.float32)
+        ml = mean_loss.numpy().astype(np.float32)
+        ma_loss = ml if ma_loss is None else ma_loss * (tc - 1) / tc + ml / tc
+        ma_norm = mean_norm if ma_norm is None else ma_norm * (tc - 1) / tc + mean_norm / tc
+
+        current_std = (np.std(rt) + np.std(rl)) / 2
+        std_ma_norm = current_std if std_ma_norm is None else std_ma_norm * (tc - 1) / tc + np.std(current_std) / tc
+
+        if li == None:
+            li = str(ml.round(round_to))
+
+        if ni == None:
+            ni = str(mean_norm.round(round_to))
+
+        if ali == None:
+            ali = str(np.mean(rl.numpy()).round(round_to))
+
+        if ati == None:
+            ati = str(np.mean(rt.numpy()).round(round_to))
+
+        if sti == None:
+            sti = str(current_std.round(round_to))
+
+        pbar.set_description(
+            f"Step {t}; "
+            f"loss {str(np.array(ma_loss).round(round_to))}/{li}; "
+            f"mean norms {np.array(ma_norm).round(round_to)}/{ni}; "
+            f"ma std norms {str(np.array(std_ma_norm).round(round_to))}/{sti}; "
+            f"at {str(np.mean(rt.numpy()).round(round_to))}/{ati} ({str(np.array(tn_t).round(round_to))}); "
+            f"al {str(np.mean(rl.numpy()).round(round_to))}/{ali} ({str(np.array(tn_l).round(round_to))}); "
+        )
 
 
 def test_1():
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--type",
-                        # default='deslice_findLSC_meanaxis_truersplit',
-                        default='chunked_meanaxis_sameemb_noimagloss_normri_findLSC_radius_deflect',
-                        # default='pretrained_deslice_sameemb_truersplit_findLSC_supsubnpsd',
-                        # default='',
+    parser.add_argument("--type", default='one',
                         type=str, help="String to activate extra behaviors")
     args = parser.parse_args()
     comments = ''
@@ -415,18 +530,20 @@ def test_1():
     elif 'one' in args.type:
         comments = 'findLSC_radius'
 
-
     lruLSC(
         comments=comments, seed=0, stack=4, width=128, classes=2, vocab_size=7,
-           maxlen=100, batch_shape=32)
+        maxlen=100, batch_shape=32)
     # lruLSC(comments='findLSC_radius_targetnorm:0.5_unbalanced', seed=0, stack=4, width=64, classes=2, vocab_size=7, maxlen=100)
     # lruLSC(comments='findLSC_radius', seed=0, stack=4, width=64, classes=2, vocab_size=7, maxlen=100)
     # lruLSC(comments='test', seed=0, stack=4, width=64, classes=2, vocab_size=7, maxlen=100)
     # equivalence_and_save(width=3, n_layers=2, classes=2, vocab_size=7)
     # save_layer_weights()
 
+
 def test_2():
-    lruLSCffn()
+    lruLSCffn(stack=1, width=32, classes=2, vocab_size=7, maxlen=8, batch_shape=16)
+
 
 if __name__ == '__main__':
-    test_2()
+    test_1()
+    # test_2()

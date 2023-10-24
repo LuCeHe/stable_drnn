@@ -90,7 +90,9 @@ def get_norms(tape=None, lower_states=None, upper_states=None, n_samples=-1, nor
         norms = tf.math.log(r + log_epsilon) + 1
 
     elif 'radius' in comments:
-        norms = tf.math.reduce_max(tf.abs(tf.linalg.eigvals(std)), axis=-1)
+        # norms = tf.math.reduce_max(tf.abs(tf.linalg.eigvals(std)), axis=-1)
+        eigs, _ = tf.linalg.eig(std)
+        norms = tf.math.reduce_max(tf.abs(eigs), axis=-1)
 
     elif 'entrywise' in comments:
         flat_td = tf.reshape(td, (td.shape[0], -1))
