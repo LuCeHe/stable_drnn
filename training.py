@@ -226,7 +226,7 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
         if 'reslru' in net_name and 'ffnlsc' in comments:
             weights, lsc_results = lruLSCffn(
                 comments=comments, seed=seed, stack=stack, width=n_neurons, classes=gen_train.out_dim,
-                vocab_size=gen_train.vocab_size, maxlen=gen_train.out_len
+                vocab_size=gen_train.vocab_size, maxlen=4
             )
 
         elif 'reslru' in net_name:

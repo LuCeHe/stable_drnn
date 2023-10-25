@@ -349,10 +349,6 @@ def lruLSCffn(
 
     pretrained_file = get_pretrained_file(comments, seed, net_name, task_name, stack)
     path_pretrained = os.path.join(GEXPERIMENTS, pretrained_file)
-    ffn_stem = None
-    if os.path.exists(path_pretrained):
-        print('Loading pretrained lsc weights')
-        ffn_stem = load_resLSC_model(path_pretrained)
 
     # set seeds
     tf.random.set_seed(seed)
