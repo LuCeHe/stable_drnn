@@ -69,7 +69,7 @@ plot_new_bars = False
 chain_norms = False
 lruptb2latex = False
 
-missing_exps = False
+missing_exps = True
 remove_incomplete = False
 truely_remove = False
 truely_remove_pretrained = False
@@ -94,10 +94,10 @@ metrics_oi = [
 metrics_oi = [shorten_losses(m) for m in metrics_oi]
 
 plot_only = [
-                'seed', 'net', 'task', 'stack', 'comments', 'path', 'lr', #'lr f',
-             'n_neurons', 'batch_size',
-             'optimizer_name','lr_schedule', 'host_hostname',
-             'v_ppl argm', 'v_ppl len',
+                'seed', 'net', 'task', 'stack', 'comments', 'path', 'lr',  # 'lr f',
+                'n_neurons', 'batch_size',
+                'optimizer_name', 'lr_schedule', 'host_hostname',
+                'v_ppl argm', 'v_ppl len',
             ] + metrics_oi
 
 columns_to_remove = [
@@ -114,7 +114,7 @@ force_keep_column = [
 ]
 
 group_cols = [
-    'net', 'task', 'comments', 'stack', 'lr', #'lr f',
+    'net', 'task', 'comments', 'stack', 'lr',  # 'lr f',
     'n_neurons', 'optimizer_name', 'batch_size', 'lr_schedule'
 ]
 task_flag = 'task'  # task dataset
@@ -182,7 +182,7 @@ if 'als' == expsid:
     df['comments'] = df['comments'].str.replace('simplereadout', 'embproj')
     df['batch_size'] = df['batch_size'].astype(str)
     df['ni'] = df['ni'].astype(float)
-    df['comments'] = df['comments'].str.replace('_pretrained', '')
+    # df['comments'] = df['comments'].str.replace('_pretrained', '')
     df['comments'] = df['comments'].astype(str)
     df.replace(['nan'], np.nan, inplace=True)
 
@@ -395,7 +395,6 @@ if pandas_means:
     if 'mean_n_params' in mdf.columns:
         mdf['mean_n_params'] = mdf['mean_n_params'].apply(lambda x: large_num_to_reasonable_string(x, 1))
 
-
     if not show_per_tasknet:
         print(mdf.to_string())
 
@@ -419,7 +418,7 @@ if pandas_means:
                     xdf[task_flag].eq(task)
                     & xdf[net_flag].eq(net)
                     # & xdf[depth_flag].eq(stack)
-                ]
+                    ]
 
                 cols = [c for c in idf.columns if not net_flag in c and not task_flag in c]
                 if not 'PTB' in task:
@@ -438,6 +437,13 @@ if pandas_means:
                         idf[c] = idf[c].apply(lambda x: '%.3f' % x if not np.isnan(x) and int(x) < 1000 else str(x))
 
                 print(idf.to_string())
+
+    print('-===-' * 30)
+    sdf = idf[
+        idf['comments'].str.contains('allns_36_dropout:.2_embproj_maxlen:300_mlminputs_mlmeps:3')
+        | idf['comments'].str.contains('allns_36_dropout:.1_embproj_maxlen:300_mlminputs_mlmeps:3')
+        ]
+    print(sdf.to_string())
 
 if lruptb2latex:
     xdf = mdf.copy()
@@ -486,7 +492,6 @@ if lruptb2latex:
 
         idf = idf[coif]
 
-
         latex_df = idf.to_latex(index=False, escape=False).replace('{lll}', '{lcc}')
         latex_df = latex_df.replace('comments', r'\textbf{' + f'Depth {d} LRU' + r'}')
         latex_df = latex_df.replace('vppl', r'\textbf{\shortstack{validation \\ perplexity} }')
@@ -498,7 +503,6 @@ if lruptb2latex:
         latex_df = re.sub(' +', ' ', latex_df)
         print('\n\n')
         print(latex_df)
-
 
 if nice_bar_plot:
     df = df.copy()
@@ -1148,7 +1152,6 @@ if remove_incomplete:
     # print(rdf.shape, df.shape)
     # rdfs.append(rdf)
 
-
     print('Eliminate if f_norms_std too large')
     # rdf = plotdf[
     #     (plotdf['f_norms_std'] > .2)
@@ -1384,6 +1387,122 @@ if remove_incomplete:
         os.remove(h5path)
 
 if missing_exps and not expsid == 's5lru':
+    print('Missing experiments')
+    print(df.columns)
+    # columns of interest
+    coi = [
+        'task', 'net', 'seed', 'stack', 'lr', 'n_neurons', 'comments',
+        'batch_size', 'lr_schedule', 'optimizer_name'
+    ]
+
+    sdf = df.copy()
+
+    for nice, brute in task_name_pairs:
+        sdf.loc[df[task_flag].eq(nice), task_flag] = brute
+
+    sdf.rename(columns={
+        'eps': 'epochs', 'spe': 'steps_per_epoch'
+    }, inplace=True)
+
+    sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
+    sdf = sdf[sdf['task'].eq('wordptb')]
+    nneurons = sdf['n_neurons'].unique()
+    bszs = sdf['batch_size'].unique()
+
+    sdf = sdf[sdf['n_neurons'].eq(256.)]
+    sdf = sdf[sdf['batch_size'].eq('64.0')]
+    sdf = sdf[sdf['task'].eq('wordptb')]
+    sdf = sdf[sdf['comments'].str.contains('maxlen:300_mlminputs_mlmeps:3')]
+    sdf = sdf[sdf['lr'].eq(0.03)]
+    sdf = sdf.astype(
+        {
+            'net': 'string', 'task': 'string', 'stack': 'string', 'comments': 'string',
+            'lr_schedule': 'string', 'optimizer_name': 'string',
+            'batch_size': 'float64', 'n_neurons': 'int64', 'seed': 'int64',
+        }
+    )
+    sdf = sdf.astype({'batch_size': 'int64'})
+
+    print(f'Experiments already done: {sdf.shape[0]}, len cols = {len(sdf.columns)}')
+
+    # print column type
+    print(sdf.dtypes)
+
+    print(sdf.head().to_string())
+
+    seed = 0
+    n_seeds = 4
+    seeds = [l + seed for l in range(n_seeds)]
+
+    types = ['b']
+    tasks = ['wordptb']
+    stacks = ['3', '6']
+    schedules = ['cosine_no_restarts']
+    base_comment = 'allns_36_embproj_pretrained_'
+    optimizer_name = 'SWAAdaBeliefLA'
+
+    experiments = []
+    for typ in types:
+        for stack in stacks:
+            comment = base_comment
+
+            if str(stack) == '3':
+                comment = comment.replace('allns_36', 'allns_36_dropout:.2')
+            elif str(stack) == '6':
+                comment = comment.replace('allns_36', 'allns_36_dropout:.1')
+            else:
+                raise NotImplementedError
+
+            batch_sizes = [64]  # ['None']
+            if typ == 'a':
+                comments = [
+                    comment + 'maxlen:150_mlminputs_mlmeps:3',
+                    comment + 'maxlen:300_mlminputs_mlmeps:3',
+                ]
+                lrs = [3e-2]
+
+            elif typ == 'b':
+                comments = [
+                    comment + 'maxlen:300_mlminputs_mlmeps:3',
+                    comment + 'maxlen:300_mlminputs_mlmeps:3_findLSC_radius',
+                    comment + 'maxlen:300_mlminputs_mlmeps:3_findLSC_radius_targetnorm:.5',
+                    comment + 'maxlen:300_mlminputs_mlmeps:3_findLSC_radius_targetnorm:.5_unbalanced',
+                    comment + 'maxlen:300_mlminputs_mlmeps:3_ffnlsc_findLSC_radius',
+                    comment + 'maxlen:300_mlminputs_mlmeps:3_ffnlsc_findLSC_radius_targetnorm:.5',
+                    comment + 'maxlen:300_mlminputs_mlmeps:3_ffnlsc_findLSC_radius_targetnorm:.5_unbalanced',
+                    comment + 'maxlen:300_mlminputs_mlmeps:3_clipping',
+                    comment + 'maxlen:300_mlminputs_mlmeps:3_findLSC_radius_clipping',
+                    comment + 'maxlen:300_mlminputs_mlmeps:3_findLSC_radius_targetnorm:.5_clipping',
+                    comment + 'maxlen:300_mlminputs_mlmeps:3_findLSC_radius_targetnorm:.5_unbalanced_clipping',
+                    comment + 'maxlen:300_mlminputs_mlmeps:3_ffnlsc_findLSC_radius_clipping',
+                    comment + 'maxlen:300_mlminputs_mlmeps:3_ffnlsc_findLSC_radius_targetnorm:.5_clipping',
+                    comment + 'maxlen:300_mlminputs_mlmeps:3_ffnlsc_findLSC_radius_targetnorm:.5_unbalanced_clipping',
+                ]
+                lrs = [3e-2]
+
+            else:
+                raise NotImplementedError
+
+            experiment = {
+                'task': tasks,
+                'net': nets, 'seed': seeds, 'stack': [stack],
+                'lr': lrs,
+                'n_neurons': [256],
+                'comments': comments,
+                'batch_size': batch_sizes,
+                'lr_schedule': schedules, 'optimizer_name': [optimizer_name],
+            }
+            experiments.append(experiment)
+
+    ds = dict2iter(experiments)
+    _, experiments_left = complete_missing_exps(sdf, ds, coi)
+    np.random.shuffle(experiments_left)
+    experiments = experiments_left
+
+    print(f'experiments =', experiments)
+    print(f'# {len(experiments)}/{len(ds)}')
+
+if missing_exps and not expsid == 's5lru' and False:
     # columns of interest
     coi = ['seed', 'task', 'net', 'comments', 'stack']
 

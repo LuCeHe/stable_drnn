@@ -270,6 +270,19 @@ def lruLSC(
     results['final_norms_std'] = current_std
     results['std_ma_norm'] = std_ma_norm
     results['best_std_ma_norm'] = std_ma_norm
+
+    del tape, rnn_l1, rnn_l2, inputs_t1, init_states_l1_t1, init_states_l2_t1, states_l1_conc, states_l1_deconc, \
+        all_outs_l1_t1, output_l1_t2, states_l1_t2, states_l2_conc, all_outs_l2_t1, output_l2_t2, states_l2_t2, \
+        a_t, loss_t, a_l, loss_l, mean_loss, mean_norm, ma_loss, ma_norm, current_std, std_ma_norm, wnames_1, \
+        wnames_2, weights_1, weights_2, new_weights, w1, w2, oshape, w1i, w2i, i, pair, multiplier, depth_radius, \
+        local_norm, m, w, wname, rec_radius, rnn, t, ts, tc, round_to, decay, rand, target_norm, tn_l, tn_t, \
+        pretrained_file, path_pretrained, ffn_stem, comments, seed, stack, width, classes, vocab_size, maxlen, \
+        batch_size, li, ni, ali, ati, sti, cells, rnns, pbar, time_steps, n_layers, \
+        wnames, weights, rnn_stem
+
+    tf.keras.backend.clear_session()
+    tf.keras.backend.clear_session()
+
     return ffn_weights, results
 
 
@@ -387,9 +400,10 @@ def lruLSCffn(
     ffns = [ResLRUFFN(num_neurons=width) for _ in range(n_layers)]
 
     inputs = tf.Variable(rand((batch_size, time_steps, width)))
-
     for ffn in ffns:
         out = ffn(inputs)
+        del out
+    del inputs
     wnames = [weight.name for weight in ffn.weights]
     print(wnames)
 
@@ -549,6 +563,13 @@ def lruLSCffn(
 
     allweights = equivalence_and_save(comments, width, n_layers, classes, vocab_size, cells=None, path_pretrained=None,
                                       rec_weights=rec_weights)
+
+    del ffns, tape, rec_weights, ffn, inputs, out, hs, eigs, radius, radius_1, rt, rl, grads, optimizer, new_weights, \
+        weights
+
+    tf.keras.backend.clear_session()
+    tf.keras.backend.clear_session()
+
     return allweights, results
 
 
