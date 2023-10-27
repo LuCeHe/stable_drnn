@@ -26,18 +26,18 @@ def flatten(x):
 def compute_radius(i, Jb_osb, Jb):
     j_t = Jb_osb[:, i, :, i]
     Sigma_t = jnp.linalg.svd(j_t, compute_uv=False)
-    eigs_t = jnp.sqrt(Sigma_t)
+    eigs_t = Sigma_t
     radius_t = jnp.max(eigs_t, axis=(-1,))
 
     j_l = Jb[:, i, :, i]
     Sigma_l = jnp.linalg.svd(j_l, compute_uv=False)
-    eigs_l = jnp.sqrt(Sigma_l)
+    eigs_l = Sigma_l
     radius_l = jnp.max(eigs_l, axis=(-1,))
 
     return radius_t, radius_l
 
 
-def get_radiuses(model, aux_dict):
+def get_radiuses_old(model, aux_dict):
     batchnorm = False
     if 'batch_stats' in aux_dict.keys():
         batchnorm = True
@@ -73,6 +73,49 @@ def get_radiuses(model, aux_dict):
     return _get_radiuses
 
 
+def get_radiuses(model, aux_dict):
+    batchnorm = False
+    if 'batch_stats' in aux_dict.keys():
+        batchnorm = True
+
+    def _get_radiuses(params, state, dropout_rng, input_batch):
+
+        if batchnorm:
+            f = lambda x: model.apply(
+                {"params": params, "batch_stats": state.batch_stats}, x, rngs={"dropout": dropout_rng},
+                mutable=["intermediates", "batch_stats"],
+            )[0]
+        else:
+            f = lambda x: model.apply(
+                {"params": params}, x, rngs={"dropout": dropout_rng},
+                mutable=["intermediates"],
+            )[0]
+
+        # calculate the jacobian
+        Jb = jax.jacfwd(f)(input_batch)
+
+        # remove cross batch elements
+        Jb = jnp.diagonal(Jb, axis1=0, axis2=3)
+        Jb = jnp.moveaxis(Jb, [-1, ], [0, ])
+        Jb = jnp.moveaxis(Jb, [2, ], [3, ])
+
+        # remove the first time step
+        Jb_back = Jb[:, 1:, :-1]
+
+        # compute the radiuses in the time and layer dimensions
+        Sigma_t = jnp.linalg.svd(Jb_back, compute_uv=False)
+        radius_t = jnp.max(Sigma_t, axis=(-1,))
+        radius_t = jnp.diagonal(radius_t, axis1=1, axis2=2)
+
+        Sigma_l = jnp.linalg.svd(Jb, compute_uv=False)
+        radius_l = jnp.max(Sigma_l, axis=(-1,))
+        radius_l = jnp.diagonal(radius_l, axis1=1, axis2=2)
+
+        return radius_t, radius_l
+
+    return _get_radiuses
+
+
 @jax.jit
 def train_step(state, inputs, do_rng, tnt, tnl, wshuff_rng):
     def loss_fn(params):
@@ -103,10 +146,12 @@ def print_params_tree(params):
 
     return print_recursive(params)
 
+
 skip_weights = [
-            'B', 'C', 'C1', 'C2', 'D', 'Lambda_im', 'Lambda_re', 'log_step',
-            'nu_log', 'theta_log', 'gamma_log', 'B_im', 'B_re', 'C_im', 'C_re'
-        ]
+    'B', 'C', 'C1', 'C2', 'D', 'Lambda_im', 'Lambda_re', 'log_step',
+    'nu_log', 'theta_log', 'gamma_log', 'B_im', 'B_re', 'C_im', 'C_re'
+]
+
 
 def nestify(tx):
     ssm_fn = map_nested_fn(
@@ -460,11 +505,17 @@ if __name__ == '__main__':
     comments = 'unbalanced'
     comments = 'targetnorm:.5'
     # comments = ''
+
+    time_start = time.time()
     new_params, presults = pretrain(
-        model, 0, batch_size=batch_size, pretrain_steps=200,
+        model, 0, batch_size=batch_size, pretrain_steps=10,
         comments=comments,
         time_steps=time_steps, features=features, loss_threshold=0.1,
         optimizer='sgd', ptlr=10,
         ptcomments='nonan_updatesome_changeopt',
         # ptcomments = 'nonan',
     )
+    print('Time:', time.time() - time_start)
+
+    # new radiuses version took 15.7s for 10 pretrain_steps
+    # old radiuses version took 11.2s for 10 pretrain_steps
