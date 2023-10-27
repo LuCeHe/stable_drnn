@@ -440,8 +440,9 @@ if pandas_means:
 
     print('-===-' * 30)
     sdf = idf[
-        idf['comments'].str.contains('allns_36_dropout:.2_embproj_maxlen:300_mlminputs_mlmeps:3')
-        | idf['comments'].str.contains('allns_36_dropout:.1_embproj_maxlen:300_mlminputs_mlmeps:3')
+        (idf['comments'].str.contains('allns_36_dropout:.2_embproj_pretrained_maxlen:300_mlminputs_mlmeps:3')
+        | idf['comments'].str.contains('allns_36_dropout:.1_embproj_pretrained_maxlen:300_mlminputs_mlmeps:3'))
+        & idf['lr'].eq(0.03)
         ]
     print(sdf.to_string())
 

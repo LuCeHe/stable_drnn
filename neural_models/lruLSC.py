@@ -75,6 +75,7 @@ def lruLSC(
         rnn_stem = tf.keras.models.Sequential(rnns_nrs)
         rnn_stem.build((None, None, width))
         rnn_stem.set_weights(ffn_stem.get_weights())
+        del rnn_stem
 
     pbar = tqdm(total=ts)
     li = None
@@ -278,7 +279,7 @@ def lruLSC(
         local_norm, m, w, wname, rec_radius, rnn, t, ts, tc, round_to, decay, rand, target_norm, tn_l, tn_t, \
         pretrained_file, path_pretrained, ffn_stem, comments, seed, stack, width, classes, vocab_size, maxlen, \
         batch_size, li, ni, ali, ati, sti, cells, rnns, pbar, time_steps, n_layers, \
-        wnames, weights, rnn_stem
+        wnames, weights
 
     tf.keras.backend.clear_session()
     tf.keras.backend.clear_session()
@@ -419,112 +420,115 @@ def lruLSCffn(
     std_ma_norm = None
     for t in tqdm(range(ts)):
 
-        with tf.GradientTape(persistent=True) as tape:
+        try:
+            with tf.GradientTape(persistent=True) as tape:
 
-            # ffns = [ResLRUFFN(num_neurons=width) for _ in range(n_layers)]
-            # ffn = tf.keras.models.Sequential(ffns)
-            random.shuffle(ffns)
-            ffn = ffns[0]
-            inputs = tf.Variable(rand((batch_size, time_steps, width)))
-            # tape.watch(inputs)
-            out = ffn(inputs)
+                # ffns = [ResLRUFFN(num_neurons=width) for _ in range(n_layers)]
+                # ffn = tf.keras.models.Sequential(ffns)
+                random.shuffle(ffns)
+                ffn = ffns[0]
+                inputs = tf.Variable(rand((batch_size, time_steps, width)))
+                # tape.watch(inputs)
+                out = ffn(inputs)
 
-            # compute radiuses
-            hs = tape.batch_jacobian(out, inputs, experimental_use_pfor=True)
+                # compute radiuses
+                hs = tape.batch_jacobian(out, inputs, experimental_use_pfor=True)
 
-            # reorder axis to be (batch, time, time, width, width)
-            hs = tf.transpose(hs, perm=[0, 1, 3, 2, 4])
-            eigs, _ = tf.linalg.eig(hs)
+                # reorder axis to be (batch, time, time, width, width)
+                hs = tf.transpose(hs, perm=[0, 1, 3, 2, 4])
+                eigs, _ = tf.linalg.eig(hs)
 
-            radius = tf.reduce_max(tf.abs(eigs), axis=[-1])
-            radius_1 = radius[:, 1:, :-1]  # this is the good one
-            # radius_1 = radius[:, 2:, :-2]
+                radius = tf.reduce_max(tf.abs(eigs), axis=[-1])
+                radius_1 = radius[:, 1:, :-1]  # this is the good one
+                # radius_1 = radius[:, 2:, :-2]
 
-            # diagonal of the radius_1
-            rt = tf.linalg.diag_part(radius_1)
-            rl = tf.linalg.diag_part(radius)
+                # diagonal of the radius_1
+                rt = tf.linalg.diag_part(radius_1)
+                rl = tf.linalg.diag_part(radius)
 
-            loss_t = tf.reduce_mean(tf.square(tf.reduce_mean(rt, axis=0) - tn_t))
-            loss_l = tf.reduce_mean(tf.square(tf.reduce_mean(rl, axis=0) - tn_l))
+                loss_t = tf.reduce_mean(tf.square(tf.reduce_mean(rt, axis=0) - tn_t))
+                loss_l = tf.reduce_mean(tf.square(tf.reduce_mean(rl, axis=0) - tn_l))
 
-            mean_loss = (loss_t + loss_l) / 2
+                mean_loss = (loss_t + loss_l) / 2
 
-        if not 'nosgd' in comments:
-            grads = tape.gradient(mean_loss, ffn.trainable_weights)
-            optimizer.apply_gradients(zip(grads, ffn.trainable_weights))
-            del grads
+            if not 'nosgd' in comments:
+                grads = tape.gradient(mean_loss, ffn.trainable_weights)
+                optimizer.apply_gradients(zip(grads, ffn.trainable_weights))
+                del grads
 
-        if 'wmultiplier' in comments:
-            # print('-' * 100)
-            new_weights = []
-            weights = ffn.get_weights()
+            if 'wmultiplier' in comments:
+                # print('-' * 100)
+                new_weights = []
+                weights = ffn.get_weights()
 
-            for w, wname in zip(weights, wnames):
-                # print(wname)
-                multiplier = 1
+                for w, wname in zip(weights, wnames):
+                    # print(wname)
+                    multiplier = 1
 
-                depth_radius = False
-                if 'C_re' in wname or 'B_re' in wname or 'B_im' in wname or 'C_im' in wname:
-                    depth_radius = True
-                # if 'kernel' in wname:
-                #     depth_radius = True
+                    depth_radius = False
+                    if 'C_re' in wname or 'B_re' in wname or 'B_im' in wname or 'C_im' in wname:
+                        depth_radius = True
+                    # if 'kernel' in wname:
+                    #     depth_radius = True
 
-                rec_radius = False
-                if 'lambda_nu' in wname:
-                    rec_radius = True
+                    rec_radius = False
+                    if 'lambda_nu' in wname:
+                        rec_radius = True
 
-                if depth_radius:
-                    local_norm = rl
-                    multiplier = tn_l / local_norm
-                    print(wname, tf.reduce_mean(multiplier).numpy())
+                    if depth_radius:
+                        local_norm = rl
+                        multiplier = tn_l / local_norm
+                        print(wname, tf.reduce_mean(multiplier).numpy())
 
-                elif rec_radius:
-                    local_norm = rt
-                    multiplier = tn_t / local_norm
-                    # multiplier = 1/multiplier
-                    print(wname, tf.reduce_mean(multiplier).numpy())
+                    elif rec_radius:
+                        local_norm = rt
+                        multiplier = tn_t / local_norm
+                        # multiplier = 1/multiplier
+                        print(wname, tf.reduce_mean(multiplier).numpy())
 
-                m = tf.reduce_mean(multiplier).numpy()
-                m = np.clip(m, 0.85, 1.15)
+                    m = tf.reduce_mean(multiplier).numpy()
+                    m = np.clip(m, 0.85, 1.15)
 
-                w = m * w
+                    w = m * w
 
-                if 'wshuff' in comments:
-                    oshape = w.shape
-                    w = w.reshape(-1)
-                    np.random.shuffle(w)
-                    w = w.reshape(oshape)
+                    if 'wshuff' in comments:
+                        oshape = w.shape
+                        w = w.reshape(-1)
+                        np.random.shuffle(w)
+                        w = w.reshape(oshape)
 
-                new_weights.append(w)
+                    new_weights.append(w)
 
-            ffn.set_weights(new_weights)
+                ffn.set_weights(new_weights)
 
-        mean_norm = ((tf.reduce_mean(rt) + tf.reduce_mean(rl)) / 2).numpy().astype(np.float32)
-        ml = mean_loss.numpy().astype(np.float32)
-        ma_loss = ml if ma_loss is None else ma_loss * (tc - 1) / tc + ml / tc
-        ma_norm = mean_norm if ma_norm is None else ma_norm * (tc - 1) / tc + mean_norm / tc
+            mean_norm = ((tf.reduce_mean(rt) + tf.reduce_mean(rl)) / 2).numpy().astype(np.float32)
+            ml = mean_loss.numpy().astype(np.float32)
+            ma_loss = ml if ma_loss is None else ma_loss * (tc - 1) / tc + ml / tc
+            ma_norm = mean_norm if ma_norm is None else ma_norm * (tc - 1) / tc + mean_norm / tc
 
-        current_std = (np.std(rt) + np.std(rl)) / 2
-        std_ma_norm = current_std if std_ma_norm is None else std_ma_norm * (tc - 1) / tc + np.std(current_std) / tc
+            current_std = (np.std(rt) + np.std(rl)) / 2
+            std_ma_norm = current_std if std_ma_norm is None else std_ma_norm * (tc - 1) / tc + np.std(current_std) / tc
 
-        if li == None:
-            li = str(ml.round(round_to))
-            ni = str(mean_norm.round(round_to))
-            ali = str(np.mean(rl.numpy()).round(round_to))
-            ati = str(np.mean(rt.numpy()).round(round_to))
-            sti = str(current_std.round(round_to))
+            if li == None:
+                li = str(ml.round(round_to))
+                ni = str(mean_norm.round(round_to))
+                ali = str(np.mean(rl.numpy()).round(round_to))
+                ati = str(np.mean(rt.numpy()).round(round_to))
+                sti = str(current_std.round(round_to))
 
-        pbar.set_description(
-            f"Step {t}; "
-            f"loss {str(np.array(ma_loss).round(round_to))}/{li}; "
-            f"mean norms {np.array(ma_norm).round(round_to)}/{ni}; "
-            f"ma std norms {str(np.array(std_ma_norm).round(round_to))}/{sti}; "
-            f"at {str(np.mean(rt.numpy()).round(round_to))}/{ati} ({str(np.array(tn_t).round(round_to))}); "
-            f"al {str(np.mean(rl.numpy()).round(round_to))}/{ali} ({str(np.array(tn_l).round(round_to))}); "
-        )
+            pbar.set_description(
+                f"Step {t}; "
+                f"loss {str(np.array(ma_loss).round(round_to))}/{li}; "
+                f"mean norms {np.array(ma_norm).round(round_to)}/{ni}; "
+                f"ma std norms {str(np.array(std_ma_norm).round(round_to))}/{sti}; "
+                f"at {str(np.mean(rt.numpy()).round(round_to))}/{ati} ({str(np.array(tn_t).round(round_to))}); "
+                f"al {str(np.mean(rl.numpy()).round(round_to))}/{ali} ({str(np.array(tn_l).round(round_to))}); "
+            )
 
-        if ma_loss < loss_threshold:
-            break
+            if ma_loss < loss_threshold:
+                break
+        except Exception as e:
+            print(e)
 
     results = {
         'ma_loss': ma_loss,
@@ -564,7 +568,7 @@ def lruLSCffn(
     allweights = equivalence_and_save(comments, width, n_layers, classes, vocab_size, cells=None, path_pretrained=None,
                                       rec_weights=rec_weights)
 
-    del ffns, tape, rec_weights, ffn, inputs, out, hs, eigs, radius, radius_1, rt, rl, grads, optimizer, new_weights, \
+    del ffns, tape, rec_weights, ffn, inputs, out, hs, eigs, radius, radius_1, rt, rl, optimizer, new_weights, \
         weights
 
     tf.keras.backend.clear_session()

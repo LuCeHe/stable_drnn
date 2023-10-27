@@ -1,4 +1,4 @@
-import os, shutil, logging, json, copy, time
+import os, shutil, logging, json, copy, time, gc
 import pandas as pd
 
 from alif_sg.neural_models.lruLSC import lruLSC, lruLSCffn
@@ -313,6 +313,11 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
         callbacks.append(
             ExtendedTensorBoard(validation_data=val_data, log_dir=other_dir, histogram_freq=print_every),
         )
+
+    tf.keras.backend.clear_session()
+    tf.keras.backend.clear_session()
+    tf.keras.backend.clear_session()
+    gc.collect()
 
     train_model = build_model(**model_args)
     train_model.summary()
