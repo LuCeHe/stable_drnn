@@ -528,10 +528,8 @@ def lruLSCffn(
             if ma_loss < loss_threshold:
                 break
 
-            del tape, ffn, inputs, out, hs, eigs, radius, radius_1, rt, rl
+            del tape, ffn, inputs, out, hs, eigs, radius, radius_1
 
-            if not 'nosgd' in comments:
-                del optimizer
 
             tf.keras.backend.clear_session()
             tf.keras.backend.clear_session()
@@ -557,6 +555,7 @@ def lruLSCffn(
         'tn_l': tn_l,
         'lsc_comments': comments,
     }
+    del rt, rl
 
     # scales = compare_to_default_scales(width, n_layers, cells)
     # results.update(scales)
@@ -578,6 +577,8 @@ def lruLSCffn(
                                       rec_weights=rec_weights)
 
     del rec_weights
+    if not 'nosgd' in comments:
+        del optimizer
 
     tf.keras.backend.clear_session()
     tf.keras.backend.clear_session()
