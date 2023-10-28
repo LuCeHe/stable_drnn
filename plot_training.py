@@ -434,7 +434,9 @@ if pandas_means:
                 idf = idf.sort_values(by='mean_' + metric, ascending=True)
                 for c in idf.columns:
                     if 'ppl' in c:
-                        idf[c] = idf[c].apply(lambda x: '%.3f' % x if not np.isnan(x) and int(x) < 1000 else str(x))
+                        idf[c] = idf[c].apply(
+                            lambda x: '%.3f' % x if isinstance(x, np.floating) and int(x) < 1000 else str(x)
+                        )
 
                 print(idf.to_string())
 
