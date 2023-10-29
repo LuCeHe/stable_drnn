@@ -440,17 +440,24 @@ if pandas_means:
 
                 print(idf.to_string())
 
-    print('-===-' * 30)
-    sdf = idf[
+    if not expsid == 's5lru':
+        print('-===-' * 30)
+        sdf = idf[
+            (idf['comments'].str.contains('allns_36_dropout:.2_embproj_pretrained_maxlen:300_mlminputs_mlmeps:3')
+            | idf['comments'].str.contains('allns_36_dropout:.1_embproj_pretrained_maxlen:300_mlminputs_mlmeps:3'))
+            & idf['lr'].eq(0.03)
+            ]
+        print(sdf.to_string())
+
+if lruptb2latex:
+    xdf = mdf.copy()
+    xdf = xdf[~xdf['comments'].str.contains('ffnlsc')]
+    xdf = xdf[xdf['task'].str.contains('PTB')]
+    xdf = xdf[
         (idf['comments'].str.contains('allns_36_dropout:.2_embproj_pretrained_maxlen:300_mlminputs_mlmeps:3')
         | idf['comments'].str.contains('allns_36_dropout:.1_embproj_pretrained_maxlen:300_mlminputs_mlmeps:3'))
         & idf['lr'].eq(0.03)
         ]
-    print(sdf.to_string())
-
-if lruptb2latex:
-    xdf = mdf.copy()
-    xdf = xdf[xdf['task'].str.contains('PTB')]
     xdf['clipping'] = xdf['comments'].str.contains('clipping')
 
     new_column_names = {
@@ -466,6 +473,9 @@ if lruptb2latex:
     xdf['comments'] = xdf['comments'].str.replace('_clipping', '')
     xdf['comments'] = xdf['comments'].str.replace('findLSC_radius', 'LSC')
     xdf['comments'] = xdf['comments'].str.replace('allns_36_dropout:.0_', '')
+    xdf['comments'] = xdf['comments'].str.replace('allns_36_dropout:.1_embproj_pretrained_maxlen:300_mlminputs_mlmeps:3', '')
+    xdf['comments'] = xdf['comments'].str.replace('allns_36_dropout:.2_embproj_pretrained_maxlen:300_mlminputs_mlmeps:3', '')
+    xdf['comments'] = xdf['comments'].map(lambda x: x.lstrip('_'))
 
     # write $\rho=1$ as comments if comments is LSC
     xdf['comments'] = xdf.apply(lambda row: r'$\rho=1$' if 'LSC' == row['comments'] else row['comments'], axis=1)
@@ -479,6 +489,7 @@ if lruptb2latex:
 
     depths = sorted(np.unique(xdf['stack']))
 
+    full_latex = ''
     for d in depths:
         idf = xdf[xdf['stack'].eq(d)]
         # sort by clipping column
@@ -504,8 +515,12 @@ if lruptb2latex:
         import re
 
         latex_df = re.sub(' +', ' ', latex_df)
-        print('\n\n')
-        print(latex_df)
+        # print('\n\n')
+        full_latex += latex_df
+
+    # full_latex = full_latex.replace(r'\end{tabular}\n\begin{tabular}{lcc}', '')
+    full_latex = full_latex.replace('\n\\end{tabular}\n\\begin{tabular}{lcc}', '')
+    print(full_latex)
 
 if nice_bar_plot:
     df = df.copy()

@@ -374,7 +374,6 @@ def lruLSCffn(
     ts = 2 if 'test' in comments else max_steps  # number of pretraining steps
     tc = n_layers * 2  # time constant for the moving averages
     round_to = 5
-    decay = .97
     rand = lambda shape=(width,): tf.random.normal(shape)
 
     target_norm = str2val(comments, 'targetnorm', float, default=1)
@@ -576,7 +575,7 @@ def lruLSCffn(
     allweights = equivalence_and_save(comments, width, n_layers, classes, vocab_size, cells=None, path_pretrained=None,
                                       rec_weights=rec_weights)
 
-    del rec_weights
+    del rec_weights, ffns
     if not 'nosgd' in comments:
         del optimizer
 
