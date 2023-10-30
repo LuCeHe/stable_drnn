@@ -444,18 +444,28 @@ if pandas_means:
         print('-===-' * 30)
         sdf = idf[
             (idf['comments'].str.contains('allns_36_dropout:.2_embproj_pretrained_maxlen:300_mlminputs_mlmeps:3')
-            | idf['comments'].str.contains('allns_36_dropout:.1_embproj_pretrained_maxlen:300_mlminputs_mlmeps:3'))
+             | idf['comments'].str.contains('allns_36_dropout:.1_embproj_pretrained_maxlen:300_mlminputs_mlmeps:3'))
             & idf['lr'].eq(0.03)
             ]
         print(sdf.to_string())
 
 if lruptb2latex:
+    ffnlsc = True
     xdf = mdf.copy()
-    xdf = xdf[~xdf['comments'].str.contains('ffnlsc')]
+
+    if not ffnlsc:
+        xdf = xdf[~xdf['comments'].str.contains('ffnlsc')]
+    else:
+        xdf = xdf[
+            ~xdf['comments'].str.contains('findLSC')
+            | xdf['comments'].str.contains('ffnlsc')
+            ]
+        xdf['comments'] = xdf['comments'].str.replace('_ffnlsc', '')
+
     xdf = xdf[xdf['task'].str.contains('PTB')]
     xdf = xdf[
         (idf['comments'].str.contains('allns_36_dropout:.2_embproj_pretrained_maxlen:300_mlminputs_mlmeps:3')
-        | idf['comments'].str.contains('allns_36_dropout:.1_embproj_pretrained_maxlen:300_mlminputs_mlmeps:3'))
+         | idf['comments'].str.contains('allns_36_dropout:.1_embproj_pretrained_maxlen:300_mlminputs_mlmeps:3'))
         & idf['lr'].eq(0.03)
         ]
     xdf['clipping'] = xdf['comments'].str.contains('clipping')
@@ -473,8 +483,10 @@ if lruptb2latex:
     xdf['comments'] = xdf['comments'].str.replace('_clipping', '')
     xdf['comments'] = xdf['comments'].str.replace('findLSC_radius', 'LSC')
     xdf['comments'] = xdf['comments'].str.replace('allns_36_dropout:.0_', '')
-    xdf['comments'] = xdf['comments'].str.replace('allns_36_dropout:.1_embproj_pretrained_maxlen:300_mlminputs_mlmeps:3', '')
-    xdf['comments'] = xdf['comments'].str.replace('allns_36_dropout:.2_embproj_pretrained_maxlen:300_mlminputs_mlmeps:3', '')
+    xdf['comments'] = xdf['comments'].str.replace(
+        'allns_36_dropout:.1_embproj_pretrained_maxlen:300_mlminputs_mlmeps:3', '')
+    xdf['comments'] = xdf['comments'].str.replace(
+        'allns_36_dropout:.2_embproj_pretrained_maxlen:300_mlminputs_mlmeps:3', '')
     xdf['comments'] = xdf['comments'].map(lambda x: x.lstrip('_'))
 
     # write $\rho=1$ as comments if comments is LSC
@@ -520,6 +532,7 @@ if lruptb2latex:
 
     # full_latex = full_latex.replace(r'\end{tabular}\n\begin{tabular}{lcc}', '')
     full_latex = full_latex.replace('\n\\end{tabular}\n\\begin{tabular}{lcc}', '')
+    print('\n\n')
     print(full_latex)
 
 if nice_bar_plot:
@@ -1414,6 +1427,7 @@ if missing_exps and not expsid == 's5lru':
     ]
 
     sdf = df.copy()
+    print(sdf.head().to_string())
 
     for nice, brute in task_name_pairs:
         sdf.loc[df[task_flag].eq(nice), task_flag] = brute
@@ -1424,12 +1438,10 @@ if missing_exps and not expsid == 's5lru':
 
     sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
     sdf = sdf[sdf['task'].eq('wordptb')]
-    nneurons = sdf['n_neurons'].unique()
-    bszs = sdf['batch_size'].unique()
 
-    sdf = sdf[sdf['n_neurons'].eq(256.)]
-    sdf = sdf[sdf['batch_size'].eq('64.0')]
-    sdf = sdf[sdf['task'].eq('wordptb')]
+    sdf = sdf[sdf['n_neurons'].eq(256)]
+    sdf = sdf[sdf['batch_size'].eq('64')]
+
     sdf = sdf[sdf['comments'].str.contains('maxlen:300_mlminputs_mlmeps:3')]
     sdf = sdf[sdf['lr'].eq(0.03)]
     sdf = sdf.astype(
