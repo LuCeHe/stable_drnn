@@ -67,9 +67,9 @@ plot_lrs = False
 plot_bars = False
 plot_new_bars = False
 chain_norms = False
-lruptb2latex = False
+lruptb2latex = True
 
-missing_exps = True
+missing_exps = False
 remove_incomplete = False
 truely_remove = False
 truely_remove_pretrained = False
@@ -450,7 +450,7 @@ if pandas_means:
         print(sdf.to_string())
 
 if lruptb2latex:
-    ffnlsc = True
+    ffnlsc = False
     xdf = mdf.copy()
 
     if not ffnlsc:
@@ -532,6 +532,7 @@ if lruptb2latex:
 
     # full_latex = full_latex.replace(r'\end{tabular}\n\begin{tabular}{lcc}', '')
     full_latex = full_latex.replace('\n\\end{tabular}\n\\begin{tabular}{lcc}', '')
+    full_latex = '\\begin{table}\n' + full_latex + '\end{table}'
     print('\n\n')
     print(full_latex)
 
