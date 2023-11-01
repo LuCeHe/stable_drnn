@@ -40,10 +40,11 @@ GEXPERIMENTS = [
     # r'D:\work\alif_sg\good_experiments\2022-12-21--rnn',
     # r'D:\work\alif_sg\good_experiments\2023-01-20--rnn-v2',
     # r'D:\work\alif_sg\good_experiments\2023-09-01--rnn-lru-first',
-    r'D:\work\alif_sg\good_experiments\2023-10-10--s5lru',
+    # r'D:\work\alif_sg\good_experiments\2023-10-10--s5lru',
+    r'D:\work\alif_sg\good_experiments\2023-11-01--ptblif',
 ]
 
-expsid = 'als'  # effnet als ffnandcnns s5lru
+expsid = 'mnl'  # effnet als ffnandcnns s5lru mnl
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 lsc_epsilon = 0.02  # 0.02
@@ -67,7 +68,7 @@ plot_lrs = False
 plot_bars = False
 plot_new_bars = False
 chain_norms = False
-lruptb2latex = True
+lruptb2latex = False
 
 missing_exps = False
 remove_incomplete = False
@@ -94,11 +95,11 @@ metrics_oi = [
 metrics_oi = [shorten_losses(m) for m in metrics_oi]
 
 plot_only = [
-                'seed', 'net', 'task', 'stack', 'comments', 'path', 'lr',  # 'lr f',
-                'n_neurons', 'batch_size',
-                'optimizer_name', 'lr_schedule', 'host_hostname',
-                'v_ppl argm', 'v_ppl len',
-            ] + metrics_oi
+    'seed', 'net', 'task', 'stack', 'comments', 'path', 'lr',  # 'lr f',
+    'n_neurons', 'batch_size',
+    'optimizer_name', 'lr_schedule', 'host_hostname',
+    'v_ppl argm', 'v_ppl len',
+]
 
 columns_to_remove = [
     '_var', '_mean', 'sparse_categorical_crossentropy', 'bpc', 'loss', 'artifacts',
@@ -148,9 +149,9 @@ if expsid == 's5lru':
     ]
 
     plot_only = [
-                    'jax_seed', 'lru', 'dataset', 'n_depth', 'comments',
-                    'val_acc len', 'val_acc argM', 'path', 'eps', 'spe', 'bsz'
-                ] + metrics_oi
+        'jax_seed', 'lru', 'dataset', 'n_depth', 'comments',
+        'val_acc len', 'val_acc argM', 'path', 'eps', 'spe', 'bsz'
+    ]
     group_cols = ['lru', 'dataset', 'comments', 'n_depth']
 
     columns_to_remove = []
@@ -166,9 +167,28 @@ if expsid == 's5lru':
         ('PathX', 'pathx-classification'),
     ]
 
+elif expsid == 'mnl':
+    task_flag = 'task_name'  # task dataset
+    net_flag = 'net_name'  # net lru
+
+    plot_only = [
+        'seed', 'net_name', 'task_name', 'stack', 'comments', 'path', 'lr',  # 'lr f',
+        'n_neurons', 'batch_size',
+        'optimizer_name', 'lr_schedule', 'host_hostname',
+        'v_ppl argm', 'v_ppl len',
+    ]
+    group_cols = [
+        'net_name', 'net_name', 'comments', 'stack', 'lr',  # 'lr f',
+        'n_neurons', 'optimizer_name', 'batch_size', 'lr_schedule'
+    ]
+
+plot_only += metrics_oi
+print('plot_only', plot_only)
+
 df = experiments_to_pandas(
     h5path=h5path, zips_folder=GEXPERIMENTS, unzips_folder=EXPERIMENTS, experiments_identifier=expsid,
-    exclude_files=['cout.txt'], check_for_new=check_for_new,
+    exclude_files=['cout.txt', 'text_indices.txt', 'text_sentences.txt'],
+    check_for_new=check_for_new,
     exclude_columns=columns_to_remove, force_keep_column=force_keep_column
 )
 
