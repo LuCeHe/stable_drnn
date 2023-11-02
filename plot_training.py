@@ -88,7 +88,8 @@ metrics_oi = [
     'val_ppl m', 'val_mode_acc M', 'test_ppl', 'test_mode_acc',
     # 'LSC_norms i', 'LSC_norms f', 'LSC_norms mean',
     'ma_norm', 'ni',
-    'n_params', 'conveps',
+    # 'n_params',
+    'conveps',
     # 'final_norms_mean', 'final_norms_std', 'best_std_ma_norm', 'std_ma_norm',
 ]
 
@@ -173,13 +174,13 @@ elif expsid == 'mnl':
 
     plot_only = [
         'seed', 'net_name', 'task_name', 'stack', 'comments', 'path', 'lr',  # 'lr f',
-        'n_neurons', 'batch_size',
+        'n_neurons', 'batch_size', 'n_params',
         'optimizer_name', 'lr_schedule', 'host_hostname',
         'v_ppl argm', 'v_ppl len',
     ]
     group_cols = [
-        'net_name', 'net_name', 'comments', 'stack', 'lr',  # 'lr f',
-        'n_neurons', 'optimizer_name', 'batch_size', 'lr_schedule'
+        'net_name', 'task_name', 'n_params', 'comments', 'stack', 'lr',
+        'n_neurons', 'optimizer_name', 'batch_size', 'lr_schedule',
     ]
 
 plot_only += metrics_oi
@@ -205,6 +206,18 @@ if 'als' == expsid:
     # df['comments'] = df['comments'].str.replace('_pretrained', '')
     df['comments'] = df['comments'].astype(str)
     df.replace(['nan'], np.nan, inplace=True)
+
+df['comments'] = df.apply(
+    lambda row: '_'.join([
+        c for c in row['comments'].split('_')
+        if not 'taskmean' in c
+           and not 'taskvar' in c]
+    ), axis=1
+)
+
+df['comments'] = df.apply(
+    lambda row: ''.join([c for c in row['comments'].split('**') if not 'folder' in c]), axis=1
+)
 
 new_column_names = {c_name: shorten_losses(c_name) for c_name in df.columns}
 df.rename(columns=new_column_names, inplace=True)
@@ -412,8 +425,9 @@ if pandas_means:
     if 'mean_time_elapsed' in mdf.columns:
         mdf['mean_time_elapsed'] = mdf['mean_time_elapsed'].apply(lambda x: timedelta(seconds=x))
 
-    if 'mean_n_params' in mdf.columns:
-        mdf['mean_n_params'] = mdf['mean_n_params'].apply(lambda x: large_num_to_reasonable_string(x, 1))
+    for k in ['mean_n_params', 'n_params']:
+        if k in mdf.columns:
+            mdf[k] = mdf[k].apply(lambda x: large_num_to_reasonable_string(x, 1))
 
     if not show_per_tasknet:
         print(mdf.to_string())
