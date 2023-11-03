@@ -183,6 +183,13 @@ elif expsid == 'mnl':
         'n_neurons', 'optimizer_name', 'batch_size', 'lr_schedule',
     ]
 
+    metrics_oi = [
+        'val_ppl m', 'test_ppl',
+        'conveps',
+    ]
+    stats_oi = ['mean']
+
+
 plot_only += metrics_oi
 print('plot_only', plot_only)
 
