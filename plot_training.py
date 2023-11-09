@@ -302,7 +302,7 @@ if plot_pretrained_weights:
 
 if plot_losses:
     df['comments'] = df['comments'].str.replace('allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_', '')
-    df = df[df['task'].str.contains('wordptb')]
+    df = df[df[task_flag].str.contains('wordptb')]
 
     # plot_metric = 'val_^acc list'
     # plot_metric = 'LSC list'
