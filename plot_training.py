@@ -41,10 +41,11 @@ GEXPERIMENTS = [
     # r'D:\work\alif_sg\good_experiments\2023-01-20--rnn-v2',
     # r'D:\work\alif_sg\good_experiments\2023-09-01--rnn-lru-first',
     # r'D:\work\alif_sg\good_experiments\2023-10-10--s5lru',
-    r'D:\work\alif_sg\good_experiments\2023-11-01--ptblif',
+    # r'D:\work\alif_sg\good_experiments\2023-11-01--ptblif',
+    r'D:\work\alif_sg\good_experiments\2023-11-10--decolletc',
 ]
 
-expsid = 'mnl'  # effnet als ffnandcnns s5lru mnl
+expsid = 'fluctuations'  # effnet als ffnandcnns s5lru mnl fluctuations
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 lsc_epsilon = 0.02  # 0.02
@@ -189,6 +190,21 @@ elif expsid == 'mnl':
     ]
     stats_oi = ['mean']
 
+elif expsid == 'fluctuations':
+    plot_only = [
+        'seed',  'comments', 'path', 'hostname',  # 'lr f',
+        'stop_time', 'log_dir', 'time_elapsed',
+        'valid_acc argM', 'valid_acc len',
+    ]
+    group_cols = [
+        'comments',
+    ]
+
+    metrics_oi = [
+        'train_acc M', 'valid_acc M',
+        'test_acc',
+    ]
+    stats_oi = ['mean']
 
 plot_only += metrics_oi
 print('plot_only', plot_only)
@@ -200,8 +216,9 @@ df = experiments_to_pandas(
     exclude_columns=columns_to_remove, force_keep_column=force_keep_column
 )
 
-df[task_flag] = df[task_flag].astype(str)
-df[net_flag] = df[net_flag].astype(str)
+for flag in [task_flag, net_flag]:
+    if flag in df.columns:
+        df[flag] = df[flag].astype(str)
 
 if 'als' == expsid:
     df['stack'] = df['stack'].fillna(-1).astype(int)
@@ -373,8 +390,9 @@ if 'net' in df.columns:
     df.loc[df['net'].eq('maLSNNb'), 'net'] = 'ALIFb'
     df.loc[df['net'].eq('maLSNN'), 'net'] = 'ALIF'
 
-for nice, brute in task_name_pairs:
-    df.loc[df[task_flag].eq(brute), task_flag] = nice
+if task_flag in df.columns:
+    for nice, brute in task_name_pairs:
+        df.loc[df[task_flag].eq(brute), task_flag] = nice
 
 # eps column stays eps if not equal to None else it becomes the content of v_mode_acc len
 # df.loc[df['eps'].isnull(), 'eps'] = df.loc[df['eps'].isnull(), f'{metric} len']
