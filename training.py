@@ -55,17 +55,17 @@ def config():
 
     # net
     # maLSNN cLSTM LSTM maLSNNb GRU indrnn LMU ssimplernn rsimplernn reslru lru reslruffn
-    net = 'reslruffn'
+    net = 'maLSNN'
     # zero_mean_isotropic zero_mean learned positional normal onehot zero_mean_normal
-    stack = 3
-    n_neurons = 4
+    stack = 1
+    n_neurons = 3
 
     embedding = 'learned:None:None:{}'.format(n_neurons) if task in language_tasks else False
     # comments = 'allns_36_nogradreset_dropout:0'
     comments = 'lscdepth:1_36_embproj_nogradreset_dropout:0_findLSC_radius_pretrained_tsteps:2_test'
     # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain_pretrained_lsclr:0.0001_nbs:16_tsteps:10'
     # comments = 'allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_findLSC_radius_test_onlypretrain_pretrained_lsclr:0.0001_nbs:16_targetnorm:.5'
-    comments = 'allns_36_dropout:.0_embproj_mlminputs_ffnlsc_test_findLSC'
+    comments = 'allns_36_dropout:.0_embproj_mlminputs'
 
     # optimizer properties
     lr = None  # 7e-4 None
