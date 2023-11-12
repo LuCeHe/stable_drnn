@@ -41,11 +41,11 @@ GEXPERIMENTS = [
     # r'D:\work\alif_sg\good_experiments\2023-01-20--rnn-v2',
     # r'D:\work\alif_sg\good_experiments\2023-09-01--rnn-lru-first',
     # r'D:\work\alif_sg\good_experiments\2023-10-10--s5lru',
-    # r'D:\work\alif_sg\good_experiments\2023-11-01--ptblif',
-    r'D:\work\alif_sg\good_experiments\2023-11-10--decolletc',
+    r'D:\work\alif_sg\good_experiments\2023-11-01--ptblif',
+    # r'D:\work\alif_sg\good_experiments\2023-11-10--decolletc',
 ]
 
-expsid = 'fluctuations'  # effnet als ffnandcnns s5lru mnl fluctuations
+expsid = 'mnl'  # effnet als ffnandcnns s5lru mnl fluctuations
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 lsc_epsilon = 0.02  # 0.02
