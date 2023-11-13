@@ -1615,11 +1615,8 @@ if missing_exps and expsid == 'fluctuations':
     ]
 
     sdf = df.copy()
+    sdf['epochs'] = -1
     print(sdf.head().to_string())
-
-    sdf.rename(columns={
-        'eps': 'epochs', 'spe': 'steps_per_epoch'
-    }, inplace=True)
 
     sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
     print(f'Experiments already done: {sdf.shape[0]}, len cols = {len(sdf.columns)}')
@@ -1627,7 +1624,7 @@ if missing_exps and expsid == 'fluctuations':
     seed = 0
     n_seeds = 4
     seeds = [l + seed for l in range(n_seeds)]
-
+    experiments = []
     experiment = {
         'seed': seeds, 'epochs': [-1],
         'comments': ['deep', ''],
