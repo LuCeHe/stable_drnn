@@ -71,7 +71,7 @@ plot_new_bars = False
 chain_norms = False
 lruptb2latex = False
 
-missing_exps = False
+missing_exps = True
 remove_incomplete = False
 truely_remove = False
 truely_remove_pretrained = False
@@ -206,11 +206,11 @@ elif expsid == 'fluctuations':
 
     plot_only = [
         'seed', 'dataset', 'comments', 'path', 'hostname',  # 'lr f',
-        'stop_time', 'log_dir', 'time_elapsed',
+        'stop_time', 'log_dir', 'time_elapsed', 'n_params',
         'valid_acc argM', 'valid_acc len',
     ]
     group_cols = [
-        'dataset', 'comments',
+        'dataset', 'comments', 'n_params'
     ]
 
     metrics_oi = [
@@ -520,7 +520,6 @@ if pandas_means:
              | sdf['comments'].str.contains('allns_36_dropout:.1_embproj_pretrained_maxlen:300_mlminputs_mlmeps:3'))
             & sdf['lr'].eq(0.03)
             ]
-
 
     print(sdf.to_string())
 
@@ -1493,7 +1492,7 @@ if remove_incomplete:
                     os.remove(gexp_path)
         os.remove(h5path)
 
-if missing_exps and not expsid == 's5lru':
+if missing_exps and expsid == 'als' and 'rnn-lru-' in GEXPERIMENTS[0]:
     print('Missing experiments')
     print(df.columns)
     # columns of interest
@@ -1599,6 +1598,42 @@ if missing_exps and not expsid == 's5lru':
                 'lr_schedule': schedules, 'optimizer_name': [optimizer_name],
             }
             experiments.append(experiment)
+
+    ds = dict2iter(experiments)
+    _, experiments_left = complete_missing_exps(sdf, ds, coi)
+    np.random.shuffle(experiments_left)
+    experiments = experiments_left
+
+    print(f'experiments =', experiments)
+    print(f'# {len(experiments)}/{len(ds)}')
+
+if missing_exps and expsid == 'fluctuations':
+    print('Missing experiments')
+    # columns of interest
+    coi = [
+        'seed', 'comments', 'epochs', 'dataset'
+    ]
+
+    sdf = df.copy()
+    print(sdf.head().to_string())
+
+    sdf.rename(columns={
+        'eps': 'epochs', 'spe': 'steps_per_epoch'
+    }, inplace=True)
+
+    sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
+    print(f'Experiments already done: {sdf.shape[0]}, len cols = {len(sdf.columns)}')
+
+    seed = 0
+    n_seeds = 4
+    seeds = [l + seed for l in range(n_seeds)]
+
+    experiment = {
+        'seed': seeds, 'epochs': [-1],
+        'comments': ['deep', ''],
+        'dataset': ['dvs', 'shd', 'cifar10']
+    }
+    experiments.append(experiment)
 
     ds = dict2iter(experiments)
     _, experiments_left = complete_missing_exps(sdf, ds, coi)
