@@ -45,7 +45,7 @@ GEXPERIMENTS = [
     # r'D:\work\alif_sg\good_experiments\2023-11-10--decolletc',
 ]
 
-expsid = 'mnl'  # effnet als ffnandcnns s5lru mnl fluctuations
+expsid = 'fluctuations'  # effnet als ffnandcnns s5lru mnl fluctuations
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 lsc_epsilon = 0.02  # 0.02
@@ -170,6 +170,11 @@ if expsid == 's5lru':
     ]
 
 elif expsid == 'mnl':
+
+    GEXPERIMENTS = [
+        r'D:\work\alif_sg\good_experiments\2023-11-01--ptblif',
+    ]
+
     task_flag = 'task_name'  # task dataset
     net_flag = 'net_name'  # net lru
 
@@ -191,13 +196,21 @@ elif expsid == 'mnl':
     stats_oi = ['mean']
 
 elif expsid == 'fluctuations':
+
+    GEXPERIMENTS = [
+        r'D:\work\alif_sg\good_experiments\2023-11-10--decolletc',
+    ]
+    task_flag = 'dataset'
+    net_flag = 'dataset'
+    depth_flag = 'dataset'
+
     plot_only = [
-        'seed',  'comments', 'path', 'hostname',  # 'lr f',
+        'seed', 'dataset', 'comments', 'path', 'hostname',  # 'lr f',
         'stop_time', 'log_dir', 'time_elapsed',
         'valid_acc argM', 'valid_acc len',
     ]
     group_cols = [
-        'comments',
+        'dataset', 'comments',
     ]
 
     metrics_oi = [
@@ -205,6 +218,7 @@ elif expsid == 'fluctuations':
         'test_acc',
     ]
     stats_oi = ['mean']
+    metric = 'test_acc'  # 'v_ppl min'
 
 plot_only += metrics_oi
 print('plot_only', plot_only)
@@ -498,15 +512,17 @@ if pandas_means:
                         )
 
                 print(idf.to_string())
-
-    if not expsid == 's5lru':
+    sdf = mdf.copy()
+    if expsid == 'mnl':
         print('-===-' * 30)
-        sdf = idf[
-            (idf['comments'].str.contains('allns_36_dropout:.2_embproj_pretrained_maxlen:300_mlminputs_mlmeps:3')
-             | idf['comments'].str.contains('allns_36_dropout:.1_embproj_pretrained_maxlen:300_mlminputs_mlmeps:3'))
-            & idf['lr'].eq(0.03)
+        sdf = sdf[
+            (sdf['comments'].str.contains('allns_36_dropout:.2_embproj_pretrained_maxlen:300_mlminputs_mlmeps:3')
+             | sdf['comments'].str.contains('allns_36_dropout:.1_embproj_pretrained_maxlen:300_mlminputs_mlmeps:3'))
+            & sdf['lr'].eq(0.03)
             ]
-        print(sdf.to_string())
+
+
+    print(sdf.to_string())
 
 if lruptb2latex:
     ffnlsc = False
