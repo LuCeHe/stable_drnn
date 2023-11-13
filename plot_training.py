@@ -1,11 +1,9 @@
-import os, json, copy, time, shutil, math
+import os, json
 
 from alif_sg.tools.admin_model_removal import remove_pretrained_extra
-from pyaromatics.keras_tools.esoteric_layers.rate_voltage_reg import RateVoltageRegularization
 
 from pyaromatics.stay_organized.submit_jobs import dict2iter
 from tqdm import tqdm
-import numpy as np
 import pandas as pd
 import matplotlib as mpl
 
@@ -17,7 +15,6 @@ from pyaromatics.stay_organized.standardize_strings import shorten_losses
 from pyaromatics.stay_organized.utils import str2val
 from alif_sg.neural_models.recLSC import load_LSC_model
 from alif_sg.tools.plot_tools import *
-from sg_design_lif.neural_models import maLSNN
 
 mpl, pd = load_plot_settings(mpl=mpl, pd=pd)
 
@@ -45,7 +42,7 @@ GEXPERIMENTS = [
     # r'D:\work\alif_sg\good_experiments\2023-11-10--decolletc',
 ]
 
-expsid = 'fluctuations'  # effnet als ffnandcnns s5lru mnl fluctuations
+expsid = '_decolle'  # effnet als ffnandcnns s5lru mnl fluctuations _decolle
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 lsc_epsilon = 0.02  # 0.02
@@ -104,7 +101,7 @@ plot_only = [
 ]
 
 columns_to_remove = [
-    '_var', '_mean', 'sparse_categorical_crossentropy', 'bpc', 'loss', 'artifacts',
+    '_var', '_mean', 'sparse_categorical_crossentropy', 'bpc', 'artifacts',
     'experiment_dependencies', 'experiment_sources', 'experiment_repositories', 'host_os',
     'sparse_categorical_accuracy', 'LSC_losses', 'rec_norms', 'fail_trace', 'list', 'weights_shapes'
 ]
@@ -220,6 +217,31 @@ elif expsid == 'fluctuations':
     stats_oi = ['mean']
     metric = 'test_acc'  # 'v_ppl min'
 
+elif expsid == '_decolle':
+
+    GEXPERIMENTS = [
+        r'D:\work\alif_sg\good_experiments\2023-11-10--decolletc',
+    ]
+    task_flag = 'dataset'
+    net_flag = 'dataset'
+    depth_flag = 'dataset'
+
+    plot_only = [
+        'seed', 'dataset', 'comments', 'path', 'hostname',  # 'lr f',
+        'stop_time', 'log_dir', 'time_elapsed', 'n_params',
+        'test_losses argm', 'test_losses len',
+    ]
+    group_cols = [
+        'dataset', 'comments',
+    ]
+
+    metrics_oi = [
+        'test_losses m', 'train_losses m',
+        'test_accs M',
+    ]
+    stats_oi = ['mean', 'std']
+    metric = 'test_accs M'  # 'v_ppl min'
+
 plot_only += metrics_oi
 print('plot_only', plot_only)
 
@@ -229,6 +251,8 @@ df = experiments_to_pandas(
     check_for_new=check_for_new,
     exclude_columns=columns_to_remove, force_keep_column=force_keep_column
 )
+
+print(df.to_string())
 
 for flag in [task_flag, net_flag]:
     if flag in df.columns:
@@ -245,17 +269,18 @@ if 'als' == expsid:
     df['comments'] = df['comments'].astype(str)
     df.replace(['nan'], np.nan, inplace=True)
 
-df['comments'] = df.apply(
-    lambda row: '_'.join([
-        c for c in row['comments'].split('_')
-        if not 'taskmean' in c
-           and not 'taskvar' in c]
-    ), axis=1
-)
+if 'mnl' in expsid:
+    df['comments'] = df.apply(
+        lambda row: '_'.join([
+            c for c in row['comments'].split('_')
+            if not 'taskmean' in c
+               and not 'taskvar' in c]
+        ), axis=1
+    )
 
-df['comments'] = df.apply(
-    lambda row: ''.join([c for c in row['comments'].split('**') if not 'folder' in c]), axis=1
-)
+    df['comments'] = df.apply(
+        lambda row: ''.join([c for c in row['comments'].split('**') if not 'folder' in c]), axis=1
+    )
 
 new_column_names = {c_name: shorten_losses(c_name) for c_name in df.columns}
 df.rename(columns=new_column_names, inplace=True)
