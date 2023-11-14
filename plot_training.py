@@ -42,7 +42,7 @@ GEXPERIMENTS = [
     # r'D:\work\alif_sg\good_experiments\2023-11-10--decolletc',
 ]
 
-expsid = '_decolle'  # effnet als ffnandcnns s5lru mnl fluctuations _decolle
+expsid = 'fluctuations'  # effnet als ffnandcnns s5lru mnl fluctuations _decolle
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 lsc_epsilon = 0.02  # 0.02
@@ -252,7 +252,6 @@ df = experiments_to_pandas(
     exclude_columns=columns_to_remove, force_keep_column=force_keep_column
 )
 
-print(df.to_string())
 
 for flag in [task_flag, net_flag]:
     if flag in df.columns:
