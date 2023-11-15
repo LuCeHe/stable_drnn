@@ -42,7 +42,7 @@ GEXPERIMENTS = [
     # r'D:\work\alif_sg\good_experiments\2023-11-10--decolletc',
 ]
 
-expsid = '_decolle'  # effnet als ffnandcnns s5lru mnl fluctuations _decolle
+expsid = 'fluctuations'  # effnet als ffnandcnns s5lru mnl fluctuations _decolle
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 lsc_epsilon = 0.02  # 0.02
@@ -68,7 +68,7 @@ plot_new_bars = False
 chain_norms = False
 lruptb2latex = False
 
-missing_exps = False
+missing_exps = True
 remove_incomplete = False
 truely_remove = False
 truely_remove_pretrained = False
