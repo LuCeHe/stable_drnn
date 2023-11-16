@@ -222,22 +222,23 @@ elif expsid == '_decolle':
     GEXPERIMENTS = [
         r'D:\work\alif_sg\good_experiments\2023-11-10--decolletc',
     ]
-    task_flag = 'dataset'
-    net_flag = 'dataset'
-    depth_flag = 'dataset'
+    task_flag = 'datasetname'
+    net_flag = 'datasetname'
+    depth_flag = 'datasetname'
 
     plot_only = [
-        'seed', 'dataset', 'comments', 'path', 'hostname',  # 'lr f',
-        'stop_time', 'log_dir', 'time_elapsed', 'n_params',
-        'test_losses argm', 'test_losses len',
+        'seed', 'datasetname', 'comments', 'path', 'hostname',  # 'lr f',
+        'stop_time', 'log_dir', 'n_params',
+        'test_losses argm',
     ]
+
     group_cols = [
-        'dataset', 'comments',
+        'datasetname', 'comments',
     ]
 
     metrics_oi = [
         'test_losses m', 'train_losses m',
-        'test_accs M',
+        'test_accs M', 'test_losses len', 'conveps', 'time_elapsed'
     ]
     stats_oi = ['mean', 'std']
     metric = 'test_accs M'  # 'v_ppl min'
@@ -292,6 +293,9 @@ if 'val_ppl argm' in df.columns and 'val_ppl len' in df.columns:
 
 if 'val_acc argM' in df.columns and 'val_acc len' in df.columns:
     df['conveps'] = df['val_acc len'].astype(float) - df['val_acc argM'].astype(float)
+
+if 'test_losses argm' in df.columns and 'test_losses len' in df.columns:
+    df['conveps'] = df['test_losses len'].astype(float) - df['test_losses argm'].astype(float)
 
 for c in ['t_ppl', 't_^acc', 'v_ppl', 'v_^acc']:
     # if column doesn't exist, create a NaN column
@@ -1274,13 +1278,13 @@ if remove_incomplete:
     print('\n\n')
 
     # print('Eliminate pretrain')
-    # rdf = plotdf[
-    #     plotdf['comments'].str.contains('pretrain')
-    # ]
-    # ardf = rdf.copy()
-    # print(rdf.to_string())
-    # print(rdf.shape, df.shape)
-    # rdfs.append(rdf)
+    rdf = plotdf[
+        plotdf['dataset'].str.contains('dvs')
+    ]
+    ardf = rdf.copy()
+    print(rdf.to_string())
+    print(rdf.shape, df.shape)
+    rdfs.append(rdf)
 
     print('Eliminate if f_norms_std too large')
     # rdf = plotdf[
