@@ -42,7 +42,7 @@ GEXPERIMENTS = [
     # r'D:\work\alif_sg\good_experiments\2023-11-10--decolletc',
 ]
 
-expsid = '_decolle'  # effnet als ffnandcnns s5lru mnl fluctuations _decolle
+expsid = 'fluctuations'  # effnet als ffnandcnns s5lru mnl fluctuations _decolle
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 lsc_epsilon = 0.02  # 0.02
@@ -252,7 +252,6 @@ df = experiments_to_pandas(
     check_for_new=check_for_new,
     exclude_columns=columns_to_remove, force_keep_column=force_keep_column
 )
-
 
 for flag in [task_flag, net_flag]:
     if flag in df.columns:
@@ -1652,10 +1651,14 @@ if missing_exps and expsid == 'fluctuations':
     seed = 0
     n_seeds = 4
     seeds = [l + seed for l in range(n_seeds)]
+
+    base_comments = ['deep', '']
+    conds = ['', 'condI', 'condIV']
+    comments = [b if c == '' else c if b == '' else f'{b}_{c}' for b in base_comments for c in conds]
     experiments = []
     experiment = {
         'seed': seeds, 'epochs': [-1],
-        'comments': ['deep', ''],
+        'comments': comments,
         'dataset': ['dvs', 'shd', 'cifar10']
     }
     experiments.append(experiment)
