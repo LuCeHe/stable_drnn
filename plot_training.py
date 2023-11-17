@@ -42,7 +42,7 @@ GEXPERIMENTS = [
     # r'D:\work\alif_sg\good_experiments\2023-11-10--decolletc',
 ]
 
-expsid = 'mnl'  # effnet als ffnandcnns s5lru mnl fluctuations _decolle
+expsid = '_decolle'  # effnet als ffnandcnns s5lru mnl fluctuations _decolle
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 lsc_epsilon = 0.02  # 0.02
@@ -68,7 +68,7 @@ plot_new_bars = False
 chain_norms = False
 lruptb2latex = False
 
-missing_exps = False
+missing_exps = True
 remove_incomplete = False
 truely_remove = False
 truely_remove_pretrained = False
@@ -1279,7 +1279,7 @@ if remove_incomplete:
 
     # print('Eliminate pretrain')
     rdf = plotdf[
-        plotdf['dataset'].str.contains('dvs')
+        ~plotdf['datasetname'].str.contains('dvs')
     ]
     ardf = rdf.copy()
     print(rdf.to_string())
@@ -1657,6 +1657,38 @@ if missing_exps and expsid == 'fluctuations':
         'seed': seeds, 'epochs': [-1],
         'comments': ['deep', ''],
         'dataset': ['dvs', 'shd', 'cifar10']
+    }
+    experiments.append(experiment)
+
+    ds = dict2iter(experiments)
+    _, experiments_left = complete_missing_exps(sdf, ds, coi)
+    np.random.shuffle(experiments_left)
+    experiments = experiments_left
+
+    print(f'experiments =', experiments)
+    print(f'# {len(experiments)}/{len(ds)}')
+
+if missing_exps and expsid == '_decolle':
+    print('Missing experiments')
+    # columns of interest
+    coi = [
+        'seed', 'comments', 'datasetname'
+    ]
+
+    sdf = df.copy()
+    # sdf['epochs'] = -1
+    # print(sdf.head().to_string())
+
+    sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
+    print(f'Experiments already done: {sdf.shape[0]}, len cols = {len(sdf.columns)}')
+
+    seed = 0
+    n_seeds = 4
+    seeds = [l + seed for l in range(n_seeds)]
+    experiments = []
+    experiment = {
+        'seed': seeds, 'datasetname': ['dvs', 'nmnist'],
+        'comments': ['', 'condI', 'condIII', 'condIV', 'condI_III_IV'],
     }
     experiments.append(experiment)
 
