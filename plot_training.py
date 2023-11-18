@@ -42,7 +42,7 @@ GEXPERIMENTS = [
     # r'D:\work\alif_sg\good_experiments\2023-11-10--decolletc',
 ]
 
-expsid = 'fluctuations'  # effnet als ffnandcnns s5lru mnl fluctuations _decolle
+expsid = '_decolle'  # effnet als ffnandcnns s5lru mnl fluctuations _decolle
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 lsc_epsilon = 0.02  # 0.02
@@ -203,7 +203,7 @@ elif expsid == 'fluctuations':
 
     plot_only = [
         'seed', 'dataset', 'comments', 'path', 'hostname',  # 'lr f',
-        'stop_time', 'log_dir',  'n_params',
+        'stop_time', 'log_dir', 'n_params',
         'valid_acc argM',
     ]
     group_cols = [
@@ -242,6 +242,7 @@ elif expsid == '_decolle':
     ]
     stats_oi = ['mean', 'std']
     metric = 'test_accs M'  # 'v_ppl min'
+    plot_metric = 'test_losses list'
 
 plot_only += metrics_oi
 print('plot_only', plot_only)
@@ -288,7 +289,6 @@ for m in ['v_ppl', 'val_ppl', 'val_acc', 'valid_acc', 'test_losses']:
     argm = 'argm' if 'ppl' in m else 'argM'
     if f'{m} {argm}' in df.columns and f'{m} len' in df.columns:
         df['conveps'] = df[f'{m} len'].astype(float) - df[f'{m} {argm}'].astype(float)
-
 
 for c in ['t_ppl', 't_^acc', 'v_ppl', 'v_^acc']:
     # if column doesn't exist, create a NaN column
@@ -354,7 +354,7 @@ if plot_pretrained_weights:
 
 if plot_losses:
     df['comments'] = df['comments'].str.replace('allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_', '')
-    df = df[df[task_flag].str.contains('wordptb')]
+    # df = df[df[task_flag].str.contains('wordptb')]
 
     # plot_metric = 'val_^acc list'
     # plot_metric = 'LSC list'
@@ -363,7 +363,7 @@ if plot_losses:
     # nets = df['net'].unique()
 
     flags = [task_flag, net_flag]
-    flags = [task_flag, depth_flag]
+    # flags = [task_flag, depth_flag]
     assert len(flags) == 2
     fu = {f: sorted(df[f].unique()) for f in flags}
     # tasks = df[task_flag].unique()
@@ -374,6 +374,7 @@ if plot_losses:
         print(v)
     # print(tasks)
     # print(nets)
+    print(len(fu[flags[0]]))
     fig, axs = plt.subplots(
         len(fu[flags[0]]), len(fu[flags[1]]), figsize=(6, 3),
         gridspec_kw={'wspace': .2, 'hspace': 0.8}
@@ -408,7 +409,7 @@ if plot_losses:
     for ax in axs.reshape(-1):
         for pos in ['right', 'left', 'bottom', 'top']:
             ax.spines[pos].set_visible(False)
-            ax.set_ylim([100, 300])
+            # ax.set_ylim([100, 300])
 
     comments = df['comments'].unique()
     comments = [c for c in comments if not 'clipping' in c]
@@ -480,11 +481,12 @@ if pandas_means:
     mdf['counts'] = counts['counts']
 
     # mdf = mdf.sort_values(by='mean_' + metric)
-
-    mdf['comments'] = mdf['comments'].str.replace('__', '_', regex=True)
+    print(mdf.shape)
+    if 'comments' in mdf.columns and not mdf.shape[0] == 0:
+        mdf['comments'] = mdf['comments'].str.replace('__', '_', regex=True)
     for time in ['time_elapsed', 'mean_time_elapsed', 'std_time_elapsed']:
         if time in mdf.columns:
-            mdf[time] = mdf[time].apply(lambda x: timedelta(seconds=x) if not x!=x else x)
+            mdf[time] = mdf[time].apply(lambda x: timedelta(seconds=x) if not x != x else x)
 
     for k in ['mean_n_params', 'n_params']:
         if k in mdf.columns:
@@ -493,7 +495,7 @@ if pandas_means:
     if not show_per_tasknet:
         print(mdf.to_string())
 
-    else:
+    elif not mdf.empty:
         tasks = sorted(np.unique(mdf[task_flag]))
         nets = sorted(np.unique(mdf[net_flag]))
         stacks = sorted(np.unique(mdf[depth_flag]))
@@ -1272,9 +1274,7 @@ if remove_incomplete:
     print('\n\n')
 
     # print('Eliminate pretrain')
-    rdf = plotdf[
-        ~plotdf['dataset'].str.contains('shd')
-    ]
+    rdf = plotdf
     ardf = rdf.copy()
     print(rdf.to_string())
     print(rdf.shape, df.shape)
@@ -1678,8 +1678,6 @@ if missing_exps and expsid == 'fluctuations':
     print(f'experiments_2 =', exps_2)
     print(f'# {len(exps_2)}/{len(ds)}')
 
-
-
 if missing_exps and expsid == '_decolle':
     print('Missing experiments')
     # columns of interest
@@ -1698,13 +1696,17 @@ if missing_exps and expsid == '_decolle':
     n_seeds = 4
     seeds = [l + seed for l in range(n_seeds)]
     experiments = []
+    base_comments = ['', 'condI', 'condIV', 'condI_IV']
+    sgcurves = ['sgcurve:dfastsigmoid', 'sgcurve:triangular', 'sgcurve:rectangular', ]
+    comments = [b if c == '' else c if b == '' else f'{b}_{c}' for b in base_comments for c in sgcurves]
     experiment = {
         'seed': seeds, 'datasetname': ['dvs', 'nmnist'],
-        'comments': ['', 'condI', 'condIII', 'condIV', 'condI_III_IV'],
+        'comments': comments,
     }
     experiments.append(experiment)
 
     ds = dict2iter(experiments)
+
     _, experiments_left = complete_missing_exps(sdf, ds, coi)
     np.random.shuffle(experiments_left)
     experiments = experiments_left
