@@ -1706,7 +1706,7 @@ if missing_exps and expsid == '_decolle':
     experiments.append(experiment)
 
     ds = dict2iter(experiments)
-
+    print(ds)
     _, experiments_left = complete_missing_exps(sdf, ds, coi)
     np.random.shuffle(experiments_left)
     experiments = experiments_left
