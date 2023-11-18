@@ -68,7 +68,7 @@ plot_new_bars = False
 chain_norms = False
 lruptb2latex = False
 
-missing_exps = False
+missing_exps = True
 remove_incomplete = False
 truely_remove = False
 truely_remove_pretrained = False
@@ -203,8 +203,8 @@ elif expsid == 'fluctuations':
 
     plot_only = [
         'seed', 'dataset', 'comments', 'path', 'hostname',  # 'lr f',
-        'stop_time', 'log_dir', 'time_elapsed', 'n_params',
-        'valid_acc argM', 'valid_acc len',
+        'stop_time', 'log_dir',  'n_params',
+        'valid_acc argM',
     ]
     group_cols = [
         'dataset', 'comments', 'n_params'
@@ -212,9 +212,9 @@ elif expsid == 'fluctuations':
 
     metrics_oi = [
         'train_acc M', 'valid_acc M',
-        'test_acc',
+        'test_acc', 'conveps', 'valid_acc len', 'time_elapsed',
     ]
-    stats_oi = ['mean']
+    stats_oi = ['mean', 'std']
     metric = 'test_acc'  # 'v_ppl min'
 
 elif expsid == '_decolle':
@@ -284,17 +284,11 @@ if 'mnl' in expsid:
 new_column_names = {c_name: shorten_losses(c_name) for c_name in df.columns}
 df.rename(columns=new_column_names, inplace=True)
 
-if 'v_ppl argm' in df.columns and 'v_ppl len' in df.columns:
-    df['conveps'] = df['v_ppl len'].astype(float) - df['v_ppl argm'].astype(float)
+for m in ['v_ppl', 'val_ppl', 'val_acc', 'valid_acc', 'test_losses']:
+    argm = 'argm' if 'ppl' in m else 'argM'
+    if f'{m} {argm}' in df.columns and f'{m} len' in df.columns:
+        df['conveps'] = df[f'{m} len'].astype(float) - df[f'{m} {argm}'].astype(float)
 
-if 'val_ppl argm' in df.columns and 'val_ppl len' in df.columns:
-    df['conveps'] = df['val_ppl len'].astype(float) - df['val_ppl argm'].astype(float)
-
-if 'val_acc argM' in df.columns and 'val_acc len' in df.columns:
-    df['conveps'] = df['val_acc len'].astype(float) - df['val_acc argM'].astype(float)
-
-if 'test_losses argm' in df.columns and 'test_losses len' in df.columns:
-    df['conveps'] = df['test_losses len'].astype(float) - df['test_losses argm'].astype(float)
 
 for c in ['t_ppl', 't_^acc', 'v_ppl', 'v_^acc']:
     # if column doesn't exist, create a NaN column
@@ -488,8 +482,9 @@ if pandas_means:
     # mdf = mdf.sort_values(by='mean_' + metric)
 
     mdf['comments'] = mdf['comments'].str.replace('__', '_', regex=True)
-    if 'mean_time_elapsed' in mdf.columns:
-        mdf['mean_time_elapsed'] = mdf['mean_time_elapsed'].apply(lambda x: timedelta(seconds=x))
+    for time in ['time_elapsed', 'mean_time_elapsed', 'std_time_elapsed']:
+        if time in mdf.columns:
+            mdf[time] = mdf[time].apply(lambda x: timedelta(seconds=x) if not x!=x else x)
 
     for k in ['mean_n_params', 'n_params']:
         if k in mdf.columns:
@@ -1278,7 +1273,7 @@ if remove_incomplete:
 
     # print('Eliminate pretrain')
     rdf = plotdf[
-        ~plotdf['datasetname'].str.contains('dvs')
+        ~plotdf['dataset'].str.contains('shd')
     ]
     ardf = rdf.copy()
     print(rdf.to_string())
@@ -1653,7 +1648,7 @@ if missing_exps and expsid == 'fluctuations':
     seeds = [l + seed for l in range(n_seeds)]
 
     base_comments = ['deep', '']
-    conds = ['', 'condI', 'condIV']
+    conds = ['', 'condI', 'condIV', 'condI_IV']
     comments = [b if c == '' else c if b == '' else f'{b}_{c}' for b in base_comments for c in conds]
     experiments = []
     experiment = {
@@ -1670,6 +1665,20 @@ if missing_exps and expsid == 'fluctuations':
 
     print(f'experiments =', experiments)
     print(f'# {len(experiments)}/{len(ds)}')
+
+    exps_1, exps_2 = [], []
+    for ex in experiments:
+        if ex['dataset'][0] == 'shd':
+            exps_1.append(ex)
+        else:
+            exps_2.append(ex)
+
+    print(f'experiments_1 =', exps_1)
+    print(f'# {len(exps_1)}/{len(ds)}')
+    print(f'experiments_2 =', exps_2)
+    print(f'# {len(exps_2)}/{len(ds)}')
+
+
 
 if missing_exps and expsid == '_decolle':
     print('Missing experiments')
