@@ -68,7 +68,7 @@ plot_new_bars = False
 chain_norms = False
 lruptb2latex = False
 
-missing_exps = False
+missing_exps = True
 remove_incomplete = False
 truely_remove = False
 truely_remove_pretrained = False
