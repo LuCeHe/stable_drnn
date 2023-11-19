@@ -42,7 +42,7 @@ GEXPERIMENTS = [
     # r'D:\work\alif_sg\good_experiments\2023-11-10--decolletc',
 ]
 
-expsid = '_decolle'  # effnet als ffnandcnns s5lru mnl fluctuations _decolle
+expsid = 'fluctuations'  # effnet als ffnandcnns s5lru mnl fluctuations _decolle
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 lsc_epsilon = 0.02  # 0.02
@@ -68,7 +68,7 @@ plot_new_bars = False
 chain_norms = False
 lruptb2latex = False
 
-missing_exps = True
+missing_exps = False
 remove_incomplete = False
 truely_remove = False
 truely_remove_pretrained = False
@@ -204,17 +204,19 @@ elif expsid == 'fluctuations':
     plot_only = [
         'seed', 'dataset', 'comments', 'path', 'hostname',  # 'lr f',
         'stop_time', 'log_dir', 'n_params',
-        'valid_acc argM',
+        # 'valid_acc argM',
     ]
     group_cols = [
         'dataset', 'comments', 'n_params'
     ]
 
     metrics_oi = [
-        'train_acc M', 'valid_acc M',
-        'test_acc', 'conveps', 'valid_acc len', 'time_elapsed',
+        'train_acc M', 'valid_acc M', 'valid_loss m',
+        'test_acc',
+        'conveps_valid_acc', 'conveps_valid_loss',
+        'valid_acc len', 'valid_loss len', 'time_elapsed',
     ]
-    stats_oi = ['mean', 'std']
+    stats_oi = ['mean']
     metric = 'test_acc'  # 'v_ppl min'
 
 elif expsid == '_decolle':
@@ -240,7 +242,7 @@ elif expsid == '_decolle':
         'test_losses m', 'train_losses m',
         'test_accs M', 'test_losses len', 'conveps', 'time_elapsed'
     ]
-    stats_oi = ['mean', 'std']
+    stats_oi = ['mean']
     metric = 'test_accs M'  # 'v_ppl min'
     plot_metric = 'test_losses list'
 
@@ -285,10 +287,10 @@ if 'mnl' in expsid:
 new_column_names = {c_name: shorten_losses(c_name) for c_name in df.columns}
 df.rename(columns=new_column_names, inplace=True)
 
-for m in ['v_ppl', 'val_ppl', 'val_acc', 'valid_acc', 'test_losses']:
-    argm = 'argm' if 'ppl' in m else 'argM'
+for m in ['v_ppl', 'val_ppl', 'val_acc', 'valid_acc', 'valid_loss', 'test_losses']:
+    argm = 'argm' if ('ppl' in m or 'loss' in m) else 'argM'
     if f'{m} {argm}' in df.columns and f'{m} len' in df.columns:
-        df['conveps'] = df[f'{m} len'].astype(float) - df[f'{m} {argm}'].astype(float)
+        df['conveps_'+ m] = df[f'{m} len'].astype(float) - df[f'{m} {argm}'].astype(float)
 
 for c in ['t_ppl', 't_^acc', 'v_ppl', 'v_^acc']:
     # if column doesn't exist, create a NaN column
