@@ -68,7 +68,7 @@ plot_new_bars = False
 chain_norms = False
 lruptb2latex = False
 
-missing_exps = False
+missing_exps = True
 remove_incomplete = False
 truely_remove = False
 truely_remove_pretrained = False
@@ -1650,7 +1650,7 @@ if missing_exps and expsid == 'fluctuations':
     seeds = [l + seed for l in range(n_seeds)]
 
     base_comments = ['deep', '']
-    conds = ['', 'condI', 'condIV', 'condI_IV']
+    conds = ['', 'condI', 'condIV', 'condI_IV', 'condI_continuous', 'condIV_continuous', 'condI_IV_continuous']
     comments = [b if c == '' else c if b == '' else f'{b}_{c}' for b in base_comments for c in conds]
     experiments = []
     experiment = {
