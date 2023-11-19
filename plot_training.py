@@ -42,7 +42,7 @@ GEXPERIMENTS = [
     # r'D:\work\alif_sg\good_experiments\2023-11-10--decolletc',
 ]
 
-expsid = 'fluctuations'  # effnet als ffnandcnns s5lru mnl fluctuations _decolle
+expsid = '_decolle'  # effnet als ffnandcnns s5lru mnl fluctuations _decolle
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 lsc_epsilon = 0.02  # 0.02
@@ -68,7 +68,7 @@ plot_new_bars = False
 chain_norms = False
 lruptb2latex = False
 
-missing_exps = True
+missing_exps = False
 remove_incomplete = False
 truely_remove = False
 truely_remove_pretrained = False
@@ -1700,6 +1700,16 @@ if missing_exps and expsid == '_decolle':
     experiments = []
     base_comments = ['', 'condI', 'condIV', 'condI_IV']
     sgcurves = ['sgcurve:dfastsigmoid', 'sgcurve:triangular', 'sgcurve:rectangular', ]
+    comments = [b if c == '' else c if b == '' else f'{b}_{c}' for b in base_comments for c in sgcurves]
+    experiment = {
+        'seed': seeds, 'datasetname': ['dvs', 'nmnist'],
+        'comments': comments,
+    }
+    experiments.append(experiment)
+
+
+    base_comments = ['condI_continuous', 'condIV_continuous', 'condI_IV_continuous']
+    sgcurves = ['sgcurve:dfastsigmoid']
     comments = [b if c == '' else c if b == '' else f'{b}_{c}' for b in base_comments for c in sgcurves]
     experiment = {
         'seed': seeds, 'datasetname': ['dvs', 'nmnist'],
