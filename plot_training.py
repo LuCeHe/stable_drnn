@@ -51,7 +51,7 @@ check_for_new = True
 plot_losses = False
 one_exp_curves = False
 pandas_means = True
-show_per_tasknet = True
+show_per_tasknet = False
 make_latex = False
 make_good_latex = False
 nice_bar_plot = False
@@ -68,7 +68,7 @@ plot_new_bars = False
 chain_norms = False
 lruptb2latex = False
 
-missing_exps = True
+missing_exps = False
 remove_incomplete = False
 truely_remove = False
 truely_remove_pretrained = False
@@ -211,7 +211,7 @@ elif expsid == 'fluctuations':
     ]
 
     metrics_oi = [
-        'train_acc M', 'valid_acc M', 'valid_loss m',
+        # 'train_acc M', 'valid_acc M', 'valid_loss m',
         'test_acc',
         'conveps_valid_acc', 'conveps_valid_loss',
         'valid_acc len', 'valid_loss len', 'time_elapsed',
@@ -231,7 +231,7 @@ elif expsid == '_decolle':
     plot_only = [
         'seed', 'datasetname', 'comments', 'path', 'hostname',  # 'lr f',
         'stop_time', 'log_dir', 'n_params',
-        'test_losses argm',
+        'test_losses argm', 'test_accs argM', 'test_accs len',
     ]
 
     group_cols = [
@@ -239,11 +239,12 @@ elif expsid == '_decolle':
     ]
 
     metrics_oi = [
-        'test_losses m', 'train_losses m',
-        'test_accs M', 'test_losses len', 'conveps', 'time_elapsed'
+        # 'test_losses m', 'train_losses m',
+        'test_acc M',
+        'test_losses len', 'conveps_test_losses', 'conveps_test_accs', 'time_elapsed'
     ]
     stats_oi = ['mean']
-    metric = 'test_accs M'  # 'v_ppl min'
+    metric = 'test_acc M'  # 'v_ppl min'
     plot_metric = 'test_losses list'
 
 plot_only += metrics_oi
@@ -287,11 +288,13 @@ if 'mnl' in expsid:
 new_column_names = {c_name: shorten_losses(c_name) for c_name in df.columns}
 df.rename(columns=new_column_names, inplace=True)
 
-for m in ['v_ppl', 'val_ppl', 'val_acc', 'valid_acc', 'valid_loss', 'test_losses']:
+for m in ['v_ppl', 'val_ppl', 'val_acc', 'valid_acc', 'valid_loss', 'test_losses', 'test_accs']:
     argm = 'argm' if ('ppl' in m or 'loss' in m) else 'argM'
     if f'{m} {argm}' in df.columns and f'{m} len' in df.columns:
         df['conveps_'+ m] = df[f'{m} len'].astype(float) - df[f'{m} {argm}'].astype(float)
 
+
+print(df.columns)
 for c in ['t_ppl', 't_^acc', 'v_ppl', 'v_^acc']:
     # if column doesn't exist, create a NaN column
     if c not in df.columns:
