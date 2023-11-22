@@ -65,7 +65,7 @@ def train(args):
         create_dataset_fn(args.dir_name, seed=args.jax_seed, bsz=args.bsz)
 
     d_model = args.d_model
-    if args.lru:
+    if args.lru and not 'variant' in args.comments:
         model_name = "LRU"
         d_hidden = int(args.ssm_size_base * .7)
         if 'lruv2' in args.comments:
@@ -81,6 +81,35 @@ def train(args):
             LRU, d_hidden=d_hidden, d_model=d_model, r_min=args.r_min, r_max=args.r_max, max_phase=args.max_phase
         )
         ssm_init_fn = lru
+
+    elif args.lru and 'variant' in args.comments:
+
+        model_name = "LRUv"
+        d_hidden = int(args.ssm_size_base * .7)
+        if 'lruv2' in args.comments:
+            d_model = args.ssm_size_base
+            d_hidden = int(args.d_model * .89)
+        elif 'lruv3' in args.comments:
+            d_hidden = args.ssm_size_base
+
+        if 'variant1' in args.comments:
+            from alif_sg.S5.s5.lru_variants import LRU_real
+            rnn = LRU_real
+            model_name += '1'
+        elif 'variant2' in args.comments:
+            from alif_sg.S5.s5.lru_variants import twolru
+            rnn = twolru
+            model_name += '2'
+        else:
+            raise NotImplementedError
+        # d_hidden = N
+        # d_model = H
+
+        lru = partial(
+            rnn, d_hidden=d_hidden, d_model=d_model,
+        )
+        ssm_init_fn = lru
+
     else:
         model_name = "S5"
 
