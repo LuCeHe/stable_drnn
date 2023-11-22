@@ -68,7 +68,7 @@ plot_new_bars = False
 chain_norms = False
 lruptb2latex = False
 
-missing_exps = False
+missing_exps = True
 remove_incomplete = False
 truely_remove = False
 truely_remove_pretrained = False
@@ -291,8 +291,7 @@ df.rename(columns=new_column_names, inplace=True)
 for m in ['v_ppl', 'val_ppl', 'val_acc', 'valid_acc', 'valid_loss', 'test_losses', 'test_accs']:
     argm = 'argm' if ('ppl' in m or 'loss' in m) else 'argM'
     if f'{m} {argm}' in df.columns and f'{m} len' in df.columns:
-        df['conveps_'+ m] = df[f'{m} len'].astype(float) - df[f'{m} {argm}'].astype(float)
-
+        df['conveps_' + m] = df[f'{m} len'].astype(float) - df[f'{m} {argm}'].astype(float)
 
 print(df.columns)
 for c in ['t_ppl', 't_^acc', 'v_ppl', 'v_^acc']:
@@ -550,7 +549,7 @@ if pandas_means:
             & sdf['lr'].eq(0.03)
             ]
 
-    print(sdf.to_string())
+    # print(sdf.to_string())
 
 if lruptb2latex:
     ffnlsc = False
@@ -1649,12 +1648,19 @@ if missing_exps and expsid == 'fluctuations':
     print(f'Experiments already done: {sdf.shape[0]}, len cols = {len(sdf.columns)}')
 
     seed = 0
-    n_seeds = 4
+    n_seeds = 2
     seeds = [l + seed for l in range(n_seeds)]
 
     base_comments = ['deep', '']
     conds = ['', 'condI', 'condIV', 'condI_IV', 'condI_continuous', 'condIV_continuous', 'condI_IV_continuous']
-    conds = ['', 'normcurv', 'condIV_continuous_normcurv', 'condIV_normcurv', 'condIV_continuous_normcurv_oningrad', 'condIV_normcurv_oningrad']
+    conds = [
+        '', 'condIV', 'normcurv', 'condIV_continuous_normcurv', 'condIV_normcurv',
+        'condIV_continuous_normcurv_oningrad', 'condIV_normcurv_oningrad',
+        'condI_IV', 'condI_IV_continuous', 'condI_IV_continuous_oningrad',
+        'condIV_forwback', 'condIV_normcurv_forwback',
+        'condI_forwback', 'condI_normcurv_forwback',
+        'condI_IV_forwback', 'condI_IV_normcurv_forwback',
+    ]
     comments = [b if c == '' else c if b == '' else f'{b}_{c}' for b in base_comments for c in conds]
     experiments = []
     experiment = {
@@ -1705,7 +1711,13 @@ if missing_exps and expsid == '_decolle':
     base_comments = ['', 'condI', 'condIV', 'condI_IV']
     base_comments = ['']
     sgcurves = ['sgcurve:dfastsigmoid', 'sgcurve:triangular', 'sgcurve:rectangular', ]
-    conds = ['', 'normcurv', 'condIV_continuous_normcurv', 'condIV_normcurv', 'condIV_continuous_normcurv_oningrad', 'condIV_normcurv_oningrad']
+    conds = [
+        '', 'normcurv', 'condIV_continuous_normcurv', 'condIV_normcurv', 'condIV_continuous_normcurv_oningrad',
+        'condIV_normcurv_oningrad', 'condI_IV', 'condI_IV_continuous', 'condI_IV_continuous_oningrad',
+        'condIV_forwback', 'condIV_normcurv_forwback',
+        'condI_forwback', 'condI_normcurv_forwback',
+        'condI_IV_forwback', 'condI_IV_normcurv_forwback',
+    ]
 
     comments = [b if c == '' else c if b == '' else f'{b}_{c}' for b in base_comments for c in conds]
     experiment = {
@@ -1713,7 +1725,6 @@ if missing_exps and expsid == '_decolle':
         'comments': comments,
     }
     experiments.append(experiment)
-
 
     base_comments = ['condI_continuous', 'condIV_continuous', 'condI_IV_continuous']
     sgcurves = ['sgcurve:dfastsigmoid']
