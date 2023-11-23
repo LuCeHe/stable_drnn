@@ -26,7 +26,7 @@ if __name__ == "__main__":
     # variant2 2.4
     # variant1 2.3
     # lru 2.5
-    parser.add_argument("--comments", type=str, default='variant1', help="String for extra behaviours")
+    parser.add_argument("--comments", type=str, default='variant1_emeldiag', help="String for extra behaviours")
     parser.add_argument("--stop_time", default=600, type=int, help="Stop time")
     parser.add_argument("--dir_name", type=str, default=str(default_cache_path),
                         help="name of directory where data is cached")

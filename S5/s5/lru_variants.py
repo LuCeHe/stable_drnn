@@ -31,12 +31,19 @@ class LRU_real(nn.Module):
 
     d_hidden: int  # hidden state dimension
     d_model: int  # input and output dimensions
+    comments: str = ''  # comments for the module
 
     def setup(self):
-        self.diag_lambda = self.param(
-            "nu_log", partial(uniform_init, normalization=jnp.sqrt(self.d_model)),
-            (self.d_hidden,)
-        )
+        if not 'emeldiag' in self.comments:
+            self.diag_lambda = self.param(
+                "diag_lambda", partial(uniform_init, normalization=jnp.sqrt(self.d_model)),
+                (self.d_hidden,)
+            )
+        else:
+            from alif_sg.S5.s5.lru_model import nu_init
+            self.diag_lambda = self.param(
+                "diag_lambda", partial(nu_init, r_min=.4, r_max=.99), (self.d_hidden,)
+            )
 
         # Glorot initialized Input/Output projection matrices
         self.B = self.param(
@@ -52,8 +59,12 @@ class LRU_real(nn.Module):
 
     def __call__(self, inputs):
         """Forward pass of a LRU: h_t+1 = lambda * h_t + B x_t+1, y_t = Re[C h_t + D x_t]"""
+        if 'emeldiag' in self.comments:
+            diag_lambda = jnp.exp(-jnp.exp(self.diag_lambda))
+        else:
+            diag_lambda = self.diag_lambda
 
-        Lambda_elements = jnp.repeat(self.diag_lambda[None, ...], inputs.shape[0], axis=0)
+        Lambda_elements = jnp.repeat(diag_lambda[None, ...], inputs.shape[0], axis=0)
         Bu_elements = jax.vmap(lambda u: self.B @ u)(inputs)
 
         # Compute hidden states
@@ -72,11 +83,12 @@ class twolru(nn.Module):
     # lru2: LRU_real  # lru module
     d_model: int  # model size
     d_hidden: int  # hidden state size
+    comments: str = ''  # comments for the module
 
     def setup(self):
         """Initializes the ssm, layer norm and dropout"""
-        self.seq1 = LRU_real(d_hidden=self.d_hidden, d_model=self.d_model)
-        self.seq2 = LRU_real(d_hidden=self.d_hidden, d_model=self.d_model)
+        self.seq1 = LRU_real(d_hidden=self.d_hidden, d_model=self.d_model, comments=self.comments)
+        self.seq2 = LRU_real(d_hidden=self.d_hidden, d_model=self.d_model, comments=self.comments)
 
     def __call__(self, inputs):
         z = self.seq1(inputs) + inputs  # call LRU

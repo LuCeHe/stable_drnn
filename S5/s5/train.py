@@ -106,7 +106,7 @@ def train(args):
         # d_model = H
 
         lru = partial(
-            rnn, d_hidden=d_hidden, d_model=d_model,
+            rnn, d_hidden=d_hidden, d_model=d_model, comments=args.comments
         )
         ssm_init_fn = lru
 
