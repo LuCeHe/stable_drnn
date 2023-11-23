@@ -31,6 +31,7 @@ class StackedEncoderModel(nn.Module):
     batchnorm: bool = False
     bn_momentum: float = 0.9
     step_rescale: float = 1.0
+    comments: str = ''
 
     def setup(self):
         """
@@ -48,6 +49,7 @@ class StackedEncoderModel(nn.Module):
                 batchnorm=self.batchnorm,
                 bn_momentum=self.bn_momentum,
                 step_rescale=self.step_rescale,
+                comments=self.comments,
             )
             for _ in range(self.n_layers)
         ]
@@ -123,6 +125,7 @@ class ClassificationModel(nn.Module):
     batchnorm: bool = False
     bn_momentum: float = 0.9
     step_rescale: float = 1.0
+    comments: str = ''
 
     def setup(self):
         """
@@ -139,6 +142,7 @@ class ClassificationModel(nn.Module):
                             batchnorm=self.batchnorm,
                             bn_momentum=self.bn_momentum,
                             step_rescale=self.step_rescale,
+                            comments=self.comments,
                                         )
         self.decoder = nn.Dense(self.d_output)
 
@@ -253,6 +257,7 @@ class RetrievalModel(nn.Module):
     batchnorm: bool = False
     bn_momentum: float = 0.9
     step_rescale: float = 1.0
+    comments: str = ''
 
     def setup(self):
         """
@@ -279,6 +284,7 @@ class RetrievalModel(nn.Module):
                             batchnorm=self.batchnorm,
                             bn_momentum=self.bn_momentum,
                             step_rescale=self.step_rescale,
+                            comments=self.comments,
                                         )
         BatchRetrievalDecoder = nn.vmap(
             RetrievalDecoder,

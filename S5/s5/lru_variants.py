@@ -34,15 +34,26 @@ class LRU_real(nn.Module):
     comments: str = ''  # comments for the module
 
     def setup(self):
-        if not 'emeldiag' in self.comments:
+        if '2m1emeldiag' in self.comments:
+            from alif_sg.S5.s5.lru_model import nu_init
+            self.diag_lambda = self.param(
+                "diag_lambda", partial(nu_init, r_min=.01, r_max=.99), (self.d_hidden,)
+            )
+        elif 'emeldiag' in self.comments:
+            from alif_sg.S5.s5.lru_model import nu_init
+            self.diag_lambda = self.param(
+                "diag_lambda", partial(nu_init, r_min=.4, r_max=.99), (self.d_hidden,)
+            )
+        else:
             self.diag_lambda = self.param(
                 "diag_lambda", partial(uniform_init, normalization=jnp.sqrt(self.d_model)),
                 (self.d_hidden,)
             )
-        else:
-            from alif_sg.S5.s5.lru_model import nu_init
-            self.diag_lambda = self.param(
-                "diag_lambda", partial(nu_init, r_min=.4, r_max=.99), (self.d_hidden,)
+
+        self.rho=1
+        if 'balancep5' in self.comments:
+            self.rho = self.param(
+                "rho", partial(nu_init, r_min=.01, r_max=.99), (self.d_hidden,)
             )
 
         # Glorot initialized Input/Output projection matrices
@@ -59,16 +70,28 @@ class LRU_real(nn.Module):
 
     def __call__(self, inputs):
         """Forward pass of a LRU: h_t+1 = lambda * h_t + B x_t+1, y_t = Re[C h_t + D x_t]"""
-        if 'emeldiag' in self.comments:
+        if '2m1emeldiag' in self.comments:
+            diag_lambda = 2 * jnp.exp(-jnp.exp(self.diag_lambda)) - 1
+        elif 'emeldiag' in self.comments:
             diag_lambda = jnp.exp(-jnp.exp(self.diag_lambda))
         else:
             diag_lambda = self.diag_lambda
 
         Lambda_elements = jnp.repeat(diag_lambda[None, ...], inputs.shape[0], axis=0)
-        Bu_elements = jax.vmap(lambda u: self.B @ u)(inputs)
+
+        B = self.B
+        if 'emeb' in self.comments:
+            B = (2 * jnp.exp(-jnp.exp(B)) - 1) * jnp.sqrt(3 / self.d_model)
+
+        Bu_elements = jax.vmap(lambda u: B @ u)(inputs)
+
+        rho, mrho = 1, 1
+        if 'balancep5' in self.comments:
+            rho = jnp.exp(-jnp.exp(self.rho))
+            mrho = 1 - rho
 
         # Compute hidden states
-        _, hidden_states = parallel_scan(binary_operator_diag, (Lambda_elements, Bu_elements))
+        _, hidden_states = parallel_scan(binary_operator_diag, (rho*Lambda_elements, mrho*Bu_elements))
 
         # Use them to compute the output of the module
         outputs = jax.vmap(lambda x, u: self.C @ x + self.D * u)(hidden_states, inputs)

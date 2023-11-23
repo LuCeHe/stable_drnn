@@ -28,6 +28,7 @@ class SequenceLayer(nn.Module):
     batchnorm: bool = False
     bn_momentum: float = 0.90
     step_rescale: float = 1.0
+    comments: str = ""
 
     def setup(self):
         """Initializes the ssm, batch/layer norm and dropout
@@ -37,23 +38,24 @@ class SequenceLayer(nn.Module):
         else:
             self.seq = self.ssm()
 
-        if self.activation in ["full_glu"]:
-            self.out1 = nn.Dense(self.d_model)
-            self.out2 = nn.Dense(self.d_model)
-        elif self.activation in ["half_glu1", "half_glu2"]:
-            self.out2 = nn.Dense(self.d_model)
+        if not 'newblock' in self.comments:
+            if self.activation in ["full_glu"]:
+                self.out1 = nn.Dense(self.d_model)
+                self.out2 = nn.Dense(self.d_model)
+            elif self.activation in ["half_glu1", "half_glu2"]:
+                self.out2 = nn.Dense(self.d_model)
 
-        if self.batchnorm:
-            self.norm = nn.BatchNorm(use_running_average=not self.training,
-                                     momentum=self.bn_momentum, axis_name='batch')
-        else:
-            self.norm = nn.LayerNorm()
+            if self.batchnorm:
+                self.norm = nn.BatchNorm(use_running_average=not self.training,
+                                         momentum=self.bn_momentum, axis_name='batch')
+            else:
+                self.norm = nn.LayerNorm()
 
-        self.drop = nn.Dropout(
-            self.dropout,
-            broadcast_dims=[0],
-            deterministic=not self.training,
-        )
+            self.drop = nn.Dropout(
+                self.dropout,
+                broadcast_dims=[0],
+                deterministic=not self.training,
+            )
 
     def __call__(self, x):
         """
@@ -63,31 +65,46 @@ class SequenceLayer(nn.Module):
         Returns:
             output sequence (float32): (L, d_model)
         """
-        skip = x
-        if self.prenorm:
-            x = self.norm(x)
-        x = self.seq(x)
+        if 'newblock' in self.comments:
+            out = self.seq(x)
 
-        if self.activation in ["full_glu"]:
-            x = self.drop(nn.gelu(x))
-            x = self.out1(x) * jax.nn.sigmoid(self.out2(x))
-            x = self.drop(x)
-        elif self.activation in ["half_glu1"]:
-            x = self.drop(nn.gelu(x))
-            x = x * jax.nn.sigmoid(self.out2(x))
-            x = self.drop(x)
-        elif self.activation in ["half_glu2"]:
-            # Only apply GELU to the gate input
-            x1 = self.drop(nn.gelu(x))
-            x = x * jax.nn.sigmoid(self.out2(x1))
-            x = self.drop(x)
-        elif self.activation in ["gelu"]:
-            x = self.drop(nn.gelu(x))
+            if 'skipnewblock' in self.comments:
+                out = out + x
+
+            if 'gelu' in self.comments:
+                out = 1.983 * nn.gelu(out)
+
         else:
-            raise NotImplementedError(
-                   "Activation: {} not implemented".format(self.activation))
+            out = old_call(self, x)
+        return out
 
-        x = skip + x
-        if not self.prenorm:
-            x = self.norm(x)
-        return x
+
+def old_call(self, x):
+    skip = x
+    if self.prenorm:
+        x = self.norm(x)
+    x = self.seq(x)
+
+    if self.activation in ["full_glu"]:
+        x = self.drop(nn.gelu(x))
+        x = self.out1(x) * jax.nn.sigmoid(self.out2(x))
+        x = self.drop(x)
+    elif self.activation in ["half_glu1"]:
+        x = self.drop(nn.gelu(x))
+        x = x * jax.nn.sigmoid(self.out2(x))
+        x = self.drop(x)
+    elif self.activation in ["half_glu2"]:
+        # Only apply GELU to the gate input
+        x1 = self.drop(nn.gelu(x))
+        x = x * jax.nn.sigmoid(self.out2(x1))
+        x = self.drop(x)
+    elif self.activation in ["gelu"]:
+        x = self.drop(nn.gelu(x))
+    else:
+        raise NotImplementedError(
+            "Activation: {} not implemented".format(self.activation))
+
+    x = skip + x
+    if not self.prenorm:
+        x = self.norm(x)
+    return x

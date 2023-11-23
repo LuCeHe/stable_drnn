@@ -23,10 +23,7 @@ if __name__ == "__main__":
     time_start = time.perf_counter()
 
     parser = argparse.ArgumentParser()
-    # variant2 2.4
-    # variant1 2.3
-    # lru 2.5
-    parser.add_argument("--comments", type=str, default='variant1_emeldiag', help="String for extra behaviours")
+    parser.add_argument("--comments", type=str, default='variant1_emeldiag_emeb_newblock_balancep5', help="String for extra behaviours")
     parser.add_argument("--stop_time", default=600, type=int, help="Stop time")
     parser.add_argument("--dir_name", type=str, default=str(default_cache_path),
                         help="name of directory where data is cached")
@@ -158,8 +155,11 @@ if __name__ == "__main__":
     if 'pretrain' in args.comments:
         args.prenorm = False
 
-    lr = str2val(args.comments, 'lr', float, default=args.ssm_lr_base)
-    args.ssm_lr_base = lr
+    if 'newblock' in args.comments:
+        args.batchnorm = False
+
+    args.ssm_lr_base = str2val(args.comments, 'lr', float, default=args.ssm_lr_base)
+    args.n_layers = str2val(args.comments, 'nlyers', int, default=args.n_layers)
 
     string_args = json.dumps(vars(args), indent=4, cls=NumpyEncoder)
     print(string_args)

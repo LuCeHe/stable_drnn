@@ -25,7 +25,6 @@ def train(args):
     best_test_loss = 100000000
     best_test_acc = -10000.0
 
-
     # Set global learning rate lr (e.g. encoders, etc.) as function of ssm_lr
     ssm_lr = args.ssm_lr_base
     lr = args.lr_factor * ssm_lr
@@ -164,6 +163,7 @@ def train(args):
             prenorm=args.prenorm,
             batchnorm=args.batchnorm,
             bn_momentum=args.bn_momentum,
+            comments=args.comments
         )
 
     else:
@@ -180,6 +180,7 @@ def train(args):
             prenorm=args.prenorm,
             batchnorm=args.batchnorm,
             bn_momentum=args.bn_momentum,
+            comments=args.comments
         )
 
     # initialize training state
@@ -232,7 +233,7 @@ def train(args):
                 loss_threshold=loss_threshold, ptlr=args.ptlr,
                 optimizer=args.ptopt
             )
-            presults = {f'l{li}_' + k: v for k,v in presults.items()}
+            presults = {f'l{li}_' + k: v for k, v in presults.items()}
 
             results.update(presults)
             params['encoder'][f'layers_{li}'] = new_params
@@ -367,7 +368,6 @@ def train(args):
             f"\tBest Test Loss: {best_test_loss:.5f} -- Best Test Accuracy:"
             f" {best_test_acc:.4f} at Epoch {best_epoch + 1}\n"
         )
-
 
         results["train_loss"].append(float(train_loss))
         results["val_loss"].append(float(val_loss))

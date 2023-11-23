@@ -42,7 +42,7 @@ GEXPERIMENTS = [
     # r'D:\work\alif_sg\good_experiments\2023-11-10--decolletc',
 ]
 
-expsid = '_decolle'  # effnet als ffnandcnns s5lru mnl fluctuations _decolle
+expsid = 's5lru'  # effnet als ffnandcnns s5lru mnl fluctuations _decolle
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 lsc_epsilon = 0.02  # 0.02
@@ -68,7 +68,7 @@ plot_new_bars = False
 chain_norms = False
 lruptb2latex = False
 
-missing_exps = True
+missing_exps = False
 remove_incomplete = False
 truely_remove = False
 truely_remove_pretrained = False
@@ -103,7 +103,7 @@ plot_only = [
 columns_to_remove = [
     '_var', '_mean', 'sparse_categorical_crossentropy', 'bpc', 'artifacts',
     'experiment_dependencies', 'experiment_sources', 'experiment_repositories', 'host_os',
-    'sparse_categorical_accuracy', 'LSC_losses', 'rec_norms', 'fail_trace', 'list', 'weights_shapes'
+    'sparse_categorical_accuracy', 'LSC_losses', 'rec_norms', 'fail_trace', 'list', 'weights_shapes',
 ]
 force_keep_column = [
     'LSC_norms list', 'batch ',
@@ -132,6 +132,9 @@ task_name_pairs = [
 ]
 
 if expsid == 's5lru':
+    GEXPERIMENTS = [
+        r'D:\work\alif_sg\good_experiments\2023-10-10--s5lru',
+    ]
     plot_metric = 'val_acc list'
     task_flag = 'dataset'  # task dataset
     net_flag = 'lru'  # net lru
@@ -140,20 +143,21 @@ if expsid == 's5lru':
     metric = 'val_acc M'  # 'v_ppl min'
     metrics_oi = [
         # 'val_loss m', 'test_loss m',
-        'train_loss i', 'train_loss f',
-        'val_acc M', 'test_acc M', 'time_elapsed',
-        'n_params', 'conveps',
+        # 'train_loss i', 'train_loss f',
+        'val_acc M', 'test_acc M',
+         'conveps_val_acc', 'val_acc len', 'n_params', 'time_elapsed',
         *[f'l{i}_tnorms f' for i in range(8)],
         *[f'l{i}_lnorms f' for i in range(8)]
     ]
 
     plot_only = [
         'jax_seed', 'lru', 'dataset', 'n_depth', 'comments',
-        'val_acc len', 'val_acc argM', 'path', 'eps', 'spe', 'bsz'
+        'val_acc argM', 'path', 'eps', 'spe', 'bsz'
     ]
     group_cols = ['lru', 'dataset', 'comments', 'n_depth']
 
-    columns_to_remove = []
+    columns_to_remove = ['experiment_sources']
+    force_keep_column = []
     # stats_oi = ['mean']
     stats_oi = ['mean']
     task_name_pairs = [
@@ -164,6 +168,7 @@ if expsid == 's5lru':
         ('Retrieval', 'aan-classification'),
         ('Pathfinder', 'pathfinder-classification'),
         ('PathX', 'pathx-classification'),
+        ('MNIST', 'mnist-classification'),
     ]
 
 elif expsid == 'mnl':
@@ -256,6 +261,7 @@ df = experiments_to_pandas(
     check_for_new=check_for_new,
     exclude_columns=columns_to_remove, force_keep_column=force_keep_column
 )
+print(list(df.columns))
 
 for flag in [task_flag, net_flag]:
     if flag in df.columns:
