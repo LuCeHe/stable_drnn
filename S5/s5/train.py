@@ -240,9 +240,9 @@ def train(args):
         state = state.replace(params=params)
 
     # Training Loop over epochs
-    best_loss, best_acc, best_epoch = 100000000, -100000000.0, 0  # This best loss is val_loss
-    count, best_val_loss = 0, 100000000  # This line is for early stopping purposes
-    lr_count, opt_acc = 0, -100000000.0  # This line is for learning rate decay
+    best_loss, best_acc, best_epoch = np.inf, -np.inf, 0  # This best loss is val_loss
+    count, best_val_loss = 0, np.inf  # This line is for early stopping purposes
+    lr_count, opt_acc = 0, -np.inf  # This line is for learning rate decay
     step = 0  # for per step learning rate decay
     steps_per_epoch = int(train_size / args.bsz)
 

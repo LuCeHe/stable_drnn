@@ -42,7 +42,7 @@ GEXPERIMENTS = [
     # r'D:\work\alif_sg\good_experiments\2023-11-10--decolletc',
 ]
 
-expsid = 's5lru'  # effnet als ffnandcnns s5lru mnl fluctuations _decolle
+expsid = 'fluctuations'  # effnet als ffnandcnns s5lru mnl fluctuations _decolle
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 lsc_epsilon = 0.02  # 0.02
@@ -68,7 +68,7 @@ plot_new_bars = False
 chain_norms = False
 lruptb2latex = False
 
-missing_exps = False
+missing_exps = True
 remove_incomplete = False
 truely_remove = False
 truely_remove_pretrained = False
@@ -145,7 +145,7 @@ if expsid == 's5lru':
         # 'val_loss m', 'test_loss m',
         # 'train_loss i', 'train_loss f',
         'val_acc M', 'test_acc M',
-         'conveps_val_acc', 'val_acc len', 'n_params', 'time_elapsed',
+        'conveps_val_acc', 'val_acc len', 'n_params', 'time_elapsed',
         *[f'l{i}_tnorms f' for i in range(8)],
         *[f'l{i}_lnorms f' for i in range(8)]
     ]
@@ -1667,7 +1667,13 @@ if missing_exps and expsid == 'fluctuations':
         'condI_forwback', 'condI_normcurv_forwback',
         'condI_IV_forwback', 'condI_IV_normcurv_forwback',
     ]
+
+    base_comments = ['smorms3_deep', 'smorms3', 'adabelief_deep', 'adabelief', ]
+    conds = ['', 'condIV', 'condI', 'condI_IV', ]
     comments = [b if c == '' else c if b == '' else f'{b}_{c}' for b in base_comments for c in conds]
+    comments = [c + f'_lr:{lr}' for c in comments for lr in [5e-2, 5e-3, 5e-4]]
+
+
     experiments = []
     experiment = {
         'seed': seeds, 'epochs': [-1],
@@ -1684,17 +1690,21 @@ if missing_exps and expsid == 'fluctuations':
     print(f'experiments =', experiments)
     print(f'# {len(experiments)}/{len(ds)}')
 
-    exps_1, exps_2 = [], []
+    exps_shd, exps_dvs, exps_cif = [], [], []
     for ex in experiments:
         if ex['dataset'][0] == 'shd':
-            exps_1.append(ex)
+            exps_shd.append(ex)
+        elif ex['dataset'][0] == 'dvs':
+            exps_dvs.append(ex)
         else:
-            exps_2.append(ex)
+            exps_cif.append(ex)
 
-    print(f'experiments_1 =', exps_1)
-    print(f'# {len(exps_1)}/{len(ds)}')
-    print(f'experiments_2 =', exps_2)
-    print(f'# {len(exps_2)}/{len(ds)}')
+    print(f'experiments_shd =', exps_shd)
+    print(f'# {len(exps_shd)}/{len(ds)}')
+    print(f'experiments_dvs =', exps_dvs)
+    print(f'# {len(exps_dvs)}/{len(ds)}')
+    print(f'experiments_cif =', exps_cif)
+    print(f'# {len(exps_cif)}/{len(ds)}')
 
 if missing_exps and expsid == '_decolle':
     print('Missing experiments')
