@@ -42,7 +42,7 @@ GEXPERIMENTS = [
     # r'D:\work\alif_sg\good_experiments\2023-11-10--decolletc',
 ]
 
-expsid = 's5lru'  # effnet als ffnandcnns s5lru mnl fluctuations _decolle
+expsid = 'fluctuations'  # effnet als ffnandcnns s5lru mnl fluctuations _decolle
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 lsc_epsilon = 0.02  # 0.02
@@ -1759,6 +1759,20 @@ if missing_exps and expsid == '_decolle':
 
     print(f'experiments =', experiments)
     print(f'# {len(experiments)}/{len(ds)}')
+
+
+    exps_nmnist, exps_dvs = [], []
+    for ex in experiments:
+        if ex['datasetname'][0] == 'dvs':
+            exps_dvs.append(ex)
+        else:
+            exps_nmnist.append(ex)
+
+    print(f'experiments_dvs =', exps_dvs)
+    print(f'# {len(exps_dvs)}/{len(ds)}')
+    print(f'experiments_nmnist =', exps_nmnist)
+    print(f'# {len(exps_nmnist)}/{len(ds)}')
+
 
 if missing_exps and not expsid == 's5lru' and False:
     # columns of interest
