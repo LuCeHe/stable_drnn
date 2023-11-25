@@ -42,7 +42,7 @@ GEXPERIMENTS = [
     # r'D:\work\alif_sg\good_experiments\2023-11-10--decolletc',
 ]
 
-expsid = 'fluctuations'  # effnet als ffnandcnns s5lru mnl fluctuations _decolle
+expsid = '_decolle'  # effnet als ffnandcnns s5lru mnl fluctuations _decolle
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 lsc_epsilon = 0.02  # 0.02
@@ -68,7 +68,7 @@ plot_new_bars = False
 chain_norms = False
 lruptb2latex = False
 
-missing_exps = False
+missing_exps = True
 remove_incomplete = False
 truely_remove = False
 truely_remove_pretrained = False
@@ -237,6 +237,7 @@ elif expsid == '_decolle':
         'seed', 'datasetname', 'comments', 'path', 'hostname',  # 'lr f',
         'stop_time', 'log_dir', 'n_params',
         'test_losses argm', 'test_accs argM', 'test_accs len',
+        'val_loss argm', 'val_loss len', 'val_acc argM', 'val_loss len',
     ]
 
     group_cols = [
@@ -246,7 +247,8 @@ elif expsid == '_decolle':
     metrics_oi = [
         # 'test_losses m', 'train_losses m',
         'test_acc M',
-        'test_losses len', 'conveps_test_losses', 'conveps_test_accs', 'time_elapsed'
+        'test_losses len', 'conveps_test_losses', 'conveps_test_accs', 'time_elapsed',
+        'conveps_val_loss', 'conveps_val_acc',
     ]
     stats_oi = ['mean']
     metric = 'test_acc M'  # 'v_ppl min'
@@ -294,7 +296,7 @@ if 'mnl' in expsid:
 new_column_names = {c_name: shorten_losses(c_name) for c_name in df.columns}
 df.rename(columns=new_column_names, inplace=True)
 
-for m in ['v_ppl', 'val_ppl', 'val_acc', 'valid_acc', 'valid_loss', 'test_losses', 'test_accs']:
+for m in ['v_ppl', 'val_ppl', 'val_acc', 'val_loss', 'valid_acc', 'valid_loss', 'test_losses', 'test_accs']:
     argm = 'argm' if ('ppl' in m or 'loss' in m) else 'argM'
     if f'{m} {argm}' in df.columns and f'{m} len' in df.columns:
         df['conveps_' + m] = df[f'{m} len'].astype(float) - df[f'{m} {argm}'].astype(float)
@@ -1283,8 +1285,11 @@ if remove_incomplete:
     print('-=***=-' * 10)
     print('\n\n')
 
-    # print('Eliminate pretrain')
-    rdf = plotdf
+    print('Eliminate non converged')
+    rdf = plotdf[
+        (plotdf['conveps_valid_acc'] < 13)
+        # | (plotdf['conveps_valid_loss'] < 13)
+    ]
     ardf = rdf.copy()
     print(rdf.to_string())
     print(rdf.shape, df.shape)
@@ -1669,10 +1674,16 @@ if missing_exps and expsid == 'fluctuations':
     ]
 
     base_comments = ['smorms3_deep', 'smorms3', 'adabelief_deep', 'adabelief', ]
-    conds = ['', 'condIV', 'condI', 'condI_IV', ]
+    conds = ['', 'condIV', 'condIV_continuous']
     comments = [b if c == '' else c if b == '' else f'{b}_{c}' for b in base_comments for c in conds]
-    comments = [c + f'_lr:{lr}' for c in comments for lr in [5e-2, 5e-3, 5e-4]]
+    comments_1 = [c + f'_lr:{lr}' for c in comments for lr in [5e-2, 5e-3, 5e-4]]
 
+    base_comments = ['smorms3_deep', 'smorms3', 'adabelief_deep', 'adabelief', ]
+    conds = ['condIV_sgoutn', 'condIV_continuous_sgoutn', 'condI_sgoutn', 'condI_continuous_sgoutn']
+    comments = [b if c == '' else c if b == '' else f'{b}_{c}' for b in base_comments for c in conds]
+    comments_2 = [c + f'_lr:{lr}' for c in comments for lr in [5e-3]]
+
+    comments = comments_1 + comments_2
 
     experiments = []
     experiment = {
@@ -1742,11 +1753,18 @@ if missing_exps and expsid == '_decolle':
     }
     experiments.append(experiment)
 
-    base_comments = ['condI_continuous', 'condIV_continuous', 'condI_IV_continuous']
-    sgcurves = ['sgcurve:dfastsigmoid']
+    experiments = []
+
+    base_comments = [
+        '', 'condIV_continuous', 'condIV',
+        'condIV_continuous_sgoutn', 'condIV_sgoutn',
+        'condI_continuous_sgoutn', 'condI_sgoutn',
+        'condI_IV_continuous_sgoutn', 'condI_IV_sgoutn',
+    ]
+    sgcurves = ['sgcurve:dfastsigmoid_adabelief', 'sgcurve:dfastsigmoid_adamax']
     comments = [b if c == '' else c if b == '' else f'{b}_{c}' for b in base_comments for c in sgcurves]
     experiment = {
-        'seed': seeds, 'datasetname': ['dvs', 'nmnist'],
+        'seed': seeds, 'datasetname': ['dvs'],
         'comments': comments,
     }
     experiments.append(experiment)
@@ -1760,7 +1778,6 @@ if missing_exps and expsid == '_decolle':
     print(f'experiments =', experiments)
     print(f'# {len(experiments)}/{len(ds)}')
 
-
     exps_nmnist, exps_dvs = [], []
     for ex in experiments:
         if ex['datasetname'][0] == 'dvs':
@@ -1772,7 +1789,6 @@ if missing_exps and expsid == '_decolle':
     print(f'# {len(exps_dvs)}/{len(ds)}')
     print(f'experiments_nmnist =', exps_nmnist)
     print(f'# {len(exps_nmnist)}/{len(ds)}')
-
 
 if missing_exps and not expsid == 's5lru' and False:
     # columns of interest
