@@ -42,7 +42,7 @@ GEXPERIMENTS = [
     # r'D:\work\alif_sg\good_experiments\2023-11-10--decolletc',
 ]
 
-expsid = '_decolle'  # effnet als ffnandcnns s5lru mnl fluctuations _decolle
+expsid = 'fluctuations'  # effnet als ffnandcnns s5lru mnl fluctuations _decolle
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 lsc_epsilon = 0.02  # 0.02
@@ -51,7 +51,7 @@ check_for_new = True
 plot_losses = False
 one_exp_curves = False
 pandas_means = True
-show_per_tasknet = False
+show_per_tasknet = True
 make_latex = False
 make_good_latex = False
 nice_bar_plot = False
@@ -505,6 +505,10 @@ if pandas_means:
             mdf[k] = mdf[k].apply(lambda x: large_num_to_reasonable_string(x, 1))
 
     if not show_per_tasknet:
+        # sort by mean metric
+        mdf = mdf.sort_values(by='mean_' + metric, ascending=False)
+        mdf = mdf.sort_values(by=task_flag, ascending=False)
+
         print(mdf.to_string())
 
     elif not mdf.empty:
@@ -1288,7 +1292,7 @@ if remove_incomplete:
     print('Eliminate non converged')
     rdf = plotdf[
         (plotdf['conveps_valid_acc'] < 13)
-        # | (plotdf['conveps_valid_loss'] < 13)
+        | (plotdf['conveps_valid_loss'] < 13)
     ]
     ardf = rdf.copy()
     print(rdf.to_string())
@@ -1674,24 +1678,44 @@ if missing_exps and expsid == 'fluctuations':
     ]
 
     base_comments = ['smorms3_deep', 'smorms3', 'adabelief_deep', 'adabelief', ]
-    conds = ['', 'condIV', 'condIV_continuous']
-    comments = [b if c == '' else c if b == '' else f'{b}_{c}' for b in base_comments for c in conds]
-    comments_1 = [c + f'_lr:{lr}' for c in comments for lr in [5e-2, 5e-3, 5e-4]]
 
-    base_comments = ['smorms3_deep', 'smorms3', 'adabelief_deep', 'adabelief', ]
-    conds = ['condIV_sgoutn', 'condIV_continuous_sgoutn', 'condI_sgoutn', 'condI_continuous_sgoutn']
-    comments = [b if c == '' else c if b == '' else f'{b}_{c}' for b in base_comments for c in conds]
-    comments_2 = [c + f'_lr:{lr}' for c in comments for lr in [5e-3]]
-
-    comments = comments_1 + comments_2
 
     experiments = []
-    experiment = {
-        'seed': seeds, 'epochs': [-1],
-        'comments': comments,
-        'dataset': ['dvs', 'shd', 'cifar10']
-    }
-    experiments.append(experiment)
+
+    for dataset in ['dvs', 'shd', 'cifar10']:
+
+        if dataset == 'dvs' or dataset == 'cifar10':
+            more_lrs = [5e-5]
+        else:
+            more_lrs = [5e-1]
+
+        more_lrs = []
+        conds = ['', 'condIV', 'condIV_continuous']
+        comments = [b if c == '' else c if b == '' else f'{b}_{c}' for b in base_comments for c in conds]
+        comments_1 = [c + f'_lr:{lr}' for c in comments for lr in [5e-2, 5e-3, 5e-4] + more_lrs]
+
+        conds = ['condIV_sgoutn', 'condIV_continuous_sgoutn']
+        comments = [b if c == '' else c if b == '' else f'{b}_{c}' for b in base_comments for c in conds]
+        comments_2 = [c + f'_lr:{lr}' for c in comments for lr in [5e-2, 5e-3, 5e-4] + more_lrs]
+
+        conds = ['condIV_sgoutn_fanout', 'condIV_continuous_sgoutn_fanout']
+        comments = [b if c == '' else c if b == '' else f'{b}_{c}' for b in base_comments for c in conds]
+        comments_3 = [c + f'_lr:{lr}' for c in comments for lr in [5e-3] + more_lrs]
+
+        if dataset == 'shd':
+            conds = ['condIV_sgoutn_rfanout', 'condIV_continuous_sgoutn_rfanout']
+            comments = [b if c == '' else c if b == '' else f'{b}_{c}' for b in base_comments for c in conds]
+            comments_4 = [c + f'_lr:{lr}' for c in comments for lr in [5e-3] + more_lrs]
+            comments_3 = comments_3 + comments_4
+
+        comments_ = comments_1 + comments_2 + comments_3
+
+        experiment = {
+            'seed': seeds, 'epochs': [-1],
+            'comments': comments_,
+            'dataset': [dataset]
+        }
+        experiments.append(experiment)
 
     ds = dict2iter(experiments)
     _, experiments_left = complete_missing_exps(sdf, ds, coi)
