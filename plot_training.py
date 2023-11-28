@@ -42,7 +42,7 @@ GEXPERIMENTS = [
     # r'D:\work\alif_sg\good_experiments\2023-11-10--decolletc',
 ]
 
-expsid = 'fluctuations'  # effnet als ffnandcnns s5lru mnl fluctuations _decolle
+expsid = 's5lru'  # effnet als ffnandcnns s5lru mnl fluctuations _decolle
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 lsc_epsilon = 0.02  # 0.02
