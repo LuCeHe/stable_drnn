@@ -1717,6 +1717,34 @@ if missing_exps and expsid == 'fluctuations':
         }
         experiments.append(experiment)
 
+
+
+
+    experiments = []
+    conds = [
+        'muone',
+        'condIV_muone',
+
+        'muone_noreg',
+        'condIV_muone_noreg',
+        'noreg',
+        'condIV_noreg',
+
+        'muone_regp5',
+        'condIV_muone_regp5',
+        'regp5',
+        'condIV_regp5',
+    ]
+    comments = [b if c == '' else c if b == '' else f'{b}_{c}' for b in base_comments for c in conds]
+    comments = [c + f'_lr:{lr}' for c in comments for lr in [5e-3] + more_lrs]
+
+    experiment = {
+        'seed': seeds, 'epochs': [-1],
+        'comments': comments,
+        'dataset': ['dvs', 'shd', 'cifar10']
+    }
+    experiments.append(experiment)
+
     ds = dict2iter(experiments)
     _, experiments_left = complete_missing_exps(sdf, ds, coi)
     np.random.shuffle(experiments_left)
