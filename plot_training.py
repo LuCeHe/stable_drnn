@@ -48,7 +48,7 @@ h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 lsc_epsilon = 0.02  # 0.02
 
 check_for_new = True
-plot_losses = False
+plot_losses = True
 one_exp_curves = False
 pandas_means = True
 show_per_tasknet = True
@@ -68,7 +68,7 @@ plot_new_bars = False
 chain_norms = False
 lruptb2latex = False
 
-missing_exps = True
+missing_exps = False
 remove_incomplete = False
 truely_remove = False
 truely_remove_pretrained = False
@@ -135,7 +135,7 @@ if expsid == 's5lru':
     GEXPERIMENTS = [
         r'D:\work\alif_sg\good_experiments\2023-10-10--s5lru',
     ]
-    plot_metric = 'val_acc list'
+    plot_metric = 'l0_lnorms list'
     task_flag = 'dataset'  # task dataset
     net_flag = 'lru'  # net lru
     depth_flag = 'n_depth'  # 'stack'
