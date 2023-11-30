@@ -42,13 +42,13 @@ GEXPERIMENTS = [
     # r'D:\work\alif_sg\good_experiments\2023-11-10--decolletc',
 ]
 
-expsid = 's5lru'  # effnet als ffnandcnns s5lru mnl fluctuations _decolle
+expsid = 'fluctuations'  # effnet als ffnandcnns s5lru mnl fluctuations _decolle
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 lsc_epsilon = 0.02  # 0.02
 
 check_for_new = True
-plot_losses = True
+plot_losses = False
 one_exp_curves = False
 pandas_means = True
 show_per_tasknet = True
@@ -68,7 +68,7 @@ plot_new_bars = False
 chain_norms = False
 lruptb2latex = False
 
-missing_exps = False
+missing_exps = True
 remove_incomplete = False
 truely_remove = False
 truely_remove_pretrained = False
@@ -1663,7 +1663,7 @@ if missing_exps and expsid == 'fluctuations':
     print(f'Experiments already done: {sdf.shape[0]}, len cols = {len(sdf.columns)}')
 
     seed = 0
-    n_seeds = 2
+    n_seeds = 4
     seeds = [l + seed for l in range(n_seeds)]
 
     base_comments = ['deep', '']
@@ -1678,6 +1678,7 @@ if missing_exps and expsid == 'fluctuations':
     ]
 
     base_comments = ['smorms3_deep', 'smorms3', 'adabelief_deep', 'adabelief', ]
+    base_comments = ['smorms3_deep', 'smorms3']
 
 
     experiments = []
@@ -1734,16 +1735,27 @@ if missing_exps and expsid == 'fluctuations':
         'condIV_muone_regp5',
         'regp5',
         'condIV_regp5',
+
+        'muone_regp5:.25',
+        'regp5:.25',
+        'muone_regp5:.75',
+        'regp5:.75',
     ]
     comments = [b if c == '' else c if b == '' else f'{b}_{c}' for b in base_comments for c in conds]
-    comments = [c + f'_lr:{lr}' for c in comments for lr in [5e-3] + more_lrs]
+    for dataset in ['dvs', 'shd', 'cifar10']:
 
-    experiment = {
-        'seed': seeds, 'epochs': [-1],
-        'comments': comments,
-        'dataset': ['dvs', 'shd', 'cifar10']
-    }
-    experiments.append(experiment)
+        if dataset == 'dvs' or dataset == 'cifar10':
+            lrs= [5e-4]
+        else:
+            lrs = [5e-2]
+        comments = [c + f'_lr:{lr}' for c in comments for lr in lrs]
+
+        experiment = {
+            'seed': seeds, 'epochs': [-1],
+            'comments': comments,
+            'dataset': [dataset]
+        }
+        experiments.append(experiment)
 
     ds = dict2iter(experiments)
     _, experiments_left = complete_missing_exps(sdf, ds, coi)
