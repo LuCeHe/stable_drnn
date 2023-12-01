@@ -1748,11 +1748,11 @@ if missing_exps and expsid == 'fluctuations':
             lrs= [5e-4]
         else:
             lrs = [5e-2]
-        comments = [c + f'_lr:{lr}' for c in comments for lr in lrs]
+        comments_ = [c + f'_lr:{lr}' for c in comments for lr in lrs]
 
         experiment = {
             'seed': seeds, 'epochs': [-1],
-            'comments': comments,
+            'comments': comments_,
             'dataset': [dataset]
         }
         experiments.append(experiment)
