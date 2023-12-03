@@ -68,7 +68,7 @@ plot_new_bars = False
 chain_norms = False
 lruptb2latex = False
 
-missing_exps = False
+missing_exps = True
 remove_incomplete = False
 truely_remove = False
 truely_remove_pretrained = False
@@ -221,7 +221,7 @@ elif expsid == 'fluctuations':
         'conveps_valid_acc', 'conveps_valid_loss',
         'valid_acc len', 'valid_loss len', 'time_elapsed',
     ]
-    stats_oi = ['mean']
+    stats_oi = ['mean', 'std']
     metric = 'test_acc'  # 'v_ppl min'
 
 elif expsid == '_decolle':
@@ -1293,7 +1293,7 @@ if remove_incomplete:
     rdf = plotdf[
         (plotdf['conveps_valid_acc'] < 13)
         | (plotdf['conveps_valid_loss'] < 13)
-    ]
+        ]
     ardf = rdf.copy()
     print(rdf.to_string())
     print(rdf.shape, df.shape)
@@ -1680,61 +1680,29 @@ if missing_exps and expsid == 'fluctuations':
     base_comments = ['smorms3_deep', 'smorms3', 'adabelief_deep', 'adabelief', ]
     base_comments = ['smorms3_deep', 'smorms3']
 
-
     experiments = []
 
-    for dataset in ['dvs', 'shd', 'cifar10']:
+    conds = ['']
+    comments = [b if c == '' else c if b == '' else f'{b}_{c}' for b in base_comments for c in conds]
+    comments_1 = [c + f'_lr:{lr}' for c in comments for lr in [5e-2, 5e-3, 5e-4]]
 
-        if dataset == 'dvs' or dataset == 'cifar10':
-            more_lrs = [5e-5]
-        else:
-            more_lrs = [5e-1]
+    comments_ = comments_1
 
-        more_lrs = []
-        conds = ['', 'condIV', 'condIV_continuous']
-        comments = [b if c == '' else c if b == '' else f'{b}_{c}' for b in base_comments for c in conds]
-        comments_1 = [c + f'_lr:{lr}' for c in comments for lr in [5e-2, 5e-3, 5e-4] + more_lrs]
+    experiment = {
+        'seed': seeds, 'epochs': [-1],
+        'comments': comments_,
+        'dataset': ['dvs', 'shd', 'cifar10']
+    }
+    experiments.append(experiment)
 
-        conds = ['condIV_sgoutn', 'condIV_continuous_sgoutn']
-        comments = [b if c == '' else c if b == '' else f'{b}_{c}' for b in base_comments for c in conds]
-        comments_2 = [c + f'_lr:{lr}' for c in comments for lr in [5e-2, 5e-3, 5e-4] + more_lrs]
-
-        conds = ['condIV_sgoutn_fanout', 'condIV_continuous_sgoutn_fanout']
-        comments = [b if c == '' else c if b == '' else f'{b}_{c}' for b in base_comments for c in conds]
-        comments_3 = [c + f'_lr:{lr}' for c in comments for lr in [5e-3] + more_lrs]
-
-        if dataset == 'shd':
-            conds = ['condIV_sgoutn_rfanout', 'condIV_continuous_sgoutn_rfanout']
-            comments = [b if c == '' else c if b == '' else f'{b}_{c}' for b in base_comments for c in conds]
-            comments_4 = [c + f'_lr:{lr}' for c in comments for lr in [5e-3] + more_lrs]
-            comments_3 = comments_3 + comments_4
-
-        comments_ = comments_1 + comments_2 + comments_3
-
-        experiment = {
-            'seed': seeds, 'epochs': [-1],
-            'comments': comments_,
-            'dataset': [dataset]
-        }
-        experiments.append(experiment)
-
-
-
-
-    experiments = []
     conds = [
         'muone',
-        'condIV_muone',
 
         'muone_noreg',
-        'condIV_muone_noreg',
         'noreg',
-        'condIV_noreg',
 
         'muone_regp5',
-        'condIV_muone_regp5',
         'regp5',
-        'condIV_regp5',
 
         'muone_regp5:.25',
         'regp5:.25',
@@ -1745,7 +1713,7 @@ if missing_exps and expsid == 'fluctuations':
     for dataset in ['dvs', 'shd', 'cifar10']:
 
         if dataset == 'dvs' or dataset == 'cifar10':
-            lrs= [5e-4]
+            lrs = [5e-4]
         else:
             lrs = [5e-2]
         comments_ = [c + f'_lr:{lr}' for c in comments for lr in lrs]
