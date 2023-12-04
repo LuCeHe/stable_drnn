@@ -42,7 +42,7 @@ GEXPERIMENTS = [
     # r'D:\work\alif_sg\good_experiments\2023-11-10--decolletc',
 ]
 
-expsid = 'fluctuations'  # effnet als ffnandcnns s5lru mnl fluctuations _decolle
+expsid = '_decolle'  # effnet als ffnandcnns s5lru mnl fluctuations _decolle
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 lsc_epsilon = 0.02  # 0.02
@@ -237,7 +237,8 @@ elif expsid == '_decolle':
         'seed', 'datasetname', 'comments', 'path', 'hostname',  # 'lr f',
         'stop_time', 'log_dir', 'n_params',
         'test_losses argm', 'test_accs argM', 'test_accs len',
-        'val_loss argm', 'val_loss len', 'val_acc argM', 'val_loss len',
+        'val_loss argm', 'val_acc argM',
+        # 'val_loss len',
     ]
 
     group_cols = [
@@ -246,11 +247,14 @@ elif expsid == '_decolle':
 
     metrics_oi = [
         # 'test_losses m', 'train_losses m',
+        # 'val_acc M',
         'test_acc M',
-        'test_losses len', 'conveps_test_losses', 'conveps_test_accs', 'time_elapsed',
+        'test_losses len', 'val_loss len',
+        'conveps_test_losses', 'conveps_test_accs',
         'conveps_val_loss', 'conveps_val_acc',
+        'time_elapsed',
     ]
-    stats_oi = ['mean']
+    stats_oi = ['mean', 'std']
     metric = 'test_acc M'  # 'v_ppl min'
     plot_metric = 'test_losses list'
 
@@ -496,9 +500,27 @@ if pandas_means:
     print(mdf.shape)
     if 'comments' in mdf.columns and not mdf.shape[0] == 0:
         mdf['comments'] = mdf['comments'].str.replace('__', '_', regex=True)
+
     for time in ['time_elapsed', 'mean_time_elapsed', 'std_time_elapsed']:
         if time in mdf.columns:
             mdf[time] = mdf[time].apply(lambda x: timedelta(seconds=x) if not x != x else x)
+
+    mdf = mdf.sort_values(by='mean_' + metric, ascending=True)
+    if 'mean' in stats_oi and 'std' in stats_oi:
+        for m in metrics_oi:
+            print('metric', m)
+            if not 'time_elapsed' in m:
+                k = 100 if ('acc' in m and not 'conveps' in m and not ' len' in m) else 1
+                # the metric has to be mean +- std
+                mdf[m] = mdf.apply(
+                    lambda row: f"{k * row[f'mean_{m}']:.2f} +- {k * row[f'std_{m}']:.2f}", axis=1
+                )
+            else:
+                # the metric has to be mean +- std
+                mdf[m] = mdf.apply(
+                    lambda row: str(row[f'mean_{m}']) + ' +- ' + str(row[f'std_{m}']), axis=1
+                )
+            mdf = mdf.drop([f'mean_{m}', f'std_{m}'], axis=1)
 
     for k in ['mean_n_params', 'n_params']:
         if k in mdf.columns:
@@ -544,7 +566,8 @@ if pandas_means:
                 idf.rename(columns=new_column_names, inplace=True)
                 idf = idf[cols]
 
-                idf = idf.sort_values(by='mean_' + metric, ascending=True)
+                # idf = idf.sort_values(by='mean_' + metric, ascending=True)
+                # idf = idf.sort_values(by=metric, ascending=True)
                 for c in idf.columns:
                     if 'ppl' in c:
                         idf[c] = idf[c].apply(
@@ -1791,7 +1814,7 @@ if missing_exps and expsid == '_decolle':
     print(f'Experiments already done: {sdf.shape[0]}, len cols = {len(sdf.columns)}')
 
     seed = 0
-    n_seeds = 4
+    n_seeds = 10
     seeds = [l + seed for l in range(n_seeds)]
     experiments = []
     base_comments = ['', 'condI', 'condIV', 'condI_IV']
@@ -1815,12 +1838,15 @@ if missing_exps and expsid == '_decolle':
     experiments = []
 
     base_comments = [
-        '', 'condIV_continuous', 'condIV',
+        '',
+        'condIV_continuous', 'condIV',
         'condIV_continuous_sgoutn', 'condIV_sgoutn',
-        'condI_continuous_sgoutn', 'condI_sgoutn',
-        'condI_IV_continuous_sgoutn', 'condI_IV_sgoutn',
+        'condIV_continuous_normcurv_oningrad',
+        'condIV_continuous_normcurv',
+        # 'condI_continuous_sgoutn', 'condI_sgoutn',
+        # 'condI_IV_continuous_sgoutn', 'condI_IV_sgoutn',
     ]
-    sgcurves = ['sgcurve:dfastsigmoid_adabelief', 'sgcurve:dfastsigmoid_adamax']
+    sgcurves = ['sgcurve:dfastsigmoid_v2']
     comments = [b if c == '' else c if b == '' else f'{b}_{c}' for b in base_comments for c in sgcurves]
     experiment = {
         'seed': seeds, 'datasetname': ['dvs'],
