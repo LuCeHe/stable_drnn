@@ -1294,7 +1294,29 @@ if remove_incomplete:
         (plotdf['conveps_valid_acc'] < 13)
         | (plotdf['conveps_valid_loss'] < 13)
         ]
-    ardf = rdf.copy()
+    print(rdf.to_string())
+    print(rdf.shape, df.shape)
+    rdfs.append(rdf)
+
+    print('Eliminate muone')
+    rdf = plotdf[
+        plotdf['comments'].str.contains('muone')
+    ]
+    print(rdf.to_string())
+    print(rdf.shape, df.shape)
+    rdfs.append(rdf)
+
+    print('Repeate baseline to measure firing rate')
+    rdf = plotdf[
+        plotdf['comments'].str.contains('smorms3_deep_lr')
+    ]
+    print(rdf.to_string())
+    print(rdf.shape, df.shape)
+    rdfs.append(rdf)
+
+    rdf = plotdf[
+        plotdf['comments'].str.contains('smorms3_lr')
+    ]
     print(rdf.to_string())
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
@@ -1696,17 +1718,22 @@ if missing_exps and expsid == 'fluctuations':
     experiments.append(experiment)
 
     conds = [
-        'muone',
+        'muchange',
+        'muchange:0.5',
 
-        'muone_noreg',
+        'muchange_noreg',
+        'muchange:0.5_noreg',
         'noreg',
 
-        'muone_regp5',
+        'muchange_regp5',
+        'muchange:0.5_regp5',
         'regp5',
 
-        'muone_regp5:.25',
+        'muchange_regp5:.25',
+        'muchange:0.5_regp5:.25',
         'regp5:.25',
-        'muone_regp5:.75',
+        'muchange_regp5:.75',
+        'muchange:0.5_regp5:.75',
         'regp5:.75',
     ]
     comments = [b if c == '' else c if b == '' else f'{b}_{c}' for b in base_comments for c in conds]
