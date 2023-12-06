@@ -42,7 +42,7 @@ GEXPERIMENTS = [
     # r'D:\work\alif_sg\good_experiments\2023-11-10--decolletc',
 ]
 
-expsid = '_decolle'  # effnet als ffnandcnns s5lru mnl fluctuations _decolle
+expsid = 'fluctuations'  # effnet als ffnandcnns s5lru mnl fluctuations _decolle
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 lsc_epsilon = 0.02  # 0.02
@@ -131,7 +131,22 @@ task_name_pairs = [
     ('PTB', 'wordptb'),
 ]
 
-if expsid == 's5lru':
+df_preprocess = lambda x: x
+
+if expsid == 'als':
+    def df_preprocess(df):
+        df['stack'] = df['stack'].fillna(-1).astype(int)
+        df['stack'] = df['stack'].replace(-1, 'None')
+        df['stack'] = df['stack'].astype(str)
+        df['comments'] = df['comments'].str.replace('simplereadout', 'embproj')
+        df['batch_size'] = df['batch_size'].astype(str)
+        df['ni'] = df['ni'].astype(float)
+        # df['comments'] = df['comments'].str.replace('_pretrained', '')
+        df['comments'] = df['comments'].astype(str)
+        df.replace(['nan'], np.nan, inplace=True)
+        return df
+
+elif expsid == 's5lru':
     GEXPERIMENTS = [
         r'D:\work\alif_sg\good_experiments\2023-10-10--s5lru',
     ]
@@ -197,6 +212,22 @@ elif expsid == 'mnl':
     ]
     stats_oi = ['mean']
 
+
+    def df_preprocess(df):
+
+        df['comments'] = df.apply(
+            lambda row: '_'.join([
+                c for c in row['comments'].split('_')
+                if not 'taskmean' in c
+                   and not 'taskvar' in c]
+            ), axis=1
+        )
+
+        df['comments'] = df.apply(
+            lambda row: ''.join([c for c in row['comments'].split('**') if not 'folder' in c]), axis=1
+        )
+        return df
+
 elif expsid == 'fluctuations':
 
     GEXPERIMENTS = [
@@ -217,12 +248,25 @@ elif expsid == 'fluctuations':
 
     metrics_oi = [
         # 'train_acc M', 'valid_acc M', 'valid_loss m',
-        'test_acc',
+        'test_acc', 'fr',
+        # 'valid_acc M',
         'conveps_valid_acc', 'conveps_valid_loss',
         'valid_acc len', 'valid_loss len', 'time_elapsed',
     ]
     stats_oi = ['mean', 'std']
     metric = 'test_acc'  # 'v_ppl min'
+
+
+    def df_preprocess(df):
+        df = df[df['comments'].str.contains('smorms3')]
+        df = df[~df['comments'].str.contains('cond')]
+        df = df[~df['comments'].str.contains('regp5')]
+        df = df[~df['comments'].str.contains('muchange:0.5')]
+
+        fr_cols = [c for c in df.columns if 'mfr' in c and c.endswith(' f')]
+        print(fr_cols)
+        df['fr'] = df[fr_cols].mean(axis=1)
+        return df
 
 elif expsid == '_decolle':
 
@@ -273,32 +317,10 @@ for flag in [task_flag, net_flag]:
     if flag in df.columns:
         df[flag] = df[flag].astype(str)
 
-if 'als' == expsid:
-    df['stack'] = df['stack'].fillna(-1).astype(int)
-    df['stack'] = df['stack'].replace(-1, 'None')
-    df['stack'] = df['stack'].astype(str)
-    df['comments'] = df['comments'].str.replace('simplereadout', 'embproj')
-    df['batch_size'] = df['batch_size'].astype(str)
-    df['ni'] = df['ni'].astype(float)
-    # df['comments'] = df['comments'].str.replace('_pretrained', '')
-    df['comments'] = df['comments'].astype(str)
-    df.replace(['nan'], np.nan, inplace=True)
-
-if 'mnl' in expsid:
-    df['comments'] = df.apply(
-        lambda row: '_'.join([
-            c for c in row['comments'].split('_')
-            if not 'taskmean' in c
-               and not 'taskvar' in c]
-        ), axis=1
-    )
-
-    df['comments'] = df.apply(
-        lambda row: ''.join([c for c in row['comments'].split('**') if not 'folder' in c]), axis=1
-    )
-
 new_column_names = {c_name: shorten_losses(c_name) for c_name in df.columns}
 df.rename(columns=new_column_names, inplace=True)
+
+df = df_preprocess(df)
 
 for m in ['v_ppl', 'val_ppl', 'val_acc', 'val_loss', 'valid_acc', 'valid_loss', 'test_losses', 'test_accs']:
     argm = 'argm' if ('ppl' in m or 'loss' in m) else 'argM'
@@ -1321,28 +1343,29 @@ if remove_incomplete:
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
 
-    print('Eliminate muone')
-    rdf = plotdf[
-        plotdf['comments'].str.contains('muone')
-    ]
-    print(rdf.to_string())
-    print(rdf.shape, df.shape)
-    rdfs.append(rdf)
-
     print('Repeate baseline to measure firing rate')
-    rdf = plotdf[
-        plotdf['comments'].str.contains('smorms3_deep_lr')
-    ]
-    print(rdf.to_string())
-    print(rdf.shape, df.shape)
-    rdfs.append(rdf)
 
     rdf = plotdf[
-        plotdf['comments'].str.contains('smorms3_lr')
-    ]
+        (plotdf['fr'] != plotdf['fr'])
+        ]
     print(rdf.to_string())
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
+    # print(plotdf.to_string())
+
+    # rdf = plotdf[
+    #     plotdf['comments'].str.contains('smorms3_deep_lr')
+    # ]
+    # print(rdf.to_string())
+    # print(rdf.shape, df.shape)
+    # rdfs.append(rdf)
+    #
+    # rdf = plotdf[
+    #     plotdf['comments'].str.contains('smorms3_lr')
+    # ]
+    # print(rdf.to_string())
+    # print(rdf.shape, df.shape)
+    # rdfs.append(rdf)
 
     print('Eliminate if f_norms_std too large')
     # rdf = plotdf[
@@ -1741,23 +1764,19 @@ if missing_exps and expsid == 'fluctuations':
     experiments.append(experiment)
 
     conds = [
+        '',
+        'reglag',
+
         'muchange',
-        'muchange:0.5',
+        'muchange_nu:1_eps:1',
+        'muchange_reglag',
+        'muchange_nu:1_eps:1_reglag',
+        # 'muchange:0.5',
 
-        'muchange_noreg',
-        'muchange:0.5_noreg',
         'noreg',
-
-        'muchange_regp5',
-        'muchange:0.5_regp5',
-        'regp5',
-
-        'muchange_regp5:.25',
-        'muchange:0.5_regp5:.25',
-        'regp5:.25',
-        'muchange_regp5:.75',
-        'muchange:0.5_regp5:.75',
-        'regp5:.75',
+        'muchange_noreg',
+        'muchange_nu:1_eps:1_noreg',
+        # 'muchange:0.5_noreg',
     ]
     comments = [b if c == '' else c if b == '' else f'{b}_{c}' for b in base_comments for c in conds]
     for dataset in ['dvs', 'shd', 'cifar10']:
