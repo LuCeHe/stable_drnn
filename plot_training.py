@@ -68,7 +68,7 @@ plot_new_bars = False
 chain_norms = False
 lruptb2latex = False
 
-missing_exps = False
+missing_exps = True
 remove_incomplete = False
 truely_remove = False
 truely_remove_pretrained = False
@@ -293,14 +293,25 @@ elif expsid == '_decolle':
         # 'test_losses m', 'train_losses m',
         # 'val_acc M',
         'test_acc M',
-        'test_losses len', 'val_loss len',
-        'conveps_test_losses', 'conveps_test_accs',
+        'fr',
+        # 'test_losses len',
+        'val_loss len',
+        # 'conveps_test_losses', 'conveps_test_accs',
         'conveps_val_loss', 'conveps_val_acc',
         'time_elapsed',
     ]
     stats_oi = ['mean', 'std']
     metric = 'test_acc M'  # 'v_ppl min'
     plot_metric = 'test_losses list'
+
+
+    def df_preprocess(df):
+        df = df[df['comments'].str.contains('v3')]
+
+        fr_cols = [c for c in df.columns if 'fr' in c and c.endswith(' f')]
+        print(fr_cols)
+        df['fr'] = df[fr_cols].mean(axis=1)
+        return df
 
 plot_only += metrics_oi
 print('plot_only', plot_only)
@@ -1833,7 +1844,7 @@ if missing_exps and expsid == '_decolle':
     print(f'Experiments already done: {sdf.shape[0]}, len cols = {len(sdf.columns)}')
 
     seed = 0
-    n_seeds = 10
+    n_seeds = 4
     seeds = [l + seed for l in range(n_seeds)]
     experiments = []
     base_comments = ['', 'condI', 'condIV', 'condI_IV']
@@ -1870,6 +1881,21 @@ if missing_exps and expsid == '_decolle':
     experiment = {
         'seed': seeds, 'datasetname': ['dvs'],
         'comments': comments,
+    }
+    experiments.append(experiment)
+
+
+    experiments = []
+
+    experiment = {
+        'seed': seeds, 'datasetname': ['dvs'],
+        'comments': [
+            'v3',
+            'frcontrol_frfrom:.5_v3',
+            'frcontrol_frfrom:0.158_v3',
+            'frcontrol_frfrom:.5_frto:0.158_v3',
+            'frcontrol_frfrom:.0.158_frto:0.158_v3',
+        ],
     }
     experiments.append(experiment)
 
