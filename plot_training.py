@@ -293,7 +293,8 @@ elif expsid == '_decolle':
         # 'test_losses m', 'train_losses m',
         # 'val_acc M',
         'test_acc M',
-        'fr',
+        'fr f',
+        'fr i',
         # 'test_losses len',
         'val_loss len',
         # 'conveps_test_losses', 'conveps_test_accs',
@@ -309,8 +310,10 @@ elif expsid == '_decolle':
         df = df[df['comments'].str.contains('v3')]
 
         fr_cols = [c for c in df.columns if 'fr' in c and c.endswith(' f')]
-        print(fr_cols)
-        df['fr'] = df[fr_cols].mean(axis=1)
+        df['fr f'] = df[fr_cols].mean(axis=1)
+
+        fr_cols = [c for c in df.columns if 'fr' in c and c.endswith(' i')]
+        df['fr i'] = df[fr_cols].mean(axis=1)
         return df
 
 plot_only += metrics_oi
@@ -1347,8 +1350,8 @@ if remove_incomplete:
 
     print('Eliminate non converged')
     rdf = plotdf[
-        (plotdf['conveps_valid_acc'] < 13)
-        | (plotdf['conveps_valid_loss'] < 13)
+        (plotdf['conveps_val_acc'] < 13)
+        | (plotdf['conveps_val_loss'] < 13)
         ]
     print(rdf.to_string())
     print(rdf.shape, df.shape)
@@ -1357,12 +1360,11 @@ if remove_incomplete:
     print('Repeate baseline to measure firing rate')
 
     rdf = plotdf[
-        (plotdf['fr'] != plotdf['fr'])
-        ]
+            plotdf['comments'].str.contains('frcontrol')
+    ]
     print(rdf.to_string())
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
-    # print(plotdf.to_string())
 
     # rdf = plotdf[
     #     plotdf['comments'].str.contains('smorms3_deep_lr')
@@ -1890,10 +1892,10 @@ if missing_exps and expsid == '_decolle':
     experiment = {
         'seed': seeds, 'datasetname': ['dvs'],
         'comments': [
-            # 'v3',
-            # 'frcontrol_frfrom:.5_v3',
-            # 'frcontrol_frfrom:0.158_v3',
-            # 'frcontrol_frfrom:.5_frto:0.158_v3',
+            'v3',
+            'frcontrol_frfrom:.5_v3',
+            'frcontrol_frfrom:0.158_v3',
+            'frcontrol_frfrom:.5_frto:0.158_v3',
             'frcontrol_frfrom:0.158_frto:0.158_v3',
         ],
     }
