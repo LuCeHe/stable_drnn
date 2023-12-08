@@ -1890,11 +1890,11 @@ if missing_exps and expsid == '_decolle':
     experiment = {
         'seed': seeds, 'datasetname': ['dvs'],
         'comments': [
-            'v3',
-            'frcontrol_frfrom:.5_v3',
-            'frcontrol_frfrom:0.158_v3',
-            'frcontrol_frfrom:.5_frto:0.158_v3',
-            'frcontrol_frfrom:.0.158_frto:0.158_v3',
+            # 'v3',
+            # 'frcontrol_frfrom:.5_v3',
+            # 'frcontrol_frfrom:0.158_v3',
+            # 'frcontrol_frfrom:.5_frto:0.158_v3',
+            'frcontrol_frfrom:0.158_frto:0.158_v3',
         ],
     }
     experiments.append(experiment)
