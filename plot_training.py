@@ -42,7 +42,7 @@ GEXPERIMENTS = [
     # r'D:\work\alif_sg\good_experiments\2023-11-10--decolletc',
 ]
 
-expsid = '_decolle'  # effnet als ffnandcnns s5lru mnl fluctuations _decolle
+expsid = 'fluctuations'  # effnet als ffnandcnns s5lru mnl fluctuations _decolle
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 lsc_epsilon = 0.02  # 0.02
@@ -291,8 +291,9 @@ elif expsid == '_decolle':
 
     metrics_oi = [
         # 'test_losses m', 'train_losses m',
-        # 'val_acc M',
-        'test_acc M',
+        'val_acc M',
+        # 'test_acc M',
+        # 'bad_test_acc M',
         'fr f',
         'fr i',
         # 'test_losses len',
@@ -302,7 +303,7 @@ elif expsid == '_decolle':
         'time_elapsed',
     ]
     stats_oi = ['mean', 'std']
-    metric = 'test_acc M'  # 'v_ppl min'
+    metric = 'val_acc M'  # 'val_acc ' test_acc bad_test_acc
     plot_metric = 'test_losses list'
 
 
@@ -1744,7 +1745,7 @@ if missing_exps and expsid == 'fluctuations':
     print(f'Experiments already done: {sdf.shape[0]}, len cols = {len(sdf.columns)}')
 
     seed = 0
-    n_seeds = 4
+    n_seeds = 5
     seeds = [l + seed for l in range(n_seeds)]
 
     base_comments = ['deep', '']
@@ -1778,12 +1779,9 @@ if missing_exps and expsid == 'fluctuations':
 
     conds = [
         '',
-        'reglag',
 
         'muchange',
         'muchange_nu:1_eps:1',
-        'muchange_reglag',
-        'muchange_nu:1_eps:1_reglag',
         # 'muchange:0.5',
 
         'noreg',
