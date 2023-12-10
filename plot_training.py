@@ -1891,16 +1891,18 @@ if missing_exps and expsid == '_decolle':
     experiment = {
         'seed': seeds, 'datasetname': ['dvs'],
         'comments': [
-            'v3',
-            'allxe_v3',
-            'frcontrol_frfrom:.5_v3',
-            'frcontrol_frfrom:0.158_v3',
-            'frcontrol_frfrom:.5_lmbd:100_v3',
-            'frcontrol_frfrom:0.158_lmbd:100_v3',
-            'frcontrol_frfrom:.5_lmbd:100_switchep:1_v3',
-            'frcontrol_frfrom:0.158_lmbd:100_switchep:1_v3',
+            # 'v3',
+            # 'allxe_v3',
+            # 'frcontrol_frfrom:.5_v3',
+            # 'frcontrol_frfrom:0.158_v3',
+            # 'frcontrol_frfrom:.5_lmbd:100_v3',
+            # 'frcontrol_frfrom:0.158_lmbd:100_v3',
+            # 'frcontrol_frfrom:.5_lmbd:100_switchep:1_v3',
+            # 'frcontrol_frfrom:0.158_lmbd:100_switchep:1_v3',
             # 'frcontrol_frfrom:.5_frto:0.158_v3',
             # 'frcontrol_frfrom:0.158_frto:0.158_v3',
+            'frcontrol_frfrom:.5_lmbd:1_switchep:2_onlyreg_v3',
+            'frcontrol_frfrom:0.158_lmbd:1_switchep:2_onlyreg_v3',
         ],
     }
     experiments.append(experiment)
