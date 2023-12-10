@@ -48,7 +48,7 @@ h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 lsc_epsilon = 0.02  # 0.02
 
 check_for_new = True
-plot_losses = True
+plot_losses = False
 one_exp_curves = False
 pandas_means = True
 show_per_tasknet = True
@@ -68,7 +68,7 @@ plot_new_bars = False
 chain_norms = False
 lruptb2latex = False
 
-missing_exps = False
+missing_exps = True
 remove_incomplete = False
 truely_remove = False
 truely_remove_pretrained = False
@@ -292,6 +292,8 @@ elif expsid == '_decolle':
     metrics_oi = [
         # 'test_losses m', 'train_losses m',
         'val_acc M',
+        'val_loss i',
+        'val_loss f',
         # 'test_acc M',
         # 'bad_test_acc M',
         'fr f',
@@ -1886,15 +1888,19 @@ if missing_exps and expsid == '_decolle':
 
 
     experiments = []
-
     experiment = {
         'seed': seeds, 'datasetname': ['dvs'],
         'comments': [
             'v3',
+            'allxe_v3',
             'frcontrol_frfrom:.5_v3',
             'frcontrol_frfrom:0.158_v3',
-            'frcontrol_frfrom:.5_frto:0.158_v3',
-            'frcontrol_frfrom:0.158_frto:0.158_v3',
+            'frcontrol_frfrom:.5_lmbd:100_v3',
+            'frcontrol_frfrom:0.158_lmbd:100_v3',
+            'frcontrol_frfrom:.5_lmbd:100_switchep:1_v3',
+            'frcontrol_frfrom:0.158_lmbd:100_switchep:1_v3',
+            # 'frcontrol_frfrom:.5_frto:0.158_v3',
+            # 'frcontrol_frfrom:0.158_frto:0.158_v3',
         ],
     }
     experiments.append(experiment)
