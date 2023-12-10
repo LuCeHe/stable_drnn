@@ -42,13 +42,13 @@ GEXPERIMENTS = [
     # r'D:\work\alif_sg\good_experiments\2023-11-10--decolletc',
 ]
 
-expsid = 'fluctuations'  # effnet als ffnandcnns s5lru mnl fluctuations _decolle
+expsid = '_decolle'  # effnet als ffnandcnns s5lru mnl fluctuations _decolle
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 lsc_epsilon = 0.02  # 0.02
 
 check_for_new = True
-plot_losses = False
+plot_losses = True
 one_exp_curves = False
 pandas_means = True
 show_per_tasknet = True
@@ -68,7 +68,7 @@ plot_new_bars = False
 chain_norms = False
 lruptb2latex = False
 
-missing_exps = True
+missing_exps = False
 remove_incomplete = False
 truely_remove = False
 truely_remove_pretrained = False
@@ -304,7 +304,7 @@ elif expsid == '_decolle':
     ]
     stats_oi = ['mean', 'std']
     metric = 'val_acc M'  # 'val_acc ' test_acc bad_test_acc
-    plot_metric = 'test_losses list'
+    plot_metric = 'fr_2 list'
 
 
     def df_preprocess(df):
