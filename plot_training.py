@@ -42,7 +42,7 @@ GEXPERIMENTS = [
     # r'D:\work\alif_sg\good_experiments\2023-11-10--decolletc',
 ]
 
-expsid = '_decolle'  # effnet als ffnandcnns s5lru mnl fluctuations _decolle
+expsid = 'fluctuations'  # effnet als ffnandcnns s5lru mnl fluctuations _decolle
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 lsc_epsilon = 0.02  # 0.02
@@ -291,11 +291,11 @@ elif expsid == '_decolle':
 
     metrics_oi = [
         # 'test_losses m', 'train_losses m',
-        'val_acc M',
-        'val_loss i',
-        'val_loss f',
+        # 'val_acc M',
+        # 'val_loss i',
+        # 'val_loss f',
         # 'test_acc M',
-        # 'bad_test_acc M',
+        'bad_test_acc M',
         'fr f',
         'fr i',
         # 'test_losses len',
@@ -305,7 +305,7 @@ elif expsid == '_decolle':
         'time_elapsed',
     ]
     stats_oi = ['mean', 'std']
-    metric = 'val_acc M'  # 'val_acc ' test_acc bad_test_acc
+    metric = 'bad_test_acc M'  # 'val_acc M ' test_acc bad_test_acc test_acc
     plot_metric = 'fr_2 list'
 
 
@@ -1363,7 +1363,7 @@ if remove_incomplete:
     print('Repeate baseline to measure firing rate')
 
     rdf = plotdf[
-            plotdf['comments'].str.contains('frcontrol')
+        plotdf['comments'].str.contains('frcontrol')
     ]
     print(rdf.to_string())
     print(rdf.shape, df.shape)
@@ -1886,24 +1886,31 @@ if missing_exps and expsid == '_decolle':
     }
     experiments.append(experiment)
 
+    comments = [
+        # 'v3',
+        # 'allxe_v3',
+        # 'frcontrol_frfrom:.5_v3',
+        # 'frcontrol_frfrom:0.158_v3',
+        # 'frcontrol_frfrom:.5_lmbd:100_v3',
+        # 'frcontrol_frfrom:0.158_lmbd:100_v3',
+        # 'frcontrol_frfrom:.5_lmbd:100_switchep:1_v3',
+        # 'frcontrol_frfrom:0.158_lmbd:100_switchep:1_v3',
+        # 'frcontrol_frfrom:.5_frto:0.158_v3',
+        # 'frcontrol_frfrom:0.158_frto:0.158_v3',
+        # 'frcontrol_frfrom:.5_lmbd:1_switchep:2_onlyreg_v3',
+        # 'frcontrol_frfrom:0.158_lmbd:1_switchep:2_onlyreg_v3',
+    ]
+
+    comments = [
+        'v3',
+        'allxe_v3',
+    ]
+    comments = [c.replace('v3', '') + f'lr:{lr}_v3' for c in comments for lr in [1e-2, 3.16e-3, 1e-3, 3.16e-4, 1e-4]]
 
     experiments = []
     experiment = {
         'seed': seeds, 'datasetname': ['dvs'],
-        'comments': [
-            # 'v3',
-            # 'allxe_v3',
-            # 'frcontrol_frfrom:.5_v3',
-            # 'frcontrol_frfrom:0.158_v3',
-            # 'frcontrol_frfrom:.5_lmbd:100_v3',
-            # 'frcontrol_frfrom:0.158_lmbd:100_v3',
-            # 'frcontrol_frfrom:.5_lmbd:100_switchep:1_v3',
-            # 'frcontrol_frfrom:0.158_lmbd:100_switchep:1_v3',
-            # 'frcontrol_frfrom:.5_frto:0.158_v3',
-            # 'frcontrol_frfrom:0.158_frto:0.158_v3',
-            'frcontrol_frfrom:.5_lmbd:1_switchep:2_onlyreg_v3',
-            'frcontrol_frfrom:0.158_lmbd:1_switchep:2_onlyreg_v3',
-        ],
+        'comments': comments,
     }
     experiments.append(experiment)
 
