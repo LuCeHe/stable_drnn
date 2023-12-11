@@ -42,7 +42,7 @@ GEXPERIMENTS = [
     # r'D:\work\alif_sg\good_experiments\2023-11-10--decolletc',
 ]
 
-expsid = 'fluctuations'  # effnet als ffnandcnns s5lru mnl fluctuations _decolle
+expsid = 'decolle'  # effnet als ffnandcnns s5lru mnl fluctuations decolle
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 lsc_epsilon = 0.02  # 0.02
@@ -268,7 +268,7 @@ elif expsid == 'fluctuations':
         df['fr'] = df[fr_cols].mean(axis=1)
         return df
 
-elif expsid == '_decolle':
+elif expsid == 'decolle':
 
     GEXPERIMENTS = [
         r'D:\work\alif_sg\good_experiments\2023-11-10--decolletc',
@@ -294,8 +294,8 @@ elif expsid == '_decolle':
         # 'val_acc M',
         # 'val_loss i',
         # 'val_loss f',
-        # 'test_acc M',
-        'bad_test_acc M',
+        'test_acc M',
+        # 'bad_test_acc M',
         'fr f',
         'fr i',
         # 'test_losses len',
@@ -305,7 +305,7 @@ elif expsid == '_decolle':
         'time_elapsed',
     ]
     stats_oi = ['mean', 'std']
-    metric = 'bad_test_acc M'  # 'val_acc M ' test_acc bad_test_acc test_acc
+    metric = 'test_acc M'  # 'val_acc M ' test_acc bad_test_acc test_acc
     plot_metric = 'fr_2 list'
 
 
@@ -1831,7 +1831,7 @@ if missing_exps and expsid == 'fluctuations':
     print(f'experiments_cif =', exps_cif)
     print(f'# {len(exps_cif)}/{len(ds)}')
 
-if missing_exps and expsid == '_decolle':
+if missing_exps and expsid == 'decolle':
     print('Missing experiments')
     # columns of interest
     coi = [
@@ -1886,26 +1886,27 @@ if missing_exps and expsid == '_decolle':
     }
     experiments.append(experiment)
 
-    comments = [
-        # 'v3',
-        # 'allxe_v3',
-        # 'frcontrol_frfrom:.5_v3',
-        # 'frcontrol_frfrom:0.158_v3',
-        # 'frcontrol_frfrom:.5_lmbd:100_v3',
-        # 'frcontrol_frfrom:0.158_lmbd:100_v3',
-        # 'frcontrol_frfrom:.5_lmbd:100_switchep:1_v3',
-        # 'frcontrol_frfrom:0.158_lmbd:100_switchep:1_v3',
-        # 'frcontrol_frfrom:.5_frto:0.158_v3',
-        # 'frcontrol_frfrom:0.158_frto:0.158_v3',
-        # 'frcontrol_frfrom:.5_lmbd:1_switchep:2_onlyreg_v3',
-        # 'frcontrol_frfrom:0.158_lmbd:1_switchep:2_onlyreg_v3',
+    prev_comments = [
+        'v3',
+        'allxe_v3',
+        'frcontrol_frfrom:.5_v3',
+        'frcontrol_frfrom:0.158_v3',
+        'frcontrol_frfrom:.5_lmbd:100_v3',
+        'frcontrol_frfrom:0.158_lmbd:100_v3',
+        'frcontrol_frfrom:.5_lmbd:100_switchep:1_v3',
+        'frcontrol_frfrom:0.158_lmbd:100_switchep:1_v3',
+        'frcontrol_frfrom:.5_frto:0.158_v3',
+        'frcontrol_frfrom:0.158_frto:0.158_v3',
+        'frcontrol_frfrom:.5_lmbd:1_switchep:2_onlyreg_v3',
+        'frcontrol_frfrom:0.158_lmbd:1_switchep:2_onlyreg_v3',
     ]
 
     comments = [
         'v3',
-        'allxe_v3',
     ]
-    comments = [c.replace('v3', '') + f'lr:{lr}_v3' for c in comments for lr in [1e-2, 3.16e-3, 1e-3, 3.16e-4, 1e-4]]
+    comments = [c.replace('v3', '') + f'lr:{lr}_v3' for c in comments for lr in [1e-0, 3.16e-1, 1e-1, 3.16e-2]]
+
+    comments  = comments + prev_comments
 
     experiments = []
     experiment = {
