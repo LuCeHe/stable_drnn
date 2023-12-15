@@ -42,7 +42,7 @@ GEXPERIMENTS = [
     # r'D:\work\alif_sg\good_experiments\2023-11-10--decolletc',
 ]
 
-expsid = 'fluctuations'  # effnet als ffnandcnns s5lru mnl fluctuations decolle
+expsid = 's5lru'  # effnet als ffnandcnns s5lru mnl fluctuations decolle
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 lsc_epsilon = 0.02  # 0.02
@@ -68,7 +68,7 @@ plot_new_bars = False
 chain_norms = False
 lruptb2latex = False
 
-missing_exps = False
+missing_exps = True
 remove_incomplete = False
 truely_remove = False
 truely_remove_pretrained = False
@@ -155,7 +155,7 @@ elif expsid == 's5lru':
     net_flag = 'lru'  # net lru
     depth_flag = 'n_depth'  # 'stack'
 
-    metric = 'val_acc M'  # 'v_ppl min'
+    metric = 'test_acc M'  # 'v_ppl min'
     metrics_oi = [
         # 'val_loss m', 'test_loss m',
         # 'train_loss i', 'train_loss f',
@@ -166,7 +166,8 @@ elif expsid == 's5lru':
     ]
 
     plot_only = [
-        'jax_seed', 'lru', 'dataset', 'n_depth', 'comments',
+        'jax_seed', 'lru', 'dataset', 'n_depth',
+        'model_name', 'comments', 'ptcomments',
         'val_acc argM', 'path', 'eps', 'spe', 'bsz'
     ]
     group_cols = ['lru', 'dataset', 'comments', 'n_depth']
@@ -1353,21 +1354,21 @@ if remove_incomplete:
 
     print('Eliminate non converged')
     rdf = plotdf[
-        (plotdf['conveps_val_acc'] < 13)
-        | (plotdf['conveps_val_loss'] < 13)
+        (plotdf['conveps_val_acc'] < 32)
+        # | (plotdf['conveps_val_loss'] < 13)
         ]
     print(rdf.to_string())
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
 
     print('Repeate baseline to measure firing rate')
-
-    rdf = plotdf[
-        plotdf['comments'].str.contains('frcontrol')
-    ]
-    print(rdf.to_string())
-    print(rdf.shape, df.shape)
-    rdfs.append(rdf)
+    #
+    # rdf = plotdf[
+    #     plotdf['comments'].str.contains('frcontrol')
+    # ]
+    # print(rdf.to_string())
+    # print(rdf.shape, df.shape)
+    # rdfs.append(rdf)
 
     # rdf = plotdf[
     #     plotdf['comments'].str.contains('smorms3_deep_lr')
@@ -2075,10 +2076,9 @@ if missing_exps and not expsid == 's5lru' and False:
 
 if missing_exps and expsid == 's5lru':
     # columns of interest
-    coi = ['jax_seed', 'dataset', 'lru', 'comments', 'epochs', 'steps_per_epoch', 'bsz']
+    coi = ['jax_seed', 'dataset', 'model_name', 'comments', 'ptcomments', 'epochs', 'steps_per_epoch', 'bsz']
 
     # import pandas as pd
-
     sdf = df.copy()
 
     for nice, brute in task_name_pairs:
@@ -2090,24 +2090,27 @@ if missing_exps and expsid == 's5lru':
 
     print(f'Experiments already done: {sdf.shape[0]}, len cols = {len(sdf.columns)}')
     sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
-    sdf = sdf.astype({'lru': 'string', 'dataset': 'string', 'comments': 'string'})
+    sdf = sdf.astype({'model_name': 'string', 'dataset': 'string', 'comments': 'string'})
 
     seed = 0
     n_seeds = 2
     seeds = [l + seed for l in range(n_seeds)]
 
     experiments = []
+    experiments = []
     datasets = [
         'cifar-classification',
-        'imdb-classification',
+        # 'lra-cifar-classification',
+        # 'imdb-classification',
         'listops-classification',
         'aan-classification',
         # 'pathfinder-classification',
         # 'pathx-classification'
     ]
 
-    ci = lambda islru: 'default' if not islru else 'defaultlru_lruv3'
-    for lru in [True, False]:
+    types = ['a', 'a0', 'b', 'b0', 'c', 'd']
+
+    for ty in types:
         for dataset in datasets:
             if 'pathx' in dataset:
                 bsz = 8
@@ -2116,23 +2119,70 @@ if missing_exps and expsid == 's5lru':
             else:
                 bsz = 32
 
+            models = []
+            comments = []
+            ptcomments = ['']
+            if ty == 'a':
+                models = ['lru']
+                comments = [
+                    'defaultlru_lruv3_noprenorm_pretrain_targetnorm:0.5',
+                    'defaultlru_lruv3_nonorm_pretrain_targetnorm:0.5',
+                    'defaultlru_lruv3_noprenorm_pretrain_targetnorm:1',
+                    'defaultlru_lruv3_noprenorm_pretrain_unbalanced',
+                ]
+                ptcomments = [
+                    'nonan_updatesome_changeopt',
+                    'nonan_updatesome_changeopt_varrho'
+                ]
+            elif ty == 'a0':
+                models = ['lru']
+                comments = [
+                    'defaultlru_lruv3_noprenorm',
+                    'defaultlru_lruv3_nonorm',
+                ]
+                ptcomments = [
+                    'nonan_updatesome_changeopt',
+                ]
+
+            elif ty == 'b':
+                models = ['s5']
+                comments = [
+                    'default_noprenorm_pretrain_targetnorm:0.5',
+                    'default_nonorm_pretrain_targetnorm:0.5',
+                    'default_noprenorm_pretrain_targetnorm:1',
+                    'default_noprenorm_pretrain_unbalanced',
+                ]
+                ptcomments = [
+                    'nonan_updatesome_changeopt',
+                    'nonan_updatesome_changeopt_varrho'
+                ]
+            elif ty == 'b0':
+                models = ['s5']
+                comments = [
+                    'default_noprenorm',
+                    'default_nonorm',
+                ]
+                ptcomments = [
+                    'nonan_updatesome_changeopt',
+                ]
+
+            elif ty == 'c':
+                models = ['convlru']
+                comments = ['defaultlru_lruv3']
+
+            elif ty == 'd':
+                models = ['lru2']
+                comments = [
+                    'defaultlru_lruv3',
+                    'defaultlru_lruv3_nodlreal',
+                    'defaultlru_lruv3_dontdiscimx'
+                ]
+
             experiment = {
                 'jax_seed': seeds,
                 'epochs': [300], 'steps_per_epoch': [-1], 'dataset': [dataset], 'bsz': [bsz],
-                'lru': [str(lru)],
-                'comments': [
-                    ci(lru),
-                    ci(lru) + '_pretrain_targetnorm:1',
-                    ci(lru) + '_pretrain_targetnorm:0.5',
-                    # ci(lru) + '_pretrain_unbalanced',
-                    ci(lru) + '_clipping',
-                    # ================================================
-                    ci(lru) + '_emaopt',
-                    ci(lru) + '_pretrain_targetnorm:1_emaopt',
-                    ci(lru) + '_pretrain_targetnorm:0.5_emaopt',
-                    ci(lru) + '_clipping_emaopt',
-
-                ],
+                'model_name': models,
+                'comments': comments, 'ptcomments': ptcomments,
             }
             experiments.append(experiment)
 
