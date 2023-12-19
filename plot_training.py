@@ -170,7 +170,7 @@ elif expsid == 's5lru':
         'model_name', 'comments', 'ptcomments',
         'val_acc argM', 'path', 'eps', 'spe', 'bsz'
     ]
-    group_cols = ['lru', 'dataset', 'comments', 'n_depth']
+    group_cols = ['lru', 'dataset', 'comments', 'n_depth', 'ptcomments']
 
     columns_to_remove = ['experiment_sources']
     force_keep_column = []
@@ -592,22 +592,16 @@ if pandas_means:
                 idf = xdf[
                     xdf[task_flag].eq(task)
                     & xdf[net_flag].eq(net)
-                    # & xdf[depth_flag].eq(stack)
                     ]
 
                 cols = [c for c in idf.columns if not net_flag in c and not task_flag in c]
                 if not 'PTB' in task:
-                    # idf = idf.sort_values(by='mean_' + metric, ascending=False)
                     cols = [c for c in cols if not 'ppl' in c]
                 else:
-                    # idf = idf.sort_values(by='mean_v_ppl', ascending=True)
                     cols = [c for c in cols if not 'acc' in c]
 
-                idf.rename(columns=new_column_names, inplace=True)
                 idf = idf[cols]
 
-                # idf = idf.sort_values(by='mean_' + metric, ascending=True)
-                # idf = idf.sort_values(by=metric, ascending=True)
                 for c in idf.columns:
                     if 'ppl' in c:
                         idf[c] = idf[c].apply(
@@ -1356,7 +1350,7 @@ if remove_incomplete:
     rdf = plotdf[
         (plotdf['conveps_val_acc'] < 32)
         # | (plotdf['conveps_val_loss'] < 13)
-        ]
+    ]
     print(rdf.to_string())
     print(rdf.shape, df.shape)
     rdfs.append(rdf)
@@ -1546,12 +1540,13 @@ if remove_incomplete:
     print('Remove repeated experiments')
     brdf = mdf[mdf['counts'] > 4]
     print(brdf.to_string())
-
+    coi = ['comments', depth_flag, task_flag, net_flag, 'ptcomments']
     for _, row in brdf.iterrows():
         print('-' * 80)
         srdf = plotdf[
             # (df['lr'] == row['lr'])
             (plotdf['comments'].eq(row['comments']))
+            & (plotdf['ptcomments'].eq(row['ptcomments']))
             & (plotdf[depth_flag] == row[depth_flag])
             & (plotdf[task_flag] == row[task_flag])
             & (plotdf[net_flag] == row[net_flag])
@@ -1907,7 +1902,7 @@ if missing_exps and expsid == 'decolle':
     ]
     comments = [c.replace('v3', '') + f'lr:{lr}_v3' for c in comments for lr in [1e-0, 3.16e-1, 1e-1, 3.16e-2]]
 
-    comments  = comments + prev_comments
+    comments = comments + prev_comments
 
     experiments = []
     experiment = {
@@ -2077,10 +2072,9 @@ if missing_exps and not expsid == 's5lru' and False:
 if missing_exps and expsid == 's5lru':
     # columns of interest
     coi = ['jax_seed', 'dataset', 'model_name', 'comments', 'ptcomments', 'epochs', 'steps_per_epoch', 'bsz']
+    coi = ['jax_seed', 'dataset', 'model_name', 'comments', 'ptcomments', 'epochs', 'steps_per_epoch']
 
-    # import pandas as pd
     sdf = df.copy()
-
     for nice, brute in task_name_pairs:
         sdf.loc[df[task_flag].eq(nice), task_flag] = brute
 
@@ -2088,15 +2082,26 @@ if missing_exps and expsid == 's5lru':
         'eps': 'epochs', 'spe': 'steps_per_epoch'
     }, inplace=True)
 
+    # show NA and inf in jax_seed
     print(f'Experiments already done: {sdf.shape[0]}, len cols = {len(sdf.columns)}')
     sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
-    sdf = sdf.astype({'model_name': 'string', 'dataset': 'string', 'comments': 'string'})
+    # remove nanas in model_name
+    sdf = sdf[~sdf['model_name'].isna()]
+    print(sdf.sample(20).to_string())
+
+    print(sdf.head().to_string())
+    sdf = sdf.astype({
+        'model_name': 'string', 'dataset': 'string', 'comments': 'string',
+    })
+
+    sdf = sdf.astype({
+        'jax_seed': 'int32', 'epochs': 'int32', 'steps_per_epoch': 'int32',
+    })
 
     seed = 0
-    n_seeds = 2
+    n_seeds = 4
     seeds = [l + seed for l in range(n_seeds)]
 
-    experiments = []
     experiments = []
     datasets = [
         'cifar-classification',
@@ -2108,7 +2113,7 @@ if missing_exps and expsid == 's5lru':
         # 'pathx-classification'
     ]
 
-    types = ['a', 'a0', 'b', 'b0', 'c', 'd']
+    types = ['a', 'a0', 'b', 'b0']
 
     for ty in types:
         for dataset in datasets:
@@ -2121,14 +2126,16 @@ if missing_exps and expsid == 's5lru':
 
             models = []
             comments = []
-            ptcomments = ['']
+            ptcomments = ['nonan_updatesome_changeopt']
             if ty == 'a':
                 models = ['lru']
                 comments = [
                     'defaultlru_lruv3_noprenorm_pretrain_targetnorm:0.5',
-                    'defaultlru_lruv3_nonorm_pretrain_targetnorm:0.5',
                     'defaultlru_lruv3_noprenorm_pretrain_targetnorm:1',
                     'defaultlru_lruv3_noprenorm_pretrain_unbalanced',
+                    'defaultlru_lruv3_nonorm_pretrain_targetnorm:0.5',
+                    'defaultlru_lruv3_nonorm_pretrain_targetnorm:1',
+                    'defaultlru_lruv3_nonorm_pretrain_unbalanced',
                 ]
                 ptcomments = [
                     'nonan_updatesome_changeopt',
@@ -2148,9 +2155,11 @@ if missing_exps and expsid == 's5lru':
                 models = ['s5']
                 comments = [
                     'default_noprenorm_pretrain_targetnorm:0.5',
-                    'default_nonorm_pretrain_targetnorm:0.5',
                     'default_noprenorm_pretrain_targetnorm:1',
                     'default_noprenorm_pretrain_unbalanced',
+                    'default_nonorm_pretrain_targetnorm:0.5',
+                    'default_nonorm_pretrain_targetnorm:1',
+                    'default_nonorm_pretrain_unbalanced',
                 ]
                 ptcomments = [
                     'nonan_updatesome_changeopt',
