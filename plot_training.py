@@ -2133,13 +2133,15 @@ if missing_exps and expsid == 's5lru':
                     'defaultlru_lruv3_noprenorm_pretrain_targetnorm:0.5',
                     'defaultlru_lruv3_noprenorm_pretrain_targetnorm:1',
                     'defaultlru_lruv3_noprenorm_pretrain_unbalanced',
-                    'defaultlru_lruv3_nonorm_pretrain_targetnorm:0.5',
-                    'defaultlru_lruv3_nonorm_pretrain_targetnorm:1',
-                    'defaultlru_lruv3_nonorm_pretrain_unbalanced',
+                    # 'defaultlru_lruv3_nonorm_pretrain_targetnorm:0.5',
+                    # 'defaultlru_lruv3_nonorm_pretrain_targetnorm:1',
+                    # 'defaultlru_lruv3_nonorm_pretrain_unbalanced',
                 ]
                 ptcomments = [
                     'nonan_updatesome_changeopt',
-                    'nonan_updatesome_changeopt_varrho'
+                    'nonan_updatesome_changeopt_varrho',
+                    'nonan_changeopt',
+                    'nonan_changeopt_varrho',
                 ]
             elif ty == 'a0':
                 models = ['lru']
@@ -2157,13 +2159,15 @@ if missing_exps and expsid == 's5lru':
                     'default_noprenorm_pretrain_targetnorm:0.5',
                     'default_noprenorm_pretrain_targetnorm:1',
                     'default_noprenorm_pretrain_unbalanced',
-                    'default_nonorm_pretrain_targetnorm:0.5',
-                    'default_nonorm_pretrain_targetnorm:1',
-                    'default_nonorm_pretrain_unbalanced',
+                    # 'default_nonorm_pretrain_targetnorm:0.5',
+                    # 'default_nonorm_pretrain_targetnorm:1',
+                    # 'default_nonorm_pretrain_unbalanced',
                 ]
                 ptcomments = [
                     'nonan_updatesome_changeopt',
-                    'nonan_updatesome_changeopt_varrho'
+                    'nonan_updatesome_changeopt_varrho',
+                    'nonan_changeopt',
+                    'nonan_changeopt_varrho',
                 ]
             elif ty == 'b0':
                 models = ['s5']
