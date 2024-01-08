@@ -46,7 +46,8 @@ if __name__ == '__main__':
     target_norm = .2
     target_norms = [.5, 1.]
 
-    nets = ['pascal', 'GRU', ]
+    # nets = ['pascal', 'GRU', ]
+    nets = ['pascal', ]
     fig, axs = plt.subplots(len(nets), len(target_norms), figsize=(4, 3), gridspec_kw=dict(wspace=.4, hspace=.5))
 
     net_name = 'GRU'
