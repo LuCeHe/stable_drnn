@@ -50,7 +50,7 @@ df = experiments_to_pandas(
 )
 
 if expsid == 'effnet':
-    from alif_sg.tools.config import default_eff_lr
+    from innocent_explorations.lsc_unused.config import default_eff_lr
 
     df = df[df['comments'].str.contains('newarch')]
     # df['comments'] = df['comments'].str.replace('newarch_', '')

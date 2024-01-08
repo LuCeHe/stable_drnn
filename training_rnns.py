@@ -1,13 +1,9 @@
-import os, shutil, logging, json, copy, time, gc
+import os, shutil, logging, json, copy, time
 import pandas as pd
 
-from alif_sg.neural_models.lruLSC import lruLSC, lruLSCffn
-from pyaromatics.keras_tools.esoteric_tasks import language_tasks
 from pyaromatics.keras_tools.silence_tensorflow import silence_tf
 
 silence_tf()
-
-from sg_design_lif.config.config import default_config
 
 import tensorflow as tf
 
@@ -17,6 +13,7 @@ os.environ["TF_CPP_VMODULE"] = "gpu_process_state=10,gpu_cudamallocasync_allocat
 
 tf.compat.v1.enable_eager_execution()
 
+from pyaromatics.keras_tools.esoteric_tasks import language_tasks
 from pyaromatics.keras_tools.esoteric_callbacks.gradient_tensorboard import ExtendedTensorBoard
 from pyaromatics.keras_tools.esoteric_initializers import esoteric_initializers_list, get_initializer
 from pyaromatics.keras_tools.esoteric_callbacks import *
@@ -24,11 +21,13 @@ from pyaromatics.keras_tools.plot_tools import plot_history
 from pyaromatics.stay_organized.VeryCustomSacred import CustomExperiment, ChooseGPU
 from pyaromatics.stay_organized.utils import setReproducible, str2val, NumpyEncoder, save_results
 from pyaromatics.keras_tools.esoteric_callbacks.several_validations import MultipleValidationSets
-from pyaromatics.keras_tools.esoteric_tasks.time_task_redirection import Task, checkTaskMeanVariance
+from pyaromatics.keras_tools.esoteric_tasks.time_task_redirection import Task
 
 from sg_design_lif.neural_models.full_model import build_model
+from sg_design_lif.config.config import default_config
+
 from alif_sg.neural_models.recLSC import apply_LSC
-from alif_sg.neural_models.nonrecLSC import apply_LSC_no_time
+from alif_sg.neural_models.lruLSC import lruLSC, lruLSCffn
 
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
@@ -163,7 +162,6 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
     history_path = other_dir + '/log.csv'
     print_every = 2  # int(final_epochs / 10) if not final_epochs < 10 else 1
 
-
     if 'findLSC' in comments or 'onlyloadpretrained' in comments:
         print('Finding the LSC...')
         n_samples = str2val(comments, 'normsamples', int, default=-1)
@@ -185,10 +183,6 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
         # if not 'ssimplernn' in net:
         new_comments = new_comments + '_wmultiplier'
         new_comments = new_comments + '_wshuff'
-        # new_comments = new_comments + '_nosgd'
-        # new_comments = new_comments + '_waddnoise'
-        # new_comments = new_comments + '_reducevar'
-        # new_comments = new_comments + '_randlambda1'
 
         new_batch_size = batch_size
 
@@ -234,31 +228,6 @@ def main(epochs, steps_per_epoch, batch_size, GPU, task, comments,
                 vocab_size=gen_train.vocab_size, maxlen=gen_train.out_len
             )
 
-        elif 'deslice' in comments:
-            from pyaromatics.keras_tools.esoteric_optimizers.AdamW import AdamW as AdamW2
-            from pyaromatics.keras_tools.esoteric_layers import AddLossLayer, AddMetricsLayer, \
-                SymbolAndPositionEmbedding
-            from pyaromatics.keras_tools.esoteric_layers.rate_voltage_reg import RateVoltageRegularization
-            from pyaromatics.keras_tools.learning_rate_schedules import DummyConstantSchedule
-            from sg_design_lif.neural_models import maLSNNb, maLSNN
-
-            custom_objects = {
-                'maLSNN': maLSNN, 'maLSNNb': maLSNNb, 'RateVoltageRegularization': RateVoltageRegularization,
-                'AddLossLayer': AddLossLayer, 'AddMetricsLayer': AddMetricsLayer,
-                'SparseCategoricalCrossentropy': tf.keras.losses.SparseCategoricalCrossentropy,
-                'AdamW': AdamW2, 'DummyConstantSchedule': DummyConstantSchedule,
-                'SymbolAndPositionEmbedding': SymbolAndPositionEmbedding,
-            }
-            bm = lambda: build_model(**model_args)
-
-            lsclr = 1e-4  # 1e-2
-            weights, lsc_results = apply_LSC_no_time(
-                bm, generator=gen_train, max_dim=1024, norm_pow=2, comments=comments, learning_rate=lsclr,
-                net_name=net_name + '_deslice', seed=seed, task_name=task_name, activation='',
-                skip_in_layers=['add_loss_layer', 'add_metrics_layer', 'output_net'],
-                skip_out_layers=['output_net', 'add_metrics_layer', 'learned_None_None', 'target_words'],
-                custom_objects=custom_objects
-            )
         else:
 
             del gen_train

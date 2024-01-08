@@ -1,15 +1,15 @@
 import tensorflow as tf
 import tensorflow_addons as tfa
 
-import time, os, shutil
+import time, os
 import numpy as np
 from tensorflow_addons.optimizers import AdamW
 from tqdm import tqdm
 
-from alif_sg.tools.admin_model_removal import get_lsctype
+from innocent_explorations.lsc_unused.admin_model_removal import get_lsctype
 from pyaromatics.keras_tools.convenience_operations import sample_axis, desample_axis
 from pyaromatics.keras_tools.expose_latent import split_model, truer_split_model
-from pyaromatics.stay_organized.utils import flaggedtry, str2val
+from pyaromatics.stay_organized.utils import str2val
 from alif_sg.neural_models.recLSC import get_norms
 
 FILENAME = os.path.realpath(__file__)

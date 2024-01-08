@@ -1,6 +1,6 @@
 import os, json
 
-from alif_sg.tools.admin_model_removal import remove_pretrained_extra
+from innocent_explorations.lsc_unused.admin_model_removal import remove_pretrained_extra
 
 from pyaromatics.stay_organized.submit_jobs import dict2iter
 from tqdm import tqdm
@@ -19,12 +19,11 @@ from alif_sg.tools.plot_tools import *
 mpl, pd = load_plot_settings(mpl=mpl, pd=pd)
 
 import matplotlib.pyplot as plt
-from datetime import timedelta, datetime
+from datetime import timedelta
 
 from pyaromatics.stay_organized.plot_tricks import large_num_to_reasonable_string
 
 FMT = '%Y-%m-%dT%H:%M:%S'
-from pyaromatics.stay_organized.unzip import unzip_good_exps
 
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
