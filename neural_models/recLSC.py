@@ -4,7 +4,7 @@ import warnings
 import tensorflow as tf
 import tensorflow_addons as tfa
 
-from alif_sg.neural_models.normify import get_norms
+from drnn_stability.neural_models.normify import get_norms
 from innocent_explorations.lsc_unused.admin_model_removal import get_pretrained_file
 from lru_unofficial.src.lru_unofficial.tf.linear_recurrent_unit import ResLRUCell
 from pyaromatics.keras_tools.esoteric_optimizers.AdamW import AdamW as AdamW2
@@ -13,7 +13,7 @@ from pyaromatics.keras_tools.esoteric_layers import AddLossLayer, AddMetricsLaye
 from pyaromatics.keras_tools.esoteric_layers.rate_voltage_reg import RateVoltageRegularization
 from pyaromatics.keras_tools.learning_rate_schedules import DummyConstantSchedule
 from pyaromatics.stay_organized.utils import str2val, timeStructured
-from sg_design_lif.neural_models import maLSNN, maLSNNb
+from lif_stability.neural_models import maLSNN, maLSNNb
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['AUTOGRAPH_VERBOSITY'] = '1'
@@ -21,7 +21,7 @@ warnings.filterwarnings('ignore')
 
 from tqdm import tqdm
 from pyaromatics.keras_tools.esoteric_tasks.time_task_redirection import Task
-from sg_design_lif.neural_models.full_model import build_model
+from lif_stability.neural_models.full_model import build_model
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['AUTOGRAPH_VERBOSITY'] = '1'

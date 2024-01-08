@@ -13,8 +13,8 @@ from pyaromatics.stay_organized.mpl_tools import load_plot_settings
 from pyaromatics.stay_organized.pandardize import experiments_to_pandas, complete_missing_exps
 from pyaromatics.stay_organized.standardize_strings import shorten_losses
 from pyaromatics.stay_organized.utils import str2val
-# from alif_sg.neural_models.recLSC import load_LSC_model
-from alif_sg.tools.plot_tools import *
+# from drnn_stability.neural_models.recLSC import load_LSC_model
+from drnn_stability.tools.plot_tools import *
 
 mpl, pd = load_plot_settings(mpl=mpl, pd=pd)
 
@@ -28,17 +28,17 @@ FMT = '%Y-%m-%dT%H:%M:%S'
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
 EXPERIMENTS = os.path.join(CDIR, 'experiments')
-EXPERIMENTS = r'D:\work\alif_sg\experiments'
+EXPERIMENTS = r'D:\work\drnn_stability\experiments'
 GEXPERIMENTS = [
     # os.path.join(CDIR, 'good_experiments'),
     # os.path.join(CDIR, 'good_experiments', '2022-11-07--complete_set_of_exps'),
-    # r'D:\work\alif_sg\experiments',
-    # r'D:\work\alif_sg\good_experiments\2022-12-21--rnn',
-    # r'D:\work\alif_sg\good_experiments\2023-01-20--rnn-v2',
-    # r'D:\work\alif_sg\good_experiments\2023-09-01--rnn-lru-first',
-    # r'D:\work\alif_sg\good_experiments\2023-10-10--s5lru',
-    r'D:\work\alif_sg\good_experiments\2023-11-01--ptblif',
-    # r'D:\work\alif_sg\good_experiments\2023-11-10--decolletc',
+    # r'D:\work\drnn_stability\experiments',
+    # r'D:\work\drnn_stability\good_experiments\2022-12-21--rnn',
+    # r'D:\work\drnn_stability\good_experiments\2023-01-20--rnn-v2',
+    # r'D:\work\drnn_stability\good_experiments\2023-09-01--rnn-lru-first',
+    # r'D:\work\drnn_stability\good_experiments\2023-10-10--s5lru',
+    r'D:\work\drnn_stability\good_experiments\2023-11-01--ptblif',
+    # r'D:\work\drnn_stability\good_experiments\2023-11-10--decolletc',
 ]
 
 expsid = 's5lru'  # effnet als ffnandcnns s5lru mnl fluctuations decolle
@@ -147,7 +147,7 @@ if expsid == 'als':
 
 elif expsid == 's5lru':
     GEXPERIMENTS = [
-        r'D:\work\alif_sg\good_experiments\2023-10-10--s5lru',
+        r'D:\work\drnn_stability\good_experiments\2023-10-10--s5lru',
     ]
     plot_metric = 'l0_lnorms list'
     task_flag = 'dataset'  # task dataset
@@ -189,7 +189,7 @@ elif expsid == 's5lru':
 elif expsid == 'mnl':
 
     GEXPERIMENTS = [
-        r'D:\work\alif_sg\good_experiments\2023-11-01--ptblif',
+        r'D:\work\drnn_stability\good_experiments\2023-11-01--ptblif',
     ]
 
     task_flag = 'task_name'  # task dataset
@@ -231,7 +231,7 @@ elif expsid == 'mnl':
 elif expsid == 'fluctuations':
 
     GEXPERIMENTS = [
-        r'D:\work\alif_sg\good_experiments\2023-11-10--decolletc',
+        r'D:\work\drnn_stability\good_experiments\2023-11-10--decolletc',
     ]
     task_flag = 'dataset'
     net_flag = 'dataset'
@@ -271,7 +271,7 @@ elif expsid == 'fluctuations':
 elif expsid == 'decolle':
 
     GEXPERIMENTS = [
-        r'D:\work\alif_sg\good_experiments\2023-11-10--decolletc',
+        r'D:\work\drnn_stability\good_experiments\2023-11-10--decolletc',
     ]
     task_flag = 'datasetname'
     net_flag = 'datasetname'
@@ -362,9 +362,9 @@ if plot_pretrained_weights:
     n_bins = 50
     cols = 5
     wspace, hspace = .1, 1.1
-    pretrained_path = r'D:\work\alif_sg\good_experiments\pmodels'
+    pretrained_path = r'D:\work\drnn_stability\good_experiments\pmodels'
     models_files = [f for f in os.listdir(pretrained_path) if f.endswith('.h5')]
-    plots_path = r'D:\work\alif_sg\good_experiments\plots'
+    plots_path = r'D:\work\drnn_stability\good_experiments\plots'
     os.makedirs(plots_path, exist_ok=True)
     for mf in tqdm(models_files):
         plot_filename = os.path.join(plots_path, mf.replace('.h5', '.png'))
@@ -1591,7 +1591,7 @@ if remove_incomplete:
             experiments.append({c: [row[c]] for c in coi})
         print(experiments)
         print(f'Experiments to remove: {len(experiments)}')
-        folder = r'D:\work\alif_sg\good_experiments\pmodels'
+        folder = r'D:\work\drnn_stability\good_experiments\pmodels'
         print(experiments)
         remove_pretrained_extra(experiments, remove_opposite=False, folder=folder, truely_remove=False)
 

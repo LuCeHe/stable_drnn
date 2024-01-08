@@ -17,7 +17,7 @@ from pyaromatics.keras_tools.esoteric_tasks.numpy_generator import NumpyClassifi
 from pyaromatics.keras_tools.plot_tools import plot_history
 from pyaromatics.stay_organized.utils import NumpyEncoder, str2val
 
-from alif_sg.neural_models.nonrecLSC import apply_LSC_no_time
+from drnn_stability.neural_models.nonrecLSC import apply_LSC_no_time
 
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
