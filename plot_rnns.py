@@ -1,6 +1,6 @@
 import os, json
 
-from innocent_explorations.lsc_unused.admin_model_removal import remove_pretrained_extra
+# from innocent_explorations.lsc_unused.admin_model_removal import remove_pretrained_extra
 
 from pyaromatics.stay_organized.submit_jobs import dict2iter
 from tqdm import tqdm
@@ -28,7 +28,7 @@ FMT = '%Y-%m-%dT%H:%M:%S'
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
 EXPERIMENTS = os.path.join(CDIR, 'experiments')
-EXPERIMENTS = r'D:\work\drnn_stability\experiments'
+EXPERIMENTS = r'E:\work\drnn_stability\experiments'
 GEXPERIMENTS = [
     # os.path.join(CDIR, 'good_experiments'),
     # os.path.join(CDIR, 'good_experiments', '2022-11-07--complete_set_of_exps'),
@@ -37,11 +37,11 @@ GEXPERIMENTS = [
     # r'D:\work\drnn_stability\good_experiments\2023-01-20--rnn-v2',
     # r'D:\work\drnn_stability\good_experiments\2023-09-01--rnn-lru-first',
     # r'D:\work\drnn_stability\good_experiments\2023-10-10--s5lru',
-    r'D:\work\drnn_stability\good_experiments\2023-11-01--ptblif',
-    # r'D:\work\drnn_stability\good_experiments\2023-11-10--decolletc',
+    # r'D:\work\drnn_stability\good_experiments\2023-11-01--ptblif',
+    r'E:\work\drnn_stability\good_experiments\2023-11-10--decolletc',
 ]
 
-expsid = 's5lru'  # effnet als ffnandcnns s5lru mnl fluctuations decolle
+expsid = 'decolle'  # effnet als ffnandcnns s5lru mnl fluctuations decolle
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 lsc_epsilon = 0.02  # 0.02
@@ -147,7 +147,7 @@ if expsid == 'als':
 
 elif expsid == 's5lru':
     GEXPERIMENTS = [
-        r'D:\work\drnn_stability\good_experiments\2023-10-10--s5lru',
+        r'E:\work\alif_sg\good_experiments\2023-10-10--s5lru',
     ]
     plot_metric = 'l0_lnorms list'
     task_flag = 'dataset'  # task dataset
@@ -189,7 +189,7 @@ elif expsid == 's5lru':
 elif expsid == 'mnl':
 
     GEXPERIMENTS = [
-        r'D:\work\drnn_stability\good_experiments\2023-11-01--ptblif',
+        r'E:\work\alif_sg\good_experiments\2023-11-01--ptblif',
     ]
 
     task_flag = 'task_name'  # task dataset
@@ -231,7 +231,7 @@ elif expsid == 'mnl':
 elif expsid == 'fluctuations':
 
     GEXPERIMENTS = [
-        r'D:\work\drnn_stability\good_experiments\2023-11-10--decolletc',
+        r'E:\work\alif_sg\good_experiments\2023-11-10--decolletc',
     ]
     task_flag = 'dataset'
     net_flag = 'dataset'
@@ -271,7 +271,7 @@ elif expsid == 'fluctuations':
 elif expsid == 'decolle':
 
     GEXPERIMENTS = [
-        r'D:\work\drnn_stability\good_experiments\2023-11-10--decolletc',
+        r'E:\work\alif_sg\good_experiments\2023-11-10--decolletc',
     ]
     task_flag = 'datasetname'
     net_flag = 'datasetname'
@@ -358,54 +358,6 @@ for cname in ['net', 'task']:
 
 print(list(df.columns))
 
-if plot_pretrained_weights:
-    n_bins = 50
-    cols = 5
-    wspace, hspace = .1, 1.1
-    pretrained_path = r'D:\work\drnn_stability\good_experiments\pmodels'
-    models_files = [f for f in os.listdir(pretrained_path) if f.endswith('.h5')]
-    plots_path = r'D:\work\drnn_stability\good_experiments\plots'
-    os.makedirs(plots_path, exist_ok=True)
-    for mf in tqdm(models_files):
-        plot_filename = os.path.join(plots_path, mf.replace('.h5', '.png'))
-        if not os.path.exists(plot_filename):
-
-            path_pretrained = os.path.join(pretrained_path, mf)
-            model = load_LSC_model(path_pretrained)
-
-            weights = model.get_weights()
-            weight_names = [weight.name for layer in model.layers for weight in layer.weights]
-            # print(weight_names)
-            fig, axs = plt.subplots(
-                int(len(weights) / cols + 1), cols, gridspec_kw={'wspace': wspace, 'hspace': hspace},
-                figsize=(10, 3)
-            )
-            for i, ax in zip(range(len(weights)), axs.reshape(-1)):
-                w = weights[i]
-                wn = weight_names[i]
-                counts, bins = np.histogram(w.flatten(), bins=n_bins)
-
-                highest = max(counts) / sum(counts) / (bins[1] - bins[0])
-
-                ax.hist(bins[:-1], bins, weights=counts)
-
-                if highest > 100:
-                    ax.set_ylim([0, 20])
-                ax.set_xlabel(clean_weight_name(wn), fontsize=12)
-                ax.locator_params(axis='x', nbins=2)
-
-            for i, ax in enumerate(axs.reshape(-1)):
-                for pos in ['right', 'left', 'bottom', 'top']:
-                    ax.spines[pos].set_visible(False)
-
-                if i >= len(weights):
-                    ax.set_visible(False)  # to remove last plot
-
-            axs[0, 0].set_ylabel('Density', fontsize=12)
-
-            plt.suptitle(f"{mf}", y=1.01, fontsize=16)
-            fig.savefig(plot_filename, bbox_inches='tight')
-            # plt.show()
 
 if plot_losses:
     df['comments'] = df['comments'].str.replace('allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_', '')
@@ -489,7 +441,6 @@ if task_flag in df.columns:
 # df.loc[df['eps'].isnull(), 'eps'] = df.loc[df['eps'].isnull(), f'{metric} len']
 
 if 'v_^acc len' in df.columns:
-    # # FIXME: 14 experiments got nans in the heidelberg task validation, plot them anyway?
     print(list(df.columns))
     print('v_mode_acc nans:', df['v_^acc len'].isna().sum())
     print('t_ppl nans:', df['t_ppl list'].isna().sum())
