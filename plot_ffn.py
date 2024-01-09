@@ -205,43 +205,6 @@ if 'ffnandcnns' in expsid:
         'time_elapsed', 'hostname', 'path',
     ]
 
-elif 'effnet' in expsid:
-    metrics_oi = ['val_acc M', 'test_acc M', 'LSC i', 'LSC f']
-    plot_only = [
-        'act', 'eps', 'dataset', 'batch_normalization',
-        'seed', 'lr', 'comments',
-        'val_acc M', 'val_loss m', 'test_acc M', 'test_loss m',
-        'LSC i', 'LSC f', 'LSC a',
-        'ep M', 'time_elapsed', 'hostname', 'path',
-    ]
-    group_cols = ['lr', 'comments', 'act', 'dataset', 'batch_normalization']
-    stats_oi = ['mean']
-
-elif 'transf' in expsid:
-    plot_only = [
-        'act', 'eps', 'dataset',
-        'seed', 'lr', 'comments', 'batch_size',
-        'val_ppl m',
-        'LSC i', 'LSC f', 'LSC a',
-        'encoder_norm i', 'encoder_norm f',
-        'decoder_norm i', 'decoder_norm f',
-        'time_elapsed', 'hostname', 'path',
-        'dataset',
-    ]
-    metrics_oi = [
-        'val_ppl m',
-        'LSC f',
-        'encoder_norm f', 'decoder_norm f',
-        'encoder_norm i', 'decoder_norm i',
-    ]
-    group_cols = ['lr', 'comments', 'act']
-    df['dataset'] = 'ende'
-    metric = 'val_ppl m'  # 'val_acc M'   'val_loss min'
-    stats_oi = ['mean']
-
-    print('Maximal time elapsed is: {}'.format(df['time_elapsed'].max()))
-    print('Minimal time elapsed is: {}'.format(df['time_elapsed'].min()))
-
 if not df.empty:
     df = df[plot_only]
     if metric in df.columns:
@@ -268,28 +231,6 @@ if not df.empty:
         mdf = mdf.sort_values(by='mean_' + metric)
 
     print(mdf.to_string())
-
-if 'effnet' in expsid:
-    # remove string from column comments in the df
-    # bn = 0
-    # mdf = mdf[~mdf['comments'].eq('deslice_findLSC_truersplit_meanaxis')]
-    # no_LSC_string = 'deslice_' if bn == 1 else 'meanaxis_deslice_'
-    # mdf = mdf[
-    #     mdf['comments'].eq(no_LSC_string)
-    #     | (
-    #             mdf['comments'].str.contains('findLSC')
-    #             & mdf['comments'].str.contains('meanaxis')
-    #     )
-    #     ]
-    # mdf['comments'] = mdf['comments'].str.replace('meanaxis_', '')
-    # mdf = mdf[mdf['batch_normalization'].eq(bn)]
-    # mdf['comments'] = mdf['comments'].str.replace('deslice_', '')
-    # mdf['comments'] = mdf['comments'].str.replace('pretrained_', '')
-    # mdf['comments'] = mdf['comments'].str.replace('truersplit_', '')
-    # mdf['comments'] = mdf['comments'].str.replace('sameemb_', '')
-    #
-    # mdf['comments'] = mdf['comments'].replace(r'^\s*$', 'heinit', regex=True)
-    pass
 
 if lrs_plot:
     from matplotlib.lines import Line2D
@@ -774,6 +715,7 @@ if missing_exps:
             'depth': [30], 'width': [128], 'lr': [1e-2, 3.16e-3, 1e-3, 3.16e-4, 1e-4, 3.16e-5, 1e-5],
             'eps': [50], 'spe': [-1], 'pre_eps': [100], 'seed': list(range(4)),
         }
+
 
         # exps = lambda x: [experiment(x)]
         def exps(x):
