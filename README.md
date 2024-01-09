@@ -1,7 +1,6 @@
 # Stabilizing RNN Gradients through Pre-training
 
-This is the official repository of the [Stabilizing RNN Gradients through Pre-training](https://arxiv.org/abs/2308.12075) 
-article, submitted to IEEE.
+This is the official repository of the article [Stabilizing RNN Gradients through Pre-training](https://arxiv.org/abs/2308.12075), submitted to IEEE.
 
 
 ![Drag Racing](src/stabledrnn/tools/lscs.png)
