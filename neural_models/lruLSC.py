@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 from stable_drnn.neural_models.normify import get_norms
 from innocent_explorations.lsc_unused.admin_model_removal import get_pretrained_file
-from lru_unofficial.src.linear_recurrent_unit import ResLRUCell, ResLRUFFN
+from lruun.tf.linear_recurrent_unit import ResLRUCell, ResLRUFFN
 from pyaromatics.stay_organized.utils import str2val
 
 FILENAME = os.path.realpath(__file__)
