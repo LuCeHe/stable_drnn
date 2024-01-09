@@ -1,5 +1,5 @@
 git+https://github.com/LuCeHe/py-aromatics
-git+https://github.com/LuCeHe/stable-spike
+git+https://github.com/LuCeHe/stable_spike
 lruun
 h5py==3.1.0
 matplotlib==3.6.0

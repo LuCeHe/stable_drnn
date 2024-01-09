@@ -4,8 +4,11 @@ This is the official repository of the [Stabilizing RNN Gradients through Pre-tr
 article, submitted to IEEE.
 
 
-![Drag Racing](tools/lscs.png)
+![Drag Racing](src/stabledrnn/tools/lscs.png)
 
+The scripts and folders mentioned in the following can be found inside ```stable_drnn/src/stabledrnn```.
+Run the codes after doing ```pip install -r requirements.txt```. You can install
+it as a package with ```pip install git+https://github.com/LuCeHe/stable_drnn```.
 The FFN experiments are done with the ```training_ffns.py``` script while the RNN experiments
 are done with the ```training_rnns.py``` script. Run ```plot_gradient_grid.py``` to generate
 Figure 1 a), ```plot_binomial.py``` to generate Figure 1 b) and ```plot_pascalrnn.py``` 
@@ -15,9 +18,9 @@ For Figure 2, run as one line
 
 
 ```
-python stable_drnn/training_ffns.py
+python training_ffns.py
      --depth=30 --width=128 --epochs=50 --steps_per_epoch=-1 --pretrain_epochs=100
-     --activation=##act##'
+     --activation=##act##
      --dataset=##data##
      --lr=##lr##
      --seed=##seed##
@@ -25,16 +28,16 @@ python stable_drnn/training_ffns.py
 ```
 
  
-with ```##act##``` in ```['sin', 'relu', 'cos']```,  ```##data##``` in ```['mnist', 'cifar10', 'cifar100']```, 
+with ```##act##``` in ```[sin, relu, cos]```,  ```##data##``` in ```[mnist, cifar10, cifar100]```, 
  ```##lr##``` in ```[1e-2, 3.16e-3, 1e-3, 3.16e-4, 1e-4, 3.16e-5, 1e-5]```, ```##seed##``` in ```list(range(4))```,
-and ```##comments##``` in ```['findLSC_radius_adabelief_pretrained_onlypretrain']```, and when pretraining has finished successfully,
+and ```##comments##``` in ```[findLSC_radius_adabelief_pretrained_onlypretrain]```, and when pretraining has finished successfully,
 run the same hyperparams but this time with 
-```##comments##``` in ```['findLSC_radius_adabelief_onlyloadpretrained', '_adabelief_onlyloadpretrained', 'heinit_adabelief_onlyloadpretrained']```.
+```##comments##``` in ```[findLSC_radius_adabelief_onlyloadpretrained, _adabelief_onlyloadpretrained, heinit_adabelief_onlyloadpretrained]```.
 
 For Figure 3, run 
 
 ```
-python stable_drnn/training_rnns.py with
+python training_rnns.py with
      stack=##depth## n_neurons=None batch_size=None steps_per_epoch=None lr=None
      task=##data## net=##net##
      seed=##seed##

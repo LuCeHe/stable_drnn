@@ -1,9 +1,6 @@
-import os, json
-
-# from innocent_explorations.lsc_unused.admin_model_removal import remove_pretrained_extra
+import os
 
 from pyaromatics.stay_organized.submit_jobs import dict2iter
-from tqdm import tqdm
 import pandas as pd
 import matplotlib as mpl
 
@@ -12,8 +9,7 @@ from matplotlib.lines import Line2D
 from pyaromatics.stay_organized.mpl_tools import load_plot_settings
 from pyaromatics.stay_organized.pandardize import experiments_to_pandas, complete_missing_exps
 from pyaromatics.stay_organized.standardize_strings import shorten_losses
-from pyaromatics.stay_organized.utils import str2val
-# from stable_drnn.neural_models.recLSC import load_LSC_model
+
 from stable_drnn.tools.plot_tools import *
 
 mpl, pd = load_plot_settings(mpl=mpl, pd=pd)
@@ -28,18 +24,13 @@ FMT = '%Y-%m-%dT%H:%M:%S'
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
 EXPERIMENTS = os.path.join(CDIR, 'experiments')
-EXPERIMENTS = r'E:\work\alig_sg\experiments'
+EXPERIMENTS = r'E:\work\alif_sg\experiments'
 GEXPERIMENTS = [
-    # os.path.join(CDIR, 'good_experiments'),
-    # os.path.join(CDIR, 'good_experiments', '2022-11-07--complete_set_of_exps'),
-    # r'D:\work\alif_sg\experiments',
-    # r'D:\work\alif_sg\good_experiments\2022-12-21--rnn',
+    r'E:\work\alif_sg\good_experiments\2023-09-01--rnn-lru-first',
     r'E:\work\alif_sg\good_experiments\2023-01-20--rnn-v2',
     r'E:\work\alif_sg\good_experiments\2023-01-20--rnn-v2 - good',
-    # r'D:\work\alif_sg\good_experiments\2023-09-01--rnn-lru-first',
-    # r'D:\work\alif_sg\good_experiments\2023-10-10--s5lru',
-    # r'D:\work\alif_sg\good_experiments\2023-11-01--ptblif',
-    # r'E:\work\alif_sg\good_experiments\2023-11-10--decolletc',
+    r'E:\work\alif_sg\good_experiments\2023-11-01--ptblif',
+    r'E:\work\alif_sg\good_experiments\2023-10-10--s5lru',
 ]
 
 expsid = 'als'  # effnet als ffnandcnns s5lru mnl fluctuations decolle
