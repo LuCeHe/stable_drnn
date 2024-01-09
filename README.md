@@ -15,7 +15,7 @@ For Figure 2, run as one line
 
 
 ```
-python drnn_stability/training_ffns.py
+python stable_drnn/training_ffns.py
      --depth=30 --width=128 --epochs=50 --steps_per_epoch=-1 --pretrain_epochs=100
      --activation=##act##'
      --dataset=##data##
@@ -34,7 +34,7 @@ run the same hyperparams but this time with
 For Figure 3, run 
 
 ```
-python drnn_stability/training_rnns.py with
+python stable_drnn/training_rnns.py with
      stack=##depth## n_neurons=None batch_size=None steps_per_epoch=None lr=None
      task=##data## net=##net##
      seed=##seed##

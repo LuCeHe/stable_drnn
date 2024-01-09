@@ -1,5 +1,5 @@
 from pyaromatics.stay_organized.submit_jobs import dict2iter
-from drnn_stability.tools.plot_tools import lsc_colors, lsc_clean_comments, clean_title
+from stable_drnn.tools.plot_tools import lsc_colors, lsc_clean_comments, clean_title
 
 import os
 import numpy as np
@@ -12,7 +12,7 @@ from pyaromatics.stay_organized.standardize_strings import shorten_losses
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
 EXPERIMENTS = os.path.join(CDIR, 'experiments')
-EXPERIMENTS = r'D:\work\drnn_stability\experiments'
+EXPERIMENTS = r'D:\work\stable_drnn\experiments'
 
 plot_norms_evol = False
 plot_norms_evol_1 = False
@@ -28,9 +28,9 @@ truely_remove = False
 expsid = 'ffnandcnns'  # effnet als ffnandcnns transf
 
 if expsid == 'ffnandcnns':
-    GEXPERIMENTS = [r'D:\work\drnn_stability\good_experiments\2023-06-16--ffn']
+    GEXPERIMENTS = [r'D:\work\stable_drnn\good_experiments\2023-06-16--ffn']
 elif expsid == 'effnet':
-    GEXPERIMENTS = [r'D:\work\drnn_stability\good_experiments\2023-01-01--effnet']
+    GEXPERIMENTS = [r'D:\work\stable_drnn\good_experiments\2023-01-01--effnet']
 
 metric = 'test_acc M'  # 'val_acc M'   'val_loss m' test_acc
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')

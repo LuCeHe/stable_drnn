@@ -17,8 +17,8 @@ mpl = load_plot_settings(mpl=mpl)
 
 import matplotlib.pyplot as plt
 
-from lif_stability.config.config import default_config
-from drnn_stability.neural_models.recLSC import apply_LSC
+from stablespike.config.config import default_config
+from stable_drnn.neural_models.recLSC import apply_LSC
 
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)

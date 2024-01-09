@@ -1,8 +1,8 @@
 import tensorflow as tf
 
-from drnn_stability.neural_models.recLSC import load_LSC_model
-from lif_stability.config.config import default_config
-from lif_stability.neural_models.full_model import build_model
+from stable_drnn.neural_models.recLSC import load_LSC_model
+from stablespike.config.config import default_config
+from stablespike.neural_models.full_model import build_model
 
 
 class PascalRNN(tf.keras.layers.Layer):
@@ -67,8 +67,8 @@ if __name__ == '__main__':
             stack, batch_size, embedding, n_neurons, lr = default_config(
                 None, None, None, None, None, 'heidelberg', net_name, setting='LSC'
             )
-            path_1 = rf'D:\work\drnn_stability\good_experiments\pmodels\pretrained_s0_{net_name}_radius_heidelberg_stack7.h5'
-            path_05 = rf'D:\work\drnn_stability\good_experiments\pmodels\pretrained_s0_{net_name}_radius_heidelberg_stack7_tn0p5.h5'
+            path_1 = rf'D:\work\stable_drnn\good_experiments\pmodels\pretrained_s0_{net_name}_radius_heidelberg_stack7.h5'
+            path_05 = rf'D:\work\stable_drnn\good_experiments\pmodels\pretrained_s0_{net_name}_radius_heidelberg_stack7_tn0p5.h5'
             # model = load_LSC_model(path_1)
 
             train_task_args = dict(timerepeat=2, epochs=1, batch_size=batch_size, steps_per_epoch=2,

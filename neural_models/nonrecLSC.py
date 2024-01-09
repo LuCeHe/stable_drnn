@@ -10,7 +10,7 @@ from innocent_explorations.lsc_unused.admin_model_removal import get_lsctype
 from pyaromatics.keras_tools.convenience_operations import sample_axis, desample_axis
 from pyaromatics.keras_tools.expose_latent import split_model, truer_split_model
 from pyaromatics.stay_organized.utils import str2val
-from drnn_stability.neural_models.recLSC import get_norms
+from stable_drnn.neural_models.recLSC import get_norms
 
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)

@@ -23,17 +23,17 @@ from pyaromatics.stay_organized.utils import setReproducible, str2val, NumpyEnco
 from pyaromatics.keras_tools.esoteric_callbacks.several_validations import MultipleValidationSets
 from pyaromatics.keras_tools.esoteric_tasks.time_task_redirection import Task
 
-from lif_stability.neural_models.full_model import build_model
-from lif_stability.config.config import default_config
+from stablespike.neural_models.full_model import build_model
+from stablespike.config.config import default_config
 
-from drnn_stability.neural_models.recLSC import apply_LSC
-from drnn_stability.neural_models.lruLSC import lruLSC, lruLSCffn
+from stable_drnn.neural_models.recLSC import apply_LSC
+from stable_drnn.neural_models.lruLSC import lruLSC, lruLSCffn
 
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
 
 ex = CustomExperiment('-als', base_dir=CDIR, seed=11)
-logger = logging.getLogger('drnn_stability')
+logger = logging.getLogger('stable_drnn')
 
 
 @ex.config

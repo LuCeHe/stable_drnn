@@ -13,8 +13,8 @@ from pyaromatics.stay_organized.mpl_tools import load_plot_settings
 from pyaromatics.stay_organized.pandardize import experiments_to_pandas, complete_missing_exps
 from pyaromatics.stay_organized.standardize_strings import shorten_losses
 from pyaromatics.stay_organized.utils import str2val
-# from drnn_stability.neural_models.recLSC import load_LSC_model
-from drnn_stability.tools.plot_tools import *
+# from stable_drnn.neural_models.recLSC import load_LSC_model
+from stable_drnn.tools.plot_tools import *
 
 mpl, pd = load_plot_settings(mpl=mpl, pd=pd)
 
