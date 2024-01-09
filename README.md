@@ -2,7 +2,6 @@
 
 This is the official repository of the article [Stabilizing RNN Gradients through Pre-training](https://arxiv.org/abs/2308.12075), submitted to IEEE.
 
-
 ![Drag Racing](src/stabledrnn/tools/lscs.png)
 
 The scripts and folders mentioned in the following can be found inside ```stable_drnn/src/stabledrnn```.
@@ -53,6 +52,29 @@ and once the pretrained weights are ready, run with
  allns_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_onlyloadpretrained,
 allns_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_onlyloadpretrained]```.
 
-Figure 4
+For Figure 4, run
+
+
+```
+python training_rnns.py with
+     stack=##depth## n_neurons=None batch_size=None steps_per_epoch=None lr=None
+     task=wordptb net=reslruffn
+     seed=##seed##
+     comments=##comments##
+```
+
+
+with ```##depth##``` in ```[3, 6]```,
+seed as before and  
+```##comments##``` in ```[
+allns_dropout:.0_pretrained, 
+allns_dropout:.0_pretrained_findLSC_radius,
+allns_dropout:.0_pretrained_findLSC_radius_targetnorm:.5,
+allns_dropout:.0_pretrained_findLSC_radius_targetnorm:.5_unbalanced,
+allns_dropout:.0_pretrained_clipping, 
+allns_dropout:.0_pretrained_findLSC_radius_clipping,
+allns_dropout:.0_pretrained_findLSC_radius_targetnorm:.5_clipping,
+allns_dropout:.0_pretrained_findLSC_radius_targetnorm:.5_unbalanced_clipping,
+]```.
 
 Table 1
