@@ -57,24 +57,37 @@ For Figure 4, run
 
 ```
 python training_rnns.py with
-     stack=##depth## n_neurons=None batch_size=None steps_per_epoch=None lr=None
+     stack=##depth## n_neurons=128 batch_size=32 steps_per_epoch=None lr=1e-2
      task=wordptb net=reslruffn
      seed=##seed##
      comments=##comments##
 ```
 
+with ```##depth##``` in ```[3, 6]```,
+seed as before and  ```##comments##``` in ```[
+##y##_##x##, 
+##y##_findLSC_radius_##x##,
+##y##_findLSC_radius_targetnorm:.5_##x##,
+##y##_findLSC_radius_targetnorm:.5_unbalanced_##x##]``` with 
+```##x##``` in ```[_, clipping]``` and ```##y##``` as ```allns_dropout:.0_pretrained```.
+
+For Table 1, run 
+
+
+```
+python training_rnns.py with
+     stack=##depth## n_neurons=256 batch_size=64 steps_per_epoch=None lr=3e-2
+     task=wordptb net=reslruffn
+     seed=##seed##
+     comments=##comments##
+```
 
 with ```##depth##``` in ```[3, 6]```,
-seed as before and  
-```##comments##``` in ```[
-allns_dropout:.0_pretrained, 
-allns_dropout:.0_pretrained_findLSC_radius,
-allns_dropout:.0_pretrained_findLSC_radius_targetnorm:.5,
-allns_dropout:.0_pretrained_findLSC_radius_targetnorm:.5_unbalanced,
-allns_dropout:.0_pretrained_clipping, 
-allns_dropout:.0_pretrained_findLSC_radius_clipping,
-allns_dropout:.0_pretrained_findLSC_radius_targetnorm:.5_clipping,
-allns_dropout:.0_pretrained_findLSC_radius_targetnorm:.5_unbalanced_clipping,
-]```.
-
-Table 1
+seed as before ```##comments##``` in ```[
+##y##_##x##, 
+##y##_findLSC_radius_##x##, 
+##y##_findLSC_radius_targetnorm:.5_##x##, 
+##y##_findLSC_radius_targetnorm:.5_unbalanced_##x##]``` with 
+```##x##``` in ```[_, clipping]```, 
+```##y##``` as ```allns_dropout:##do##_embproj_pretrained_maxlen:300_mlminputs_mlmeps:3```
+and ```##do##``` as 0.2 with depth 3 and 0.1 with a depth of 6.
