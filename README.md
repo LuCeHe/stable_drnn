@@ -42,7 +42,14 @@ python stable_drnn/training_rnns.py with
 ```
 
 with ```##depth##``` in ```[2, 5]```, ```##task##``` in ```[wordptb, heidelberg, sl_mnist]```, 
-```##net##``` in ```[LSTM, GRU, rsimplernn, ssimplernn, maLSNN, maLSNNb]```, seed as before
+```##net##``` in ```[LSTM, GRU, rsimplernn, ssimplernn, maLSNN, maLSNNb]```, 
+seed as before and for pretraining run with 
+```##comments##``` in ```[allns_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_targetnorm:.5_onlypretrain,
+ allns_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_onlypretrain]```,
+and once the pretrained weights are ready, run with 
+```##comments##``` in ```[allns_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_targetnorm:.5_onlyloadpretrained,
+ allns_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_onlyloadpretrained,
+allns_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_onlyloadpretrained]```.
 
 Figure 4
 
