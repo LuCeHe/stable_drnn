@@ -28,20 +28,21 @@ FMT = '%Y-%m-%dT%H:%M:%S'
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
 EXPERIMENTS = os.path.join(CDIR, 'experiments')
-EXPERIMENTS = r'E:\work\drnn_stability\experiments'
+EXPERIMENTS = r'E:\work\alig_sg\experiments'
 GEXPERIMENTS = [
     # os.path.join(CDIR, 'good_experiments'),
     # os.path.join(CDIR, 'good_experiments', '2022-11-07--complete_set_of_exps'),
-    # r'D:\work\drnn_stability\experiments',
-    # r'D:\work\drnn_stability\good_experiments\2022-12-21--rnn',
-    # r'D:\work\drnn_stability\good_experiments\2023-01-20--rnn-v2',
-    # r'D:\work\drnn_stability\good_experiments\2023-09-01--rnn-lru-first',
-    # r'D:\work\drnn_stability\good_experiments\2023-10-10--s5lru',
-    # r'D:\work\drnn_stability\good_experiments\2023-11-01--ptblif',
-    r'E:\work\drnn_stability\good_experiments\2023-11-10--decolletc',
+    # r'D:\work\alif_sg\experiments',
+    # r'D:\work\alif_sg\good_experiments\2022-12-21--rnn',
+    r'E:\work\alif_sg\good_experiments\2023-01-20--rnn-v2',
+    r'E:\work\alif_sg\good_experiments\2023-01-20--rnn-v2 - good',
+    # r'D:\work\alif_sg\good_experiments\2023-09-01--rnn-lru-first',
+    # r'D:\work\alif_sg\good_experiments\2023-10-10--s5lru',
+    # r'D:\work\alif_sg\good_experiments\2023-11-01--ptblif',
+    # r'E:\work\alif_sg\good_experiments\2023-11-10--decolletc',
 ]
 
-expsid = 'fluctuations'  # effnet als ffnandcnns s5lru mnl fluctuations decolle
+expsid = 'als'  # effnet als ffnandcnns s5lru mnl fluctuations decolle
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 lsc_epsilon = 0.02  # 0.02
@@ -134,12 +135,13 @@ df_preprocess = lambda x: x
 
 if expsid == 'als':
     def df_preprocess(df):
+        df = df[~ df['stack'].eq('4:3')]
         df['stack'] = df['stack'].fillna(-1).astype(int)
         df['stack'] = df['stack'].replace(-1, 'None')
         df['stack'] = df['stack'].astype(str)
         df['comments'] = df['comments'].str.replace('simplereadout', 'embproj')
         df['batch_size'] = df['batch_size'].astype(str)
-        df['ni'] = df['ni'].astype(float)
+        # df['ni'] = df['ni'].astype(float)
         # df['comments'] = df['comments'].str.replace('_pretrained', '')
         df['comments'] = df['comments'].astype(str)
         df.replace(['nan'], np.nan, inplace=True)
@@ -1258,33 +1260,6 @@ if plot_bars:
 
     plt.show()
 
-if plot_norms_pretraining:
-    moi = 'norms'  # losses norms
-    ref = 0 if metric == 'losses' else 1
-    fig, axs = plt.subplots(len(nets), len(tasks), figsize=(6, 2), gridspec_kw={'wspace': .05})
-
-    if len(nets) == 1:
-        axs = axs[None]
-
-    cmap = plt.cm.get_cmap('Paired')
-    norms = [0.1, 1, 2, 3, -1]
-    colors = cmap(np.arange(len(norms)) / len(norms))
-    for i, n in enumerate(nets):
-        for j, t in enumerate(tasks):
-            idf = df[(df['net'].eq(n)) & (df['task'].eq(t))]
-
-            for index, row in idf.iterrows():
-                if 'LSC_' + moi in row.keys():
-                    if isinstance(row['LSC_' + moi], str):
-                        normpow = str2val(row['comments'], 'normpow', float, default=1)
-
-                        metric = [float(s) for s in row['LSC_' + moi][1:-1].split(', ')]
-                        axs[i, j].plot(metric, color=colors[norms.index(normpow)], label=normpow)
-
-            axs[i, j].set_title(f'{n}: {t}')
-
-    axs[i, j].legend()
-    plt.show()
 
 if remove_incomplete:
     import shutil
@@ -1523,28 +1498,6 @@ if remove_incomplete:
     # allrdfs = allrdfs[allrdfs['comments'].str.contains('onlypretrain')]
     # print(f'Remove instead {allrdfs.shape} of {plotdf.shape}')
 
-    if truely_remove_pretrained:
-
-        # sdf = pd.read_hdf(h5path, 'df')
-        sdf = remove_models.copy()
-        print(sdf.head().to_string())
-        sdf.loc[sdf['task'].str.contains('SHD'), 'task'] = 'heidelberg'
-        sdf.loc[sdf['task'].str.contains('sl-MNIST'), 'task'] = 'sl_mnist'
-        sdf.loc[sdf['task'].str.contains('PTB'), 'task'] = 'wordptb'
-
-        sdf.loc[sdf['net'].eq('ALIFb'), 'net'] = 'maLSNNb'
-        sdf.loc[sdf['net'].eq('ALIF'), 'net'] = 'maLSNN'
-
-        coi = ['seed', 'task', 'net', 'comments', 'stack']
-        experiments = []
-
-        for _, row in sdf.iterrows():
-            experiments.append({c: [row[c]] for c in coi})
-        print(experiments)
-        print(f'Experiments to remove: {len(experiments)}')
-        folder = r'D:\work\drnn_stability\good_experiments\pmodels'
-        print(experiments)
-        remove_pretrained_extra(experiments, remove_opposite=False, folder=folder, truely_remove=False)
 
     if truely_remove:
         for rdf in [allrdfs]:
@@ -1678,211 +1631,7 @@ if missing_exps and expsid == 'als' and 'rnn-lru-' in GEXPERIMENTS[0]:
     print(f'experiments =', experiments)
     print(f'# {len(experiments)}/{len(ds)}')
 
-if missing_exps and expsid == 'fluctuations':
-    print('Missing experiments')
-    # columns of interest
-    coi = [
-        'seed', 'comments', 'epochs', 'dataset'
-    ]
-
-    sdf = df.copy()
-    sdf['epochs'] = -1
-    print(sdf.head().to_string())
-
-    sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
-    print(f'Experiments already done: {sdf.shape[0]}, len cols = {len(sdf.columns)}')
-
-    seed = 0
-    n_seeds = 5
-    seeds = [l + seed for l in range(n_seeds)]
-
-    base_comments = ['deep', '']
-    conds = ['', 'condI', 'condIV', 'condI_IV', 'condI_continuous', 'condIV_continuous', 'condI_IV_continuous']
-    conds = [
-        '', 'condIV', 'normcurv', 'condIV_continuous_normcurv', 'condIV_normcurv',
-        'condIV_continuous_normcurv_oningrad', 'condIV_normcurv_oningrad',
-        'condI_IV', 'condI_IV_continuous', 'condI_IV_continuous_oningrad',
-        'condIV_forwback', 'condIV_normcurv_forwback',
-        'condI_forwback', 'condI_normcurv_forwback',
-        'condI_IV_forwback', 'condI_IV_normcurv_forwback',
-    ]
-
-    base_comments = ['smorms3_deep', 'smorms3', 'adabelief_deep', 'adabelief', ]
-    base_comments = ['smorms3_deep', 'smorms3']
-
-    experiments = []
-
-    conds = ['']
-    comments = [b if c == '' else c if b == '' else f'{b}_{c}' for b in base_comments for c in conds]
-    comments_1 = [c + f'_lr:{lr}' for c in comments for lr in [5e-2, 5e-3, 5e-4]]
-
-    comments_ = comments_1
-
-    experiment = {
-        'seed': seeds, 'epochs': [-1],
-        'comments': comments_,
-        'dataset': ['dvs', 'shd', 'cifar10']
-    }
-    experiments.append(experiment)
-
-    conds = [
-        '',
-
-        'muchange',
-        'muchange_nu:1_eps:1',
-        # 'muchange:0.5',
-
-        'noreg',
-        'muchange_noreg',
-        'muchange_nu:1_eps:1_noreg',
-        # 'muchange:0.5_noreg',
-    ]
-    comments = [b if c == '' else c if b == '' else f'{b}_{c}' for b in base_comments for c in conds]
-    for dataset in ['dvs', 'shd', 'cifar10']:
-
-        if dataset == 'dvs' or dataset == 'cifar10':
-            lrs = [5e-4]
-        else:
-            lrs = [5e-2]
-        comments_ = [c + f'_lr:{lr}' for c in comments for lr in lrs]
-
-        experiment = {
-            'seed': seeds, 'epochs': [-1],
-            'comments': comments_,
-            'dataset': [dataset]
-        }
-        experiments.append(experiment)
-
-    ds = dict2iter(experiments)
-    _, experiments_left = complete_missing_exps(sdf, ds, coi)
-    np.random.shuffle(experiments_left)
-    experiments = experiments_left
-
-    print(f'experiments =', experiments)
-    print(f'# {len(experiments)}/{len(ds)}')
-
-    exps_shd, exps_dvs, exps_cif = [], [], []
-    for ex in experiments:
-        if ex['dataset'][0] == 'shd':
-            exps_shd.append(ex)
-        elif ex['dataset'][0] == 'dvs':
-            exps_dvs.append(ex)
-        else:
-            exps_cif.append(ex)
-
-    print(f'experiments_shd =', exps_shd)
-    print(f'# {len(exps_shd)}/{len(ds)}')
-    print(f'experiments_dvs =', exps_dvs)
-    print(f'# {len(exps_dvs)}/{len(ds)}')
-    print(f'experiments_cif =', exps_cif)
-    print(f'# {len(exps_cif)}/{len(ds)}')
-
-if missing_exps and expsid == 'decolle':
-    print('Missing experiments')
-    # columns of interest
-    coi = [
-        'seed', 'comments', 'datasetname'
-    ]
-
-    sdf = df.copy()
-    # sdf['epochs'] = -1
-    # print(sdf.head().to_string())
-
-    sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
-    print(f'Experiments already done: {sdf.shape[0]}, len cols = {len(sdf.columns)}')
-
-    seed = 0
-    n_seeds = 4
-    seeds = [l + seed for l in range(n_seeds)]
-    experiments = []
-    base_comments = ['', 'condI', 'condIV', 'condI_IV']
-    base_comments = ['']
-    sgcurves = ['sgcurve:dfastsigmoid', 'sgcurve:triangular', 'sgcurve:rectangular', ]
-    conds = [
-        '', 'normcurv', 'condIV_continuous_normcurv', 'condIV_normcurv', 'condIV_continuous_normcurv_oningrad',
-        'condIV_normcurv_oningrad', 'condI_IV', 'condI_IV_continuous', 'condI_IV_continuous_oningrad',
-        'condIV_forwback', 'condIV_normcurv_forwback',
-        'condI_forwback', 'condI_normcurv_forwback',
-        'condI_IV_forwback', 'condI_IV_normcurv_forwback',
-    ]
-
-    comments = [b if c == '' else c if b == '' else f'{b}_{c}' for b in base_comments for c in conds]
-    experiment = {
-        'seed': seeds, 'datasetname': ['dvs', 'nmnist'],
-        'comments': comments,
-    }
-    experiments.append(experiment)
-
-    experiments = []
-
-    base_comments = [
-        '',
-        'condIV_continuous', 'condIV',
-        'condIV_continuous_sgoutn', 'condIV_sgoutn',
-        'condIV_continuous_normcurv_oningrad',
-        'condIV_continuous_normcurv',
-        # 'condI_continuous_sgoutn', 'condI_sgoutn',
-        # 'condI_IV_continuous_sgoutn', 'condI_IV_sgoutn',
-    ]
-    sgcurves = ['sgcurve:dfastsigmoid_v2']
-    comments = [b if c == '' else c if b == '' else f'{b}_{c}' for b in base_comments for c in sgcurves]
-    experiment = {
-        'seed': seeds, 'datasetname': ['dvs'],
-        'comments': comments,
-    }
-    experiments.append(experiment)
-
-    prev_comments = [
-        'v3',
-        'allxe_v3',
-        'frcontrol_frfrom:.5_v3',
-        'frcontrol_frfrom:0.158_v3',
-        'frcontrol_frfrom:.5_lmbd:100_v3',
-        'frcontrol_frfrom:0.158_lmbd:100_v3',
-        'frcontrol_frfrom:.5_lmbd:100_switchep:1_v3',
-        'frcontrol_frfrom:0.158_lmbd:100_switchep:1_v3',
-        'frcontrol_frfrom:.5_frto:0.158_v3',
-        'frcontrol_frfrom:0.158_frto:0.158_v3',
-        'frcontrol_frfrom:.5_lmbd:1_switchep:2_onlyreg_v3',
-        'frcontrol_frfrom:0.158_lmbd:1_switchep:2_onlyreg_v3',
-    ]
-
-    comments = [
-        'v3',
-    ]
-    comments = [c.replace('v3', '') + f'lr:{lr}_v3' for c in comments for lr in [1e-0, 3.16e-1, 1e-1, 3.16e-2]]
-
-    comments = comments + prev_comments
-
-    experiments = []
-    experiment = {
-        'seed': seeds, 'datasetname': ['dvs'],
-        'comments': comments,
-    }
-    experiments.append(experiment)
-
-    ds = dict2iter(experiments)
-    print(ds)
-    _, experiments_left = complete_missing_exps(sdf, ds, coi)
-    np.random.shuffle(experiments_left)
-    experiments = experiments_left
-
-    print(f'experiments =', experiments)
-    print(f'# {len(experiments)}/{len(ds)}')
-
-    exps_nmnist, exps_dvs = [], []
-    for ex in experiments:
-        if ex['datasetname'][0] == 'dvs':
-            exps_dvs.append(ex)
-        else:
-            exps_nmnist.append(ex)
-
-    print(f'experiments_dvs =', exps_dvs)
-    print(f'# {len(exps_dvs)}/{len(ds)}')
-    print(f'experiments_nmnist =', exps_nmnist)
-    print(f'# {len(exps_nmnist)}/{len(ds)}')
-
-if missing_exps and not expsid == 's5lru' and False:
+if missing_exps:
     # columns of interest
     coi = ['seed', 'task', 'net', 'comments', 'stack']
 
@@ -2019,241 +1768,3 @@ if missing_exps and not expsid == 's5lru' and False:
             # if e['net'] == ['maLSNN']:
             # print(e)
 
-if missing_exps and expsid == 's5lru':
-    # columns of interest
-    coi = ['jax_seed', 'dataset', 'model_name', 'comments', 'ptcomments', 'epochs', 'steps_per_epoch', 'bsz']
-    coi = ['jax_seed', 'dataset', 'model_name', 'comments', 'ptcomments', 'epochs', 'steps_per_epoch']
-
-    sdf = df.copy()
-    for nice, brute in task_name_pairs:
-        sdf.loc[df[task_flag].eq(nice), task_flag] = brute
-
-    sdf.rename(columns={
-        'eps': 'epochs', 'spe': 'steps_per_epoch'
-    }, inplace=True)
-
-    # show NA and inf in jax_seed
-    print(f'Experiments already done: {sdf.shape[0]}, len cols = {len(sdf.columns)}')
-    sdf.drop([c for c in sdf.columns if c not in coi], axis=1, inplace=True)
-    # remove nanas in model_name
-    sdf = sdf[~sdf['model_name'].isna()]
-    print(sdf.sample(20).to_string())
-
-    print(sdf.head().to_string())
-    sdf = sdf.astype({
-        'model_name': 'string', 'dataset': 'string', 'comments': 'string',
-    })
-
-    sdf = sdf.astype({
-        'jax_seed': 'int32', 'epochs': 'int32', 'steps_per_epoch': 'int32',
-    })
-
-    seed = 0
-    n_seeds = 4
-    seeds = [l + seed for l in range(n_seeds)]
-
-    experiments = []
-    datasets = [
-        'cifar-classification',
-        # 'lra-cifar-classification',
-        # 'imdb-classification',
-        'listops-classification',
-        'aan-classification',
-        # 'pathfinder-classification',
-        # 'pathx-classification'
-    ]
-
-    types = ['a', 'a0', 'b', 'b0']
-
-    for ty in types:
-        for dataset in datasets:
-            if 'pathx' in dataset:
-                bsz = 8
-            elif 'pathfinder' in dataset or 'aan' in dataset:
-                bsz = 16
-            else:
-                bsz = 32
-
-            models = []
-            comments = []
-            ptcomments = ['nonan_updatesome_changeopt']
-            if ty == 'a':
-                models = ['lru']
-                comments = [
-                    'defaultlru_lruv3_noprenorm_pretrain_targetnorm:0.5',
-                    'defaultlru_lruv3_noprenorm_pretrain_targetnorm:1',
-                    'defaultlru_lruv3_noprenorm_pretrain_unbalanced',
-                    # 'defaultlru_lruv3_nonorm_pretrain_targetnorm:0.5',
-                    # 'defaultlru_lruv3_nonorm_pretrain_targetnorm:1',
-                    # 'defaultlru_lruv3_nonorm_pretrain_unbalanced',
-                ]
-                ptcomments = [
-                    'nonan_updatesome_changeopt',
-                    'nonan_updatesome_changeopt_varrho',
-                    'nonan_changeopt',
-                    'nonan_changeopt_varrho',
-                ]
-            elif ty == 'a0':
-                models = ['lru']
-                comments = [
-                    'defaultlru_lruv3_noprenorm',
-                    'defaultlru_lruv3_nonorm',
-                ]
-                ptcomments = [
-                    'nonan_updatesome_changeopt',
-                ]
-
-            elif ty == 'b':
-                models = ['s5']
-                comments = [
-                    'default_noprenorm_pretrain_targetnorm:0.5',
-                    'default_noprenorm_pretrain_targetnorm:1',
-                    'default_noprenorm_pretrain_unbalanced',
-                    # 'default_nonorm_pretrain_targetnorm:0.5',
-                    # 'default_nonorm_pretrain_targetnorm:1',
-                    # 'default_nonorm_pretrain_unbalanced',
-                ]
-                ptcomments = [
-                    'nonan_updatesome_changeopt',
-                    'nonan_updatesome_changeopt_varrho',
-                    'nonan_changeopt',
-                    'nonan_changeopt_varrho',
-                ]
-            elif ty == 'b0':
-                models = ['s5']
-                comments = [
-                    'default_noprenorm',
-                    'default_nonorm',
-                ]
-                ptcomments = [
-                    'nonan_updatesome_changeopt',
-                ]
-
-            elif ty == 'c':
-                models = ['convlru']
-                comments = ['defaultlru_lruv3']
-
-            elif ty == 'd':
-                models = ['lru2']
-                comments = [
-                    'defaultlru_lruv3',
-                    'defaultlru_lruv3_nodlreal',
-                    'defaultlru_lruv3_dontdiscimx'
-                ]
-
-            experiment = {
-                'jax_seed': seeds,
-                'epochs': [300], 'steps_per_epoch': [-1], 'dataset': [dataset], 'bsz': [bsz],
-                'model_name': models,
-                'comments': comments, 'ptcomments': ptcomments,
-            }
-            experiments.append(experiment)
-
-    ds = dict2iter(experiments)
-    _, experiments_left = complete_missing_exps(sdf, ds, coi)
-    np.random.shuffle(experiments_left)
-    experiments = experiments_left
-
-    np.random.shuffle(experiments)
-    print(f'experiments =', experiments)
-    print(f'# {len(experiments)}/{len(ds)}')
-
-if check_all_norms:
-    dirs = [d for d in os.listdir(EXPERIMENTS) if 'als' in d][:1000]
-    print(dirs)
-
-
-    def task_marker(task):
-        if task == 'heidelberg':
-            return 'o'
-        elif task == 'sl_mnist':
-            return 's'
-        elif task == 'wordptb':
-            return 'd'
-        else:
-            return 'x'
-
-
-    def net_marker(net):
-        if net == 'maLSNN':
-            return 'o'
-        if net == 'maLSNNb':
-            return 'x'
-        elif net == 'LSTM':
-            return '_'
-        elif net == 'GRU':
-            return '3'
-        elif net == 'rsimplernn':
-            return 'd'
-        elif net == 'ssimplernn':
-            return 's'
-        else:
-            return '.'
-
-
-    # make subplots
-    fig, axs = plt.subplots(2, 2, figsize=(10, 5))
-    exceptions = []
-    tasks = ['heidelberg', 'sl_mnist', 'wordptb']
-    nets = ['maLSNN', 'maLSNNb', 'LSTM', 'GRU', 'rsimplernn', 'ssimplernn']
-
-    # dirs = dirs[:10]
-    for i, d in tqdm(enumerate(dirs), total=len(dirs)):
-        # if i > 230 and i < 235:
-        try:
-            # print('-' * 30)
-            config_path = os.path.join(EXPERIMENTS, d, '1', 'config.json')
-            with open(config_path, 'r') as f:
-                config = json.load(f)
-            # print(i)
-            # print(config['comments'])
-            # print(config['net'])
-            # print(config['task'])
-            # print()
-
-            c = 'g' if 'targetnorm:.5' in config['comments'] else 'r'
-            c = c if 'findLSC' in config['comments'] else 'k'
-            results_path = os.path.join(EXPERIMENTS, d, 'other_outputs', 'results.json')
-            with open(results_path, 'r') as f:
-                results = json.load(f)
-            norms = results['save_norms']
-            keys = list(norms.keys())
-            last_batch = np.unique([k[:8] for k in keys])[-1]
-            keys = [k for k in keys if last_batch in k]
-            keys.sort()
-
-            for k in keys:
-                # print(k)
-
-                if not norms[k] == [-1] and not norms[k] == []:
-                    if not 'dec' in k:
-                        axs[0, 0].scatter(i, norms[k][-1], c=c, marker=net_marker(config['net']))
-                        axs[1, 0].scatter(i, norms[k][-1], c=c, marker=task_marker(config['task']))
-                    else:
-                        axs[0, 1].scatter(i, norms[k][-1], c=c, marker=net_marker(config['net']),
-                                          label=config['net'])
-                        axs[1, 1].scatter(i, norms[k][-1], c=c, marker=task_marker(config['task']),
-                                          label=config['task'])
-
-        except Exception as e:
-            exceptions.append(e)
-
-    print('Exceptions:')
-    for i, e in enumerate(exceptions):
-        print(f'{i}/{len(exceptions)}', e)
-
-    for i, ax in enumerate(axs.reshape(-1)):
-        for pos in ['right', 'left', 'bottom', 'top']:
-            ax.spines[pos].set_visible(False)
-
-    net_elements = [Line2D([0], [0], color='k', lw=2, label=n, linestyle='None', marker=net_marker(n), markersize=5)
-                    for n in nets]
-    task_elements = [Line2D([0], [0], color='k', lw=2, label=t, linestyle='None', marker=task_marker(t), markersize=5)
-                     for t in tasks]
-    axs[0, 1].legend(ncol=3, handles=net_elements, fontsize=10)
-    axs[1, 1].legend(ncol=3, handles=task_elements, fontsize=10)
-
-    plot_filename = f'experiments/manynormsperexps.pdf'
-    fig.savefig(plot_filename, bbox_inches='tight')
-
-    plt.show()

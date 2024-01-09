@@ -24,10 +24,26 @@ python drnn_stability/training_ffns.py
      --comments=##comments##
 ```
 
+ 
+with ```##act##``` in ```['sin', 'relu', 'cos']```,  ```##data##``` in ```['mnist', 'cifar10', 'cifar100']```, 
+ ```##lr##``` in ```[1e-2, 3.16e-3, 1e-3, 3.16e-4, 1e-4, 3.16e-5, 1e-5]```, ```##seed##``` in ```list(range(4))```,
+and ```##comments##``` in ```['findLSC_radius_adabelief_pretrained_onlypretrain']```, and when pretraining has finished successfully,
+run the same hyperparams but this time with 
+```##comments##``` in ```['findLSC_radius_adabelief_onlyloadpretrained', '_adabelief_onlyloadpretrained', 'heinit_adabelief_onlyloadpretrained']```.
 
-with ```##act##``` one in ```['sin', 'relu', 'cos']```,  ```##data##``` one in ```['mnist', 'cifar10', 'cifar100']```, 
- ```##lr##``` one in ```[1e-2, 3.16e-3, 1e-3, 3.16e-4, 1e-4, 3.16e-5, 1e-5]```, ```##seed##``` one in ```list(range(4))```,
-and ```##comments##``` one in ```['findLSC_radius_adabelief_pretrained_onlypretrain']```, and when pretraining has finished successfully,
-you run the same hyperparams but this time with 
-```##comments##``` as one in ```['findLSC_radius_adabelief_onlyloadpretrained', '_adabelief_onlyloadpretrained', 'heinit_adabelief_onlyloadpretrained']```.
+For Figure 3, run 
 
+```
+python drnn_stability/training_rnns.py with
+     stack=##depth## n_neurons=None batch_size=None steps_per_epoch=None lr=None
+     task=##data## net=##net##
+     seed=##seed##
+     comments=##comments##
+```
+
+with ```##depth##``` in ```[2, 5]```, ```##task##``` in ```[wordptb, heidelberg, sl_mnist]```, 
+```##net##``` in ```[LSTM, GRU, rsimplernn, ssimplernn, maLSNN, maLSNNb]```, seed as before
+
+Figure 4
+
+Table 1
