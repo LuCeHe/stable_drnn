@@ -14,7 +14,6 @@ to generate Figure 1 c).
 
 For Figure 2, run as one line
 
-
 ```
 python training_ffns.py
      --depth=30 --width=128 --epochs=50 --steps_per_epoch=-1 --pretrain_epochs=100
@@ -45,12 +44,12 @@ python training_rnns.py with
 with ```##depth##``` in ```[2, 5]```, ```##task##``` in ```[wordptb, heidelberg, sl_mnist]```, 
 ```##net##``` in ```[LSTM, GRU, rsimplernn, ssimplernn, maLSNN, maLSNNb]```, 
 seed as before and for pretraining run with 
-```##comments##``` in ```[allns_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_targetnorm:.5_onlypretrain,
- allns_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_onlypretrain]```,
+```##comments##``` in ```[##x##_findLSC_radius_targetnorm:.5_onlypretrain,
+ ##x##_findLSC_radius_onlypretrain]```,
 and once the pretrained weights are ready, run with 
-```##comments##``` in ```[allns_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_targetnorm:.5_onlyloadpretrained,
- allns_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_findLSC_radius_onlyloadpretrained,
-allns_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained_onlyloadpretrained]```.
+```##comments##``` in ```[##x##_findLSC_radius_targetnorm:.5_onlyloadpretrained,
+ ##x##_findLSC_radius_onlyloadpretrained, ##x##_onlyloadpretrained]``` 
+with ```##x##``` equal to ```allns_embproj_nogradreset_dropout:.3_timerepeat:2_pretrained```.
 
 For Figure 4, run
 
@@ -64,7 +63,7 @@ python training_rnns.py with
 ```
 
 with ```##depth##``` in ```[3, 6]```,
-seed as before and  ```##comments##``` in ```[
+seed as before, and  ```##comments##``` in ```[
 ##y##_##x##, 
 ##y##_findLSC_radius_##x##,
 ##y##_findLSC_radius_targetnorm:.5_##x##,
@@ -83,7 +82,7 @@ python training_rnns.py with
 ```
 
 with ```##depth##``` in ```[3, 6]```,
-seed as before ```##comments##``` in ```[
+seed as before, ```##comments##``` in ```[
 ##y##_##x##, 
 ##y##_findLSC_radius_##x##, 
 ##y##_findLSC_radius_targetnorm:.5_##x##, 
