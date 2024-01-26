@@ -1,3 +1,7 @@
+import sys
+
+sys.path.append('..')
+
 import os, json, argparse, copy
 import numpy as np
 import scipy

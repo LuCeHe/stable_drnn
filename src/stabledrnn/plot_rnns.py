@@ -1,3 +1,7 @@
+import sys
+
+sys.path.append('..')
+
 import os
 
 from pyaromatics.stay_organized.submit_jobs import dict2iter

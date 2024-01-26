@@ -1,3 +1,5 @@
+
+
 import os, shutil, logging, json, copy, time
 import pandas as pd
 
@@ -26,8 +28,17 @@ from pyaromatics.keras_tools.esoteric_tasks.time_task_redirection import Task
 from stablespike.neural_models.full_model import build_model
 from stablespike.config.config import default_config
 
-from stable_drnn.neural_models.recLSC import apply_LSC
-from stable_drnn.neural_models.lruLSC import lruLSC, lruLSCffn
+try:
+    from stable_drnn.neural_models.recLSC import apply_LSC
+    from stable_drnn.neural_models.lruLSC import lruLSC, lruLSCffn
+except:
+    import sys
+
+    sys.path.append('..')
+
+    from stabledrnn.neural_models.recLSC import apply_LSC
+    from stabledrnn.neural_models.lruLSC import lruLSC, lruLSCffn
+
 
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)

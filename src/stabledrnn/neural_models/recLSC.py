@@ -4,7 +4,14 @@ import warnings
 import tensorflow as tf
 import tensorflow_addons as tfa
 
-from stable_drnn.neural_models.normify import get_norms
+try:
+    from stable_drnn.neural_models.normify import get_norms
+except:
+    import sys
+
+    sys.path.append('..')
+    from stabledrnn.neural_models.normify import get_norms
+
 from innocent_explorations.lsc_unused.admin_model_removal import get_pretrained_file
 from lruun.tf.linear_recurrent_unit import ResLRUCell
 from pyaromatics.keras_tools.esoteric_optimizers.AdamW import AdamW as AdamW2

@@ -1,3 +1,7 @@
+import sys
+
+sys.path.append('..')
+
 import argparse, os, time, json, shutil, socket, random, pickle
 import numpy as np
 import matplotlib.pyplot as plt

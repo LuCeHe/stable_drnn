@@ -1,6 +1,10 @@
+import sys
+
+sys.path.append('..')
+
 import tensorflow as tf
 
-from stable_drnn.neural_models.recLSC import load_LSC_model
+# from stable_drnn.neural_models.recLSC import load_LSC_model
 from stablespike.config.config import default_config
 from stablespike.neural_models.full_model import build_model
 
@@ -21,6 +25,32 @@ class PascalRNN(tf.keras.layers.Layer):
         return output, new_state
 
 
+class HelikeRNN(tf.keras.layers.Layer):
+
+    def __init__(self, num_neurons=None, target_norm=1., **kwargs):
+        super().__init__(**kwargs)
+
+        self.init_args = dict(num_neurons=num_neurons, target_norm=target_norm)
+        self.__dict__.update(self.init_args)
+
+        self.state_size = (num_neurons,)
+
+    def build(self, input_shape):
+        n_in = input_shape[-1]
+        n_rec = self.num_neurons
+        self.input_weights = self.add_weight(shape=(n_in, n_rec), initializer='HeUniform', name='input_weights')
+        self.rec_weights = self.add_weight(shape=(n_rec, n_rec), initializer='HeUniform', name='rec_weights')
+
+        self.built = True
+        super().build(input_shape)
+
+    def call(self, inputs, states, **kwargs):
+        output = self.target_norm * inputs @ self.input_weights + self.target_norm * states[0]@ self.rec_weights
+        output = tf.nn.relu(output)
+        new_state = (output,)
+        return output, new_state
+
+
 if __name__ == '__main__':
     import os
     import numpy as np
@@ -29,7 +59,9 @@ if __name__ == '__main__':
     from matplotlib.lines import Line2D
 
     CDIR = os.path.dirname(__file__)
-    EXPSDIR = os.path.abspath(os.path.join(CDIR, '..', 'experiments'))
+    EXPSDIR = os.path.abspath(os.path.join(CDIR, 'experiments'))
+    os.makedirs(EXPSDIR, exist_ok=True)
+
 
 
     def build_pascal_model(L, target_norm=1.):
@@ -43,14 +75,25 @@ if __name__ == '__main__':
         return model
 
 
+
+    def build_helike_model(L, target_norm=1., in_dim=10):
+        input_layer = tf.keras.layers.Input((None, in_dim))
+        x = input_layer
+        for _ in range(L):
+            cell = HelikeRNN(num_neurons=in_dim, target_norm=target_norm)
+            x = tf.keras.layers.RNN(cell, return_sequences=True, return_state=False)(x)
+
+        model = tf.keras.models.Model(input_layer, outputs=x)
+        return model
+
+
     target_norm = .2
-    target_norms = [.5, 1.]
+    target_norms = [.5, .7, 1.]
 
     # nets = ['pascal', 'GRU', ]
-    nets = ['pascal', ]
+    nets = ['pascal', 'helike']
     fig, axs = plt.subplots(len(nets), len(target_norms), figsize=(4, 3), gridspec_kw=dict(wspace=.4, hspace=.5))
 
-    net_name = 'GRU'
     for i, net_name in enumerate(nets):
         if net_name == 'pascal':
             build_model_ = build_pascal_model
@@ -59,6 +102,14 @@ if __name__ == '__main__':
             T = 100
 
             it = 2 * tf.random.normal((batch_size, T, 1))
+        elif net_name == 'helike':
+            build_model_ = build_helike_model
+            L = 10
+            batch_size = 6
+            in_dim = 10
+            T = 100
+
+            it = 2 * tf.random.normal((batch_size, T, in_dim))
 
         else:
             from pyaromatics.keras_tools.esoteric_tasks.time_task_redirection import Task
@@ -119,14 +170,15 @@ if __name__ == '__main__':
                     model = build_model_(L, target_norm=target_norm)
                     output = model(it)
 
-                dy_dx = g.gradient(output, it) if net_name == 'pascal' else g.gradient(output, it[0])
+                dy_dx = g.gradient(output, it) if net_name == 'pascal' or net_name == 'helike' \
+                    else g.gradient(output, it[0])
 
                 # save the output and dy_dx
                 np.savez_compressed(path_data, output=output, dy_dx=dy_dx)
             # load the output and dy_dx
-            data = np.load(path_data)
-            # output, dy_dx, it = data['output'], data['dy_dx'], data['it']
+            data = np.load(path_data, allow_pickle=True)
             output, dy_dx = data['output'], data['dy_dx']
+            print(f'output.shape = {output.shape}, dy_dx.shape = {dy_dx.shape}')
 
             # plot different samples of the output with different reds
             oranges = plt.get_cmap('Oranges')
@@ -163,7 +215,6 @@ if __name__ == '__main__':
             if j == 0:
                 ax.set_ylabel('amplitude')
 
-
             for pos in ['right', 'left', 'bottom', 'top']:
                 ax.spines[pos].set_visible(False)
 
@@ -172,10 +223,10 @@ if __name__ == '__main__':
     # write the names of the nets on the left side and rotated vertically
     for i, net_name in enumerate(nets):
         ax = axs[i, 0]
-        ax.text(-0.65, 0.5, net_name.replace('pascal','PascalRNN'),
+        ax.text(-0.65, 0.5, net_name.replace('pascal', 'PascalRNN'),
                 fontsize=14, transform=ax.transAxes, rotation=90, va='center', ha='center')
 
-    line = plt.Line2D([-.05,.9],[.46,.46], transform=fig.transFigure, color="black", linewidth=.5)
+    line = plt.Line2D([-.05, .9], [.46, .46], transform=fig.transFigure, color="black", linewidth=.5)
     fig.add_artist(line)
 
     legend_elements = [
@@ -189,7 +240,7 @@ if __name__ == '__main__':
     ]
     plt.legend(ncols=2, handles=legend_elements, loc='lower center', bbox_to_anchor=(-0.3, -1.2))
 
-    plot_filename = f'../experiments/pascal.pdf'
+    plot_filename = os.path.join(EXPSDIR, f'pascal.pdf')
     fig.savefig(plot_filename, bbox_inches='tight')
 
     plt.show()

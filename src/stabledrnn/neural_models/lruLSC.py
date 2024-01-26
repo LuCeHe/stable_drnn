@@ -4,7 +4,15 @@ import tensorflow_addons as tfa
 import numpy as np
 from tqdm import tqdm
 
-from stable_drnn.neural_models.normify import get_norms
+
+try:
+    from stable_drnn.neural_models.normify import get_norms
+except:
+    import sys
+
+    sys.path.append('..')
+    from stabledrnn.neural_models.normify import get_norms
+
 from innocent_explorations.lsc_unused.admin_model_removal import get_pretrained_file
 from lruun.tf.linear_recurrent_unit import ResLRUCell, ResLRUFFN
 from pyaromatics.stay_organized.utils import str2val

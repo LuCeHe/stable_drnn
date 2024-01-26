@@ -1,3 +1,7 @@
+import sys
+
+sys.path.append('..')
+
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -10,7 +14,9 @@ bound = lambda l, t: sp.binom(t + l, t)
 
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
-EXPERIMENTS = os.path.join(CDIR, 'experiments')
+
+EXPSDIR = os.path.abspath(os.path.join(CDIR, 'experiments'))
+os.makedirs(EXPSDIR, exist_ok=True)
 
 
 
@@ -70,7 +76,7 @@ def plot_binomial():
         ax.tick_params(axis='both', which='major', labelsize=fontsize * .9)
         ax.yaxis.tick_right()
 
-        pathplot = os.path.join(CDIR, 'experiments', 'subexp.pdf')
+        pathplot = os.path.join(EXPSDIR, 'subexp.pdf')
         fig.savefig(pathplot)
 
         plt.show()

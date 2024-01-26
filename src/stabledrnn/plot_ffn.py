@@ -1,3 +1,7 @@
+import sys
+
+sys.path.append('..')
+
 from pyaromatics.stay_organized.submit_jobs import dict2iter
 from stable_drnn.tools.plot_tools import lsc_colors, lsc_clean_comments, clean_title
 
@@ -12,7 +16,6 @@ from pyaromatics.stay_organized.standardize_strings import shorten_losses
 FILENAME = os.path.realpath(__file__)
 CDIR = os.path.dirname(FILENAME)
 EXPERIMENTS = os.path.join(CDIR, 'experiments')
-EXPERIMENTS = r'D:\work\stable_drnn\experiments'
 
 plot_norms_evol = False
 plot_norms_evol_1 = False

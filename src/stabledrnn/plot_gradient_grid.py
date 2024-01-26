@@ -1,9 +1,13 @@
+import sys, os
+
+sys.path.append('..')
+
+FILENAME = os.path.realpath(__file__)
+CDIR = os.path.dirname(FILENAME)
+EXPSDIR = os.path.abspath(os.path.join(CDIR, 'experiments'))
+os.makedirs(EXPSDIR, exist_ok=True)
+
 import numpy as np
-import matplotlib as mpl
-
-from pyaromatics.stay_organized.mpl_tools import load_plot_settings
-
-# mpl = load_plot_settings(mpl=mpl)
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
@@ -114,7 +118,7 @@ if not onernnffn:
     # make a nice dark blue
     color = (0, 0, 1, .5)
     plt.text(.8, 1.1, r"$J^{T,L}_{t',l}$", fontsize=fontsize, rotation=0, color=color)
-    plot_filename = r'./experiments/grad_grid.pdf'
+    plot_filename = os.path.join(EXPSDIR, 'grad_grid.pdf')
 
 else:
     plt.text(1 + .5 / Nx / 2, 1 - 1 / Ny / 8, 'L', fontsize=fontsize, rotation=0)
@@ -122,8 +126,7 @@ else:
 
     plt.text(1 - 1 / Nx / 10, 1 + .5 / Ny / 2, 'T', fontsize=fontsize, rotation=0)
     plt.text(0 / Nx - 1.3 / Nx / 5, 1 + .5 / Ny / 2, "t=0", fontsize=fontsize, rotation=0)
-    # plt.text(1 / Nx - 1 / Nx / 5, 1 + .5 / Ny / 2, "t' + 1", fontsize=fontsize, rotation=0)
-    plot_filename = r'./experiments/grad_gridvsffn1rnn.pdf'
+    plot_filename = os.path.join(EXPSDIR, 'grad_gridvsffn1rnn.pdf')
 
 plt.axis('off')
 
