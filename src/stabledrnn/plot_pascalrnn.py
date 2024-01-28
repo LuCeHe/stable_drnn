@@ -88,7 +88,7 @@ if __name__ == '__main__':
 
 
     target_norm = .2
-    target_norms = [.5, .7, 1.]
+    target_norms = [.3, .5, .7, 1., 1.2]
 
     # nets = ['pascal', 'GRU', ]
     nets = ['pascal', 'helike']
