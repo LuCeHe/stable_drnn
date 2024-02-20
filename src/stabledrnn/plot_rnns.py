@@ -14,7 +14,14 @@ from pyaromatics.stay_organized.mpl_tools import load_plot_settings
 from pyaromatics.stay_organized.pandardize import experiments_to_pandas, complete_missing_exps
 from pyaromatics.stay_organized.standardize_strings import shorten_losses
 
-from stable_drnn.tools.plot_tools import *
+try:
+    from stable_drnn.tools.plot_tools import *
+except:
+    import sys
+
+    sys.path.append('..')
+
+    from stabledrnn.tools.plot_tools import *
 
 mpl, pd = load_plot_settings(mpl=mpl, pd=pd)
 
@@ -37,7 +44,7 @@ GEXPERIMENTS = [
     r'E:\work\alif_sg\good_experiments\2023-10-10--s5lru',
 ]
 
-expsid = 'als'  # effnet als ffnandcnns s5lru mnl fluctuations decolle
+expsid = 's5lru'  # effnet als ffnandcnns s5lru mnl fluctuations decolle
 h5path = os.path.join(EXPERIMENTS, f'summary_{expsid}.h5')
 
 lsc_epsilon = 0.02  # 0.02
@@ -354,7 +361,6 @@ for cname in ['net', 'task']:
         df[cname] = c
 
 print(list(df.columns))
-
 
 if plot_losses:
     df['comments'] = df['comments'].str.replace('allns_36_embproj_nogradreset_dropout:.3_timerepeat:2_', '')
@@ -1255,7 +1261,6 @@ if plot_bars:
 
     plt.show()
 
-
 if remove_incomplete:
     import shutil
 
@@ -1492,7 +1497,6 @@ if remove_incomplete:
     # print(f'Remove actually {trueallrdfs.shape} of {plotdf.shape}')
     # allrdfs = allrdfs[allrdfs['comments'].str.contains('onlypretrain')]
     # print(f'Remove instead {allrdfs.shape} of {plotdf.shape}')
-
 
     if truely_remove:
         for rdf in [allrdfs]:
@@ -1762,4 +1766,3 @@ if missing_exps:
             # for e in experiments:
             # if e['net'] == ['maLSNN']:
             # print(e)
-
