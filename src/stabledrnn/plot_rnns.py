@@ -37,10 +37,10 @@ CDIR = os.path.dirname(FILENAME)
 EXPERIMENTS = os.path.join(CDIR, 'experiments')
 EXPERIMENTS = r'E:\work\alif_sg\experiments'
 GEXPERIMENTS = [
-    r'E:\work\alif_sg\good_experiments\2023-09-01--rnn-lru-first',
-    r'E:\work\alif_sg\good_experiments\2023-01-20--rnn-v2',
-    r'E:\work\alif_sg\good_experiments\2023-01-20--rnn-v2 - good',
-    r'E:\work\alif_sg\good_experiments\2023-11-01--ptblif',
+    # r'E:\work\alif_sg\good_experiments\2023-09-01--rnn-lru-first',
+    # r'E:\work\alif_sg\good_experiments\2023-01-20--rnn-v2',
+    # r'E:\work\alif_sg\good_experiments\2023-01-20--rnn-v2 - good',
+    # r'E:\work\alif_sg\good_experiments\2023-11-01--ptblif',
     r'E:\work\alif_sg\good_experiments\2023-10-10--s5lru',
 ]
 
