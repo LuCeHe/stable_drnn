@@ -9,8 +9,10 @@ import tensorflow as tf
 from tensorflow.keras.datasets import mnist
 import pandas as pd
 
-EXPSDIR = os.path.join(os.path.dirname(__file__), '..', '..', 'experiments')
+EXPSDIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'experiments'))
 table_path = os.path.join(EXPSDIR, 'covariance_dominance.csv')
+
+print(f'loading data from {table_path}')
 
 get_radiuses = True
 batch_size = 32
@@ -173,19 +175,15 @@ for i, dataset in enumerate(datasets):
     )
 
     if i == 0:
-        ax.set_ylabel('Interaction Magnitude')
-        ax.set_xlabel('Layer')
-    else:
-        ax.set_ylabel('')
         ax.set_xlabel('')
-
-    if not i == len(datasets) - 1:
+        ax.set_ylabel('Interaction Magnitude')
         ax.get_legend().remove()
+
     else:
-        # higher
-        # ax.legend(title='order', loc='upper right')
-        # lower
-        ax.legend(title='order', loc='upper left')
+        ax.set_xlabel('Layer')
+        ax.set_ylabel('')
+        # change exact location legend
+        ax.legend(title='order', loc='upper right', bbox_to_anchor=(1.05, 1.1))
 
     ax.set_title(f'{dataset.upper()}')
 
@@ -198,5 +196,5 @@ for i, dataset in enumerate(datasets):
         spine.set_visible(False)
 
 # save
-fig.savefig(os.path.join(EXPSDIR, 'covariance_dominance.png'), bbox_inches='tight')
+fig.savefig(os.path.join(EXPSDIR, 'covariance_dominance.png'), bbox_inches='tight', dpi=500)
 plt.show()
