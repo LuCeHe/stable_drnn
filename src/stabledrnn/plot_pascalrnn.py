@@ -102,6 +102,7 @@ if __name__ == '__main__':
             T = 100
 
             it = 2 * tf.random.normal((batch_size, T, 1))
+
         elif net_name == 'helike':
             build_model_ = build_helike_model
             L = 10
