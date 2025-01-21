@@ -25,7 +25,7 @@ class PascalRNN(tf.keras.layers.Layer):
         return output, new_state
 
 
-class HelikeRNN(tf.keras.layers.Layer):
+class HeRNN(tf.keras.layers.Layer):
 
     def __init__(self, num_neurons=None, target_norm=1., **kwargs):
         super().__init__(**kwargs)
@@ -47,6 +47,33 @@ class HelikeRNN(tf.keras.layers.Layer):
     def call(self, inputs, states, **kwargs):
         output = self.target_norm * inputs @ self.input_weights + self.target_norm * states[0]@ self.rec_weights
         output = tf.nn.relu(output)
+        new_state = (output,)
+        return output, new_state
+
+
+
+class GlorotRNN(tf.keras.layers.Layer):
+
+    def __init__(self, num_neurons=None, target_norm=1., **kwargs):
+        super().__init__(**kwargs)
+
+        self.init_args = dict(num_neurons=num_neurons, target_norm=target_norm)
+        self.__dict__.update(self.init_args)
+
+        self.state_size = (num_neurons,)
+
+    def build(self, input_shape):
+        n_in = input_shape[-1]
+        n_rec = self.num_neurons
+        self.input_weights = self.add_weight(shape=(n_in, n_rec), initializer='GlorotUniform', name='input_weights')
+        self.rec_weights = self.add_weight(shape=(n_rec, n_rec), initializer='GlorotUniform', name='rec_weights')
+
+        self.built = True
+        super().build(input_shape)
+
+    def call(self, inputs, states, **kwargs):
+        output = self.target_norm * inputs @ self.input_weights + self.target_norm * states[0]@ self.rec_weights
+        # output = tf.nn.relu(output)
         new_state = (output,)
         return output, new_state
 
@@ -80,7 +107,7 @@ if __name__ == '__main__':
         input_layer = tf.keras.layers.Input((None, in_dim))
         x = input_layer
         for _ in range(L):
-            cell = HelikeRNN(num_neurons=in_dim, target_norm=target_norm)
+            cell = HeRNN(num_neurons=in_dim, target_norm=target_norm)
             x = tf.keras.layers.RNN(cell, return_sequences=True, return_state=False)(x)
 
         model = tf.keras.models.Model(input_layer, outputs=x)
